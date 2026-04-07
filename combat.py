@@ -292,7 +292,6 @@ def simulate_combat(char_a: Character, char_b: Character) -> CombatResult:
         FighterState(character=char_b, hp=char_b.hp),
     ]
     distance = float(INITIAL_DISTANCE)
-    end_tick = MAX_TICKS
 
     for tick in range(MAX_TICKS):
 

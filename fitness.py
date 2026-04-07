@@ -134,13 +134,11 @@ def evaluate_detail_n(individual: Individual, sims: int) -> FitnessDetail:
             total_games[i] += 1
             total_games[j] += 1
 
-    # Winrate por personagem
     winrates = [wins[i] / total_games[i] for i in range(n)]
 
-    # Balance error: desvio médio de cada winrate em relação a 0.5
     balance_error = sum(abs(wr - 0.5) for wr in winrates) / n
 
-    # Attribute cost baseado em especialização por personagem.
+    # Attribute cost via especialização por personagem.
     #
     # specialization_i = max(attrs_norm) - min(attrs_norm)  ∈ [0, 1]
     #   - 0.0: todos os atributos idênticos (super-herói ou zero-herói homogêneo)

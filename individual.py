@@ -12,7 +12,7 @@ from __future__ import annotations
 import copy
 import random
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 from archetypes import ARCHETYPE_ORDER, ArchetypeID, ARCHETYPES
 from character import Character
@@ -61,15 +61,6 @@ class Individual:
 
     def __len__(self) -> int:
         return len(self.characters)
-
-    # ── Representação dos genes (para operadores do AG) ───────────────────
-
-    def all_genes(self) -> List[List[float]]:
-        """
-        Retorna genes agrupados por personagem.
-        Estrutura: [ [14 genes do char 0], ..., [14 genes do char 4] ]
-        """
-        return [c.genes() for c in self.characters]
 
     # ── Validação e correção ──────────────────────────────────────────────
 

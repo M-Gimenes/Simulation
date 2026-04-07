@@ -13,7 +13,10 @@
       "Bash(python3 -c \"print\\('ok'\\)\")",
       "Bash(py -c \"print\\('ok'\\)\")",
       "Bash(py3 -c \"print\\('ok'\\)\")",
-      "Bash(py viewer.py rushdown grappler --delay 0)"
+      "Bash(py viewer.py rushdown grappler --delay 0)",
+      "Bash(grep:*)",
+      "Bash(py viewer.py rushdown grappler --delay 0 --no-vs)",
+      "Bash(py:*)"
     ]
   }
 }
