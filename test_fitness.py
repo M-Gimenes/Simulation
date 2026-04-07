@@ -1,0 +1,81 @@
+"""
+Smoke test da função de fitness.
+Rode com: python test_fitness.py
+"""
+
+import sys
+import os
+sys.path.insert(0, os.path.dirname(__file__))
+
+from individual import Individual
+from fitness import evaluate, evaluate_detail, evaluate_population
+from archetypes import ARCHETYPE_ORDER, ARCHETYPES
+
+
+def separator(title: str) -> None:
+    print(f"\n{'─'*60}")
+    print(f"  {title}")
+    print('─'*60)
+
+
+# ── 1. Indivíduo canônico ────────────────────────────────────────────────────
+
+separator("Fitness do indivíduo canônico")
+ind = Individual.from_canonical()
+detail = evaluate_detail(ind)
+
+for i, aid in enumerate(ARCHETYPE_ORDER):
+    name = ARCHETYPES[aid].name
+    print(f"  {name:15s}  winrate={detail.winrates[i]:.1%}")
+
+print(f"\n  balance_error  = {detail.balance_error:.4f}")
+print(f"  attribute_cost = {detail.attribute_cost:.4f}")
+print(f"  fitness        = {detail.fitness:.4f}")
+assert -1.0 < detail.fitness <= 1.0, f"Fitness fora do range: {detail.fitness}"
+print("  ✓ Fitness dentro do range esperado")
+
+
+# ── 2. Cache de fitness ──────────────────────────────────────────────────────
+
+separator("Cache: não reavalia indivíduo já avaliado")
+ind2 = Individual.from_canonical()
+assert not ind2.is_evaluated
+f1 = evaluate(ind2)
+assert ind2.is_evaluated
+f2 = evaluate(ind2)   # deve retornar cached sem recalcular
+assert f1 == f2
+print(f"  ✓ Cache funcionando (fitness={f1:.4f})")
+
+
+# ── 3. Invalidação de fitness ────────────────────────────────────────────────
+
+separator("Invalidação após mutação simulada")
+ind2.invalidate_fitness()
+assert not ind2.is_evaluated
+print("  ✓ Fitness invalidado corretamente")
+
+
+# ── 4. Indivíduo aleatório ───────────────────────────────────────────────────
+
+separator("Fitness de indivíduo aleatório")
+import random
+random.seed(0)
+rand_ind = Individual.random()
+f = evaluate(rand_ind)
+print(f"  fitness = {f:.4f}")
+assert rand_ind.is_evaluated
+print("  ✓ Indivíduo aleatório avaliado sem crash")
+
+
+# ── 5. evaluate_population ──────────────────────────────────────────────────
+
+separator("evaluate_population (5 indivíduos)")
+pop = [Individual.random() for _ in range(5)]
+evaluate_population(pop)
+assert all(ind.is_evaluated for ind in pop)
+fitnesses = [ind.fitness for ind in pop]
+print(f"  Fitnesses: {[f'{f:.3f}' for f in fitnesses]}")
+print("  ✓ Todos os indivíduos avaliados")
+
+
+separator("Todos os testes de fitness passaram ✓")
