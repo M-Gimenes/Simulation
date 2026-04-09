@@ -198,7 +198,7 @@ def _choose_action(
 
     # Estimativas de dano para este tick
     my_dmg   = me_hit    * dmg_me
-    raw_risk = enemy_hit * dmg_en * (1.0 - def_me)
+    raw_risk = enemy_hit
 
     # ATTACK — vale quando a troca líquida é favorável.
     # Se em cooldown, score fortemente negativo: ATTACK nunca deve ser escolhido
@@ -206,7 +206,7 @@ def _choose_action(
     if not me_state.attack_ready:
         score_attack = -1e9
     else:
-        score_attack = me.w_attack * me_hit * (my_dmg - raw_risk)
+        score_attack = me.w_attack * me_hit
 
     # ADVANCE — lucratividade de fechar + agressividade inata.
     # Se já está em range, avançar não tem utilidade — penaliza fortemente.
@@ -219,14 +219,13 @@ def _choose_action(
     elif in_range_me and cornered:
         score_advance = me.w_advance * me.w_aggressiveness * 0.5
     else:
-        closing_net   = dmg_me - dmg_en * (1.0 - def_me)
-        score_advance = me.w_advance * (1.0 - me_hit) * (closing_net + me.w_aggressiveness)
+        score_advance = me.w_advance * (1.0 - me_hit) * (me.w_aggressiveness)
 
     # RETREAT — quão perigosa é a troca atual (inimigo domina → foge)
-    score_retreat = me.w_retreat * enemy_hit * (raw_risk - my_dmg)
+    score_retreat = me.w_retreat * enemy_hit * (1 - me_hit)
 
     # DEFEND — poupança extra do bloqueio ativo (além da defesa passiva)
-    score_defend = me.w_defend * enemy_hit * (raw_risk * 0.8)
+    score_defend = me.w_defend * enemy_hit * (1 - me_hit)
 
     probs = _softmax([score_attack, score_advance, score_retreat, score_defend])
     return _sample(probs)

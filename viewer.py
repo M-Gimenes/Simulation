@@ -4,32 +4,30 @@ Visualizador de combate ASCII — tick a tick.
 Uso:
     py viewer.py                           # matchup aleatório (canônico)
     py viewer.py rushdown grappler         # matchup específico
-    py viewer.py rushdown grappler --delay 0.03
+    py viewer.py rushdown grappler --delay 0.04
     py viewer.py --list                    # lista arquétipos disponíveis
-    py viewer.py --evolved                 # usa resultado da última execução do AG (results.json)
+    py viewer.py --evolved                 # usa resultado da última execução do AG
     py viewer.py --all                     # roda todos os 10 matchups em sequência
+    py viewer.py --no-vs                   # pula a tela de apresentação
 
-Controle durante a luta:
-    Enter  → pausa / continua
-    Ctrl+C → sai
+Ctrl+C → sai a qualquer momento.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
-import math
 import os
 import random
 import re
 import sys
 import time
 from dataclasses import dataclass
+from itertools import combinations
 from typing import List, Optional, Tuple
 
 sys.path.insert(0, os.path.dirname(__file__))
 
-# Força UTF-8 no terminal Windows (necessário para box-drawing e blocos)
 if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 if sys.stderr.encoding and sys.stderr.encoding.lower() != "utf-8":
@@ -41,86 +39,111 @@ from individual import Individual
 from combat import FighterState, Action, _choose_action, _resolve_attack
 from config import FIELD_SIZE, INITIAL_DISTANCE, MAX_TICKS
 
-# ── ANSI ──────────────────────────────────────────────────────────────────────
+
+# ─── ANSI ────────────────────────────────────────────────────────────────────
 
 def _enable_ansi_windows() -> None:
-    """Habilita ANSI no terminal Windows."""
     if sys.platform == "win32":
         import ctypes
-        kernel32 = ctypes.windll.kernel32
-        kernel32.SetConsoleMode(kernel32.GetStdHandle(-11), 7)
+        ctypes.windll.kernel32.SetConsoleMode(
+            ctypes.windll.kernel32.GetStdHandle(-11), 7)
 
 _enable_ansi_windows()
 
-R  = "\033[91m"   # vermelho
-G  = "\033[92m"   # verde
-Y  = "\033[93m"   # amarelo
-B  = "\033[94m"   # azul
-M  = "\033[95m"   # magenta
-C  = "\033[96m"   # ciano
-W  = "\033[97m"   # branco brilhante
-DIM= "\033[2m"    # escurecido
-BD = "\033[1m"    # negrito
-RS = "\033[0m"    # reset
-CL = "\033[2J\033[H"  # clear + cursor ao topo
+R    = "\033[91m";  G    = "\033[92m";  Y    = "\033[93m"
+B    = "\033[94m";  M    = "\033[95m";  C    = "\033[96m"
+W    = "\033[97m";  DIM  = "\033[2m";   BD   = "\033[1m"
+RS   = "\033[0m";   CL   = "\033[2J\033[H";  DARK = "\033[90m"
 
 _ANSI_RE = re.compile(r"\033\[[^m]*m")
 
 def _vlen(s: str) -> int:
-    """Comprimento visível de uma string (sem ANSI)."""
     return len(_ANSI_RE.sub("", s))
 
-def _pad(s: str, width: int) -> str:
-    """Padeia à direita até `width` colunas visíveis."""
-    return s + " " * max(0, width - _vlen(s))
+def _pad(s: str, w: int) -> str:
+    return s + " " * max(0, w - _vlen(s))
 
-# ── Aliases de arquétipo ───────────────────────────────────────────────────────
+def _rpad(s: str, w: int) -> str:
+    return " " * max(0, w - _vlen(s)) + s
+
+def _ctr(s: str, w: int) -> str:
+    v = _vlen(s)
+    left = max(0, (w - v) // 2)
+    return " " * left + s + " " * max(0, w - v - left)
+
+
+# ─── Layout constants ─────────────────────────────────────────────────────────
+
+TW       = 78   # terminal frame width
+ARENA_W  = 70   # arena interior width (between │ │ borders)
+TOK      = 4    # fighter token width: [XX]
+LOG_N    = 8    # entries shown in combat log
+
+
+# ─── Archetype & action palettes ─────────────────────────────────────────────
+
+_ACOLOR = {
+    ArchetypeID.RUSHDOWN:     R,
+    ArchetypeID.ZONER:        C,
+    ArchetypeID.COMBO_MASTER: M,
+    ArchetypeID.GRAPPLER:     Y,
+    ArchetypeID.TURTLE:       G,
+}
+
+_ACT_COLOR = {
+    Action.ATTACK:  R,
+    Action.ADVANCE: Y,
+    Action.RETREAT: B,
+    Action.DEFEND:  G,
+    None:           M,   # stunned
+}
+
+_ACT_ICON = {
+    Action.ATTACK:  "[*]",
+    Action.ADVANCE: "[>]",
+    Action.RETREAT: "[<]",
+    Action.DEFEND:  "[D]",
+    None:           "[~]",
+}
+
+_ACT_NAME = {
+    Action.ATTACK:  "ATAQUE ",
+    Action.ADVANCE: "AVANCA ",
+    Action.RETREAT: "RECUA  ",
+    Action.DEFEND:  "DEFENDE",
+    None:           "STUNNED",
+}
 
 ALIASES = {
-    "zoner":   ArchetypeID.ZONER,
-    "z":       ArchetypeID.ZONER,
-    "rushdown": ArchetypeID.RUSHDOWN,
-    "rd":      ArchetypeID.RUSHDOWN,
-    "combo":   ArchetypeID.COMBO_MASTER,
-    "cm":      ArchetypeID.COMBO_MASTER,
-    "grappler": ArchetypeID.GRAPPLER,
-    "grap":    ArchetypeID.GRAPPLER,
-    "g":       ArchetypeID.GRAPPLER,
-    "turtle":  ArchetypeID.TURTLE,
-    "t":       ArchetypeID.TURTLE,
+    "zoner":    ArchetypeID.ZONER,    "z":    ArchetypeID.ZONER,
+    "rushdown": ArchetypeID.RUSHDOWN, "rd":   ArchetypeID.RUSHDOWN,
+    "combo":    ArchetypeID.COMBO_MASTER, "cm": ArchetypeID.COMBO_MASTER,
+    "grappler": ArchetypeID.GRAPPLER, "grap": ArchetypeID.GRAPPLER, "g": ArchetypeID.GRAPPLER,
+    "turtle":   ArchetypeID.TURTLE,   "t":    ArchetypeID.TURTLE,
 }
 
-# ── Labels de ação ────────────────────────────────────────────────────────────
 
-_ACT_LABEL = {
-    Action.ATTACK:  ("ATTACK  ", R),
-    Action.ADVANCE: ("ADVANCE ", Y),
-    Action.RETREAT: ("RETREAT ", B),
-    Action.DEFEND:  ("DEFEND  ", G),
-    None:           ("STUNNED ", M),
-}
-
-# ── Evento de dano ────────────────────────────────────────────────────────────
+# ─── Damage event ─────────────────────────────────────────────────────────────
 
 @dataclass
 class DamageEvent:
-    tick: int
-    attacker: str
-    defender: str
-    damage: float
-    hp_before: float   # % HP antes
-    hp_after: float    # % HP depois
-    stun: int
-    ko: bool
+    tick:         int
+    attacker_idx: int
+    attacker:     str
+    defender:     str
+    damage:       float
+    hp_before:    float
+    hp_after:     float
+    stun:         int
+    ko:           bool
 
 
-# ── Barra de HP ───────────────────────────────────────────────────────────────
+# ─── HP bar ───────────────────────────────────────────────────────────────────
 
 def _hp_bar(pct: float, width: int = 22) -> str:
     filled = max(0, min(width, round(pct * width)))
-    bar = "█" * filled + "░" * (width - filled)
-    color = G if pct > 0.60 else (Y if pct > 0.30 else R)
-    return f"{color}{bar}{RS}"
+    color  = G if pct > 0.60 else (Y if pct > 0.30 else R)
+    return f"{color}{'█' * filled}{'░' * (width - filled)}{RS}"
 
 
 # ── Campo de batalha ──────────────────────────────────────────────────────────
@@ -177,26 +200,24 @@ def _render(
     actions: List[Optional[int]],
     events: List[DamageEvent],
 ) -> None:
-    names = [f.character.name for f in fighters]
-    TW = 62  # terminal width para o frame
-
     print(CL, end="")
 
     # ── Cabeçalho
     gap = TW - len(names[0]) - len(names[1]) - len(" vs ") - len(f"Tick {tick:04d}/{MAX_TICKS}") - 4
     print(f"{BD}{'═'*TW}{RS}")
-    print(f"{BD}{W} {names[0]}  vs  {names[1]}{RS}{' '*gap}{BD}Tick {tick:04d}/{MAX_TICKS}  {RS}")
-    print(f"{BD}{'═'*TW}{RS}")
-    print()
+    print(f"  {_pad(title, TW - 28)}{prog_s}  {tick_s}")
+    print(f"{BD}{'═'*TW}{RS}\n")
 
-    # ── Barras de HP
+    # ── HP bars ─────────────────────────────────────────────────────────────
     for i, f in enumerate(fighters):
-        pct = f.hp_pct
-        bar = _hp_bar(pct)
-        tag = f"{BD}{W}{f.character.name:<16}{RS}"
-        hp_txt = f"{f.hp:6.1f}/{f.hp_max:.0f}"
-        print(f"  {tag}  {bar}  {pct:5.1%}  {DIM}{hp_txt}{RS}")
-
+        col   = _ACOLOR.get(f.character.archetype.id, W)
+        pct   = f.hp_pct
+        bar   = _hp_bar(pct, 22)
+        name_s = f"{BD}{col}{f.character.name:<15}{RS}"
+        pct_col = G if pct > 0.6 else (Y if pct > 0.3 else R + BD)
+        pct_s  = f"{pct_col}{pct:5.1%}{RS}"
+        hp_s   = f"{DARK}{f.hp:6.1f}/{f.hp_max:.0f}{RS}"
+        print(f"  {name_s}  {bar}  {pct_s}  {hp_s}")
     print()
 
     # ── Campo
@@ -211,76 +232,183 @@ def _render(
     print(f"  {DIM}{'Distância:':>12} {distance:5.1f}   {names[0][:2]}:{pos[0]:5.1f}  {names[1][:2]}:{pos[1]:5.1f}{RS}")
     print()
 
-    # ── Ações lado a lado
-    def _act_str(idx: int) -> str:
-        act = actions[idx]
-        label, color = _ACT_LABEL.get(act, ("???     ", W))
-        f  = fighters[idx]
-        cd = fighters[idx].cooldown_remaining
-        st = fighters[idx].stun_remaining
-        cd_s = f"{DIM}CD:{RS}{Y}{cd}{RS}" if cd > 0 else f"{DIM}CD:{RS}{G}rdy{RS}"
-        st_s = f"{DIM}STN:{RS}{M}{st}{RS}" if st > 0 else f"{DIM}STN:{RS}{DIM}--{RS}"
-        return f"{color}{BD}{label}{RS}  {cd_s}  {st_s}"
+    # ── Action + status panels ───────────────────────────────────────────────
+    def _panel(idx: int) -> str:
+        act  = actions[idx]
+        f    = fighters[idx]
+        col  = _ACT_COLOR.get(act, M)
+        icon = _ACT_ICON.get(act, "[?]")
+        aname= _ACT_NAME.get(act, "???    ")
+        cd   = f.cooldown_remaining
+        st   = f.stun_remaining
+        cd_s = f"{G}{BD}rdy{RS}" if cd == 0 else f"{Y}{cd:2d}t{RS}"
+        st_s = f"{M}{BD}{st:2d}{RS}" if st > 0 else f"{DARK}--{RS}"
+        return f"{col}{BD}{icon} {aname}{RS}  {DARK}CD:{RS}{cd_s}  {DARK}STN:{RS}{st_s}"
 
-    left  = _act_str(0)
-    right = _act_str(1)
-    print(f"  {_pad(left, 38)}{right}")
-    print()
+    half = TW // 2 - 1
+    print(f"  {_pad(_panel(0), half)}  {_panel(1)}")
 
-    # ── Log de combate (últimos 6 eventos)
-    print(f"  {DIM}── Combat Log {'─'*43}{RS}")
-    recent = events[-6:]
-    if not recent:
-        print(f"  {DIM}  (sem trocas de dano ainda…){RS}")
-    for ev in recent:
-        stun_tag = f" {M}[stun×{ev.stun}]{RS}" if ev.stun else ""
-        ko_tag   = f" {R}{BD}[KO!]{RS}"          if ev.ko   else ""
-        atk_col  = R if ev.attacker == names[0] else B
-        dmg_col  = Y
-        print(
-            f"  {DIM}t{ev.tick:04d}{RS}  "
-            f"{atk_col}{ev.attacker:<16}{RS}"
-            f"→  {dmg_col}-{ev.damage:5.1f} HP{RS}  "
-            f"{DIM}{ev.defender}: {ev.hp_before:.0%}→{ev.hp_after:.0%}{RS}"
-            f"{stun_tag}{ko_tag}"
+    # ── Softmax probability breakdown ────────────────────────────────────────
+    def _prob_str(idx: int) -> str:
+        f   = fighters[idx]
+        col = _ACOLOR.get(f.character.archetype.id, W)
+        tag = f.character.name[:2].upper()
+        if f.is_stunned:
+            return f"{M}{BD}{tag}[      STUNNED      ]{RS}"
+        pr = _compute_probs(f, fighters[1 - idx], distance)
+        return _prob_inline(pr, tag, col)
+
+    print(f"  {_pad(_prob_str(0), half)}  {_prob_str(1)}\n")
+
+    # ── Character stats ──────────────────────────────────────────────────────
+    def _stat_row(char: Character, col: str) -> str:
+        wait = round((100.0 - char.cooldown) / 10.0)
+        tag  = char.name[:2].upper()
+        return (
+            f"  {col}{BD}{tag}{RS}"
+            f"  {DARK}dmg{RS}={BD}{char.damage:3.0f}{RS}"
+            f"  {DARK}wait{RS}={BD}{wait}t{RS}"
+            f"  {DARK}spd{RS}={BD}{char.speed:3.0f}{RS}"
+            f"  {DARK}rng{RS}={BD}{char.range_:3.0f}{RS}"
+            f"  {DARK}def{RS}={BD}{char.defense:3.0f}{RS}"
+            f"  {DARK}stun{RS}={BD}{char.stun:3.0f}{RS}"
+            f"  {DARK}rec{RS}={BD}{char.recovery:3.0f}{RS}"
         )
 
-    print(f"  {DIM}{'─'*58}{RS}")
+    print(_stat_row(fighters[0].character, arc_a))
+    print(_stat_row(fighters[1].character, arc_b))
+    print()
+
+    # ── Combat log ───────────────────────────────────────────────────────────
+    print(f"  {DARK}── Combat Log {'─'*38}{RS}")
+    recent = events[-LOG_N:]
+    if not recent:
+        print(f"  {DARK}  (sem dano ainda…){RS}")
+    for ev in recent:
+        atk_col = _ACOLOR.get(fighters[ev.attacker_idx].character.archetype.id, W)
+        stun_s  = f" {M}[stun×{ev.stun}]{RS}" if ev.stun   else ""
+        ko_s    = f" {R}{BD}[ KO! ]{RS}"        if ev.ko    else ""
+        arrow   = "-->>--" if ev.attacker_idx == 0 else "--<<--"
+        hp_col  = R if ev.hp_after < 0.3 else (Y if ev.hp_after < 0.6 else DARK)
+        print(
+            f"  {DARK}t{ev.tick:04d}{RS}  "
+            f"{atk_col}{BD}{ev.attacker:<14}{RS}"
+            f"{DARK}{arrow}{RS}  "
+            f"{R}{BD}-{ev.damage:5.1f}hp{RS}  "
+            f"{DARK}{ev.defender}: {RS}"
+            f"{hp_col}{ev.hp_before:.0%}→{ev.hp_after:.0%}{RS}"
+            f"{stun_s}{ko_s}"
+        )
+    print(f"  {DARK}{'─'*54}{RS}")
 
 
-# ── Tela final ────────────────────────────────────────────────────────────────
+# ─── VS / pre-fight screen ────────────────────────────────────────────────────
+
+def _render_vs(char_a: Character, char_b: Character, delay: float = 1.5) -> None:
+    col_a = _ACOLOR.get(char_a.archetype.id, W)
+    col_b = _ACOLOR.get(char_b.archetype.id, W)
+
+    def _stat_block(char: Character) -> List[str]:
+        wait = round((100.0 - char.cooldown) / 10.0)
+        return [
+            f"HP    = {char.hp:.0f}",
+            f"Dano  = {char.damage:.0f}   Espera = {wait}t",
+            f"Vel   = {char.speed:.0f}   Alcance= {char.range_:.0f}",
+            f"Def   = {char.defense:.0f}   Stun   = {char.stun:.0f}",
+            f"Recup = {char.recovery:.0f}",
+        ]
+
+    print(CL, end="")
+    print(f"\n{BD}{'═'*TW}{RS}")
+    print(_ctr(f"{BD}{W}* * *  BATALHA!  * * *{RS}", TW))
+    print(f"{BD}{'═'*TW}{RS}\n")
+
+    HL = TW // 2 - 3
+    desc_a = char_a.archetype.description[:HL - 4]
+    desc_b = char_b.archetype.description[:HL - 4]
+
+    print(f"  {_ctr(f'{col_a}{BD}{char_a.name}{RS}', HL)}    "
+          f"{_ctr(f'{col_b}{BD}{char_b.name}{RS}', HL)}")
+    print(f"  {'─'*HL}    {'─'*HL}")
+
+    blk_a = _stat_block(char_a)
+    blk_b = _stat_block(char_b)
+    for la, lb in zip(blk_a, blk_b):
+        print(f"  {col_a}{_pad(la, HL)}{RS}    {col_b}{lb}{RS}")
+
+    print(f"\n  {DARK}{desc_a}…{RS}")
+    print(f"  {DARK}{desc_b}…{RS}")
+
+    print(f"\n{BD}{'═'*TW}{RS}")
+    print(_ctr(f"{DARK}a combater em {delay:.1f}s…{RS}", TW))
+    print()
+    time.sleep(delay)
+
+
+# ─── End screen ───────────────────────────────────────────────────────────────
 
 def _render_end(
     winner_idx: int,
-    fighters: List[FighterState],
-    ticks: int,
-    ko: bool,
+    fighters:   List[FighterState],
+    ticks:      int,
+    ko:         bool,
+    events:     List[DamageEvent],
 ) -> None:
-    TW = 62
     print(CL, end="")
+    reason = "K.O.!" if ko else f"TEMPO ESGOTADO ({MAX_TICKS} ticks)"
     print(f"\n{BD}{'═'*TW}{RS}")
-    print(f"{BD}  COMBATE ENCERRADO — {ticks} ticks  {'(KO)' if ko else '(tempo)'}{RS}")
+    print(_ctr(f"{BD}{W}COMBATE ENCERRADO  —  {reason}{RS}", TW))
     print(f"{BD}{'═'*TW}{RS}\n")
 
     for i, f in enumerate(fighters):
-        name  = f.character.name
-        bar   = _hp_bar(f.hp_pct, width=30)
-        if i == winner_idx:
-            tag = f"{G}{BD}★ VENCEDOR{RS}"
-        else:
-            tag = f"{R}  derrota {RS}"
-        print(f"  {BD}{W}{name:<16}{RS}  {bar}  {f.hp_pct:.1%}  {tag}")
+        col  = _ACOLOR.get(f.character.archetype.id, W)
+        bar  = _hp_bar(f.hp_pct, 28)
+        tag  = (f"{G}{BD}  ★ VENCEDOR ★  {RS}"
+                if i == winner_idx else f"{R}    derrota    {RS}")
+        print(f"  {BD}{col}{f.character.name:<15}{RS}  {bar}  {f.hp_pct:.1%}  {tag}")
 
+    print()
+
+    # Combat summary
+    dmg    = [sum(ev.damage for ev in events if ev.attacker_idx == i) for i in range(2)]
+    hits   = [sum(1         for ev in events if ev.attacker_idx == i) for i in range(2)]
+    stuns  = [sum(1 for ev in events if ev.attacker_idx == i and ev.stun > 0) for i in range(2)]
+
+    names = [f.character.name for f in fighters]
+    cols  = [_ACOLOR.get(f.character.archetype.id, W) for f in fighters]
+
+    w = TW - 4
+    print(f"  {DARK}{'─'*w}{RS}")
+    print(f"  {DARK}{'Estatísticas de combate':^{w}}{RS}")
+    print(f"  {DARK}{'─'*w}{RS}")
+    print(f"  {'':20}  {'Hits':>6}  {'Dano total':>12}  {'Stuns':>6}  {'Alcance?':>8}")
+    for i in range(2):
+        in_r = [ev for ev in events if ev.attacker_idx == i and
+                ev.damage > 0]
+        # average damage per hit
+        avg  = (dmg[i] / hits[i]) if hits[i] > 0 else 0.0
+        print(f"  {cols[i]}{BD}{names[i]:<20}{RS}"
+              f"  {hits[i]:>6}"
+              f"  {dmg[i]:>11.1f}"
+              f"  {stuns[i]:>6}"
+              f"  {avg:>7.1f}/hit")
+
+    print(f"\n  {DARK}Duração: {ticks} ticks   "
+          f"Total de golpes: {len(events)}{RS}")
     print(f"\n{BD}{'═'*TW}{RS}\n")
 
 
-# ── Loop de combate (gerador de estados) ──────────────────────────────────────
+# ─── Visual combat loop ────────────────────────────────────────────────────────
 
 def run_combat_visual(
     char_a: Character,
     char_b: Character,
-    delay: float = 0.06,
+    delay:   float = 0.06,
+    show_vs: bool  = True,
 ) -> None:
+    if show_vs:
+        _render_vs(char_a, char_b, delay=max(0.5, delay * 15))
+
     fighters = [
         FighterState(character=char_a, hp=char_a.hp),
         FighterState(character=char_b, hp=char_b.hp),
@@ -304,12 +432,12 @@ def run_combat_visual(
             ko       = True
             break
 
-        # ── Decrementar timers
+        # Phase 1: Decrement timers
         for f in fighters:
-            if f.stun_remaining  > 0: f.stun_remaining  -= 1
+            if f.stun_remaining    > 0: f.stun_remaining    -= 1
             if f.cooldown_remaining > 0: f.cooldown_remaining -= 1
 
-        # ── Escolha de ação
+        # Phase 2: Choose actions
         actions: List[Optional[int]] = []
         for i in range(2):
             if fighters[i].is_stunned:
@@ -332,19 +460,19 @@ def run_combat_visual(
         distance  = abs(pos[1] - pos[0])  # recalcula após movimento
         defending = [a == Action.DEFEND for a in actions]
 
-        for attacker_idx in range(2):
-            if actions[attacker_idx] != Action.ATTACK:
+        for att_idx in range(2):
+            if actions[att_idx] != Action.ATTACK:
                 continue
-            if not fighters[attacker_idx].attack_ready:
+            if not fighters[att_idx].attack_ready:
                 continue
 
             defender_idx  = 1 - attacker_idx
             hp_before_pct = fighters[defender_idx].hp_pct
 
             dmg, stun, kb = _resolve_attack(
-                attacker=fighters[attacker_idx].character,
-                defender_state=fighters[defender_idx],
-                defender_is_defending=defending[defender_idx],
+                attacker=fighters[att_idx].character,
+                defender_state=fighters[def_idx],
+                defender_is_defending=defending[def_idx],
                 distance=distance,
             )
 
@@ -359,13 +487,14 @@ def run_combat_visual(
 
                 events.append(DamageEvent(
                     tick=tick,
-                    attacker=fighters[attacker_idx].character.name,
-                    defender=fighters[defender_idx].character.name,
+                    attacker_idx=att_idx,
+                    attacker=fighters[att_idx].character.name,
+                    defender=fighters[def_idx].character.name,
                     damage=dmg,
-                    hp_before=hp_before_pct,
-                    hp_after=fighters[defender_idx].hp_pct,
+                    hp_before=hp_before,
+                    hp_after=fighters[def_idx].hp_pct,
                     stun=stun,
-                    ko=not fighters[defender_idx].is_alive,
+                    ko=not fighters[def_idx].is_alive,
                 ))
 
             fighters[attacker_idx].cooldown_remaining = round(
@@ -376,7 +505,7 @@ def run_combat_visual(
         _render(tick, fighters, pos, actions, events)
         time.sleep(delay)
 
-    # ── Resultado final
+    # Determine winner
     if not fighters[0].is_alive and not fighters[1].is_alive:
         winner_idx = 0 if fighters[0].hp_pct >= fighters[1].hp_pct else 1
     elif not fighters[0].is_alive:
@@ -386,31 +515,26 @@ def run_combat_visual(
     else:
         winner_idx = 0 if fighters[0].hp_pct >= fighters[1].hp_pct else 1
 
-    _render_end(winner_idx, fighters, end_tick, ko)
+    _render_end(winner_idx, fighters, end_tick, ko, events)
 
 
-# ── Carrega personagem de results.json (gerado por main.py) ──────────────────
+# ─── Load evolved characters ──────────────────────────────────────────────────
 
 def _load_evolved(results_path: str) -> Optional[Individual]:
-    """Lê o melhor indivíduo salvo pelo AG, se existir."""
     if not os.path.exists(results_path):
         return None
     with open(results_path) as fh:
         data = json.load(fh)
-
-    # Espera estrutura: { "best_individual": [ [14 genes], ... ] }
     if "best_individual" not in data:
         return None
-
     ind = Individual.from_canonical()
-    genes_list = data["best_individual"]
-    for char, genes in zip(ind.characters, genes_list):
+    for char, genes in zip(ind.characters, data["best_individual"]):
         char.load_genes(genes)
         char.clip()
     return ind
 
 
-# ── Entry point ───────────────────────────────────────────────────────────────
+# ─── Entry point ─────────────────────────────────────────────────────────────
 
 def main() -> None:
     parser = argparse.ArgumentParser(
@@ -431,6 +555,8 @@ def main() -> None:
                         help="Usa personagens do último AG (results.json)")
     parser.add_argument("--results", default="results.json",
                         help="Caminho para o arquivo de resultados do AG")
+    parser.add_argument("--no-vs",   action="store_true",
+                        help="Pula a tela de apresentação (VS screen)")
     args = parser.parse_args()
 
     if args.list:
@@ -440,7 +566,6 @@ def main() -> None:
         print()
         return
 
-    # ── Fonte dos personagens
     if args.evolved:
         ind = _load_evolved(args.results)
         if ind is None:
@@ -448,29 +573,29 @@ def main() -> None:
             print("Rode py main.py primeiro para gerar os personagens evoluídos.")
             sys.exit(1)
         print(f"{G}Carregando personagens evoluídos de '{args.results}'…{RS}\n")
-        time.sleep(0.5)
+        time.sleep(0.4)
     else:
         ind = Individual.from_canonical()
 
     chars = {c.archetype.id: c for c in ind.characters}
+    show_vs = not args.no_vs
 
-    # ── Modo: todos os matchups
     if args.all:
-        from itertools import combinations
         pairs = list(combinations(list(chars.keys()), 2))
         for id_a, id_b in pairs:
             ca, cb = chars[id_a], chars[id_b]
-            print(f"\n{BD}{W}  ▶  {ca.name}  vs  {cb.name}{RS}\n")
-            time.sleep(1.0)
-            run_combat_visual(ca, cb, delay=args.delay)
-            print(f"\n  {DIM}[Enter para próximo matchup, Ctrl+C para sair]{RS}")
+            try:
+                run_combat_visual(ca, cb, delay=args.delay, show_vs=show_vs)
+            except KeyboardInterrupt:
+                print(f"\n{DIM}Interrompido.{RS}\n")
+                return
+            print(f"\n  {DARK}[Enter para próximo matchup  •  Ctrl+C para sair]{RS}")
             try:
                 input()
             except KeyboardInterrupt:
-                break
+                return
         return
 
-    # ── Modo: matchup específico ou aleatório
     if args.char_a and args.char_b:
         id_a = ALIASES.get(args.char_a.lower())
         id_b = ALIASES.get(args.char_b.lower())
@@ -483,10 +608,10 @@ def main() -> None:
     else:
         id_a, id_b = random.sample(list(chars.keys()), 2)
         print(f"\n{BD}Matchup aleatório: {chars[id_a].name} vs {chars[id_b].name}{RS}\n")
-        time.sleep(1.0)
+        time.sleep(0.8)
 
     try:
-        run_combat_visual(chars[id_a], chars[id_b], delay=args.delay)
+        run_combat_visual(chars[id_a], chars[id_b], delay=args.delay, show_vs=show_vs)
     except KeyboardInterrupt:
         print(f"\n{DIM}Interrompido.{RS}\n")
 

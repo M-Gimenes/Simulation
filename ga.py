@@ -101,6 +101,11 @@ def _log_header(verbose: bool) -> None:
     print(f"{'─'*80}")
 
 
+def _bar(value: float, width: int = 20) -> str:
+    filled = int(value * width)
+    return "█" * filled + "░" * (width - filled)
+
+
 def _log_result(result: GAResult, verbose: bool) -> None:
     if not verbose:
         return
@@ -114,15 +119,13 @@ def _log_result(result: GAResult, verbose: bool) -> None:
     for i, aid in enumerate(ARCHETYPE_ORDER):
         name = ARCHETYPES[aid].name
         wr   = result.best_detail.winrates[i]
-        bar  = "█" * int(wr * 20) + "░" * (20 - int(wr * 20))
-        print(f"    {name:15s} [{bar}] {wr:.1%}")
+        print(f"    {name:15s} [{_bar(wr)}] {wr:.1%}")
     print(f"  Desvio arquetípico (drift do canônico):")
     devs = result.best_detail.archetype_deviations
     for i, aid in enumerate(ARCHETYPE_ORDER):
         name = ARCHETYPES[aid].name
         dev  = devs[i] if i < len(devs) else 0.0
-        bar  = "█" * int(dev * 20) + "░" * (20 - int(dev * 20))
-        print(f"    {name:15s} [{bar}] {dev:.3f}")
+        print(f"    {name:15s} [{_bar(dev)}] {dev:.3f}")
     print(f"{'─'*80}\n")
 
 
@@ -171,7 +174,7 @@ def run(
 
         # Melhor da geração atual (atualiza se necessário)
         current_best = max(population, key=lambda ind: ind.fitness)
-        if current_best is not best_ind or gen == 0:
+        if current_best.fitness != best_detail.fitness or gen == 0:
             best_ind    = current_best
             best_detail = evaluate_detail(best_ind)
             # Sincroniza fitness com a avaliação de detalhe para manter consistência no log
