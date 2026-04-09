@@ -49,7 +49,7 @@ Propor e validar uma forma de medir quantitativamente se arquétipos foram prese
   há sempre uma fase de aproximação. Exceção: Zoner range=45 fica a 5 unidades da distância
   inicial, garantindo vantagem imediata mas não instantânea.
 
-Limites: HP = 300-500; DAMAGE = 10-20; ATTACK SPEED = 1-10; RANGE = 5-20; SPEED = 1-5; DEFENSE = 0-1; STUN = 0-5; KNOCKBACK = 0-10; RECOVERY = 0-1
+Limites: HP = 300-500; DAMAGE = 10-20; ATTACK SPEED = 1-2; RANGE = 5-20; SPEED = 1-5; DEFENSE = 0-1; STUN = 0-5; KNOCKBACK = 0-10; RECOVERY = 0-1
 
 | Classe       | HP | Damage | Cooldown | Range | Speed | Defense | Stun | Knockback | Recovery |
 | ------------ | -- | ------ | -------- | ----- | ----- | ------- | ---- | --------- | -------- |
