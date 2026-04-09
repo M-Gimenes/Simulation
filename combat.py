@@ -31,11 +31,11 @@ from typing import List, Optional, Tuple
 
 from character import Character
 from config import (
+    FIELD_SIZE,
     INITIAL_DISTANCE,
-    MAX_DISTANCE,
     MAX_TICKS,
-    MIN_DISTANCE,
     SCORE_TEMPERATURE,
+    WALL_CORNER_THRESHOLD,
 )
 
 
@@ -146,6 +146,7 @@ def _choose_action(
     me_state: FighterState,
     enemy_state: FighterState,
     distance: float,
+    pos_me: float = 50.0,
 ) -> int:
     """
     Escolhe ação via softmax scoring situacional.
@@ -178,10 +179,11 @@ def _choose_action(
     me    = me_state.character
     enemy = enemy_state.character
 
-    # Dano e defesa normalizados (0–1)
-    dmg_me = me.damage    / 100.0
-    dmg_en = enemy.damage / 100.0
-    def_me = me.defense   / 100.0
+    # Dano normalizado para scoring (÷ max_damage para escala 0–1)
+    # defense já está em 0–1 (escala natural)
+    dmg_me = me.damage    / 20.0
+    dmg_en = enemy.damage / 20.0
+    def_me = me.defense
 
     # Flags de alcance
     in_range_me = 1.0 if distance <= me.range_    else 0.0
@@ -207,10 +209,15 @@ def _choose_action(
         score_attack = me.w_attack * me_hit * (my_dmg - raw_risk)
 
     # ADVANCE — lucratividade de fechar + agressividade inata.
-    # Se já está em range, avançar mais não tem utilidade — penaliza fortemente
-    # para evitar que o personagem desperdice ticks se movendo quando poderia atacar.
-    if in_range_me:
+    # Se já está em range, avançar não tem utilidade — penaliza fortemente.
+    # Exceção: lutador encurralado contra a parede pode usar ADVANCE para crossing
+    # (cruzar para o outro lado do oponente e ganhar espaço de recuo).
+    # O custo é passar pelo inimigo em range — score moderado, não dominante.
+    cornered = pos_me < WALL_CORNER_THRESHOLD or pos_me > FIELD_SIZE - WALL_CORNER_THRESHOLD
+    if in_range_me and not cornered:
         score_advance = -1e9
+    elif in_range_me and cornered:
+        score_advance = me.w_advance * me.w_aggressiveness * 0.5
     else:
         closing_net   = dmg_me - dmg_en * (1.0 - def_me)
         score_advance = me.w_advance * (1.0 - me_hit) * (closing_net + me.w_aggressiveness)
@@ -254,26 +261,22 @@ def _resolve_attack(
     if distance > attacker.range_:
         return 0.0, 0, 0.0
 
-    def_factor = 1.0 - defender_state.character.defense / 100.0
+    def_factor = 1.0 - defender_state.character.defense  # defense já em 0–1
     dmg = attacker.damage * def_factor
     if defender_is_defending:
         dmg *= 0.2
 
     stun_ticks = max(
         0,
-        round(
-            (attacker.stun / 10.0) * (1.0 - defender_state.character.recovery / 100.0)
-        ),
+        round(attacker.stun * (1.0 - defender_state.character.recovery)),
     )
 
-    # Cap de stun: nunca pode exceder o cooldown do próprio atacante.
-    # Garante que o defensor fica livre no mesmo tick em que o atacante pode
-    # atacar de novo — evita loops de stun onde o oponente nunca age.
-    # cooldown alto = ataca rápido → wait_ticks = round((100 - cd) / 10)
-    attacker_cooldown_ticks = round((100.0 - attacker.cooldown) / 10.0)
-    stun_ticks = min(stun_ticks, attacker_cooldown_ticks)
+    # Cap de stun: nunca pode exceder o wait do próprio atacante.
+    # attack_speed em escala natural → wait = round(10 / attack_speed)
+    attacker_wait_ticks = round(10.0 / attacker.attack_speed)
+    stun_ticks = min(stun_ticks, attacker_wait_ticks)
 
-    knockback_units = attacker.knockback / 10.0
+    knockback_units = attacker.knockback  # escala natural: unidades de campo
 
     return dmg, stun_ticks, knockback_units
 
@@ -286,15 +289,26 @@ def _resolve_attack(
 def simulate_combat(char_a: Character, char_b: Character) -> CombatResult:
     """
     Simula um combate tick a tick entre char_a (índice 0) e char_b (índice 1).
+
+    Campo com paredes em 0 e FIELD_SIZE. Cada lutador tem posição absoluta.
+    Crossing automático: quando o avanço ultrapassa o oponente, o lutador
+    aparece do outro lado — a direção de avanço/recuo inverte no tick seguinte.
+    Knockback empurra o defensor na direção correta (para longe do atacante).
     """
     fighters = [
         FighterState(character=char_a, hp=char_a.hp),
         FighterState(character=char_b, hp=char_b.hp),
     ]
-    distance = float(INITIAL_DISTANCE)
+    # Posições absolutas: lutador 0 começa à esquerda, lutador 1 à direita
+    pos = [
+        (FIELD_SIZE - INITIAL_DISTANCE) / 2.0,   # = 25.0
+        (FIELD_SIZE + INITIAL_DISTANCE) / 2.0,   # = 75.0
+    ]
     end_tick = MAX_TICKS
 
     for tick in range(MAX_TICKS):
+
+        distance = abs(pos[1] - pos[0])
 
         # ── Verificação antecipada de KO ──────────────────────────────────
         if not fighters[0].is_alive or not fighters[1].is_alive:
@@ -315,21 +329,27 @@ def simulate_combat(char_a: Character, char_b: Character) -> CombatResult:
             if fighters[i].is_stunned:
                 actions.append(None)
             else:
-                action = _choose_action(fighters[i], fighters[1 - i], distance)
-                actions.append(action)
+                actions.append(_choose_action(fighters[i], fighters[1 - i], distance, pos[i]))
 
         # ── Fase 3: Movimento ─────────────────────────────────────────────
-        delta = 0.0
+        # Cada lutador move sua posição absoluta.
+        # direction = +1 se está à esquerda do oponente (avança para direita)
+        #           = -1 se está à direita (avança para esquerda)
+        # Crossing automático: se o avanço ultrapassar o oponente, pos[i] > pos[1-i]
+        # e a direção se inverte no próximo tick sem lógica especial.
         for i in range(2):
+            if actions[i] not in (Action.ADVANCE, Action.RETREAT):
+                continue
+            speed = fighters[i].character.speed  # escala natural: unidades/tick
+            direction = 1.0 if pos[i] < pos[1 - i] else -1.0
             if actions[i] == Action.ADVANCE:
-                delta -= (fighters[i].character.speed / 100.0) * 5.0
-            elif actions[i] == Action.RETREAT:
-                delta += (fighters[i].character.speed / 100.0) * 5.0
-        distance = max(MIN_DISTANCE, min(MAX_DISTANCE, distance + delta))
+                pos[i] = max(0.0, min(FIELD_SIZE, pos[i] + direction * speed))
+            else:  # RETREAT
+                pos[i] = max(0.0, min(FIELD_SIZE, pos[i] - direction * speed))
 
         # ── Fase 4: Ataques simultâneos ───────────────────────────────────
+        distance = abs(pos[1] - pos[0])  # recalcula após movimento
         defending = [a == Action.DEFEND for a in actions]
-        pending_knockback = 0.0
 
         for attacker_idx in range(2):
             if actions[attacker_idx] != Action.ATTACK:
@@ -351,17 +371,15 @@ def simulate_combat(char_a: Character, char_b: Character) -> CombatResult:
                 if stun > fighters[defender_idx].stun_remaining:
                     fighters[defender_idx].stun_remaining = stun
 
-                pending_knockback += kb
+                # Knockback: empurra o defensor para longe do atacante
+                kb_dir = 1.0 if pos[defender_idx] >= pos[attacker_idx] else -1.0
+                pos[defender_idx] = max(0.0, min(FIELD_SIZE, pos[defender_idx] + kb_dir * kb))
 
-            # Cooldown do atacante — dispara independente de acertar ou não
-            # (o personagem tentou atacar: entra em recovery)
-            # cooldown alto = ataca rápido → wait_ticks = round((100 - cd) / 10)
+            # Wait do atacante — dispara independente de acertar ou não
+            # attack_speed em escala natural → wait = round(10 / attack_speed)
             fighters[attacker_idx].cooldown_remaining = round(
-                (100.0 - fighters[attacker_idx].character.cooldown) / 10.0
+                10.0 / fighters[attacker_idx].character.attack_speed
             )
-
-        if pending_knockback > 0:
-            distance = min(MAX_DISTANCE, distance + pending_knockback)
 
     # ── Condição de vitória ───────────────────────────────────────────────────
 

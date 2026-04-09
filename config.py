@@ -21,18 +21,22 @@ TOURNAMENT_SIZE       = 3
 SIMS_PER_MATCHUP      = 30      # simulações por matchup no round-robin (estabiliza winrate)
 SIMS_CONVERGENCE_CHECK = 50     # sims extras usadas só para confirmar convergência
 
+# ── Paralelismo ──────────────────────────────────────────────────────────────
+
+N_WORKERS = None  # None = todos os núcleos da CPU; 1 = desativa paralelismo
+
 # ── Bounds dos atributos (escala 0–100) ─────────────────────────────────────
 
 ATTRIBUTE_BOUNDS = [
-    (0.0, 1000.0),  # hp      — escala maior: HP >> dano, combates decididos por atrito
-    (0.0, 100.0),   # damage
-    (0.0, 100.0),   # cooldown — alto = ataca rápido (invertido na simulação: wait = (100-cd)/10)
-    (0.0, 100.0),   # range
-    (0.0, 100.0),   # speed
-    (0.0, 100.0),   # defense
-    (0.0, 100.0),   # stun
-    (0.0, 100.0),   # knockback
-    (0.0, 100.0),   # recovery
+    (300.0, 500.0),  # hp            — pontos de vida
+    (10.0,  20.0),   # damage        — dano por hit (unidades de HP)
+    (1.0,   10.0),   # attack_speed  — ataques por 10 ticks; wait = round(10 / attack_speed)
+    (5.0,   20.0),   # range         — alcance em unidades de campo
+    (1.0,    5.0),   # speed         — unidades de campo por tick
+    (0.0,    0.5),   # defense       — redução de dano recebido (0 = nenhuma, 1 = total)
+    (0.0,    5.0),   # stun          — ticks de stun máximo causado (modificado por recovery)
+    (0.0,   10.0),   # knockback     — unidades de campo empurradas por hit
+    (0.0,    0.5),   # recovery      — resistência a stun (0 = nenhuma, 1 = imune)
 ]
 
 WEIGHT_BOUNDS = [
@@ -56,7 +60,7 @@ SCORE_TEMPERATURE = 0.1
 # ── Nomes dos genes (para logging e visualizações) ──────────────────────────
 
 ATTRIBUTE_NAMES = [
-    "hp", "damage", "cooldown", "range",
+    "hp", "damage", "attack_speed", "range",
     "speed", "defense", "stun", "knockback", "recovery",
 ]
 
@@ -70,3 +74,6 @@ FIELD_SIZE       = 100   # unidades
 INITIAL_DISTANCE = 50
 MIN_DISTANCE     = 0
 MAX_DISTANCE     = 100
+
+WALL_CORNER_THRESHOLD = 10  # unidades — distância da parede em que o lutador é
+                             # considerado "encurralado" e pode usar ADVANCE para crossing

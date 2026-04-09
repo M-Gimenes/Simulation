@@ -34,7 +34,7 @@ def main():
         wr   = result.best_detail.winrates[i]
         print(f"  {ARCHETYPES[aid].name}")
         print(f"    WR: {wr:.1%}  |  hp={char.hp:.1f}  dmg={char.damage:.1f}  "
-              f"cd={char.cooldown:.1f}  rng={char.range_:.1f}  spd={char.speed:.1f}")
+              f"as={char.attack_speed:.1f}  rng={char.range_:.1f}  spd={char.speed:.1f}")
         print(f"    def={char.defense:.1f}  stun={char.stun:.1f}  kb={char.knockback:.1f}  rec={char.recovery:.1f}")
         print(f"    w=[atk={char.w_attack:.2f}  adv={char.w_advance:.2f}  ret={char.w_retreat:.2f}  "
               f"def={char.w_defend:.2f}  agg={char.w_aggressiveness:.2f}]")

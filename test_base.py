@@ -41,8 +41,9 @@ print(f"  Genes totais: {len(g.genes())} ({'OK' if len(g.genes()) == 14 else 'ER
 separator("Personagem aleatório (Rushdown)")
 r = Character.random(ARCHETYPES[ArchetypeID.RUSHDOWN])
 print(f"  {r}")
-assert all(0 <= v <= 100 for v in r.attributes), "Atributo fora do bound!"
-assert all(0 <= v <= 1   for v in r.weights),    "Peso fora do bound!"
+from config import ATTRIBUTE_BOUNDS, WEIGHT_BOUNDS
+assert all(lo <= v <= hi for v, (lo, hi) in zip(r.attributes, ATTRIBUTE_BOUNDS)), "Atributo fora do bound!"
+assert all(lo <= v <= hi for v, (lo, hi) in zip(r.weights,    WEIGHT_BOUNDS)),    "Peso fora do bound!"
 print("  ✓ Todos os genes dentro dos bounds")
 
 
@@ -51,9 +52,9 @@ print("  ✓ Todos os genes dentro dos bounds")
 separator("Clone e carga de genes")
 clone = r.clone()
 genes = clone.genes()
-clone.attributes[Attr.HP] = 999          # modifica o clone
-clone.clip()                              # deve voltar para 100
-assert clone.hp == 100.0, f"Clip falhou: {clone.hp}"
+clone.attributes[Attr.HP] = 9999         # modifica o clone
+clone.clip()                              # deve voltar para o bound máximo (500)
+assert clone.hp == 500.0, f"Clip falhou: {clone.hp}"
 assert r.hp != 999, "Clone afetou o original!"
 print("  ✓ Clone isolado + clip funcionando")
 
@@ -82,9 +83,9 @@ print(f"  {rand_ind.summary()}")
 
 separator("Acesso por ArchetypeID")
 turtle = ind.get(ArchetypeID.TURTLE)
-print(f"  Turtle HP={turtle.hp} | Defense={turtle.defense} (esperado HP=900, def=90)")
+print(f"  Turtle HP={turtle.hp} | Defense={turtle.defense} (esperado HP=500, def=0.9)")
 assert turtle.hp       == 500.0
-assert turtle.defense  == 90.0
+assert turtle.defense  == 0.90
 print("  ✓ Acesso por ID correto")
 
 

@@ -34,12 +34,13 @@ Fitness:
 from __future__ import annotations
 
 import math
+from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass, field
 from itertools import combinations
 from typing import List
 
 from combat import simulate_combat
-from config import ATTRIBUTE_BOUNDS, LAMBDA, LAMBDA_DRIFT, SIMS_PER_MATCHUP
+from config import ATTRIBUTE_BOUNDS, LAMBDA, LAMBDA_DRIFT, N_WORKERS, SIMS_PER_MATCHUP
 from individual import Individual
 
 # Máximos por atributo para normalização — escala de cada gene para [0, 1].
@@ -180,7 +181,29 @@ def evaluate_detail_n(individual: Individual, sims: int) -> FitnessDetail:
 # Avaliação em lote (população inteira)
 # ─────────────────────────────────────────────────────────────────────────────
 
+def _eval_worker(ind: Individual) -> float:
+    """Worker para avaliação paralela — roda em processo separado."""
+    return evaluate_detail(ind).fitness
+
+
 def evaluate_population(population: List[Individual]) -> None:
-    """Avalia todos os indivíduos não avaliados da população."""
-    for ind in population:
-        evaluate(ind)
+    """
+    Avalia todos os indivíduos não avaliados da população.
+
+    Com N_WORKERS != 1, usa ProcessPoolExecutor para avaliar em paralelo,
+    aproveitando todos os núcleos da CPU (speedup ~= número de núcleos).
+    """
+    unevaluated = [ind for ind in population if not ind.is_evaluated]
+    if not unevaluated:
+        return
+
+    if N_WORKERS == 1 or len(unevaluated) == 1:
+        for ind in unevaluated:
+            evaluate(ind)
+        return
+
+    with ProcessPoolExecutor(max_workers=N_WORKERS) as executor:
+        fitnesses = list(executor.map(_eval_worker, unevaluated))
+
+    for ind, fit in zip(unevaluated, fitnesses):
+        ind.fitness = fit

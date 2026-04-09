@@ -13,7 +13,9 @@
       "Bash(python3 -c \"print\\('ok'\\)\")",
       "Bash(py -c \"print\\('ok'\\)\")",
       "Bash(py3 -c \"print\\('ok'\\)\")",
-      "Bash(py viewer.py rushdown grappler --delay 0)"
+      "Bash(py viewer.py rushdown grappler --delay 0)",
+      "Bash(PYTHONIOENCODING=utf-8 py test_base.py)",
+      "Bash(PYTHONIOENCODING=utf-8 py test_combat.py)"
     ]
   }
 }

@@ -25,15 +25,15 @@ from config import ATTRIBUTE_BOUNDS, WEIGHT_BOUNDS
 # ─────────────────────────────────────────────────────────────────────────────
 
 class Attr:
-    HP         = 0
-    DAMAGE     = 1
-    COOLDOWN   = 2
-    RANGE      = 3
-    SPEED      = 4
-    DEFENSE    = 5
-    STUN       = 6
-    KNOCKBACK  = 7
-    RECOVERY   = 8
+    HP           = 0
+    DAMAGE       = 1
+    ATTACK_SPEED = 2
+    RANGE        = 3
+    SPEED        = 4
+    DEFENSE      = 5
+    STUN         = 6
+    KNOCKBACK    = 7
+    RECOVERY     = 8
 
 class WIdx:
     ATTACK        = 0
@@ -67,7 +67,7 @@ class Character:
     @property
     def damage(self)     -> float: return self.attributes[Attr.DAMAGE]
     @property
-    def cooldown(self)   -> float: return self.attributes[Attr.COOLDOWN]
+    def attack_speed(self) -> float: return self.attributes[Attr.ATTACK_SPEED]
     @property
     def range_(self)     -> float: return self.attributes[Attr.RANGE]
     @property
@@ -152,7 +152,7 @@ class Character:
         attrs = ", ".join(
             f"{n}={v:.1f}"
             for n, v in zip(
-                ["hp","dmg","cd","rng","spd","def","stun","kb","rec"],
+                ["hp","dmg","as","rng","spd","def","stun","kb","rec"],
                 self.attributes,
             )
         )

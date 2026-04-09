@@ -44,7 +44,7 @@ for aid_a, aid_b in combinations(archetype_ids, 2):
     char_b = Character.from_archetype(ARCHETYPES[aid_b])
 
     wins_a = 0
-    n = 10
+    n = 100
     for _ in range(n):
         r = simulate_combat(char_a, char_b)
         if r.winner == 0:

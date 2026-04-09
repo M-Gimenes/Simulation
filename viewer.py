@@ -39,7 +39,7 @@ from archetypes import ARCHETYPES, ArchetypeID, ARCHETYPE_ORDER
 from character import Character
 from individual import Individual
 from combat import FighterState, Action, _choose_action, _resolve_attack
-from config import INITIAL_DISTANCE, MAX_DISTANCE, MAX_TICKS, MIN_DISTANCE
+from config import FIELD_SIZE, INITIAL_DISTANCE, MAX_TICKS
 
 # ── ANSI ──────────────────────────────────────────────────────────────────────
 
@@ -127,40 +127,43 @@ def _hp_bar(pct: float, width: int = 22) -> str:
 
 _FIELD_W = 54   # largura interna (sem bordas)
 
-def _field_line(distance: float, tag_a: str, tag_b: str) -> str:
+def _field_line(pos_a: float, pos_b: float, tag_a: str, tag_b: str) -> str:
     """
-    Linha do campo com ambos os lutadores se movendo a partir do centro.
-    A posição de cada um é: centro ± distance/2, mapeado para os _FIELD_W chars.
-    Quando avançam juntos, os dois convergem para o meio do campo.
+    Linha do campo mostrando as posições absolutas de cada lutador.
+    Paredes nas extremidades. Crossing visível quando pos_a > pos_b.
     """
-    w      = _FIELD_W
-    center = w // 2
-    half   = distance / MAX_DISTANCE * w / 2
+    w     = _FIELD_W
+    tag_w = 4  # "[XX]" ocupa 4 colunas
 
-    a_pos = max(0,     min(center - 2, round(center - half)))
-    b_pos = max(center + 2, min(w - 4, round(center + half)))
+    def to_col(p: float) -> int:
+        return max(0, min(w - tag_w, round(p / FIELD_SIZE * (w - tag_w))))
+
+    a_col = to_col(pos_a)
+    b_col = to_col(pos_b)
 
     cells = [" "] * w
 
-    # Marcador A
-    ta = (tag_a[:2]).upper()
-    cells[a_pos]     = "["
-    cells[a_pos + 1] = ta[0]
-    cells[a_pos + 2] = ta[1] if len(ta) > 1 else " "
-    cells[a_pos + 3] = "]"
-
-    # Linha tracejada entre eles
-    for x in range(a_pos + 4, b_pos - 1):
-        if (x - a_pos) % 4 == 0:
+    # Linha tracejada entre os dois (da esquerda para a direita)
+    lo = min(a_col, b_col) + tag_w
+    hi = max(a_col, b_col)
+    for x in range(lo, hi):
+        if (x - lo) % 4 == 0:
             cells[x] = "·"
 
-    # Marcador B
+    # Marcador B (desenhado primeiro para A ficar por cima se sobrepuser)
     tb = (tag_b[:2]).upper()
-    if b_pos + 3 < w:
-        cells[b_pos]     = "["
-        cells[b_pos + 1] = tb[0]
-        cells[b_pos + 2] = tb[1] if len(tb) > 1 else " "
-        cells[b_pos + 3] = "]"
+    if b_col + tag_w <= w:
+        cells[b_col]     = "["
+        cells[b_col + 1] = tb[0]
+        cells[b_col + 2] = tb[1] if len(tb) > 1 else " "
+        cells[b_col + 3] = "]"
+
+    # Marcador A
+    ta = (tag_a[:2]).upper()
+    cells[a_col]     = "["
+    cells[a_col + 1] = ta[0]
+    cells[a_col + 2] = ta[1] if len(ta) > 1 else " "
+    cells[a_col + 3] = "]"
 
     return "│" + "".join(cells) + "│"
 
@@ -170,7 +173,7 @@ def _field_line(distance: float, tag_a: str, tag_b: str) -> str:
 def _render(
     tick: int,
     fighters: List[FighterState],
-    distance: float,
+    pos: List[float],
     actions: List[Optional[int]],
     events: List[DamageEvent],
 ) -> None:
@@ -180,9 +183,7 @@ def _render(
     print(CL, end="")
 
     # ── Cabeçalho
-    header = f" {BD}{W}{names[0]}  vs  {names[1]}{RS}"
-    tick_s = f"{BD}Tick {tick:04d}/{MAX_TICKS}{RS}"
-    gap    = TW - len(names[0]) - len(names[1]) - len(" vs ") - len(f"Tick {tick:04d}/{MAX_TICKS}") - 4
+    gap = TW - len(names[0]) - len(names[1]) - len(" vs ") - len(f"Tick {tick:04d}/{MAX_TICKS}") - 4
     print(f"{BD}{'═'*TW}{RS}")
     print(f"{BD}{W} {names[0]}  vs  {names[1]}{RS}{' '*gap}{BD}Tick {tick:04d}/{MAX_TICKS}  {RS}")
     print(f"{BD}{'═'*TW}{RS}")
@@ -199,14 +200,15 @@ def _render(
     print()
 
     # ── Campo
+    distance = abs(pos[1] - pos[0])
     border = "─" * (_FIELD_W + 2)
     tag_a = names[0][:2].upper()
     tag_b = names[1][:2].upper()
-    fline = _field_line(distance, tag_a, tag_b)
+    fline = _field_line(pos[0], pos[1], tag_a, tag_b)
     print(f"  ┌{border}┐")
     print(f"  {fline}")
     print(f"  └{border}┘")
-    print(f"  {DIM}{'Distância:':>12} {distance:5.1f} unidades{RS}")
+    print(f"  {DIM}{'Distância:':>12} {distance:5.1f}   {names[0][:2]}:{pos[0]:5.1f}  {names[1][:2]}:{pos[1]:5.1f}{RS}")
     print()
 
     # ── Ações lado a lado
@@ -283,13 +285,18 @@ def run_combat_visual(
         FighterState(character=char_a, hp=char_a.hp),
         FighterState(character=char_b, hp=char_b.hp),
     ]
-    distance   = float(INITIAL_DISTANCE)
+    pos = [
+        (FIELD_SIZE - INITIAL_DISTANCE) / 2.0,   # = 25.0
+        (FIELD_SIZE + INITIAL_DISTANCE) / 2.0,   # = 75.0
+    ]
     events: List[DamageEvent] = []
     end_tick   = MAX_TICKS
     ko         = False
     winner_idx = 0
 
     for tick in range(MAX_TICKS):
+
+        distance = abs(pos[1] - pos[0])
 
         # ── KO antecipado
         if not fighters[0].is_alive or not fighters[1].is_alive:
@@ -308,20 +315,22 @@ def run_combat_visual(
             if fighters[i].is_stunned:
                 actions.append(None)
             else:
-                actions.append(_choose_action(fighters[i], fighters[1 - i], distance))
+                actions.append(_choose_action(fighters[i], fighters[1 - i], distance, pos[i]))
 
         # ── Movimento
-        delta = 0.0
         for i in range(2):
+            if actions[i] not in (Action.ADVANCE, Action.RETREAT):
+                continue
+            speed = fighters[i].character.speed  # escala natural: unidades/tick
+            direction = 1.0 if pos[i] < pos[1 - i] else -1.0
             if actions[i] == Action.ADVANCE:
-                delta -= (fighters[i].character.speed / 100.0) * 5.0
-            elif actions[i] == Action.RETREAT:
-                delta += (fighters[i].character.speed / 100.0) * 5.0
-        distance = max(MIN_DISTANCE, min(MAX_DISTANCE, distance + delta))
+                pos[i] = max(0.0, min(FIELD_SIZE, pos[i] + direction * speed))
+            else:  # RETREAT
+                pos[i] = max(0.0, min(FIELD_SIZE, pos[i] - direction * speed))
 
         # ── Ataques
-        defending        = [a == Action.DEFEND for a in actions]
-        pending_knockback = 0.0
+        distance  = abs(pos[1] - pos[0])  # recalcula após movimento
+        defending = [a == Action.DEFEND for a in actions]
 
         for attacker_idx in range(2):
             if actions[attacker_idx] != Action.ATTACK:
@@ -329,8 +338,8 @@ def run_combat_visual(
             if not fighters[attacker_idx].attack_ready:
                 continue
 
-            defender_idx   = 1 - attacker_idx
-            hp_before_pct  = fighters[defender_idx].hp_pct
+            defender_idx  = 1 - attacker_idx
+            hp_before_pct = fighters[defender_idx].hp_pct
 
             dmg, stun, kb = _resolve_attack(
                 attacker=fighters[attacker_idx].character,
@@ -343,7 +352,10 @@ def run_combat_visual(
                 fighters[defender_idx].hp = max(0.0, fighters[defender_idx].hp - dmg)
                 if stun > fighters[defender_idx].stun_remaining:
                     fighters[defender_idx].stun_remaining = stun
-                pending_knockback += kb
+
+                # Knockback direcional
+                kb_dir = 1.0 if pos[defender_idx] >= pos[attacker_idx] else -1.0
+                pos[defender_idx] = max(0.0, min(FIELD_SIZE, pos[defender_idx] + kb_dir * kb))
 
                 events.append(DamageEvent(
                     tick=tick,
@@ -356,16 +368,12 @@ def run_combat_visual(
                     ko=not fighters[defender_idx].is_alive,
                 ))
 
-            # Cooldown do atacante (disparou ou tentou atacar)
             fighters[attacker_idx].cooldown_remaining = round(
-                (100.0 - fighters[attacker_idx].character.cooldown) / 10.0
+                10.0 / fighters[attacker_idx].character.attack_speed
             )
 
-        if pending_knockback > 0:
-            distance = min(MAX_DISTANCE, distance + pending_knockback)
-
         # ── Render deste tick
-        _render(tick, fighters, distance, actions, events)
+        _render(tick, fighters, pos, actions, events)
         time.sleep(delay)
 
     # ── Resultado final

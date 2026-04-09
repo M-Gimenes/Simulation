@@ -11,7 +11,8 @@ Ciclo de vantagens fechado:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+import dataclasses
+from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Dict, List, Tuple
 
@@ -24,23 +25,49 @@ class ArchetypeID(Enum):
     TURTLE = auto()
 
 
+# ── Conjuntos de valores iniciais ────────────────────────────────────────────
+
+@dataclass(frozen=True)
+class AttributeSet:
+    hp:           float
+    damage:       float
+    attack_speed: float
+    range_:       float
+    speed:        float
+    defense:      float
+    stun:         float
+    knockback:    float
+    recovery:     float
+
+    def __iter__(self):
+        return iter(dataclasses.astuple(self))
+
+
+@dataclass(frozen=True)
+class WeightSet:
+    w_attack:         float
+    w_advance:        float
+    w_retreat:        float
+    w_defend:         float
+    w_aggressiveness: float
+
+    def __iter__(self):
+        return iter(dataclasses.astuple(self))
+
+
+# ── Definição de arquétipo ───────────────────────────────────────────────────
+
 @dataclass(frozen=True)
 class ArchetypeDefinition:
     """Metadados imutáveis de um arquétipo."""
 
-    id: ArchetypeID
-    name: str
+    id:          ArchetypeID
+    name:        str
     description: str
 
-    # Valores iniciais dos atributos (escala 0–100)
-    # Ordem: hp, damage, cooldown, range, speed, defense, stun, knockback, recovery
-    initial_attributes: Tuple[float, ...]
+    initial_attributes: AttributeSet
+    initial_weights:    WeightSet
 
-    # Pesos comportamentais iniciais
-    # Ordem: w_attack, w_advance, w_retreat, w_defend, w_aggressiveness
-    initial_weights: Tuple[float, ...]
-
-    # Quais arquétipos este vence (para validação do ciclo)
     beats: Tuple[ArchetypeID, ...]
 
 
@@ -51,17 +78,18 @@ ARCHETYPES: Dict[ArchetypeID, ArchetypeDefinition] = {
         id=ArchetypeID.ZONER,
         name="Zoner",
         description=(
-            "Controla espaço com alcance superior e knockback alto. "
+            "Controla espaço com alcance máximo e knockback alto. "
             "Ataca antes do inimigo chegar e o empurra para fora de range. "
-            "Sofre contra quem fecha distância rápido ou resiste ao stun."
+            "Sofre contra quem fecha distância rápido."
         ),
-        #                 hp     dmg   cd   rng  spd   def  stun  kb   rec
-        # Identidade: range alto (45), knockback moderado (30 → 3 unidades),
-        # HP baixo. cooldown=70 → wait=3 → ataca a cada 4 ticks.
-        # kb=30 (3 unidades): empurra inimigos mas não impede RD de fechar distância.
-        initial_attributes=(300.0, 10.0, 70.0, 45.0, 35.0, 25.0, 20.0, 30.0, 40.0),
-        #                    atk   adv   ret   def   agg
-        initial_weights=(0.7, 0.3, 0.5, 0.2, 0.4),
+        initial_attributes=AttributeSet(
+            hp=300.0, damage=12.0, attack_speed=3.5, range_=20.0,
+            speed=2.0, defense=0.10, stun=1.0, knockback=7.0, recovery=0.35,
+        ),
+        initial_weights=WeightSet(
+            w_attack=0.7, w_advance=0.3, w_retreat=0.6,
+            w_defend=0.2, w_aggressiveness=0.3,
+        ),
         beats=(ArchetypeID.GRAPPLER, ArchetypeID.TURTLE),
     ),
     ArchetypeID.RUSHDOWN: ArchetypeDefinition(
@@ -69,50 +97,52 @@ ARCHETYPES: Dict[ArchetypeID, ArchetypeDefinition] = {
         name="Rushdown",
         description=(
             "Fecha distância em segundos e sufoca com ataques rápidos. "
-            "Se ferra contra defesa sólida e personagens que absorvem pressão."
+            "Se ferra contra alta defesa e personagens que absorvem pressão."
         ),
-        #                 hp     dmg   cd   rng  spd   def  stun  kb   rec
-        # Identidade: speed máximo (90), cooldown alto (90 → wait=1 → ataca a
-        # cada 2 ticks), range curto (20 — deve chegar perto).
-        initial_attributes=(300.0, 11.0, 90.0, 20.0, 90.0, 30.0, 35.0, 20.0, 25.0),
-        #                    atk   adv   ret   def   agg
-        initial_weights=(0.8, 0.9, 0.1, 0.1, 0.9),
+        initial_attributes=AttributeSet(
+            hp=320.0, damage=11.0, attack_speed=10.0, range_=10.0,
+            speed=5.0, defense=0.20, stun=2.0, knockback=1.0, recovery=0.20,
+        ),
+        initial_weights=WeightSet(
+            w_attack=0.8, w_advance=0.9, w_retreat=0.1,
+            w_defend=0.1, w_aggressiveness=0.9,
+        ),
         beats=(ArchetypeID.ZONER, ArchetypeID.COMBO_MASTER),
     ),
     ArchetypeID.COMBO_MASTER: ArchetypeDefinition(
         id=ArchetypeID.COMBO_MASTER,
         name="Combo Master",
         description=(
-            "Alta velocidade fecha distância, stun extremo encadeia combos. "
+            "Velocidade alta fecha distância, stun extremo encadeia combos. "
             "Neutraliza tanques e zoners com lockdown. "
-            "Perde para pressão antes de poder configurar os combos."
+            "Perde para pressão antes de configurar os combos."
         ),
-        #                 hp     dmg   cd   rng  spd   def  stun  kb   rec
-        # Identidade: stun máximo (80), speed alto (85), cooldown alto (85 →
-        # wait=2 → ataca a cada 3 ticks). Cap de stun = 2 → trava oponente
-        # 2 de 3 ticks. Dano=12: penetra moderadamente defesas altas.
-        initial_attributes=(300.0, 12.0, 85.0, 20.0, 85.0, 35.0, 80.0, 20.0, 65.0),
-        #                    atk   adv   ret   def   agg
-        initial_weights=(0.9, 0.7, 0.2, 0.2, 0.7),
+        initial_attributes=AttributeSet(
+            hp=310.0, damage=13.0, attack_speed=5.0, range_=10.0,
+            speed=4.5, defense=0.25, stun=5.0, knockback=0.5, recovery=0.25,
+        ),
+        initial_weights=WeightSet(
+            w_attack=0.9, w_advance=0.7, w_retreat=0.2,
+            w_defend=0.2, w_aggressiveness=0.7,
+        ),
         beats=(ArchetypeID.TURTLE, ArchetypeID.ZONER),
     ),
     ArchetypeID.GRAPPLER: ArchetypeDefinition(
         id=ArchetypeID.GRAPPLER,
         name="Grappler",
         description=(
-            "Tank que pune corpo a corpo com burst pesado e stun. "
-            "Alta recuperação resiste aos combos adversários. "
+            "Tank que pune corpo a corpo com burst máximo. "
+            "Recuperação alta resiste aos combos adversários. "
             "Sofre contra distância — range mínimo exige encosto total."
         ),
-        #                 hp     dmg   cd   rng  spd   def  stun  kb   rec
-        # Identidade: HP alto (450), damage máximo (15), defense=65,
-        # recovery=85 (resiste stuns), range mínimo (15).
-        # cooldown=30 → wait = round((100-30)/10) = 7 → ataque pesado e lento.
-        # kb=10 (1 unidade): knockback simbólico — não empurra inimigo para fora
-        # do melee range, mantendo Grappler no corpo a corpo após cada hit.
-        initial_attributes=(450.0, 15.0, 30.0, 15.0, 30.0, 65.0, 55.0, 10.0, 85.0),
-        #                    atk   adv   ret   def   agg
-        initial_weights=(0.9, 0.7, 0.1, 0.5, 0.8),
+        initial_attributes=AttributeSet(
+            hp=450.0, damage=20.0, attack_speed=1.4, range_=8.0,
+            speed=1.5, defense=0.35, stun=3.0, knockback=0.5, recovery=0.4,
+        ),
+        initial_weights=WeightSet(
+            w_attack=0.9, w_advance=0.8, w_retreat=0.1,
+            w_defend=0.5, w_aggressiveness=0.8,
+        ),
         beats=(ArchetypeID.COMBO_MASTER, ArchetypeID.RUSHDOWN),
     ),
     ArchetypeID.TURTLE: ArchetypeDefinition(
@@ -120,16 +150,17 @@ ARCHETYPES: Dict[ArchetypeID, ArchetypeDefinition] = {
         name="Turtle",
         description=(
             "Muralha viva — absorve tudo e contra-ataca com paciência. "
-            "Derrota agressivos pela atrito. "
-            "Perde para quem não se expõe ou quebra a defesa com stun."
+            "Derrota agressivos pelo atrito de HP%. "
+            "Perde para quem quebra a defesa com stun."
         ),
-        #                 hp      dmg   cd   rng  spd   def  stun  kb   rec
-        # Identidade: HP máximo (500), defense máxima (90), recovery alto (80).
-        # Damage baixo (6) — vence pelo atrito de HP%, não pelo burst.
-        # cooldown=35 → wait = round((100-35)/10) = 6 → ataca a cada 7 ticks.
-        initial_attributes=(500.0,  6.0, 35.0, 35.0, 25.0, 90.0, 25.0, 30.0, 80.0),
-        #                    atk   adv   ret   def   agg
-        initial_weights=(0.3, 0.2, 0.6, 0.5, 0.1),
+        initial_attributes=AttributeSet(
+            hp=500.0, damage=10.0, attack_speed=1.7, range_=15.0,
+            speed=1.0, defense=0.50, stun=1.5, knockback=3.0, recovery=0.50,
+        ),
+        initial_weights=WeightSet(
+            w_attack=0.4, w_advance=0.3, w_retreat=0.5,
+            w_defend=0.7, w_aggressiveness=0.2,
+        ),
         beats=(ArchetypeID.RUSHDOWN, ArchetypeID.GRAPPLER),
     ),
 }

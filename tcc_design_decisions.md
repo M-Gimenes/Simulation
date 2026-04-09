@@ -1,4 +1,5 @@
 # TCC — Decisões de Design
+
 **Aplicação de Algoritmos Genéticos para o Balanceamento de Personagens em Jogos Competitivos Digitais**
 Matheus Gimenes de Souza — Bacharelado em Sistemas de Informação — Ifes Campus Cachoeiro de Itapemirim
 
@@ -18,13 +19,13 @@ Propor e validar uma forma de medir quantitativamente se arquétipos foram prese
 
 ### Ciclo de vantagens fechado — cada arquétipo vence 2 e perde para 2
 
-| Arquétipo | Vence |
-|---|---|
-| Grappler | Combo Master e Rushdown |
-| Combo Master | Turtle e Zoner |
-| Zoner | Grappler e Turtle |
-| Turtle | Rushdown e Grappler |
-| Rushdown | Zoner e Combo Master |
+| Arquétipo   | Vence                   |
+| ------------ | ----------------------- |
+| Grappler     | Combo Master e Rushdown |
+| Combo Master | Turtle e Zoner          |
+| Zoner        | Grappler e Turtle       |
+| Turtle       | Rushdown e Grappler     |
+| Rushdown     | Zoner e Combo Master    |
 
 ### Justificativas
 
@@ -39,6 +40,7 @@ Propor e validar uma forma de medir quantitativamente se arquétipos foram prese
 ## Atributos dos Personagens (escala 0–100)
 
 ### Princípios de calibração
+
 - **Regra dos 5 hits**: o golpe mais forte (Grappler, dmg=15) contra o defensor mais fraco
   (Combo Master, HP=60, def=35%) resulta em 15×0.65=9.75 de dano por hit → mínimo 6 hits para matar.
   Nenhum 1-shot ou 2-shot possível nos valores canônicos.
@@ -47,23 +49,25 @@ Propor e validar uma forma de medir quantitativamente se arquétipos foram prese
   há sempre uma fase de aproximação. Exceção: Zoner range=45 fica a 5 unidades da distância
   inicial, garantindo vantagem imediata mas não instantânea.
 
-| Classe | HP | Damage | Cooldown | Range | Speed | Defense | Stun | Knockback | Recovery |
-|---|---|---|---|---|---|---|---|---|---|
-| Zoner | 60 | 10 | 30 | 45 | 35 | 25 | 20 | 55 | 40 |
-| Rushdown | 65 | 10 | 10 | 20 | 90 | 30 | 35 | 20 | 25 |
-| Combo Master | 60 | 12 | 15 | 20 | 85 | 35 | 80 | 20 | 65 |
-| Grappler | 90 | 15 | 70 | 15 | 30 | 65 | 55 | 40 | 85 |
-| Turtle | 95 | 6 | 65 | 35 | 25 | 90 | 25 | 30 | 80 |
+Limites: HP = 300-500; DAMAGE = 10-20; ATTACK SPEED = 1-10; RANGE = 5-20; SPEED = 1-5; DEFENSE = 0-1; STUN = 0-5; KNOCKBACK = 0-10; RECOVERY = 0-1
+
+| Classe       | HP | Damage | Cooldown | Range | Speed | Defense | Stun | Knockback | Recovery |
+| ------------ | -- | ------ | -------- | ----- | ----- | ------- | ---- | --------- | -------- |
+| Zoner        | 60 | 10     | 30       | 45    | 35    | 25      | 20   | 55        | 40       |
+| Rushdown     | 65 | 10     | 10       | 20    | 90    | 30      | 35   | 20        | 25       |
+| Combo Master | 60 | 12     | 15       | 20    | 85    | 35      | 80   | 20        | 65       |
+| Grappler     | 90 | 15     | 70       | 15    | 30    | 65      | 55   | 40        | 85       |
+| Turtle       | 95 | 6      | 65       | 35    | 25    | 90      | 25   | 30        | 80       |
 
 ### Lógica dos valores por arquétipo
 
-| Arquétipo | Atributo dominante | Atributo mínimo | Mecanismo de vitória |
-|---|---|---|---|
-| Zoner | range=45, knockback=55 | defense=25, stun=20 | Kiting: empurra oponente para fora do range; acumula hits grátis durante aproximação |
-| Rushdown | speed=90, cooldown=10 | range=20, recovery=25 | Volume de ataques (1 wait → ataca a cada 2 ticks); fecha distância antes de Zoner acumular hits |
-| Combo Master | stun=80, speed=85 | hp=60, defense=35 | Lockdown: stun cap=2/ciclo de 3t → oponente age 1/3 do tempo; encadeia combos em cima |
-| Grappler | hp=90, damage=15 | range=15, speed=30 | Burst próximo + recovery=85 resiste stun do CM; alta defense absorve aproximação |
-| Turtle | hp=95, defense=90 | damage=6, speed=25 | Atrito: quase imune a dano direto; vence agressivos pelo timer com HP% superior |
+| Arquétipo   | Atributo dominante     | Atributo mínimo      | Mecanismo de vitória                                                                             |
+| ------------ | ---------------------- | --------------------- | ------------------------------------------------------------------------------------------------- |
+| Zoner        | range=45, knockback=55 | defense=25, stun=20   | Kiting: empurra oponente para fora do range; acumula hits grátis durante aproximação           |
+| Rushdown     | speed=90, cooldown=10  | range=20, recovery=25 | Volume de ataques (1 wait → ataca a cada 2 ticks); fecha distância antes de Zoner acumular hits |
+| Combo Master | stun=80, speed=85      | hp=60, defense=35     | Lockdown: stun cap=2/ciclo de 3t → oponente age 1/3 do tempo; encadeia combos em cima            |
+| Grappler     | hp=90, damage=15       | range=15, speed=30    | Burst próximo + recovery=85 resiste stun do CM; alta defense absorve aproximação               |
+| Turtle       | hp=95, defense=90      | damage=6, speed=25    | Atrito: quase imune a dano direto; vence agressivos pelo timer com HP% superior                   |
 
 ---
 
@@ -74,11 +78,13 @@ Cada indivíduo representa o **conjunto completo dos 5 personagens** — não um
 **Total: 70 genes por indivíduo** (5 personagens × 14 genes cada)
 
 ### Cromossomo 1 — Attributes (9 genes)
+
 ```
 [hp, damage, cooldown, range, speed, defense, stun, knockback, recovery]
 ```
 
 ### Cromossomo 2 — Behavioral Weights (5 genes)
+
 ```
 [w_attack, w_advance, w_retreat, w_defend, w_aggressiveness]
 ```
@@ -88,19 +94,23 @@ Cada indivíduo representa o **conjunto completo dos 5 personagens** — não um
 ## Simulação de Combate
 
 ### Campo
+
 - Tamanho: 100 unidades
 - Distância inicial: 50
 - Distância mínima: 0 / máxima: 100
 
 ### Movimentação
+
 ```python
 distance_moved = (speed / 100) * 5
 ```
 
 ### 4 Ações Disponíveis
+
 `attack` | `advance` | `retreat` | `defend`
 
 ### Sistema de Decisão — Softmax Scoring
+
 ```python
 me_hit    = in_range * (1 - cooldown)
 enemy_hit = enemy_in_range * (1 - enemy_cooldown)
@@ -117,6 +127,7 @@ score_defend  = w_defend  * enemy_hit * risk
 Ação escolhida via **softmax** sobre os 4 scores.
 
 ### Regras de Combate
+
 - `attack` só é possível se `distance <= range`
 - `defend` reduz dano para 20% quando oponente ataca no mesmo tick:
   `damage_final = damage * (1 - defense) * 0.2`
@@ -124,6 +135,7 @@ Ação escolhida via **softmax** sobre os 4 scores.
 - `knockback` empurra o oponente X unidades após hit
 
 ### Condição de Vitória
+
 - **KO:** HP chega a zero
 - **Timer esgotado:** vence quem tem maior HP percentual `(hp_atual / hp_max)`
 
@@ -144,6 +156,7 @@ Avaliação por **round-robin completo**: 10 matchups únicos por indivíduo.
 ## Operadores do AG
 
 ### Seleção
+
 Torneio com K=3.
 
 ```python
@@ -153,6 +166,7 @@ def tournament_selection(population, k=3):
 ```
 
 ### Cruzamento
+
 Por personagem completo (bloco) — preserva coerência interna entre atributos e pesos de cada personagem.
 
 ```python
@@ -165,6 +179,7 @@ def crossover(parent1, parent2):
 ```
 
 ### Mutação
+
 W's têm mutation strength menor que atributos para criar **inércia evolutiva** que tende a preservar arquétipos naturalmente.
 
 ```python
@@ -210,6 +225,7 @@ def mutate(individual, mutation_rate=0.1):
 ```
 
 ### Elitismo
+
 Top 10% preservados diretamente a cada geração.
 
 ---
