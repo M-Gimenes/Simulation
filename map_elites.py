@@ -55,3 +55,28 @@ def _place(archive: Archive, ind: Individual, detail: FitnessDetail) -> None:
     key = (bx, by)
     if key not in archive or detail.matchup_dominance_penalty < archive[key][1].matchup_dominance_penalty:
         archive[key] = (ind, detail)
+
+
+# ─── Avaliação e mutação ──────────────────────────────────────────────────────
+
+def _evaluate(ind: Individual) -> FitnessDetail:
+    """Avalia um indivíduo e retorna FitnessDetail completo."""
+    return evaluate_detail(ind)
+
+
+def _mutate_from(ind: Individual) -> Individual:
+    """Clona ind e aplica mutação gaussiana. O original não é modificado."""
+    child = ind.clone()
+    mutate(child)
+    return child
+
+
+def _evaluate_batch(population: List[Individual]) -> List[FitnessDetail]:
+    """
+    Avalia uma lista de indivíduos em paralelo (reutiliza N_WORKERS de config).
+    Retorna FitnessDetail para cada indivíduo, na mesma ordem.
+    """
+    if N_WORKERS == 1:
+        return [evaluate_detail(ind) for ind in population]
+    with ProcessPoolExecutor(max_workers=N_WORKERS) as executor:
+        return list(executor.map(evaluate_detail, population))

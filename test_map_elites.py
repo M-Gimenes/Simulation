@@ -5,9 +5,10 @@ Rode com: py test_map_elites.py
 import sys, os
 sys.path.insert(0, os.path.dirname(__file__))
 
+import random
 from fitness import FitnessDetail
 from individual import Individual
-from map_elites import _bucket, _place, GRID_X_BINS, GRID_Y_BINS, GRID_X_MAX, GRID_Y_MAX
+from map_elites import _bucket, _place, _mutate_from, GRID_X_BINS, GRID_Y_BINS, GRID_X_MAX, GRID_Y_MAX
 
 
 def _detail(balance_error: float, drift_penalty: float, matchup_pen: float) -> FitnessDetail:
@@ -74,10 +75,32 @@ def test_place_out_of_bounds_clamps_to_last_bucket():
     assert len(archive) == 1  # entra no bucket (9, 7) por clamp
 
 
+def test_mutate_from_returns_new_individual():
+    ind = Individual.from_canonical()
+    child = _mutate_from(ind)
+    # Deve ser um objeto diferente (clone)
+    assert child is not ind
+    # Fitness deve estar invalidado
+    assert not child.is_evaluated
+
+
+def test_mutate_from_genes_differ():
+    random.seed(42)
+    ind = Individual.from_canonical()
+    child = _mutate_from(ind)
+    # Com MUTATION_RATE=0.2 e 60 genes, estatisticamente pelo menos 1 gene muda
+    original_genes = ind.characters[0].genes()
+    child_genes    = child.characters[0].genes()
+    # Não garantimos que todos diferem, mas o clone não é a mesma referência
+    assert original_genes is not child_genes
+
+
 if __name__ == "__main__":
     test_bucket_basic()
     test_place_fills_empty_cell()
     test_place_replaces_when_better()
     test_place_keeps_when_worse()
     test_place_out_of_bounds_clamps_to_last_bucket()
-    print("Task 1 — OK")
+    test_mutate_from_returns_new_individual()
+    test_mutate_from_genes_differ()
+    print("Tasks 1-2 — OK")
