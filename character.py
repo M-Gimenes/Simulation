@@ -3,10 +3,10 @@ Representação de um personagem dentro do AG.
 
 Cada personagem possui:
   - 9 atributos numéricos (cromossomo 1)
-  - 5 pesos comportamentais (cromossomo 2)
+  - 3 pesos comportamentais (cromossomo 2)
 
 Um indivíduo do AG é composto por 5 personagens (um por arquétipo),
-totalizando 70 genes.
+totalizando 60 genes.
 """
 
 from __future__ import annotations
@@ -27,7 +27,7 @@ from config import ATTRIBUTE_BOUNDS, WEIGHT_BOUNDS
 class Attr:
     HP           = 0
     DAMAGE       = 1
-    ATTACK_SPEED = 2
+    ATTACK_COOLDOWN = 2
     RANGE        = 3
     SPEED        = 4
     DEFENSE      = 5
@@ -36,11 +36,9 @@ class Attr:
     RECOVERY     = 8
 
 class WIdx:
-    ATTACK        = 0
-    ADVANCE       = 1
-    RETREAT       = 2
-    DEFEND        = 3
-    AGGRESSIVENESS= 4
+    RETREAT       = 0
+    DEFEND        = 1
+    AGGRESSIVENESS= 2
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -58,7 +56,7 @@ class Character:
     """
     archetype: ArchetypeDefinition
     attributes: List[float]   # 9 genes
-    weights: List[float]      # 5 genes
+    weights: List[float]      # 3 genes
 
     # ── Propriedades de acesso rápido ─────────────────────────────────────
 
@@ -67,7 +65,7 @@ class Character:
     @property
     def damage(self)     -> float: return self.attributes[Attr.DAMAGE]
     @property
-    def attack_speed(self) -> float: return self.attributes[Attr.ATTACK_SPEED]
+    def attack_cooldown(self) -> float: return self.attributes[Attr.ATTACK_COOLDOWN]
     @property
     def range_(self)     -> float: return self.attributes[Attr.RANGE]
     @property
@@ -81,10 +79,6 @@ class Character:
     @property
     def recovery(self)   -> float: return self.attributes[Attr.RECOVERY]
 
-    @property
-    def w_attack(self)         -> float: return self.weights[WIdx.ATTACK]
-    @property
-    def w_advance(self)        -> float: return self.weights[WIdx.ADVANCE]
     @property
     def w_retreat(self)        -> float: return self.weights[WIdx.RETREAT]
     @property
@@ -136,8 +130,8 @@ class Character:
         return self.attributes + self.weights
 
     def load_genes(self, genes: List[float]) -> None:
-        """Carrega genes a partir de uma lista plana de 14 valores."""
-        assert len(genes) == 14, f"Esperado 14 genes, recebido {len(genes)}"
+        """Carrega genes a partir de uma lista plana de 12 valores."""
+        assert len(genes) == 12, f"Esperado 12 genes, recebido {len(genes)}"
         self.attributes = list(genes[:9])
         self.weights    = list(genes[9:])
 
@@ -152,14 +146,14 @@ class Character:
         attrs = ", ".join(
             f"{n}={v:.1f}"
             for n, v in zip(
-                ["hp","dmg","as","rng","spd","def","stun","kb","rec"],
+                ["hp","dmg","cd","rng","spd","def","stun","kb","rec"],
                 self.attributes,
             )
         )
         ws = ", ".join(
             f"{n}={v:.2f}"
             for n, v in zip(
-                ["atk","adv","ret","def","agg"],
+                ["ret","def","agg"],
                 self.weights,
             )
         )

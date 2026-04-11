@@ -2,33 +2,19 @@
 Função de fitness para o AG.
 
 Avaliação via round-robin completo:
-  - C(5,2) = 10 matchups únicos por indivíduo
-  - Cada matchup rodado SIMS_PER_MATCHUP vezes para estabilizar o winrate
-  - Winrate de cada personagem = vitórias / partidas_totais (4 oponentes × SIMS)
+  C(5,2) = 10 matchups × SIMS_PER_MATCHUP simulações por indivíduo.
 
-Fitness:
-    balance_error  = mean(|winrate_i - 0.5|)          para cada personagem i
-    attribute_cost = 1 - mean_specialization           sobre todos os personagens
-    drift_penalty  = mean(archetype_deviation_i)       sobre todos os personagens
-    fitness = (1 - balance_error) - LAMBDA * attribute_cost - LAMBDA_DRIFT * drift_penalty
+Fórmula:
+  fitness = (1 - balance_error)
+          - LAMBDA         * attribute_cost
+          - LAMBDA_DRIFT   * drift_penalty
+          - LAMBDA_MATCHUP * matchup_dominance_penalty
 
-  Specialization de um personagem = max(attrs_norm) - min(attrs_norm)
-    - 0.0 = todos os atributos idênticos (super-herói homogêneo ou zero-herói)
-    - 1.0 = máxima diferença entre maior e menor atributo (altamente especializado)
-
-  attribute_cost = 0.0 → todos muito especializados (desejável)
-  attribute_cost = 1.0 → todos homogêneos (penalizado)
-
-  archetype_deviation_i = distância Euclidiana normalizada ao perfil canônico
-    - 0.0 = idêntico ao canônico
-    - 1.0 = maximamente distante do canônico
-
-  LAMBDA_DRIFT controla o trade-off central do TCC:
-    - 0.0 → evolução completamente livre; o AG pode redesenhar os personagens
-            arbitrariamente para atingir equilíbrio (homogeneização possível)
-    - alto → forte âncora ao canônico; preservação forçada, pode impedir convergência
-    - médio → o AG evolui livremente mas paga custo por se afastar da identidade;
-              equilíbrio e preservação competem — resultado mensurável e analisável
+Componentes:
+  balance_error             = mean(|wr_i - 0.5|)
+  attribute_cost            = 1 - mean(specialization_i)
+  drift_penalty             = mean(archetype_deviation_i)
+  matchup_dominance_penalty = max(excess_ij) sobre os 10 pares
 """
 
 from __future__ import annotations
@@ -37,133 +23,161 @@ import math
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass, field
 from itertools import combinations
-from typing import List
+from typing import Dict, List, Tuple
 
 from combat import simulate_combat
-from config import ATTRIBUTE_BOUNDS, LAMBDA, LAMBDA_DRIFT, N_WORKERS, SIMS_PER_MATCHUP
+from config import (
+    ATTRIBUTE_BOUNDS,
+    BALANCE_MODE,
+    LAMBDA,
+    LAMBDA_DRIFT,
+    LAMBDA_MATCHUP,
+    MATCHUP_THRESHOLD,
+    N_WORKERS,
+    SIMS_PER_MATCHUP,
+)
 from individual import Individual
 
-# Máximos por atributo para normalização — escala de cada gene para [0, 1].
-# HP tem escala própria (0–2000); demais atributos ficam em (0–100).
-_ATTR_MAXES = [b[1] for b in ATTRIBUTE_BOUNDS]
+assert BALANCE_MODE in ("matchup", "aggregate"), f"BALANCE_MODE inválido: {BALANCE_MODE!r}"
+
+# Teto de cada atributo — normaliza genes para [0, 1].
+_ATTR_MAXES: List[float] = [hi for _, hi in ATTRIBUTE_BOUNDS]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Resultado detalhado (útil para logging e análise)
+# Resultado detalhado
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @dataclass
 class FitnessDetail:
-    fitness: float
-    winrates: List[float]              # winrate de cada personagem (ordem ARCHETYPE_ORDER)
-    balance_error: float
-    attribute_cost: float
-    drift_penalty: float = 0.0        # mean(archetype_deviations) — entra no fitness via LAMBDA_DRIFT
-    archetype_deviations: List[float] = field(default_factory=list)
-    # distância normalizada de cada personagem ao canônico (0=idêntico, 1=máximo possível)
+    """Resultado completo da avaliação de um indivíduo."""
+
+    fitness:                   float
+    winrates:                  List[float]                    # WR agregado por personagem (ordem ARCHETYPE_ORDER)
+    balance_error:             float                          # mean(|wr_i - 0.5|)
+    attribute_cost:            float                          # 1 - mean(specialization_i)
+    drift_penalty:             float = 0.0                   # mean(archetype_deviation_i)
+    archetype_deviations:      List[float] = field(default_factory=list)
+    matchup_winrates:          Dict[Tuple[int, int], float] = field(default_factory=dict)  # (i,j) → WR de i, i < j
+    matchup_dominance_penalty: float = 0.0                   # max(excess_ij) normalizado em [0, 1]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Métricas por personagem
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def _specialization(char) -> float:
+    """
+    Dispersão interna dos atributos normalizados: max − min ∈ [0, 1].
+
+    0.0 → atributos homogêneos (sem identidade).
+    1.0 → máxima diferença interna (altamente especializado).
+    """
+    norm = [a / m for a, m in zip(char.attributes, _ATTR_MAXES)]
+    return max(norm) - min(norm)
+
+
+def _archetype_deviation(char) -> float:
+    """
+    Distância Euclidiana normalizada ao perfil canônico ∈ [0, 1].
+
+    0.0 → idêntico ao canônico; 1.0 → maximamente distante.
+    Atributos normalizados pelo teto; pesos já estão em [0, 1].
+    """
+    attr_sq = sum(
+        ((a - c) / m) ** 2
+        for a, c, m in zip(char.attributes, char.archetype.initial_attributes, _ATTR_MAXES)
+    )
+    weight_sq = sum(
+        (w - c) ** 2
+        for w, c in zip(char.weights, char.archetype.initial_weights)
+    )
+    n_genes = len(char.attributes) + len(char.weights)
+    return math.sqrt((attr_sq + weight_sq) / n_genes)
+
+
+def _matchup_dominance(matchup_winrates: Dict[Tuple[int, int], float]) -> float:
+    """
+    Penalidade do pior matchup: max(excess_ij) normalizado em [0, 1].
+
+    Usa max (não mean) para que um único matchup dominante force correção
+    sem ser diluído pelos demais pares.
+    """
+    scale = 0.5 - MATCHUP_THRESHOLD
+    return max(
+        max(0.0, (abs(wr - 0.5) - MATCHUP_THRESHOLD) / scale)
+        for wr in matchup_winrates.values()
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Round-robin
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def _run_round_robin(
+    chars: List, sims: int
+) -> Tuple[List[int], List[int], Dict[Tuple[int, int], int]]:
+    """
+    Executa C(n,2) matchups × sims simulações cada.
+
+    Retorna:
+      wins         — vitórias acumuladas por personagem
+      total_games  — partidas totais por personagem
+      matchup_wins — vitórias de i no head-to-head (i, j), i < j
+    """
+    n = len(chars)
+    wins        = [0] * n
+    total_games = [0] * n
+    matchup_wins: Dict[Tuple[int, int], int] = {}
+
+    for i, j in combinations(range(n), 2):
+        matchup_wins[(i, j)] = 0
+        for _ in range(sims):
+            result = simulate_combat(chars[i], chars[j])
+            if result.winner == 0:
+                wins[i] += 1
+                matchup_wins[(i, j)] += 1
+            else:
+                wins[j] += 1
+            total_games[i] += 1
+            total_games[j] += 1
+
+    return wins, total_games, matchup_wins
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Avaliação
 # ─────────────────────────────────────────────────────────────────────────────
 
-def evaluate(individual: Individual) -> float:
-    """
-    Calcula o fitness do indivíduo via round-robin completo.
-    Armazena o resultado em individual.fitness e retorna o valor.
-    Não reavalia se individual.is_evaluated == True.
-    """
-    if individual.is_evaluated:
-        return individual.fitness
-
-    detail = evaluate_detail(individual)
-    individual.fitness = detail.fitness
-    return detail.fitness
-
-
-def evaluate_detail(individual: Individual) -> FitnessDetail:
-    """
-    Versão completa: retorna FitnessDetail com winrates por personagem.
-    Usa SIMS_PER_MATCHUP. Sempre reavalia (ignora cache de fitness).
-    """
-    return evaluate_detail_n(individual, SIMS_PER_MATCHUP)
-
-
-def _compute_archetype_deviations(individual: Individual) -> List[float]:
-    """
-    Distância normalizada de cada personagem em relação ao seu perfil canônico.
-
-    Para cada personagem: distância Euclidiana no espaço de genes normalizado,
-    dividida pela raiz do número de genes (escala: 0 = idêntico, 1 = oposto máximo).
-
-    Atributos normalizados por 100; pesos já estão em [0,1].
-    """
-    deviations = []
-    for char in individual.characters:
-        attr_sq = sum(
-            ((a - c) / m) ** 2
-            for a, c, m in zip(char.attributes, char.archetype.initial_attributes, _ATTR_MAXES)
-        )
-        weight_sq = sum(
-            (w - c) ** 2
-            for w, c in zip(char.weights, char.archetype.initial_weights)
-        )
-        n_genes = len(char.attributes) + len(char.weights)
-        deviations.append(math.sqrt((attr_sq + weight_sq) / n_genes))
-    return deviations
-
 
 def evaluate_detail_n(individual: Individual, sims: int) -> FitnessDetail:
-    """
-    Igual a evaluate_detail mas com número de simulações configurável.
-    Usado para confirmação de convergência com mais sims (menos ruído).
-    """
+    """Avalia o indivíduo com `sims` simulações por matchup."""
     chars = individual.characters
-    n = len(chars)
+    n     = len(chars)
 
-    wins        = [0] * n
-    total_games = [0] * n
+    wins, total_games, matchup_wins = _run_round_robin(chars, sims)
 
-    # Round-robin: C(n,2) = 10 matchups únicos
-    for i, j in combinations(range(n), 2):
-        for _ in range(sims):
-            result = simulate_combat(chars[i], chars[j])
-            if result.winner == 0:
-                wins[i] += 1
-            else:
-                wins[j] += 1
-            total_games[i] += 1
-            total_games[j] += 1
+    winrates         = [wins[i] / total_games[i] for i in range(n)]
+    matchup_winrates = {key: v / sims for key, v in matchup_wins.items()}
 
-    winrates = [wins[i] / total_games[i] for i in range(n)]
+    if BALANCE_MODE == "matchup":
+        balance_error = sum(abs(wr - 0.5) for wr in matchup_winrates.values()) / len(matchup_winrates)
+    else:
+        balance_error = sum(abs(wr - 0.5) for wr in winrates) / n
+    attribute_cost            = 1.0 - sum(_specialization(c) for c in chars) / n
+    archetype_deviations      = [_archetype_deviation(c) for c in chars]
+    drift_penalty             = sum(archetype_deviations) / n
+    matchup_dominance_penalty = _matchup_dominance(matchup_winrates)
 
-    balance_error = sum(abs(wr - 0.5) for wr in winrates) / n
-
-    # Attribute cost via especialização por personagem.
-    #
-    # specialization_i = max(attrs_norm) - min(attrs_norm)  ∈ [0, 1]
-    #   - 0.0: todos os atributos idênticos (super-herói ou zero-herói homogêneo)
-    #   - 1.0: máxima diferença interno (personagem altamente especializado)
-    #
-    # attribute_cost = 1 - mean(specialization_i)
-    #   - 0.0: arquétipos muito especializados → sem penalidade
-    #   - 1.0: todos homogêneos → penalidade máxima
-    #
-    # Isso desincentiva homogeneização (o antigo ótimo degenerado com atributos
-    # baixos uniformes) sem bloquear valores altos quando são a identidade do arquétipo.
-    per_char_spec = []
-    for char in chars:
-        norm = [a / m for a, m in zip(char.attributes, _ATTR_MAXES)]
-        per_char_spec.append(max(norm) - min(norm))
-    attribute_cost = 1.0 - (sum(per_char_spec) / len(per_char_spec))
-
-    # Desvio arquetípico: distância normalizada de cada personagem ao seu canônico.
-    # Entra no fitness como penalidade suave controlada por LAMBDA_DRIFT.
-    # Com LAMBDA_DRIFT=0.0, comportamento idêntico à versão sem âncora.
-    archetype_deviations = _compute_archetype_deviations(individual)
-    drift_penalty = sum(archetype_deviations) / len(archetype_deviations)
-
-    fitness = (1.0 - balance_error) - LAMBDA * attribute_cost - LAMBDA_DRIFT * drift_penalty
+    fitness = (
+        (1.0 - balance_error)
+        - LAMBDA         * attribute_cost
+        - LAMBDA_DRIFT   * drift_penalty
+        - LAMBDA_MATCHUP * matchup_dominance_penalty
+    )
 
     return FitnessDetail(
         fitness=fitness,
@@ -172,12 +186,32 @@ def evaluate_detail_n(individual: Individual, sims: int) -> FitnessDetail:
         attribute_cost=attribute_cost,
         drift_penalty=drift_penalty,
         archetype_deviations=archetype_deviations,
+        matchup_winrates=matchup_winrates,
+        matchup_dominance_penalty=matchup_dominance_penalty,
     )
 
 
+def evaluate_detail(individual: Individual) -> FitnessDetail:
+    """Avalia com SIMS_PER_MATCHUP simulações. Sempre reavalia (ignora cache)."""
+    return evaluate_detail_n(individual, SIMS_PER_MATCHUP)
+
+
+def evaluate(individual: Individual) -> float:
+    """
+    Calcula e cacheia o fitness do indivíduo. Retorna o valor.
+    Não reavalia se individual.is_evaluated == True.
+    """
+    if individual.is_evaluated:
+        return individual.fitness
+    detail = evaluate_detail(individual)
+    individual.fitness = detail.fitness
+    return detail.fitness
+
+
 # ─────────────────────────────────────────────────────────────────────────────
-# Avaliação em lote (população inteira)
+# Avaliação em lote
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def _eval_worker(ind: Individual) -> float:
     """Worker para avaliação paralela — roda em processo separado."""
@@ -187,9 +221,7 @@ def _eval_worker(ind: Individual) -> float:
 def evaluate_population(population: List[Individual]) -> None:
     """
     Avalia todos os indivíduos não avaliados da população.
-
-    Com N_WORKERS != 1, usa ProcessPoolExecutor para avaliar em paralelo,
-    aproveitando todos os núcleos da CPU (speedup ~= número de núcleos).
+    Usa ProcessPoolExecutor quando N_WORKERS != 1 (speedup ≈ nº de núcleos).
     """
     unevaluated = [ind for ind in population if not ind.is_evaluated]
     if not unevaluated:

@@ -1,8 +1,0 @@
-Stop: convergência
-fitness=0.8886  bal=0.0000  drift=0.3778
-Winrates: [0.5, 0.5, 0.5, 0.5, 0.5]
-Zoner           dev=0.407 rng=0.9(c=90) spd=40.0 hp=70.9 dmg=41.8
-Rushdown        dev=0.423 rng=46.2(c=30) spd=5.0 hp=2.7 dmg=64.3
-Combo Master    dev=0.434 rng=69.9(c=40) spd=83.1 hp=86.3 dmg=21.4
-Grappler        dev=0.302 rng=40.0(c=20) spd=8.6 hp=74.9 dmg=68.9
-Turtle          dev=0.323 rng=99.6(c=50) spd=38.5 hp=77.1 dmg=0.5

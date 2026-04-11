@@ -34,6 +34,28 @@ print(f"  fitness        = {detail.fitness:.4f}")
 assert -1.0 < detail.fitness <= 1.0, f"Fitness fora do range: {detail.fitness}"
 print("  ✓ Fitness dentro do range esperado")
 
+# Matriz de matchup direto
+n = len(ARCHETYPE_ORDER)
+names = [ARCHETYPES[aid].name[:6] for aid in ARCHETYPE_ORDER]
+col_w = 7
+print(f"\n  {'':12s}" + "".join(f"{name:>{col_w}}" for name in names))
+print(f"  {'':12s}" + "─" * (col_w * n))
+for i, aid in enumerate(ARCHETYPE_ORDER):
+    row = f"  {ARCHETYPES[aid].name:<12s}"
+    for j in range(n):
+        if i == j:
+            row += f"{'—':>{col_w}}"
+        else:
+            key = (min(i, j), max(i, j))
+            wr = detail.matchup_winrates.get(key, 0.0)
+            if i > j:
+                wr = 1.0 - wr
+            row += f"{wr:>{col_w-1}.0%} "
+    print(row)
+print(f"\n  (células: WR da linha contra a coluna)")
+assert len(detail.matchup_winrates) == 10, "Devem existir C(5,2)=10 matchups"
+print("  ✓ matchup_winrates contém os 10 pares esperados")
+
 
 # ── 2. Cache de fitness ──────────────────────────────────────────────────────
 

@@ -5,17 +5,20 @@ Campo: 100 unidades, distância inicial 50 (config.INITIAL_DISTANCE).
 Resolução simultânea — ambos escolhem e executam ação no mesmo tick.
 
 Fluxo por tick:
-  1. Decrementam cooldown_remaining e stun_remaining de cada lutador.
-  2. Cada lutador escolhe ação via softmax scoring.
+  1. Cada lutador escolhe ação via softmax scoring.
      (personagem stunado perde a ação)
-  3. Movimento aplicado (ADVANCE / RETREAT) — ambos alteram a distância.
-  4. Ataques resolvidos simultaneamente.
-     Após acertar, o atacante entra em cooldown por round(cooldown/10) ticks.
+  2. Movimento aplicado (ADVANCE / RETREAT) — ambos alteram a distância.
+  3. Ataques resolvidos simultaneamente.
+     Após atacar, o atacante entra em cooldown por round(attack_cooldown) ticks.
+  4. Decrementam cooldown_remaining e stun_remaining — apenas timers não recém-setados.
   5. Verificação de vitória.
 
-Cooldown como attack speed (determinístico):
-  Após atacar, o personagem fica bloqueado por round(cooldown/10) ticks.
-  Durante o cooldown, me_hit = 0 nos scores → o personagem evita escolher ATTACK.
+Attack cooldown e stun (determinísticos):
+  O decremento ocorre no FINAL do tick, após os ataques.
+  Timers recém-definidos por um ataque NÃO são decrementados no mesmo tick.
+  Isso garante que cooldown=1 e stun=1 são valores mínimos significativos:
+    - cooldown=1 → atacante fica bloqueado por 1 tick (ataca a cada 2 ticks)
+    - stun=1     → alvo perde exatamente 1 tick de ação
 
 Condições de vitória:
   - KO: HP chega a 0.
@@ -24,19 +27,22 @@ Condições de vitória:
 
 from __future__ import annotations
 
-import math
 import random
 from dataclasses import dataclass, field
 from typing import List, Optional, Tuple
 
 from character import Character
 from config import (
+    ACTION_EPSILON,
+    DAMAGE_VARIANCE,
     FIELD_SIZE,
     INITIAL_DISTANCE,
     MAX_TICKS,
-    SCORE_TEMPERATURE,
+    RETREAT_ZONE_FACTOR,
     WALL_CORNER_THRESHOLD,
 )
+
+_USE_EPSILON = ACTION_EPSILON > 0.0
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -102,43 +108,7 @@ class CombatResult:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Softmax e amostragem
-# ─────────────────────────────────────────────────────────────────────────────
-
-
-def _softmax(
-    scores: List[float], temperature: float = SCORE_TEMPERATURE
-) -> List[float]:
-    """
-    Softmax numericamente estável com temperatura.
-
-    Temperatura controla o quão decisiva é a escolha:
-      - T=1.0 → padrão; scores ~0.25 resultam em distribuição quase uniforme,
-                os pesos w_* mal se diferenciam.
-      - T=0.1 → scores divididos por 0.1, distribuição concentrada no melhor;
-                comportamento alinha com a identidade do arquétipo (w_* importam).
-      - T→0   → argmax determinístico.
-    """
-    scaled = [s / temperature for s in scores]
-    m = max(scaled)
-    exps = [math.exp(s - m) for s in scaled]
-    total = sum(exps)
-    return [e / total for e in exps]
-
-
-def _sample(probs: List[float]) -> int:
-    """Amostra um índice proporcional às probabilidades."""
-    r = random.random()
-    cumulative = 0.0
-    for i, p in enumerate(probs):
-        cumulative += p
-        if r <= cumulative:
-            return i
-    return len(probs) - 1
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Sistema de decisão — Softmax Scoring (MD §Simulação de Combate)
+# Sistema de decisão — Prioridade
 # ─────────────────────────────────────────────────────────────────────────────
 
 
@@ -149,86 +119,60 @@ def _choose_action(
     pos_me: float = 50.0,
 ) -> int:
     """
-    Escolhe ação via softmax scoring situacional.
+    Escolhe ação via sistema de prioridade.
 
-    Todos os atributos de dano/defesa são normalizados (÷100) para escala 0–1.
-    Os scores modelam o valor esperado de cada ação na situação atual,
-    ponderados pelos pesos comportamentais (w_*) do personagem.
+    Modela um jogador experiente: decisões determinísticas baseadas no estado atual.
+    Os pesos w_* controlam limiares comportamentais — não probabilidades.
 
-    Definições:
-        me_hit    = in_range * ready
-        enemy_hit = in_range * ready * (not stunned)   ← inimigo stunado não ameaça
-        my_dmg    = me_hit * dmg_me
-        raw_risk  = enemy_hit * dmg_en * (1 - def_me)  ← risco após defesa passiva
+    Prioridades:
+      1. ATTACK  — sempre que possível (em range + pronto).
+      2. Sob ameaça (inimigo pronto e se aproximando, sem poder contra-atacar):
+           w_aggressiveness >= 0.7 → ADVANCE  (pressiona mesmo sob risco)
+           w_retreat > w_defend    → RETREAT  (kite / criar distância)
+           w_defend  >= w_retreat  → DEFEND   (absorver e punir na oportunidade)
+      3. ADVANCE — fora de range ou encurralado (crossing).
+      4. DEFEND  — default: em range, em cooldown, sem ameaça ativa.
 
-    ATTACK:  score = w_attack  * me_hit    * (my_dmg - raw_risk)
-             Positivo = troca favorável. Negativo = desincentiva atacar.
-
-    ADVANCE: score = w_advance * (1 - me_hit) * (closing_net + w_aggressiveness)
-             closing_net = dmg_me - dmg_en*(1-def_me)  (lucro esperado ao chegar em range)
-             w_aggressiveness = drive inato de fechar distância independente do perigo.
-
-    RETREAT: score = w_retreat * enemy_hit * (raw_risk - my_dmg)
-             Positivo = inimigo domina a troca → faz sentido criar distância.
-
-    DEFEND:  score = w_defend  * enemy_hit * (raw_risk * 0.8)
-             raw_risk * 0.8 = poupança extra do bloqueio ativo vs defesa passiva.
-             Diferencia-se de RETREAT: ficar e absorver vs recuar — personagens
-             com alta defesa e w_defend preferem absorver; runners preferem recuar.
+    Pesos relevantes por decisão:
+      w_aggressiveness : separa quem pressiona (>=0.7) de quem recua/absorve (<0.7)
+      w_retreat / w_defend : escolha defensiva quando ameaçado e sem poder atacar
     """
     me    = me_state.character
     enemy = enemy_state.character
 
-    # Dano normalizado para scoring (÷ max_damage para escala 0–1)
-    # defense já está em 0–1 (escala natural)
-    dmg_me = me.damage    / 20.0
-    dmg_en = enemy.damage / 20.0
-    def_me = me.defense
+    in_range_me = distance <= me.range_
+    ready_me    = me_state.attack_ready
+    ready_en    = enemy_state.attack_ready and not enemy_state.is_stunned
 
-    # Flags de alcance
-    in_range_me = 1.0 if distance <= me.range_    else 0.0
-    in_range_en = 1.0 if distance <= enemy.range_ else 0.0
-
-    # Disponibilidade — cooldown determinístico; inimigo stunado não ataca
-    ready_me = 1.0 if me_state.attack_ready                                    else 0.0
-    ready_en = 1.0 if (enemy_state.attack_ready and not enemy_state.is_stunned) else 0.0
-
-    me_hit    = in_range_me * ready_me
-    enemy_hit = in_range_en * ready_en
-
-    # Estimativas de dano para este tick
-    my_dmg   = me_hit    * dmg_me
-    raw_risk = enemy_hit
-
-    # ATTACK — vale quando a troca líquida é favorável.
-    # Se em cooldown, score fortemente negativo: ATTACK nunca deve ser escolhido
-    # (evita ticks desperdiçados onde a ação é "selecionada" mas não executada).
-    if not me_state.attack_ready:
-        score_attack = -1e9
-    else:
-        score_attack = me.w_attack * me_hit
-
-    # ADVANCE — lucratividade de fechar + agressividade inata.
-    # Se já está em range, avançar não tem utilidade — penaliza fortemente.
-    # Exceção: lutador encurralado contra a parede pode usar ADVANCE para crossing
-    # (cruzar para o outro lado do oponente e ganhar espaço de recuo).
-    # O custo é passar pelo inimigo em range — score moderado, não dominante.
+    can_hit  = in_range_me and ready_me
     cornered = pos_me < WALL_CORNER_THRESHOLD or pos_me > FIELD_SIZE - WALL_CORNER_THRESHOLD
-    if in_range_me and not cornered:
-        score_advance = -1e9
-    elif in_range_me and cornered:
-        score_advance = me.w_advance * me.w_aggressiveness * 0.5
-    else:
-        score_advance = me.w_advance * (1.0 - me_hit) * (me.w_aggressiveness)
 
-    # RETREAT — quão perigosa é a troca atual (inimigo domina → foge)
-    score_retreat = me.w_retreat * enemy_hit * (1 - me_hit)
+    # Zona de ameaça proativa: inimigo se aproximando e pronto para atacar
+    zone     = RETREAT_ZONE_FACTOR * enemy.range_
+    in_threat = ready_en and distance < zone
 
-    # DEFEND — poupança extra do bloqueio ativo (além da defesa passiva)
-    score_defend = me.w_defend * enemy_hit * (1 - me_hit)
+    # ── Ação por prioridade ───────────────────────────────────────────────────
+    # Modela um jogador experiente: decisões determinísticas baseadas em situação.
+    # w_* controlam limiares, não probabilidades. Mesmo estado → mesma ação.
 
-    probs = _softmax([score_attack, score_advance, score_retreat, score_defend])
-    return _sample(probs)
+    # 1. Atacar — prioridade máxima
+    if can_hit:
+        return Action.ATTACK
+
+    # 2. Resposta à ameaça (inimigo pronto e se aproximando, não consigo contra-atacar)
+    if in_threat:
+        if me.w_aggressiveness > me.w_retreat and me.w_aggressiveness > me.w_defend:
+            return Action.ADVANCE   # instinto ofensivo supera os defensivos
+        if me.w_retreat > me.w_defend:
+            return Action.RETREAT   # kite / criar distância
+        return Action.DEFEND        # absorver e esperar oportunidade
+
+    # 3. Fechar distância (ou crossing se encurralado)
+    if not in_range_me or cornered:
+        return Action.ADVANCE
+
+    # 4. Default: em range, em cooldown, sem ameaça — aguarda próximo ataque
+    return Action.DEFEND
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -261,7 +205,8 @@ def _resolve_attack(
         return 0.0, 0, 0.0
 
     def_factor = 1.0 - defender_state.character.defense  # defense já em 0–1
-    dmg = attacker.damage * def_factor
+    variance   = random.uniform(1.0 - DAMAGE_VARIANCE, 1.0 + DAMAGE_VARIANCE)
+    dmg = attacker.damage * def_factor * variance
     if defender_is_defending:
         dmg *= 0.2
 
@@ -270,10 +215,8 @@ def _resolve_attack(
         round(attacker.stun * (1.0 - defender_state.character.recovery)),
     )
 
-    # Cap de stun: nunca pode exceder o wait do próprio atacante.
-    # attack_speed em escala natural → wait = round(10 / attack_speed)
-    attacker_wait_ticks = round(10.0 / attacker.attack_speed)
-    stun_ticks = min(stun_ticks, attacker_wait_ticks)
+    # Cap de stun: nunca pode exceder o cooldown do próprio atacante.
+    stun_ticks = min(stun_ticks, round(attacker.attack_cooldown))
 
     knockback_units = attacker.knockback  # escala natural: unidades de campo
 
@@ -314,28 +257,21 @@ def simulate_combat(char_a: Character, char_b: Character) -> CombatResult:
             end_tick = tick
             break
 
-        # ── Fase 1: Decrementar timers ────────────────────────────────────
-        for f in fighters:
-            if f.stun_remaining > 0:
-                f.stun_remaining -= 1
-            if f.cooldown_remaining > 0:
-                f.cooldown_remaining -= 1
-
-        # ── Fase 2: Escolha de ação ───────────────────────────────────────
+        # ── Fase 1: Escolha de ação ───────────────────────────────────────
         # Personagem stunado perde a ação neste tick.
+        # Com probabilidade ACTION_EPSILON, executa ação aleatória (erro de execução).
         actions: List[Optional[int]] = []
         for i in range(2):
             if fighters[i].is_stunned:
                 actions.append(None)
+            elif _USE_EPSILON and random.random() < ACTION_EPSILON:
+                actions.append(random.randint(0, 3))
             else:
                 actions.append(_choose_action(fighters[i], fighters[1 - i], distance, pos[i]))
 
-        # ── Fase 3: Movimento ─────────────────────────────────────────────
-        # Cada lutador move sua posição absoluta.
+        # ── Fase 2: Movimento ─────────────────────────────────────────────
         # direction = +1 se está à esquerda do oponente (avança para direita)
         #           = -1 se está à direita (avança para esquerda)
-        # Crossing automático: se o avanço ultrapassar o oponente, pos[i] > pos[1-i]
-        # e a direção se inverte no próximo tick sem lógica especial.
         for i in range(2):
             if actions[i] not in (Action.ADVANCE, Action.RETREAT):
                 continue
@@ -346,15 +282,22 @@ def simulate_combat(char_a: Character, char_b: Character) -> CombatResult:
             else:  # RETREAT
                 pos[i] = max(0.0, min(FIELD_SIZE, pos[i] - direction * speed))
 
-        # ── Fase 4: Ataques simultâneos ───────────────────────────────────
+        # ── Fase 3: Ataques simultâneos ───────────────────────────────────
         distance = abs(pos[1] - pos[0])  # recalcula após movimento
         defending = [a == Action.DEFEND for a in actions]
+
+        # Salva timers pré-ataque: apenas valores existentes antes desta fase
+        # são elegíveis para decremento — timers recém-setados ficam intactos.
+        pre_stun_0 = fighters[0].stun_remaining
+        pre_stun_1 = fighters[1].stun_remaining
+        pre_cd_0   = fighters[0].cooldown_remaining
+        pre_cd_1   = fighters[1].cooldown_remaining
 
         for attacker_idx in range(2):
             if actions[attacker_idx] != Action.ATTACK:
                 continue
             if not fighters[attacker_idx].attack_ready:
-                continue  # cooldown não zerou ainda (edge case do softmax)
+                continue
 
             defender_idx = 1 - attacker_idx
             dmg, stun, kb = _resolve_attack(
@@ -374,11 +317,23 @@ def simulate_combat(char_a: Character, char_b: Character) -> CombatResult:
                 kb_dir = 1.0 if pos[defender_idx] >= pos[attacker_idx] else -1.0
                 pos[defender_idx] = max(0.0, min(FIELD_SIZE, pos[defender_idx] + kb_dir * kb))
 
-            # Wait do atacante — dispara independente de acertar ou não
-            # attack_speed em escala natural → wait = round(10 / attack_speed)
-            fighters[attacker_idx].cooldown_remaining = round(
-                10.0 / fighters[attacker_idx].character.attack_speed
-            )
+                # Cooldown só é setado em hit — ataque fora de range não desperdiça cooldown
+                fighters[attacker_idx].cooldown_remaining = round(
+                    fighters[attacker_idx].character.attack_cooldown
+                )
+
+        # ── Fase 4: Decrementar timers ────────────────────────────────────
+        # Só decrementa timers que não foram recém-setados por um ataque neste tick.
+        # Timers aumentados pelo ataque (current > pre) ficam intactos até o próximo tick.
+        f0, f1 = fighters
+        if f0.stun_remaining <= pre_stun_0:
+            f0.stun_remaining = max(0, f0.stun_remaining - 1)
+        if f0.cooldown_remaining <= pre_cd_0:
+            f0.cooldown_remaining = max(0, f0.cooldown_remaining - 1)
+        if f1.stun_remaining <= pre_stun_1:
+            f1.stun_remaining = max(0, f1.stun_remaining - 1)
+        if f1.cooldown_remaining <= pre_cd_1:
+            f1.cooldown_remaining = max(0, f1.cooldown_remaining - 1)
 
     # ── Condição de vitória ───────────────────────────────────────────────────
 

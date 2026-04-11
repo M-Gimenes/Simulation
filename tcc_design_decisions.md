@@ -19,7 +19,7 @@ Propor e validar uma forma de medir quantitativamente se arquétipos foram prese
 
 ### Ciclo de vantagens fechado — cada arquétipo vence 2 e perde para 2
 
-| Arquétipo   | Vence                   |
+| Arquétipo    | Vence                   |
 | ------------ | ----------------------- |
 | Grappler     | Combo Master e Rushdown |
 | Combo Master | Turtle e Zoner          |
@@ -29,45 +29,49 @@ Propor e validar uma forma de medir quantitativamente se arquétipos foram prese
 
 ### Justificativas
 
-- **Zoner:** Controla espaço, destrói quem precisa chegar andando. Sofre contra quem entra rápido ou pune padrão.
+- **Zoner:** Controla espaço com alcance máximo e knockback. Sofre contra quem fecha distância rápido.
 - **Rushdown:** Explode quem precisa de setup. Se ferra contra quem aguenta pressão e pune erro.
-- **Combo Master:** Precisa tocar — ganha de quem dá abertura ou joga lento. Perde para pressão constante e burst alto.
-- **Grappler:** Se encosta, acabou — pune quem precisa ficar perto. Sofre contra distância e defesa sólida.
-- **Turtle:** Vive de erro do outro — destrói agressivos. Perde para quem não se expõe ou quebra defesa.
+- **Combo Master:** Encadeia combos via stun. Perde para pressão constante e burst alto.
+- **Grappler:** Se encosta, acabou — burst máximo. Sofre contra distância e quem stuna.
+- **Turtle:** Vive de erro do outro — destrói agressivos por atrito de HP%. Perde para quem quebra defesa com stun.
 
 ---
 
-## Atributos dos Personagens (escala 0–100)
+## Atributos dos Personagens
 
-### Princípios de calibração
+### Limites (bounds do AG)
 
-- **Regra dos 5 hits**: o golpe mais forte (Grappler, dmg=15) contra o defensor mais fraco
-  (Combo Master, HP=60, def=35%) resulta em 15×0.65=9.75 de dano por hit → mínimo 6 hits para matar.
-  Nenhum 1-shot ou 2-shot possível nos valores canônicos.
-- **Damage reduzido** (6–15 em vez de 25–90): diferenciação vem de HP, defense, cooldown e stun.
-- **Range < distância inicial (50)** para todos: nenhum personagem ataca no primeiro tick;
-  há sempre uma fase de aproximação. Exceção: Zoner range=45 fica a 5 unidades da distância
-  inicial, garantindo vantagem imediata mas não instantânea.
+| Atributo        | Mín   | Máx   | Semântica                                           |
+| --------------- | ----- | ----- | --------------------------------------------------- |
+| HP              | 300   | 500   | Pontos de vida                                      |
+| Damage          | 10    | 20    | Dano por hit (unidades de HP)                       |
+| Attack Cooldown | 1     | 5     | Ticks de espera entre ataques; menor = mais rápido  |
+| Range           | 5     | 20    | Alcance em unidades de campo (todos < distância inicial de 50) |
+| Speed           | 1     | 5     | Unidades de campo por tick                          |
+| Defense         | 0     | 0.5   | Redução de dano recebido (0 = nenhuma, 0.5 = 50%)  |
+| Stun            | 0     | 5     | Ticks de stun causado (modificado por recovery do defensor) |
+| Knockback       | 0     | 5     | Unidades de campo empurradas por hit                |
+| Recovery        | 0     | 0.5   | Resistência a stun (0 = nenhuma, 0.5 = 50% redução)|
 
-Limites: HP = 300-500; DAMAGE = 10-20; ATTACK SPEED = 1-2; RANGE = 5-20; SPEED = 1-5; DEFENSE = 0-1; STUN = 0-5; KNOCKBACK = 0-10; RECOVERY = 0-1
+### Valores canônicos (semente inicial do AG)
 
-| Classe       | HP | Damage | Cooldown | Range | Speed | Defense | Stun | Knockback | Recovery |
-| ------------ | -- | ------ | -------- | ----- | ----- | ------- | ---- | --------- | -------- |
-| Zoner        | 60 | 10     | 30       | 45    | 35    | 25      | 20   | 55        | 40       |
-| Rushdown     | 65 | 10     | 10       | 20    | 90    | 30      | 35   | 20        | 25       |
-| Combo Master | 60 | 12     | 15       | 20    | 85    | 35      | 80   | 20        | 65       |
-| Grappler     | 90 | 15     | 70       | 15    | 30    | 65      | 55   | 40        | 85       |
-| Turtle       | 95 | 6      | 65       | 35    | 25    | 90      | 25   | 30        | 80       |
+| Classe       | HP  | Dmg | Cooldown | Range | Speed | Defense | Stun | Knockback | Recovery |
+| ------------ | --- | --- | -------- | ----- | ----- | ------- | ---- | --------- | -------- |
+| Zoner        | 300 | 12  | 3        | 20    | 2.0   | 0.10    | 1.0  | 5.0       | 0.30     |
+| Rushdown     | 320 | 11  | 2        | 10    | 5.0   | 0.20    | 1.0  | 1.0       | 0.20     |
+| Combo Master | 310 | 13  | 3        | 10    | 3.0   | 0.25    | 2.0  | 0.5       | 0.25     |
+| Grappler     | 450 | 20  | 5        | 8     | 1.5   | 0.35    | 4.0  | 0.5       | 0.40     |
+| Turtle       | 500 | 10  | 4        | 15    | 1.0   | 0.50    | 3.0  | 3.0       | 0.50     |
 
-### Lógica dos valores por arquétipo
+### Pesos comportamentais canônicos (w_*)
 
-| Arquétipo   | Atributo dominante     | Atributo mínimo      | Mecanismo de vitória                                                                             |
-| ------------ | ---------------------- | --------------------- | ------------------------------------------------------------------------------------------------- |
-| Zoner        | range=45, knockback=55 | defense=25, stun=20   | Kiting: empurra oponente para fora do range; acumula hits grátis durante aproximação           |
-| Rushdown     | speed=90, cooldown=10  | range=20, recovery=25 | Volume de ataques (1 wait → ataca a cada 2 ticks); fecha distância antes de Zoner acumular hits |
-| Combo Master | stun=80, speed=85      | hp=60, defense=35     | Lockdown: stun cap=2/ciclo de 3t → oponente age 1/3 do tempo; encadeia combos em cima            |
-| Grappler     | hp=90, damage=15       | range=15, speed=30    | Burst próximo + recovery=85 resiste stun do CM; alta defense absorve aproximação               |
-| Turtle       | hp=95, defense=90      | damage=6, speed=25    | Atrito: quase imune a dano direto; vence agressivos pelo timer com HP% superior                   |
+| Classe       | w_retreat | w_defend | w_aggressiveness |
+| ------------ | --------- | -------- | ---------------- |
+| Zoner        | 0.6       | 0.2      | 0.3              |
+| Rushdown     | 0.1       | 0.1      | 0.9              |
+| Combo Master | 0.0       | 0.2      | 0.7              |
+| Grappler     | 0.1       | 0.5      | 0.8              |
+| Turtle       | 0.5       | 0.7      | 0.2              |
 
 ---
 
@@ -75,19 +79,10 @@ Limites: HP = 300-500; DAMAGE = 10-20; ATTACK SPEED = 1-2; RANGE = 5-20; SPEED =
 
 Cada indivíduo representa o **conjunto completo dos 5 personagens** — não um personagem isolado. Isso porque o winrate de cada personagem depende de todos os outros simultaneamente.
 
-**Total: 70 genes por indivíduo** (5 personagens × 14 genes cada)
+**Total: 60 genes por indivíduo** (5 personagens × 12 genes cada)
 
-### Cromossomo 1 — Attributes (9 genes)
-
-```
-[hp, damage, cooldown, range, speed, defense, stun, knockback, recovery]
-```
-
-### Cromossomo 2 — Behavioral Weights (5 genes)
-
-```
-[w_attack, w_advance, w_retreat, w_defend, w_aggressiveness]
-```
+- Cromossomo 1 — Atributos (9 genes): `[hp, damage, attack_cooldown, range, speed, defense, stun, knockback, recovery]`
+- Cromossomo 2 — Pesos comportamentais (3 genes): `[w_retreat, w_defend, w_aggressiveness]`
 
 ---
 
@@ -96,43 +91,49 @@ Cada indivíduo representa o **conjunto completo dos 5 personagens** — não um
 ### Campo
 
 - Tamanho: 100 unidades
-- Distância inicial: 50
+- Distância inicial entre lutadores: 50 unidades (posições 25 e 75)
 - Distância mínima: 0 / máxima: 100
 
-### Movimentação
+### Fluxo por tick
 
-```python
-distance_moved = (speed / 100) * 5
-```
+1. **Escolha de ação** via sistema de prioridade (personagem stunado perde a ação; com probabilidade `ACTION_EPSILON`, ação aleatória)
+2. **Movimento** (ADVANCE / RETREAT) — ambos alteram posição absoluta
+3. **Ataques** resolvidos simultaneamente — aplica dano (com variância ±15%), stun, knockback, e seta cooldown do atacante
+4. **Decremento de timers** — apenas timers não recém-setados por ataque neste tick
+
+> O decremento ocorre no final do tick. Timers setados por um ataque neste tick não são decrementados até o próximo, garantindo que `stun=1` e `cooldown=1` sejam valores mínimos com efeito real.
 
 ### 4 Ações Disponíveis
 
-`attack` | `advance` | `retreat` | `defend`
+`ATTACK` | `ADVANCE` | `RETREAT` | `DEFEND`
 
-### Sistema de Decisão — Softmax Scoring
+### Sistema de Decisão — Prioridade
 
-```python
-me_hit    = in_range * (1 - cooldown)
-enemy_hit = enemy_in_range * (1 - enemy_cooldown)
+Modela um jogador experiente com decisões determinísticas baseadas no estado atual. Os pesos `w_*` controlam limiares comportamentais, não probabilidades — mesmo estado → mesma ação.
 
-damage_value = me_hit * damage
-risk         = enemy_hit * enemy_damage
-
-score_attack  = w_attack  * me_hit * (damage_value - risk)
-score_advance = w_advance * (1 - me_hit) * (damage_value - risk + w_aggressiveness)
-score_retreat = w_retreat * enemy_hit * (risk - damage_value)
-score_defend  = w_defend  * enemy_hit * risk
+```
+Prioridades (ordem decrescente):
+  1. ATTACK  — se em range e pronto (can_hit)
+  2. Sob ameaça (inimigo pronto e dentro de RETREAT_ZONE_FACTOR × range_inimigo):
+       w_aggressiveness > w_retreat E w_aggressiveness > w_defend → ADVANCE
+       w_retreat > w_defend → RETREAT  (kite / criar distância)
+       senão                → DEFEND   (absorver e punir na oportunidade)
+  3. ADVANCE — fora de range ou encurralado (próximo à parede)
+  4. DEFEND  — default: em range, em cooldown, sem ameaça ativa
 ```
 
-Ação escolhida via **softmax** sobre os 4 scores.
+Os três pesos competem simetricamente — o dominante vence. Não há limiares fixos,
+o que garante que o espaço genético seja contínuo e o AG tenha gradiente real para
+evoluir o comportamento sob ameaça.
+
+Pesos ativos (3 por personagem): `w_retreat`, `w_defend`, `w_aggressiveness`.
 
 ### Regras de Combate
 
-- `attack` só é possível se `distance <= range`
-- `defend` reduz dano para 20% quando oponente ataca no mesmo tick:
-  `damage_final = damage * (1 - defense) * 0.2`
-- `stun` trava o oponente por X ticks após hit
-- `knockback` empurra o oponente X unidades após hit
+- ATTACK causa dano apenas se `distance ≤ range`; cooldown só é setado em acerto (sem desperdício em whiff)
+- DEFEND reduz dano para `damage * (1 - defense) * 0.2` quando o oponente ataca no mesmo tick
+- Stun efetivo: `round(attacker.stun * (1 - defender.recovery))`, cap = `round(attacker.attack_cooldown)`
+- Knockback: empurra o defensor `knockback` unidades para longe após cada hit
 
 ### Condição de Vitória
 
@@ -143,13 +144,34 @@ Ação escolhida via **softmax** sobre os 4 scores.
 
 ## Função de Fitness
 
-```python
-balance_error  = mean(|winrate_i - 0.5|)   # para cada personagem i
-attribute_cost = sum(attribute²) / normalization
-fitness = (1 - balance_error) - λ * attribute_cost
+```
+balance_error          = mean(|winrate_i - 0.5|)          para cada personagem i (WR agregado)
+attribute_cost         = 1 - mean_specialization           sobre todos os personagens
+drift_penalty          = mean(distância_normalizada_ao_canônico_i)
+matchup_dominance_pen  = max(excess_ij)                    pior matchup direto (não mean — evita diluição)
+
+fitness = (1 - balance_error)
+        - LAMBDA         * attribute_cost
+        - LAMBDA_DRIFT   * drift_penalty
+        - LAMBDA_MATCHUP * matchup_dominance_penalty
 ```
 
-Avaliação por **round-robin completo**: 10 matchups únicos por indivíduo.
+Avaliação por **round-robin completo**: 10 matchups únicos × `SIMS_PER_MATCHUP` simulações.
+
+### Por que max e não mean no matchup_dominance_penalty
+
+`mean` dilui: um personagem com 100% vs um e 50% vs três teria penalidade de apenas 0.25. Com `max`, um único matchup absurdo já puxa a penalidade ao máximo, forçando o GA a corrigir dominâncias individuais.
+
+---
+
+## Critérios de Convergência
+
+O GA para quando **ambos** são satisfeitos (confirmados com `SIMS_CONVERGENCE_CHECK` simulações extras):
+
+1. WR agregado de cada personagem: `|wr_i - 0.5| ≤ CONVERGENCE_THRESHOLD` (0.03)
+2. Cada matchup direto: `|wr_ij - 0.5| ≤ MATCHUP_CONVERGENCE_THRESHOLD` (0.20)
+
+A condição 2 impede parada prematura quando um personagem tem 50% médio mas domina um adversário específico.
 
 ---
 
@@ -159,70 +181,15 @@ Avaliação por **round-robin completo**: 10 matchups únicos por indivíduo.
 
 Torneio com K=3.
 
-```python
-def tournament_selection(population, k=3):
-    candidates = random.sample(population, k)
-    return max(candidates, key=lambda x: x.fitness)
-```
-
 ### Cruzamento
 
-Por personagem completo (bloco) — preserva coerência interna entre atributos e pesos de cada personagem.
-
-```python
-def crossover(parent1, parent2):
-    child = []
-    for character in range(5):
-        donor = random.choice([parent1, parent2])
-        child.append(donor[character])
-    return child
-```
+Por personagem completo (bloco) — preserva coerência interna entre atributos e pesos.
 
 ### Mutação
 
-W's têm mutation strength menor que atributos para criar **inércia evolutiva** que tende a preservar arquétipos naturalmente.
-
-```python
-attribute_bounds = [
-    (0, 100),  # hp
-    (0, 100),  # damage
-    (0, 100),  # cooldown
-    (0, 100),  # range
-    (0, 100),  # speed
-    (0, 100),  # defense
-    (0, 100),  # stun
-    (0, 100),  # knockback
-    (0, 100),  # recovery
-]
-
-weight_bounds = [
-    (0, 1),  # w_attack
-    (0, 1),  # w_advance
-    (0, 1),  # w_retreat
-    (0, 1),  # w_defend
-    (0, 1),  # w_aggressiveness
-]
-
-def mutate(individual, mutation_rate=0.1):
-    for character in individual:
-        # attributes — higher mutation strength
-        for i in range(len(character.attributes)):
-            if random.random() < mutation_rate:
-                min_v, max_v = attribute_bounds[i]
-                sigma = 0.05 * (max_v - min_v)
-                character.attributes[i] += random.gauss(0, sigma)
-                character.attributes[i] = clip(character.attributes[i], min_v, max_v)
-
-        # weights — lower mutation strength to preserve archetype inertia
-        for i in range(len(character.weights)):
-            if random.random() < mutation_rate:
-                min_v, max_v = weight_bounds[i]
-                sigma = 0.02 * (max_v - min_v)
-                character.weights[i] += random.gauss(0, sigma)
-                character.weights[i] = clip(character.weights[i], min_v, max_v)
-
-    return individual
-```
+Gaussian com sigma = fração do range. Pesos têm sigma menor (inércia evolutiva):
+- Atributos: `sigma = 0.05 * (max - min)`
+- Pesos: `sigma = 0.02 * (max - min)`
 
 ### Elitismo
 
@@ -232,25 +199,35 @@ Top 10% preservados diretamente a cada geração.
 
 ## Hiperparâmetros
 
-```python
-POPULATION_SIZE        = 100
-ELITE_SIZE             = 10     # 10% de 100
-MAX_GENERATIONS        = 500
-CONVERGENCE_THRESHOLD  = 0.02   # winrate entre 48% e 52%
-STAGNATION_LIMIT       = 50     # gerações sem melhoria > 0.001
-MAX_TICKS              = 500    # duração máxima de uma partida
-LAMBDA                 = 0.3    # peso da penalidade de custo no fitness
-MUTATION_RATE          = 0.1
-TOURNAMENT_SIZE        = 3
-```
+| Parâmetro                     | Valor | Efeito                                                  |
+| ----------------------------- | ----- | ------------------------------------------------------- |
+| `POPULATION_SIZE`             | 100   | Tamanho da população                                    |
+| `ELITE_SIZE`                  | 10    | Indivíduos preservados por elitismo (10%)               |
+| `MAX_GENERATIONS`             | 20    | Limite de gerações                                      |
+| `STAGNATION_LIMIT`            | 50    | Gerações sem melhoria > 0.001 antes de parar            |
+| `CONVERGENCE_THRESHOLD`       | 0.03  | Desvio máximo de WR agregado para convergência          |
+| `MATCHUP_CONVERGENCE_THRESHOLD` | 0.20 | Desvio máximo de WR por matchup para convergência      |
+| `LAMBDA`                      | 0.2   | Peso da penalidade de especialização                    |
+| `LAMBDA_DRIFT`                | 0.0   | Peso da âncora ao canônico (0 = evolução livre)         |
+| `LAMBDA_MATCHUP`              | 1.0   | Peso da penalidade do pior matchup direto               |
+| `MATCHUP_THRESHOLD`           | 0.15  | Excesso acima de 50% que começa a penalizar (65%)       |
+| `SIMS_PER_MATCHUP`            | 15    | Simulações por matchup (estabilidade de WR)             |
+| `SIMS_CONVERGENCE_CHECK`      | 50    | Simulações extras para confirmar convergência           |
+| `DAMAGE_VARIANCE`             | 0.20  | ±20% por hit — variância de execução no dano            |
+| `ACTION_EPSILON`              | 0.10  | Prob. de ação aleatória por tick — erro de decisão      |
+| `MUTATION_RATE`               | 0.1   | Taxa de mutação por gene                                |
+| `TOURNAMENT_SIZE`             | 3     | Candidatos por seleção por torneio                      |
 
 ---
 
 ## Decisões Arquiteturais Importantes
 
-- **Modularidade:** O AG pode ser trocado facilmente — simulação e fitness são módulos independentes. Futuramente pode ser comparado com MAP-Elites, NSGA-II ou outros.
-- **Preservação emergente:** Arquétipos não são forçados — o AG evolui livremente e a preservação é medida comparando perfil final vs perfil inicial de cada personagem.
-- **Urgência por timer:** Descartada por ora — fica como trabalho futuro.
-- **Comportamento emergente:** W's evoluem junto com atributos, não são hardcoded.
-- **Inércia evolutiva:** W's têm mutation strength menor que atributos, tendendo a preservar arquétipos naturalmente sem impor restrições.
-- **Custo quadrático:** `custo(x) = x²` — atributos extremos são punidos exponencialmente, evitando super-heróis sem bloquear valores altos quando necessários.
+- **Modularidade:** Simulação e GA são módulos independentes. O AG pode ser comparado futuramente com MAP-Elites, NSGA-II, etc.
+- **Preservação emergente:** Arquétipos não são forçados — o AG evolui livremente e a preservação é medida via `LAMBDA_DRIFT`.
+- **Sistema de prioridade determinístico:** Simula um jogador experiente — mesma situação → mesma ação. Academicamente mais defensável que softmax: separa *identidade* (quem o personagem é, via `w_*`) de *competência* (o que ele faz em cada situação, via prioridades fixas).
+- **Estocasticidade em duas camadas:** `DAMAGE_VARIANCE=0.20` (±20% por hit) modela imprecisão de execução no dano; `ACTION_EPSILON=0.10` (10% de ação aleatória por tick) modela erros de decisão. As duas fontes são independentes e se combinam para criar spread suficiente para winrates não-binários em 15 simulações.
+- **Pesos como limiares comportamentais:** `w_aggressiveness >= 0.7` separa agressivos (Rushdown, Grappler, CM) de reativos (Zoner, Turtle). `w_retreat > w_defend` separa kitadores de absorvedores.
+- **Inércia evolutiva:** Pesos (`w_*`) têm sigma de mutação menor que atributos, tendendo a preservar comportamento naturalmente.
+- **Decremento pós-ataque:** Garante que valores mínimos de stun e cooldown (= 1) sejam semanticamente significativos.
+- **Penalidade por pior matchup (max):** Força o GA a corrigir dominâncias individuais, não apenas médias.
+- **Cooldown só em acerto:** Personagem que tenta atacar fora de range não desperdiça cooldown (tratado em `_resolve_attack`).

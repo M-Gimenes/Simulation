@@ -4,7 +4,7 @@ Indivíduo do AG — representa um conjunto completo de 5 personagens.
 Por que coletivo? O winrate de cada personagem depende de todos os outros
 simultaneamente. Avaliar um personagem isolado não tem sentido aqui.
 
-Total: 70 genes por indivíduo (5 personagens × 14 genes cada).
+Total: 60 genes por indivíduo (5 personagens × 12 genes cada).
 """
 
 from __future__ import annotations

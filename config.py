@@ -1,79 +1,80 @@
 """
 Configurações globais do sistema.
-Hiperparâmetros do AG e definições dos arquétipos.
+Todos os hiperparâmetros do AG e da simulação de combate estão aqui.
 """
 
-# ── Hiperparâmetros do AG ────────────────────────────────────────────────────
+# ── AG — População e critérios de parada ────────────────────────────────────
 
 POPULATION_SIZE       = 100
-ELITE_SIZE            = 10      # 10% de 100
-MAX_GENERATIONS       = 20
-CONVERGENCE_THRESHOLD = 0.02    # winrate entre 48% e 52%
-STAGNATION_LIMIT      = 50      # gerações sem melhoria > 0.001
-MAX_TICKS             = 500     # duração máxima de uma partida (ticks)
-LAMBDA                = 0.3     # peso da penalidade de especialização no fitness
-LAMBDA_DRIFT          = 0.0     # peso da penalidade de desvio arquetípico no fitness
-                                # 0.0 = evolução completamente livre (sem âncora ao canônico)
-                                # maior = mais pressão para preservar identidade do arquétipo
+ELITE_SIZE            = 10     # indivíduos preservados por elitismo por geração
+MAX_GENERATIONS       = 50     # limite de gerações
+STAGNATION_LIMIT      = 50     # gerações sem melhoria > 0.001 antes de parar
+CONVERGENCE_THRESHOLD = 0.03   # desvio máximo de balance_error para convergência (≈48–52%)
+MATCHUP_CONVERGENCE_THRESHOLD = 0.20  # desvio máximo de WR por matchup (≈30–70%)
+
+# ── AG — Operadores ──────────────────────────────────────────────────────────
+
+TOURNAMENT_SIZE          = 3    # candidatos por seleção por torneio
+MUTATION_RATE            = 0.1  # probabilidade de mutação por gene
+ATTRIBUTE_MUTATION_SIGMA = 0.1 # sigma como fração do range do atributo — exploração ampla
+WEIGHT_MUTATION_SIGMA    = 0.02 # sigma como fração do range do peso — inércia evolutiva
+
+# ── Função de fitness ────────────────────────────────────────────────────────
+
+SIMS_PER_MATCHUP       = 30    # simulações por matchup no round-robin
+SIMS_CONVERGENCE_CHECK = 50    # simulações extras para confirmar convergência
+
+LAMBDA                 = 0.2   # peso da penalidade de especialização (attribute_cost)
+LAMBDA_DRIFT           = 0.0   # peso da penalidade de desvio arquetípico (drift_penalty)
+                                # 0.0 = evolução livre  |  alto = âncora ao canônico
                                 # trade-off central do TCC: equilíbrio vs preservação
-MUTATION_RATE         = 0.1
-TOURNAMENT_SIZE       = 3
-SIMS_PER_MATCHUP      = 30      # simulações por matchup no round-robin (estabiliza winrate)
-SIMS_CONVERGENCE_CHECK = 50     # sims extras usadas só para confirmar convergência
+LAMBDA_MATCHUP         = 1     # peso da penalidade do pior matchup direto
+
+MATCHUP_THRESHOLD      = 0.15  # excesso acima de 50% que inicia penalização (65% WR = limiar)
+
+BALANCE_MODE = "matchup"       # como calcular balance_error:
+                                # "matchup"   → mean(|wr_ij - 0.5|) sobre os 10 pares
+                                # "aggregate" → mean(|wr_i  - 0.5|) sobre os 5 personagens
 
 # ── Paralelismo ──────────────────────────────────────────────────────────────
 
 N_WORKERS = None  # None = todos os núcleos da CPU; 1 = desativa paralelismo
 
-# ── Bounds dos atributos (escala 0–100) ─────────────────────────────────────
+# ── Simulação — Campo ────────────────────────────────────────────────────────
+
+FIELD_SIZE            = 100  # tamanho do campo em unidades
+INITIAL_DISTANCE      = 50   # distância inicial entre os lutadores
+WALL_CORNER_THRESHOLD = 10   # distância da parede para considerar o lutador encurralado
+
+# ── Simulação — Estocasticidade ──────────────────────────────────────────────
+
+DAMAGE_VARIANCE = 0.20  # ±20% por hit — variância de execução no dano
+ACTION_EPSILON  = 0.20  # prob. de ação aleatória por tick — erros de decisão
+
+# ── Simulação — Decisão ──────────────────────────────────────────────────────
+
+MAX_TICKS           = 500  # duração máxima de uma partida (ticks)
+RETREAT_ZONE_FACTOR = 2.0  # zona de ameaça proativa = fator × range do inimigo
+
+# ── Bounds dos genes ─────────────────────────────────────────────────────────
 
 ATTRIBUTE_BOUNDS = [
-    (300.0, 500.0),  # hp            — pontos de vida
-    (10.0,  20.0),   # damage        — dano por hit (unidades de HP)
-    (1.0,   10.0),   # attack_speed  — ataques por 10 ticks; wait = round(10 / attack_speed)
-    (5.0,   20.0),   # range         — alcance em unidades de campo
-    (1.0,    5.0),   # speed         — unidades de campo por tick
-    (0.0,    0.5),   # defense       — redução de dano recebido (0 = nenhuma, 1 = total)
-    (0.0,    5.0),   # stun          — ticks de stun máximo causado (modificado por recovery)
-    (0.0,   10.0),   # knockback     — unidades de campo empurradas por hit
-    (0.0,    0.5),   # recovery      — resistência a stun (0 = nenhuma, 1 = imune)
+    (300.0, 500.0),  # hp
+    (10.0,  20.0),   # damage
+    (1.0,   5.0),    # attack_cooldown
+    (5.0,   20.0),   # range
+    (1.0,   5.0),    # speed
+    (0.0,   0.5),    # defense
+    (0.0,   5.0),    # stun
+    (0.0,   5.0),    # knockback
+    (0.0,   0.5),    # recovery
 ]
 
 WEIGHT_BOUNDS = [
-    (0.0, 1.0),     # w_attack
-    (0.0, 1.0),     # w_advance
-    (0.0, 1.0),     # w_retreat
-    (0.0, 1.0),     # w_defend
-    (0.0, 1.0),     # w_aggressiveness
+    (0.0, 1.0),  # w_retreat
+    (0.0, 1.0),  # w_defend
+    (0.0, 1.0),  # w_aggressiveness
 ]
 
-# Sigma de mutação como fração do range
-ATTRIBUTE_MUTATION_SIGMA = 0.05   # 5% do range → strength maior
-WEIGHT_MUTATION_SIGMA    = 0.02   # 2% do range → inércia evolutiva
-
-# Temperatura do softmax de decisão de ação
-# < 1.0 → distribuição mais concentrada (comportamento reflete melhor os pesos w_*)
-# = 1.0 → softmax padrão (scores normalizados ~0.25 resultam em distribuição quase uniforme)
-# Valor recomendado: 0.1 garante que o melhor score domina sem tornar comportamento 100% determinístico
-SCORE_TEMPERATURE = 0.1
-
-# ── Nomes dos genes (para logging e visualizações) ──────────────────────────
-
-ATTRIBUTE_NAMES = [
-    "hp", "damage", "attack_speed", "range",
-    "speed", "defense", "stun", "knockback", "recovery",
-]
-
-WEIGHT_NAMES = [
-    "w_attack", "w_advance", "w_retreat", "w_defend", "w_aggressiveness",
-]
-
-# ── Campo de batalha ─────────────────────────────────────────────────────────
-
-FIELD_SIZE       = 100   # unidades
-INITIAL_DISTANCE = 50
-MIN_DISTANCE     = 0
-MAX_DISTANCE     = 100
-
-WALL_CORNER_THRESHOLD = 10  # unidades — distância da parede em que o lutador é
-                             # considerado "encurralado" e pode usar ADVANCE para crossing
+ATTRIBUTE_NAMES = ["hp", "damage", "attack_cooldown", "range", "speed", "defense", "stun", "knockback", "recovery"]
+WEIGHT_NAMES    = ["w_retreat", "w_defend", "w_aggressiveness"]

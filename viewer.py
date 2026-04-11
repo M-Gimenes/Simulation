@@ -33,7 +33,7 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
 if sys.stderr.encoding and sys.stderr.encoding.lower() != "utf-8":
     sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
-from archetypes import ARCHETYPES, ArchetypeID, ARCHETYPE_ORDER
+from archetypes import ARCHETYPES, ArchetypeID, ARCHETYPE_ORDER, ARCHETYPE_ALIASES
 from character import Character
 from individual import Individual
 from combat import FighterState, Action, _choose_action, _resolve_attack
@@ -114,13 +114,7 @@ _ACT_NAME = {
     None:           "STUNNED",
 }
 
-ALIASES = {
-    "zoner":    ArchetypeID.ZONER,    "z":    ArchetypeID.ZONER,
-    "rushdown": ArchetypeID.RUSHDOWN, "rd":   ArchetypeID.RUSHDOWN,
-    "combo":    ArchetypeID.COMBO_MASTER, "cm": ArchetypeID.COMBO_MASTER,
-    "grappler": ArchetypeID.GRAPPLER, "grap": ArchetypeID.GRAPPLER, "g": ArchetypeID.GRAPPLER,
-    "turtle":   ArchetypeID.TURTLE,   "t":    ArchetypeID.TURTLE,
-}
+ALIASES = ARCHETYPE_ALIASES
 
 
 # ─── Damage event ─────────────────────────────────────────────────────────────
@@ -498,7 +492,7 @@ def run_combat_visual(
                 ))
 
             fighters[attacker_idx].cooldown_remaining = round(
-                10.0 / fighters[attacker_idx].character.attack_speed
+                fighters[attacker_idx].character.attack_cooldown
             )
 
         # ── Render deste tick

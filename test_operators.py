@@ -12,7 +12,7 @@ random.seed(42)
 
 from individual import Individual
 from operators import tournament_selection, crossover, mutate, next_generation
-from config import ELITE_SIZE, POPULATION_SIZE
+from config import ATTRIBUTE_BOUNDS, ELITE_SIZE, POPULATION_SIZE, WEIGHT_BOUNDS
 
 
 def separator(title: str) -> None:
@@ -94,10 +94,15 @@ assert ind.fitness is None, "Mutação deve invalidar fitness"
 
 # Todos os genes devem estar dentro dos bounds
 for char in ind.characters:
-    assert all(0.0 <= a <= 100.0 for a in char.attributes), "Atributo fora do bound após mutação"
-    assert all(0.0 <= w <= 1.0   for w in char.weights),    "Peso fora do bound após mutação"
+    assert all(lo <= a <= hi for a, (lo, hi) in zip(char.attributes, ATTRIBUTE_BOUNDS)), \
+        "Atributo fora do bound após mutação"
+    assert all(lo <= w <= hi for w, (lo, hi) in zip(char.weights, WEIGHT_BOUNDS)), \
+        "Peso fora do bound após mutação"
 
 # Com rate=1.0, ao menos alguns genes devem ter mudado
+n_attrs   = len(ATTRIBUTE_BOUNDS) * len(ind.characters)
+n_weights = len(WEIGHT_BOUNDS)    * len(ind.characters)
+
 changed_attrs   = sum(1 for i, c in enumerate(ind.characters)
                       for j, a in enumerate(c.attributes)
                       if a != original_attrs[i][j])
@@ -105,8 +110,8 @@ changed_weights = sum(1 for i, c in enumerate(ind.characters)
                       for j, w in enumerate(c.weights)
                       if w != original_weights[i][j])
 
-print(f"  Atributos modificados: {changed_attrs}/45")
-print(f"  Pesos modificados:     {changed_weights}/25")
+print(f"  Atributos modificados: {changed_attrs}/{n_attrs}")
+print(f"  Pesos modificados:     {changed_weights}/{n_weights}")
 assert changed_attrs > 0 and changed_weights > 0, "Nenhum gene foi mutado"
 print("  ✓ Mutação aplicada dentro dos bounds, fitness invalidado")
 
