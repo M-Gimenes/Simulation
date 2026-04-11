@@ -163,3 +163,54 @@ def _suggest_lambdas(archive: Archive) -> Dict[str, float]:
     lambda_matchup = round(1.0 / max(pen_range, 0.1), 2)
 
     return {"LAMBDA_DRIFT": lambda_drift, "LAMBDA_MATCHUP": lambda_matchup, "LAMBDA": 0.2}
+
+
+# ─── Output ───────────────────────────────────────────────────────────────────
+
+def _print_heatmap(archive: Archive) -> None:
+    """Imprime heatmap ASCII do grid. Cada célula mostra matchup_dominance_penalty."""
+    col_w    = 6
+    x_labels = [f"{GRID_X_MAX * (bx + 0.5) / GRID_X_BINS:.2f}" for bx in range(GRID_X_BINS)]
+
+    print("\n=== Heatmap: matchup_dominance_penalty (.. = vazia, menor = melhor) ===\n")
+    print(f"  drift  |  " + "".join(f"{v:>{col_w}}" for v in x_labels))
+    print(f"         |  " + "-" * (col_w * GRID_X_BINS))
+
+    for by in range(GRID_Y_BINS - 1, -1, -1):   # alto drift no topo
+        y_center = GRID_Y_MAX * (by + 0.5) / GRID_Y_BINS
+        row      = f"  {y_center:.3f}  |  "
+        for bx in range(GRID_X_BINS):
+            if (bx, by) in archive:
+                val  = archive[(bx, by)][1].matchup_dominance_penalty
+                row += f"{val:>{col_w}.2f}"
+            else:
+                row += f"{'..':<{col_w}}"
+        print(row)
+
+    print(f"         |")
+    print(f"  bal_err:  " + "".join(f"{v:>{col_w}}" for v in x_labels))
+    print(f"{'':30s}balance_error ->\n")
+
+
+def _print_frontier(archive: Archive) -> None:
+    """Imprime fronteira de trade-off e marca o joelho."""
+    frontier = _compute_frontier(archive)
+    points: List[Tuple[float, float, float]] = []   # (balance_error, drift, matchup_pen)
+
+    for cell in frontier:
+        if cell is not None:
+            _, detail = archive[cell]
+            points.append((detail.balance_error, detail.drift_penalty, detail.matchup_dominance_penalty))
+
+    print("=== Frontier trade-off (best balance_error per drift level) ===\n")
+
+    if not points:
+        print("  (nenhuma célula preenchida)")
+        return
+
+    knee = _find_knee([(p[0], p[1]) for p in points])
+
+    for i, (bal, drift, pen) in enumerate(points):
+        marker = "  <- knee" if i == knee else ""
+        print(f"  drift={drift:.3f}  ->  balance_error={bal:.3f}   matchup_pen={pen:.2f}{marker}")
+    print()
