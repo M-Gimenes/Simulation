@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 import random
 from fitness import FitnessDetail
 from individual import Individual
-from map_elites import _bucket, _place, _mutate_from, GRID_X_BINS, GRID_Y_BINS, GRID_X_MAX, GRID_Y_MAX
+from map_elites import _bucket, _place, _mutate_from, _compute_frontier, _find_knee, GRID_X_BINS, GRID_Y_BINS, GRID_X_MAX, GRID_Y_MAX
 
 
 def _detail(balance_error: float, drift_penalty: float, matchup_pen: float) -> FitnessDetail:
@@ -95,6 +95,53 @@ def test_mutate_from_genes_differ():
     assert original_genes is not child_genes
 
 
+def _make_archive(cells: list) -> dict:
+    """cells: list de (bx, by, balance_error, drift_penalty, matchup_pen)"""
+    archive = {}
+    ind = Individual.from_canonical()
+    for bx, by, bal, drift, pen in cells:
+        archive[(bx, by)] = (ind, _detail(bal, drift, pen))
+    return archive
+
+
+def test_compute_frontier_returns_best_bx_per_row():
+    archive = _make_archive([
+        (3, 0, 0.17, 0.03, 0.5),
+        (1, 0, 0.07, 0.03, 0.4),  # mesmo row by=0, menor bx → vence
+        (2, 1, 0.12, 0.11, 0.3),
+    ])
+    frontier = _compute_frontier(archive)
+    assert frontier[0] == (1, 0)   # by=0 → bx=1 (menor)
+    assert frontier[1] == (2, 1)   # by=1 → bx=2
+    assert frontier[2] is None     # by=2 → vazio
+
+
+def test_compute_frontier_empty_archive():
+    frontier = _compute_frontier({})
+    assert all(f is None for f in frontier)
+    assert len(frontier) == GRID_Y_BINS
+
+
+def test_find_knee_three_points():
+    # Curva em L: joelho deve ser o ponto do meio
+    points = [(0.3, 0.1), (0.1, 0.1), (0.1, 0.5)]
+    # Distância da reta (0.3,0.1)-(0.1,0.5):
+    # ponto (0.1, 0.1) deve ser o mais distante → índice 1
+    assert _find_knee(points) == 1
+
+
+def test_find_knee_linear():
+    # Pontos colineares — qualquer índice é aceitável (sem joelho claro)
+    points = [(0.0, 0.0), (0.1, 0.1), (0.2, 0.2)]
+    knee = _find_knee(points)
+    assert 0 <= knee < 3
+
+
+def test_find_knee_too_few_points():
+    assert _find_knee([(0.1, 0.2)]) == 0
+    assert _find_knee([(0.1, 0.2), (0.2, 0.3)]) in (0, 1)
+
+
 if __name__ == "__main__":
     test_bucket_basic()
     test_place_fills_empty_cell()
@@ -103,4 +150,9 @@ if __name__ == "__main__":
     test_place_out_of_bounds_clamps_to_last_bucket()
     test_mutate_from_returns_new_individual()
     test_mutate_from_genes_differ()
-    print("Tasks 1-2 — OK")
+    test_compute_frontier_returns_best_bx_per_row()
+    test_compute_frontier_empty_archive()
+    test_find_knee_three_points()
+    test_find_knee_linear()
+    test_find_knee_too_few_points()
+    print("Tasks 1-3 — OK")

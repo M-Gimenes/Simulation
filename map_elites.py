@@ -80,3 +80,43 @@ def _evaluate_batch(population: List[Individual]) -> List[FitnessDetail]:
         return [evaluate_detail(ind) for ind in population]
     with ProcessPoolExecutor(max_workers=N_WORKERS) as executor:
         return list(executor.map(evaluate_detail, population))
+
+
+# ─── Análise do archive ───────────────────────────────────────────────────────
+
+def _compute_frontier(archive: Archive) -> List[Optional[Tuple[int, int]]]:
+    """
+    Para cada bucket de drift_penalty (by), retorna a célula com menor balance_error (bx).
+    Retorna lista de comprimento GRID_Y_BINS; None onde o bucket de drift está vazio.
+    """
+    result: List[Optional[Tuple[int, int]]] = []
+    for by in range(GRID_Y_BINS):
+        best_bx: Optional[int] = None
+        for bx in range(GRID_X_BINS):
+            if (bx, by) in archive:
+                if best_bx is None or bx < best_bx:
+                    best_bx = bx
+        result.append((best_bx, by) if best_bx is not None else None)
+    return result
+
+
+def _find_knee(points: List[Tuple[float, float]]) -> int:
+    """
+    Retorna o índice do joelho numa lista de (balance_error, drift_penalty)
+    usando o método de maior distância perpendicular à reta que conecta
+    o primeiro e o último ponto.
+    """
+    if len(points) < 3:
+        return len(points) // 2
+    x1, y1 = points[0]
+    x2, y2 = points[-1]
+    dx, dy  = x2 - x1, y2 - y1
+    length  = math.sqrt(dx * dx + dy * dy)
+    if length < 1e-9:
+        return 0
+    best_dist, knee = -1.0, 0
+    for i, (x, y) in enumerate(points):
+        dist = abs(dy * x - dx * y + x2 * y1 - y2 * x1) / length
+        if dist > best_dist:
+            best_dist, knee = dist, i
+    return knee
