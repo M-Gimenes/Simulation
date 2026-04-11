@@ -211,6 +211,6 @@ def _print_frontier(archive: Archive) -> None:
     knee = _find_knee([(p[0], p[1]) for p in points])
 
     for i, (bal, drift, pen) in enumerate(points):
-        marker = "  <- knee" if i == knee else ""
+        marker = "  <- joelho" if i == knee else ""
         print(f"  drift={drift:.3f}  ->  balance_error={bal:.3f}   matchup_pen={pen:.2f}{marker}")
     print()
