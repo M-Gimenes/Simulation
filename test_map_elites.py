@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 import random
 from fitness import FitnessDetail
 from individual import Individual
-from map_elites import _bucket, _place, _mutate_from, _compute_frontier, _find_knee, GRID_X_BINS, GRID_Y_BINS, GRID_X_MAX, GRID_Y_MAX
+from map_elites import _bucket, _place, _mutate_from, _compute_frontier, _find_knee, _suggest_lambdas, GRID_X_BINS, GRID_Y_BINS, GRID_X_MAX, GRID_Y_MAX
 
 
 def _detail(balance_error: float, drift_penalty: float, matchup_pen: float) -> FitnessDetail:
@@ -142,6 +142,39 @@ def test_find_knee_too_few_points():
     assert _find_knee([(0.1, 0.2), (0.2, 0.3)]) in (0, 1)
 
 
+def test_suggest_lambdas_returns_required_keys():
+    archive = _make_archive([
+        (1, 1, 0.07, 0.11, 0.2),
+        (2, 2, 0.12, 0.19, 0.3),
+        (3, 3, 0.17, 0.26, 0.5),
+        (4, 4, 0.22, 0.34, 0.7),
+    ])
+    result = _suggest_lambdas(archive)
+    assert "LAMBDA_DRIFT"   in result
+    assert "LAMBDA_MATCHUP" in result
+    assert "LAMBDA"         in result
+    assert result["LAMBDA"] == 0.2
+
+
+def test_suggest_lambdas_empty_archive():
+    # Archive vazio deve retornar defaults sem exceção
+    result = _suggest_lambdas({})
+    assert "LAMBDA_DRIFT" in result
+    assert result["LAMBDA"] == 0.2
+
+
+def test_suggest_lambdas_values_are_positive():
+    archive = _make_archive([
+        (0, 0, 0.02, 0.04, 0.0),
+        (1, 2, 0.07, 0.19, 0.2),
+        (2, 4, 0.12, 0.34, 0.4),
+        (3, 6, 0.17, 0.49, 0.6),
+    ])
+    result = _suggest_lambdas(archive)
+    assert result["LAMBDA_DRIFT"]   >= 0.0
+    assert result["LAMBDA_MATCHUP"] >  0.0
+
+
 if __name__ == "__main__":
     test_bucket_basic()
     test_place_fills_empty_cell()
@@ -155,4 +188,7 @@ if __name__ == "__main__":
     test_find_knee_three_points()
     test_find_knee_linear()
     test_find_knee_too_few_points()
-    print("Tasks 1-3 — OK")
+    test_suggest_lambdas_returns_required_keys()
+    test_suggest_lambdas_empty_archive()
+    test_suggest_lambdas_values_are_positive()
+    print("Tasks 1-4 — OK")

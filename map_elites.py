@@ -120,3 +120,46 @@ def _find_knee(points: List[Tuple[float, float]]) -> int:
         if dist > best_dist:
             best_dist, knee = dist, i
     return knee
+
+
+def _suggest_lambdas(archive: Archive) -> Dict[str, float]:
+    """
+    Sugere LAMBDA_DRIFT e LAMBDA_MATCHUP baseado na fronteira empírica do archive.
+
+    LAMBDA_DRIFT   = |Δbalance_error / Δdrift_penalty| no joelho da fronteira.
+                     Representa quanto equilíbrio se ganha por unidade de drift permitido.
+    LAMBDA_MATCHUP = 1 / range(matchup_pen na fronteira).
+                     Normaliza a penalidade de matchup para escala comparável ao balance_error.
+    """
+    frontier = _compute_frontier(archive)
+    points:     List[Tuple[float, float]] = []
+    pen_values: List[float]               = []
+
+    for cell in frontier:
+        if cell is not None:
+            _, detail = archive[cell]
+            points.append((detail.balance_error, detail.drift_penalty))
+            pen_values.append(detail.matchup_dominance_penalty)
+
+    if len(points) < 2:
+        return {"LAMBDA_DRIFT": 0.5, "LAMBDA_MATCHUP": 1.0, "LAMBDA": 0.2}
+
+    knee = _find_knee(points)
+    i    = knee
+
+    if 0 < i < len(points) - 1:
+        d_bal   = abs(points[i + 1][0] - points[i - 1][0])
+        d_drift = abs(points[i + 1][1] - points[i - 1][1])
+    elif i == 0:
+        d_bal   = abs(points[1][0] - points[0][0])
+        d_drift = abs(points[1][1] - points[0][1])
+    else:
+        d_bal   = abs(points[-1][0] - points[-2][0])
+        d_drift = abs(points[-1][1] - points[-2][1])
+
+    lambda_drift = round(d_bal / d_drift, 3) if d_drift > 1e-6 else 0.0
+
+    pen_range      = max(pen_values) - min(pen_values) if pen_values else 0.5
+    lambda_matchup = round(1.0 / max(pen_range, 0.1), 2)
+
+    return {"LAMBDA_DRIFT": lambda_drift, "LAMBDA_MATCHUP": lambda_matchup, "LAMBDA": 0.2}
