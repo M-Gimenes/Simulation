@@ -214,3 +214,93 @@ def _print_frontier(archive: Archive) -> None:
         marker = "  <- joelho" if i == knee else ""
         print(f"  drift={drift:.3f}  ->  balance_error={bal:.3f}   matchup_pen={pen:.2f}{marker}")
     print()
+
+
+# ─── Loop principal ───────────────────────────────────────────────────────────
+
+def run_map_elites(
+    seed:         Optional[int] = None,
+    n_init:       int           = N_INIT,
+    n_iterations: int           = N_ITERATIONS,
+    verbose:      bool          = True,
+) -> Archive:
+    """
+    Executa o MAP-Elites completo.
+
+    Args:
+        seed:         semente para reprodutibilidade (None = aleatório).
+        n_init:       indivíduos avaliados na inicialização.
+        n_iterations: iterações do loop principal.
+        verbose:      imprime progresso a cada 1.000 iterações.
+
+    Returns:
+        Archive preenchido: Dict[(bx, by), (Individual, FitnessDetail)].
+    """
+    if seed is not None:
+        random.seed(seed)
+
+    archive: Archive = {}
+
+    # ── Inicialização ─────────────────────────────────────────────────────────
+    if verbose:
+        print(f"Inicializando {n_init} indivíduos (paralelo com N_WORKERS={N_WORKERS})...")
+
+    init_pop = [Individual.from_canonical()] + [Individual.random() for _ in range(n_init - 1)]
+    details  = _evaluate_batch(init_pop)
+
+    for ind, detail in zip(init_pop, details):
+        _place(archive, ind, detail)
+
+    if verbose:
+        print(f"Archive inicial: {len(archive)}/{GRID_X_BINS * GRID_Y_BINS} células\n")
+
+    # ── Loop ──────────────────────────────────────────────────────────────────
+    for iteration in range(1, n_iterations + 1):
+        key    = random.choice(list(archive.keys()))
+        parent = archive[key][0]
+        child  = _mutate_from(parent)
+        detail = _evaluate(child)
+        _place(archive, child, detail)
+
+        if verbose and iteration % 1000 == 0:
+            best_bal   = min(d.balance_error  for _, d in archive.values())
+            best_drift = min(d.drift_penalty  for _, d in archive.values())
+            print(
+                f"[{iteration:6d}/{n_iterations}]  "
+                f"células={len(archive):2d}/{GRID_X_BINS * GRID_Y_BINS}  "
+                f"melhor_bal={best_bal:.3f}  melhor_drift={best_drift:.3f}"
+            )
+
+    return archive
+
+
+# ─── Entrada ──────────────────────────────────────────────────────────────────
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="MAP-Elites -- análise do espaço de soluções")
+    parser.add_argument("--seed",         type=int, default=None, help="Semente aleatória")
+    parser.add_argument("--n-init",       type=int, default=N_INIT,       help="Indivíduos iniciais")
+    parser.add_argument("--n-iterations", type=int, default=N_ITERATIONS, help="Iterações do loop")
+    parser.add_argument("--quiet",        action="store_true",            help="Suprime progresso")
+    args = parser.parse_args()
+
+    archive = run_map_elites(
+        seed=args.seed,
+        n_init=args.n_init,
+        n_iterations=args.n_iterations,
+        verbose=not args.quiet,
+    )
+
+    _print_heatmap(archive)
+    _print_frontier(archive)
+
+    lambdas = _suggest_lambdas(archive)
+    print("=== Calibração sugerida de lambdas ===\n")
+    print(f"  LAMBDA_DRIFT   = {lambdas['LAMBDA_DRIFT']}")
+    print(f"  LAMBDA_MATCHUP = {lambdas['LAMBDA_MATCHUP']}")
+    print(f"  LAMBDA         = {lambdas['LAMBDA']}  (mantém -- attribute_cost não afeta o trade-off central)")
+    print()
+
+
+if __name__ == "__main__":
+    main()
