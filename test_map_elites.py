@@ -88,11 +88,10 @@ def test_mutate_from_genes_differ():
     random.seed(42)
     ind = Individual.from_canonical()
     child = _mutate_from(ind)
-    # Com MUTATION_RATE=0.2 e 60 genes, estatisticamente pelo menos 1 gene muda
-    original_genes = ind.characters[0].genes()
-    child_genes    = child.characters[0].genes()
-    # Não garantimos que todos diferem, mas o clone não é a mesma referência
-    assert original_genes is not child_genes
+    # Com MUTATION_RATE padrão e seed fixo, pelo menos 1 gene entre os 5 personagens muda
+    all_original = [g for c in ind.characters   for g in c.genes()]
+    all_child    = [g for c in child.characters for g in c.genes()]
+    assert any(a != b for a, b in zip(all_original, all_child)), "mutate não alterou nenhum gene"
 
 
 def _make_archive(cells: list) -> dict:

@@ -157,7 +157,11 @@ def _suggest_lambdas(archive: Archive) -> Dict[str, float]:
         d_bal   = abs(points[-1][0] - points[-2][0])
         d_drift = abs(points[-1][1] - points[-2][1])
 
-    lambda_drift = round(d_bal / d_drift, 3) if d_drift > 1e-6 else 0.0
+    if d_drift > 1e-6:
+        lambda_drift = round(d_bal / d_drift, 3)
+    else:
+        print("AVISO: fronteira plana no joelho (d_drift ~= 0) — LAMBDA_DRIFT retorna 0.0 (padrão sem calibração)")
+        lambda_drift = 0.0
 
     pen_range      = max(pen_values) - min(pen_values) if pen_values else 0.5
     lambda_matchup = round(1.0 / max(pen_range, 0.1), 2)
