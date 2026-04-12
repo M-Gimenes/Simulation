@@ -10,9 +10,9 @@ Uso standalone:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from itertools import combinations
-from typing import Dict, List, Tuple
+from dataclasses import dataclass, field      # field used in Task 5+
+from itertools import combinations            # used in Task 5 (_collect_stats)
+from typing import Dict, List, Tuple          # Tuple used in Task 3+
 
 from archetypes import ARCHETYPE_ORDER, ArchetypeID
 from combat import Action, ActionLog, CombatResult, simulate_combat_detailed
