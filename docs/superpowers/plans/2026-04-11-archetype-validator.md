@@ -2,6 +2,21 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+## Progress (last updated 2026-04-11)
+
+- [x] Task 1 — `simulate_combat_detailed` + `ActionLog` in `combat.py` ✅ (commit 4325d8e)
+- [x] Task 2 — Data structures in `archetype_validator.py` ✅ (commit 0603069)
+- [x] Task 3 — Layer 1 `_check_structural_inter` ✅ (commit 7a158da)
+- [x] Task 4 — Layer 2 `_check_structural_intra` ✅ (commit 7a158da)
+- [ ] Task 5 — `_collect_stats` ← **NEXT**
+- [ ] Task 6 — Layer 3 `_check_behavioral`
+- [ ] Task 7 — Layer 4 `_check_outcome`
+- [ ] Task 8 — `run_validation`, `print_report`, entry point
+
+**Note on canonical values:** The two "known canonical bugs" listed in Task 3 (Turtle recovery < Grappler, Turtle attack_cooldown < Grappler) were already fixed in commit `5bdd2ee` before this plan was written. Current canonical values are correct: Turtle recovery=0.5, attack_cooldown=5.0. All 14 Layer 1 assertions pass on canonical.
+
+**Current HEAD:** `7a158da`
+
 **Goal:** Build `archetype_validator.py`, a standalone diagnostic tool that runs 28 archetype identity assertions on any `Individual` and prints a structured pass/fail report.
 
 **Architecture:** Layer 1–2 check gene rankings statically (no simulation). Layers 3–4 run a detailed round-robin that tracks per-fighter action counts and outcome stats. A single `run_validation(individual)` function orchestrates all layers and returns a `ArchetypeValidationReport`.
