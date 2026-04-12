@@ -14,6 +14,7 @@ from __future__ import annotations
 import math
 import random
 import argparse
+from contextlib import nullcontext
 from concurrent.futures import ProcessPoolExecutor
 from typing import Dict, List, Optional, Tuple
 import os, sys
@@ -26,12 +27,12 @@ from config import N_WORKERS
 
 # ─── Constantes do grid ───────────────────────────────────────────────────────
 
-GRID_X_BINS = 10     # balance_error
-GRID_Y_BINS = 8      # drift_penalty
+GRID_X_BINS = 20     # balance_error
+GRID_Y_BINS = 10      # drift_penalty
 GRID_X_MAX  = 0.5    # máximo teórico de balance_error
-GRID_Y_MAX  = 0.6    # máximo observado de drift_penalty
+GRID_Y_MAX  = 0.5    # máximo observado de drift_penalty
 
-N_INIT       = 200
+N_INIT       = 500
 N_ITERATIONS = 50_000
 
 Archive = Dict[Tuple[int, int], Tuple[Individual, FitnessDetail]]
@@ -220,6 +221,67 @@ def _print_frontier(archive: Archive) -> None:
     print()
 
 
+# ─── Indivíduos ──────────────────────────────────────────────────────────────
+
+_ATTR_SHORT = ["hp", "dmg", "cd", "rng", "spd", "def", "stun", "kb", "rec"]
+_ATTR_FMT   = [".0f", ".1f", ".2f", ".1f", ".2f", ".3f", ".2f", ".2f", ".3f"]
+_W_SHORT    = ["w_ret", "w_def", "w_agg"]
+
+
+def _fmt_gene(val: float, canon: float, fmt: str) -> str:
+    delta = val - canon
+    return f"{val:{fmt}}({delta:+{fmt}})"
+
+
+def _print_best_individuals(archive: Archive, mode: str = "frontier") -> None:
+    """
+    Imprime genes dos melhores indivíduos com comparação ao canônico (Δ em parênteses).
+
+    mode="frontier": células da fronteira (menor balance_error por nível de drift),
+                     ordenadas por matchup_dominance_penalty crescente.
+    mode="all":      todas as células preenchidas, ordenadas por matchup_pen crescente.
+    """
+    if mode == "frontier":
+        cells = [c for c in _compute_frontier(archive) if c is not None]
+        cells.sort(key=lambda c: archive[c][1].matchup_dominance_penalty)
+        header = "Melhores indivíduos da fronteira (Δ = diferença do canônico)"
+    else:
+        cells = sorted(archive.keys(), key=lambda c: archive[c][1].matchup_dominance_penalty)
+        header = "Todos os indivíduos do archive (Δ = diferença do canônico)"
+
+    print(f"=== {header} ===\n")
+
+    if not cells:
+        print("  (nenhuma célula preenchida)")
+        return
+
+    sep = "  " + "─" * 96
+
+    for rank, cell in enumerate(cells, 1):
+        ind, detail = archive[cell]
+        print(
+            f"[{rank}]  balance={detail.balance_error:.3f}  "
+            f"drift={detail.drift_penalty:.3f}  "
+            f"matchup_pen={detail.matchup_dominance_penalty:.2f}"
+        )
+        print(sep)
+        for char in ind.characters:
+            canon_attrs = list(char.archetype.initial_attributes)
+            canon_ws    = list(char.archetype.initial_weights)
+
+            attr_str = "  ".join(
+                f"{n}={_fmt_gene(v, c, fmt)}"
+                for n, v, c, fmt in zip(_ATTR_SHORT, char.attributes, canon_attrs, _ATTR_FMT)
+            )
+            w_str = "  ".join(
+                f"{n}={_fmt_gene(v, c, '.2f')}"
+                for n, v, c in zip(_W_SHORT, char.weights, canon_ws)
+            )
+            print(f"  {char.name:<14}  {attr_str}")
+            print(f"  {'':14}  {w_str}")
+        print()
+
+
 # ─── Loop principal ───────────────────────────────────────────────────────────
 
 def run_map_elites(
@@ -227,6 +289,7 @@ def run_map_elites(
     n_init:       int           = N_INIT,
     n_iterations: int           = N_ITERATIONS,
     verbose:      bool          = True,
+    batch_size:   Optional[int] = None,
 ) -> Archive:
     """
     Executa o MAP-Elites completo.
@@ -235,7 +298,10 @@ def run_map_elites(
         seed:         semente para reprodutibilidade (None = aleatório).
         n_init:       indivíduos avaliados na inicialização.
         n_iterations: iterações do loop principal.
-        verbose:      imprime progresso a cada 1.000 iterações.
+        verbose:      imprime progresso a cada ~1.000 avaliações.
+        batch_size:   indivíduos avaliados em paralelo por rodada (None = auto = nº de workers).
+                      Valores maiores aumentam a utilização da CPU mas atualizam o archive
+                      com menos frequência. Recomendado: workers a workers*4.
 
     Returns:
         Archive preenchido: Dict[(bx, by), (Individual, FitnessDetail)].
@@ -243,37 +309,52 @@ def run_map_elites(
     if seed is not None:
         random.seed(seed)
 
+    workers  = N_WORKERS or os.cpu_count() or 1
+    batch    = batch_size if batch_size is not None else workers
+    pool_ctx = ProcessPoolExecutor(max_workers=workers) if workers > 1 else nullcontext()
+
     archive: Archive = {}
 
-    # ── Inicialização ─────────────────────────────────────────────────────────
-    if verbose:
-        print(f"Inicializando {n_init} indivíduos (paralelo com N_WORKERS={N_WORKERS})...")
+    with pool_ctx as executor:
 
-    init_pop = [Individual.from_canonical()] + [Individual.random() for _ in range(n_init - 1)]
-    details  = _evaluate_batch(init_pop)
+        def _batch_eval(inds: List[Individual]) -> List[FitnessDetail]:
+            if executor is None:
+                return [evaluate_detail(ind) for ind in inds]
+            return list(executor.map(evaluate_detail, inds))
 
-    for ind, detail in zip(init_pop, details):
-        _place(archive, ind, detail)
+        # ── Inicialização ─────────────────────────────────────────────────────
+        if verbose:
+            print(f"Inicializando {n_init} indivíduos (workers={workers}, batch={batch})...")
 
-    if verbose:
-        print(f"Archive inicial: {len(archive)}/{GRID_X_BINS * GRID_Y_BINS} células\n")
+        init_pop = [Individual.from_canonical()] + [Individual.random() for _ in range(n_init - 1)]
+        for ind, detail in zip(init_pop, _batch_eval(init_pop)):
+            _place(archive, ind, detail)
 
-    # ── Loop ──────────────────────────────────────────────────────────────────
-    for iteration in range(1, n_iterations + 1):
-        key    = random.choice(list(archive.keys()))
-        parent = archive[key][0]
-        child  = _mutate_from(parent)
-        detail = _evaluate(child)
-        _place(archive, child, detail)
+        if verbose:
+            print(f"Archive inicial: {len(archive)}/{GRID_X_BINS * GRID_Y_BINS} células\n")
 
-        if verbose and iteration % 1000 == 0:
-            best_bal   = min(d.balance_error  for _, d in archive.values())
-            best_drift = min(d.drift_penalty  for _, d in archive.values())
-            print(
-                f"[{iteration:6d}/{n_iterations}]  "
-                f"células={len(archive):2d}/{GRID_X_BINS * GRID_Y_BINS}  "
-                f"melhor_bal={best_bal:.3f}  melhor_drift={best_drift:.3f}"
-            )
+        # ── Loop ──────────────────────────────────────────────────────────────
+        completed = 0
+        while completed < n_iterations:
+            this_batch = min(batch, n_iterations - completed)
+
+            keys     = [random.choice(list(archive.keys())) for _ in range(this_batch)]
+            children = [_mutate_from(archive[k][0]) for k in keys]
+
+            for child, detail in zip(children, _batch_eval(children)):
+                _place(archive, child, detail)
+
+            prev       = completed
+            completed += this_batch
+
+            if verbose and (completed // 1000) > (prev // 1000):
+                best_bal   = min(d.balance_error for _, d in archive.values())
+                best_drift = min(d.drift_penalty for _, d in archive.values())
+                print(
+                    f"[{completed:6d}/{n_iterations}]  "
+                    f"células={len(archive):2d}/{GRID_X_BINS * GRID_Y_BINS}  "
+                    f"melhor_bal={best_bal:.3f}  melhor_drift={best_drift:.3f}"
+                )
 
     return archive
 
@@ -286,6 +367,14 @@ def main() -> None:
     parser.add_argument("--n-init",       type=int, default=N_INIT,       help="Indivíduos iniciais")
     parser.add_argument("--n-iterations", type=int, default=N_ITERATIONS, help="Iterações do loop")
     parser.add_argument("--quiet",        action="store_true",            help="Suprime progresso")
+    parser.add_argument("--batch-size",   type=int, default=None,
+                        help="Indivíduos por batch paralelo (padrão = nº de cores)")
+    parser.add_argument(
+        "--individuals",
+        choices=["frontier", "all", "none"],
+        default="frontier",
+        help="Imprime genes dos melhores indivíduos: frontier (padrão), all ou none",
+    )
     args = parser.parse_args()
 
     archive = run_map_elites(
@@ -293,6 +382,7 @@ def main() -> None:
         n_init=args.n_init,
         n_iterations=args.n_iterations,
         verbose=not args.quiet,
+        batch_size=args.batch_size,
     )
 
     _print_heatmap(archive)
@@ -304,6 +394,9 @@ def main() -> None:
     print(f"  LAMBDA_MATCHUP = {lambdas['LAMBDA_MATCHUP']}")
     print(f"  LAMBDA         = {lambdas['LAMBDA']}  (mantém -- attribute_cost não afeta o trade-off central)")
     print()
+
+    if args.individuals != "none":
+        _print_best_individuals(archive, mode=args.individuals)
 
 
 if __name__ == "__main__":
