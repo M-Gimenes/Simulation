@@ -82,3 +82,44 @@ def test_datastructures():
 print("test_datastructures ...", end=" ", flush=True)
 test_datastructures()
 print("OK")
+
+# ── Task 3 ────────────────────────────────────────────────────────────────────
+
+def test_structural_inter_canonical():
+    from archetype_validator import _check_structural_inter
+    from archetypes import ArchetypeID
+    from individual import Individual
+
+    canon = Individual.from_canonical()
+    checks = _check_structural_inter(canon.characters)
+
+    assert len(checks) == 14
+    assert all(c.layer == "structural_inter" for c in checks)
+
+    # All 14 pass on current canonical values
+    failed = [c for c in checks if not c.passed]
+    assert failed == [], f"Unexpected failures: {[(c.archetype, c.description) for c in failed]}"
+
+print("test_structural_inter_canonical ...", end=" ", flush=True)
+test_structural_inter_canonical()
+print("OK")
+
+# ── Task 4 ────────────────────────────────────────────────────────────────────
+
+def test_structural_intra_canonical():
+    from archetype_validator import _check_structural_intra
+    from individual import Individual
+
+    canon = Individual.from_canonical()
+    checks = _check_structural_intra(canon.characters)
+
+    assert len(checks) == 6
+    assert all(c.layer == "structural_intra" for c in checks)
+
+    # All 6 pass on canonical values (verified analytically in design spec)
+    failed = [c for c in checks if not c.passed]
+    assert failed == [], f"Unexpected failures: {[c.description for c in failed]}"
+
+print("test_structural_intra_canonical ...", end=" ", flush=True)
+test_structural_intra_canonical()
+print("OK")
