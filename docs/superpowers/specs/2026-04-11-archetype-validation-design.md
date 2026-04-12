@@ -60,7 +60,7 @@ Gene values ranked across the 5 characters. Only rank-1 (highest) and rank-last 
 | 6 | Zoner | `w_retreat` | rank 1 (highest) | Kites when threatened |
 | 7 | Combo Master | `stun` | rank 1 (highest) | Lockdown — chains combos |
 | 8 | Grappler | `damage` | rank 1 (highest) | Burst punish at close range |
-| 9 | Grappler | `recovery` | rank 1 (highest) | Most resistant to being stunned |
+| 9 | Turtle | `recovery` | rank 1 (highest) | Most resistant to being stunned |
 | 10 | Turtle | `speed` | rank last (lowest) | Slowest — compensates with durability |
 | 11 | Turtle | `attack_cooldown` | rank last (highest = slowest) | Patient — punishes mistakes, doesn't pressure |
 | 12 | Turtle | `hp` | rank 1 (highest) | Living wall — wins by attrition |
@@ -111,8 +111,9 @@ Before the tool is implemented, design analysis already reveals one inconsistenc
 | Bug | Current canonical | Required by assertion |
 |-----|------------------|-----------------------|
 | Turtle `attack_cooldown` should exceed Grappler's | Grappler=5.0, Turtle=4.0 | Turtle > Grappler (assertion #11) |
+| Turtle `recovery` should exceed Grappler's | Grappler=0.4, Turtle=0.3 | Turtle > Grappler (assertion #9) |
 
-Fix: set Turtle `attack_cooldown` > Grappler `attack_cooldown` (e.g., Turtle=5.0, Grappler≈3.5).
+Fixes: set Turtle `attack_cooldown` > Grappler (e.g., Turtle=5.0, Grappler≈3.5); set Turtle `recovery` > Grappler (e.g., Turtle≈0.45, Grappler≈0.35).
 
 ---
 
@@ -125,8 +126,8 @@ LAYER 1 — Structural (inter-character)
   Rushdown     ✓ speed=rank1   ✓ cooldown=rank1   ✓ w_aggressiveness=rank1
   Zoner        ✓ range=rank1   ✓ knockback=rank1  ✓ w_retreat=rank1
   Combo Master ✓ stun=rank1
-  Grappler     ✓ damage=rank1  ✓ recovery=rank1
-  Turtle       ✓ speed=rankL   ✗ cooldown=rankL (Grappler leads)  ✓ hp=rank1  ✓ defense=rank1  ✓ w_defend=rank1
+  Grappler     ✓ damage=rank1
+  Turtle       ✓ speed=rankL   ✗ cooldown=rankL (Grappler leads)  ✓ hp=rank1  ✓ defense=rank1  ✓ w_defend=rank1  ✗ recovery=rank1 (Grappler leads)
 
 LAYER 2 — Structural (intra-character, normalized)
   Zoner        ✓ norm(range) > norm(speed)
@@ -146,8 +147,9 @@ LAYER 4 — Outcome
   Rushdown     ✓ avg_ticks_on_win=rankL
   Combo Master ✓ avg_stun_applied=rank1
 
-SCORE: 27/28 (96.4%) — 1 failure
+SCORE: 26/28 (92.9%) — 2 failures
   ✗ Turtle attack_cooldown should be rank-last (highest); currently Grappler leads
+  ✗ Turtle recovery should be rank-1 (highest); currently Grappler leads
 ══════════════════════════════════════════════════════════════════
 ```
 
