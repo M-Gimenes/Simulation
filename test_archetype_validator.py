@@ -32,6 +32,10 @@ def test_action_log_structure():
     assert log.stun_applied[0] >= 0
     assert log.stun_applied[1] >= 0
 
+    # Stun tracking: at least one fighter applied stun during a KO combat
+    if result.ko:
+        assert log.stun_applied[0] > 0 or log.stun_applied[1] > 0
+
 print("test_action_log_structure ...", end=" ", flush=True)
 test_action_log_structure()
 print("OK")

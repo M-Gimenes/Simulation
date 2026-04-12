@@ -369,8 +369,15 @@ def simulate_combat(char_a: Character, char_b: Character) -> CombatResult:
 
 @dataclass
 class ActionLog:
-    """Contagem de ações e stun por lutador em um único combate."""
-    action_counts: Tuple[Dict[int, int], Dict[int, int]]  # (fighter_0, fighter_1)
+    """
+    Contagem de ações e stun por lutador em um único combate.
+
+    stun_applied: stun bruto acumulado por atacante (soma de stun retornado por
+    _resolve_attack em cada hit). Conta o valor antes de verificar absorção por
+    stun_remaining existente — proxy de pressão, não de stun efetivamente sofrido.
+    Suficiente para ranking ordinal (Combo Master lidera pelo stun alto no atributo).
+    """
+    action_counts: Tuple[Dict[Action, int], Dict[Action, int]]  # (fighter_0, fighter_1)
     active_ticks:  Tuple[int, int]                         # ticks não-stunados por lutador
     stun_applied:  Tuple[int, int]                         # stun total aplicado por lutador
 
@@ -406,6 +413,7 @@ def simulate_combat_detailed(
             end_tick = tick
             break
 
+        # ── Fase 1: Escolha de ação ─────────────────────────────────────────────────
         actions: List[Optional[int]] = []
         for i in range(2):
             if fighters[i].is_stunned:
@@ -421,6 +429,7 @@ def simulate_combat_detailed(
                 active_ticks[i] += 1
                 action_counts[i][a] += 1
 
+        # ── Fase 2: Movimento ───────────────────────────────────────────────────────
         for i in range(2):
             if actions[i] not in (Action.ADVANCE, Action.RETREAT):
                 continue
@@ -431,7 +440,8 @@ def simulate_combat_detailed(
             else:
                 pos[i] = max(0.0, min(FIELD_SIZE, pos[i] - direction * speed))
 
-        distance = abs(pos[1] - pos[0])
+        # ── Fase 3: Ataques simultâneos ─────────────────────────────────────────────
+        distance = abs(pos[1] - pos[0])  # recalcula após movimento
         defending = [a == Action.DEFEND for a in actions]
 
         pre_stun_0 = fighters[0].stun_remaining
@@ -467,6 +477,7 @@ def simulate_combat_detailed(
                     fighters[attacker_idx].character.attack_cooldown
                 )
 
+        # ── Fase 4: Decrementar timers ──────────────────────────────────────────────
         f0, f1 = fighters
         if f0.stun_remaining <= pre_stun_0:
             f0.stun_remaining = max(0, f0.stun_remaining - 1)
