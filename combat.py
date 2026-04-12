@@ -29,7 +29,7 @@ from __future__ import annotations
 
 import random
 from dataclasses import dataclass, field
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from character import Character
 from config import (
@@ -360,3 +360,140 @@ def simulate_combat(char_a: Character, char_b: Character) -> CombatResult:
     return CombatResult(
         winner=winner, ticks=MAX_TICKS, ko=False, hp_remaining=(hp_a, hp_b)
     )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Simulação detalhada — para diagnóstico de arquétipo
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+@dataclass
+class ActionLog:
+    """Contagem de ações e stun por lutador em um único combate."""
+    action_counts: Tuple[Dict[int, int], Dict[int, int]]  # (fighter_0, fighter_1)
+    active_ticks:  Tuple[int, int]                         # ticks não-stunados por lutador
+    stun_applied:  Tuple[int, int]                         # stun total aplicado por lutador
+
+
+def simulate_combat_detailed(
+    char_a: Character, char_b: Character
+) -> Tuple[CombatResult, ActionLog]:
+    """
+    Idêntico a simulate_combat mas registra distribuição de ações e stun aplicado.
+    Usado exclusivamente pelo archetype_validator — não altera o pipeline de fitness.
+    """
+    fighters = [
+        FighterState(character=char_a, hp=char_a.hp),
+        FighterState(character=char_b, hp=char_b.hp),
+    ]
+    pos = [
+        (FIELD_SIZE - INITIAL_DISTANCE) / 2.0,
+        (FIELD_SIZE + INITIAL_DISTANCE) / 2.0,
+    ]
+    end_tick = MAX_TICKS
+
+    action_counts = [
+        {Action.ATTACK: 0, Action.ADVANCE: 0, Action.RETREAT: 0, Action.DEFEND: 0},
+        {Action.ATTACK: 0, Action.ADVANCE: 0, Action.RETREAT: 0, Action.DEFEND: 0},
+    ]
+    active_ticks = [0, 0]
+    stun_applied = [0, 0]
+
+    for tick in range(MAX_TICKS):
+        distance = abs(pos[1] - pos[0])
+
+        if not fighters[0].is_alive or not fighters[1].is_alive:
+            end_tick = tick
+            break
+
+        actions: List[Optional[int]] = []
+        for i in range(2):
+            if fighters[i].is_stunned:
+                actions.append(None)
+            elif _USE_EPSILON and random.random() < ACTION_EPSILON:
+                a = random.randint(0, 3)
+                actions.append(a)
+                active_ticks[i] += 1
+                action_counts[i][a] += 1
+            else:
+                a = _choose_action(fighters[i], fighters[1 - i], distance, pos[i])
+                actions.append(a)
+                active_ticks[i] += 1
+                action_counts[i][a] += 1
+
+        for i in range(2):
+            if actions[i] not in (Action.ADVANCE, Action.RETREAT):
+                continue
+            speed = fighters[i].character.speed
+            direction = 1.0 if pos[i] < pos[1 - i] else -1.0
+            if actions[i] == Action.ADVANCE:
+                pos[i] = max(0.0, min(FIELD_SIZE, pos[i] + direction * speed))
+            else:
+                pos[i] = max(0.0, min(FIELD_SIZE, pos[i] - direction * speed))
+
+        distance = abs(pos[1] - pos[0])
+        defending = [a == Action.DEFEND for a in actions]
+
+        pre_stun_0 = fighters[0].stun_remaining
+        pre_stun_1 = fighters[1].stun_remaining
+        pre_cd_0   = fighters[0].cooldown_remaining
+        pre_cd_1   = fighters[1].cooldown_remaining
+
+        for attacker_idx in range(2):
+            if actions[attacker_idx] != Action.ATTACK:
+                continue
+            if not fighters[attacker_idx].attack_ready:
+                continue
+
+            defender_idx = 1 - attacker_idx
+            dmg, stun, kb = _resolve_attack(
+                attacker=fighters[attacker_idx].character,
+                defender_state=fighters[defender_idx],
+                defender_is_defending=defending[defender_idx],
+                distance=distance,
+            )
+
+            if dmg > 0:
+                fighters[defender_idx].hp = max(0.0, fighters[defender_idx].hp - dmg)
+
+                if stun > fighters[defender_idx].stun_remaining:
+                    fighters[defender_idx].stun_remaining = stun
+                stun_applied[attacker_idx] += stun
+
+                kb_dir = 1.0 if pos[defender_idx] >= pos[attacker_idx] else -1.0
+                pos[defender_idx] = max(0.0, min(FIELD_SIZE, pos[defender_idx] + kb_dir * kb))
+
+                fighters[attacker_idx].cooldown_remaining = round(
+                    fighters[attacker_idx].character.attack_cooldown
+                )
+
+        f0, f1 = fighters
+        if f0.stun_remaining <= pre_stun_0:
+            f0.stun_remaining = max(0, f0.stun_remaining - 1)
+        if f0.cooldown_remaining <= pre_cd_0:
+            f0.cooldown_remaining = max(0, f0.cooldown_remaining - 1)
+        if f1.stun_remaining <= pre_stun_1:
+            f1.stun_remaining = max(0, f1.stun_remaining - 1)
+        if f1.cooldown_remaining <= pre_cd_1:
+            f1.cooldown_remaining = max(0, f1.cooldown_remaining - 1)
+
+    hp_a = max(0.0, fighters[0].hp)
+    hp_b = max(0.0, fighters[1].hp)
+
+    if not fighters[0].is_alive and not fighters[1].is_alive:
+        winner = 0 if fighters[0].hp_pct >= fighters[1].hp_pct else 1
+        result = CombatResult(winner=winner, ticks=end_tick, ko=True, hp_remaining=(hp_a, hp_b))
+    elif not fighters[0].is_alive:
+        result = CombatResult(winner=1, ticks=end_tick, ko=True, hp_remaining=(hp_a, hp_b))
+    elif not fighters[1].is_alive:
+        result = CombatResult(winner=0, ticks=end_tick, ko=True, hp_remaining=(hp_a, hp_b))
+    else:
+        winner = 0 if fighters[0].hp_pct >= fighters[1].hp_pct else 1
+        result = CombatResult(winner=winner, ticks=MAX_TICKS, ko=False, hp_remaining=(hp_a, hp_b))
+
+    log = ActionLog(
+        action_counts=(action_counts[0], action_counts[1]),
+        active_ticks=(active_ticks[0], active_ticks[1]),
+        stun_applied=(stun_applied[0], stun_applied[1]),
+    )
+    return result, log
