@@ -398,6 +398,8 @@ def print_report(report: ArchetypeValidationReport) -> None:
 # ─────────────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
+    import sys
+    sys.stdout.reconfigure(encoding="utf-8")
     canon = Individual.from_canonical()
     print("Validating canonical individual...\n")
     report = run_validation(canon)
