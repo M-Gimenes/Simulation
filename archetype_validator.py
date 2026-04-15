@@ -314,3 +314,91 @@ def _check_outcome(stats: List[CharacterStats]) -> List[ArchetypeCheck]:
             expected_rank=expected_rank,
         ))
     return checks
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Orquestração
+# ─────────────────────────────────────────────────────────────────────────────
+
+def run_validation(
+    individual: Individual,
+    n_sims: int = SIMS_PER_MATCHUP,
+) -> ArchetypeValidationReport:
+    """Executa as 28 asserções e retorna o relatório completo."""
+    chars  = individual.characters
+    checks: List[ArchetypeCheck] = []
+
+    # Camadas 1–2: apenas genes, sem simulação
+    checks.extend(_check_structural_inter(chars))
+    checks.extend(_check_structural_intra(chars))
+
+    # Camadas 3–4: requerem simulação
+    stats = _collect_stats(individual, n_sims)
+    checks.extend(_check_behavioral(stats))
+    checks.extend(_check_outcome(stats))
+
+    passed = sum(1 for c in checks if c.passed)
+    return ArchetypeValidationReport(checks=checks, passed=passed, total=len(checks))
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Formatação do relatório
+# ─────────────────────────────────────────────────────────────────────────────
+
+_LAYER_LABELS = {
+    "structural_inter": "LAYER 1 — Structural (inter-character)",
+    "structural_intra": "LAYER 2 — Structural (intra-character, normalized)",
+    "behavioral":       "LAYER 3 — Behavioral",
+    "outcome":          "LAYER 4 — Outcome",
+}
+_ARCH_NAMES = {a: a.name.replace("_", " ").title() for a in ArchetypeID}
+_LINE = "═" * 66
+
+
+def print_report(report: ArchetypeValidationReport) -> None:
+    print("ARCHETYPE VALIDATION REPORT")
+    print(_LINE)
+
+    current_layer = None
+    current_arch  = None
+
+    for check in report.checks:
+        if check.layer != current_layer:
+            current_layer = check.layer
+            current_arch  = None
+            print(f"\n{_LAYER_LABELS[current_layer]}")
+
+        prefix = f"  {_ARCH_NAMES[check.archetype]:<14}" if check.archetype != current_arch else " " * 16
+        current_arch = check.archetype
+
+        symbol   = "✓" if check.passed else "✗"
+        rank_str = ""
+        if check.actual_rank != 0 and not check.passed:
+            rank_str = f" (actual rank {check.actual_rank})"
+
+        print(f"{prefix} {symbol} {check.description}{rank_str}")
+
+    print()
+    failures  = report.failures()
+    score_pct = report.score * 100
+
+    if not failures:
+        print(f"SCORE: {report.passed}/{report.total} ({score_pct:.1f}%) — all assertions passed ✓")
+    else:
+        print(f"SCORE: {report.passed}/{report.total} ({score_pct:.1f}%) — {len(failures)} failure(s)")
+        for f in failures:
+            rank_str = f" (actual rank {f.actual_rank})" if f.actual_rank != 0 else ""
+            print(f"  ✗ {_ARCH_NAMES[f.archetype]}: {f.description}{rank_str}")
+
+    print(_LINE)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Entrada standalone
+# ─────────────────────────────────────────────────────────────────────────────
+
+if __name__ == "__main__":
+    canon = Individual.from_canonical()
+    print("Validating canonical individual...\n")
+    report = run_validation(canon)
+    print_report(report)

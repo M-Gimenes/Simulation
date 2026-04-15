@@ -191,3 +191,24 @@ def test_outcome_checks_structure():
 print("test_outcome_checks_structure ...", end=" ", flush=True)
 test_outcome_checks_structure()
 print("OK")
+
+# ── Task 8 ────────────────────────────────────────────────────────────────────
+
+def test_run_validation_canonical():
+    from archetype_validator import run_validation
+    from individual import Individual
+
+    canon  = Individual.from_canonical()
+    report = run_validation(canon, n_sims=10)
+
+    assert report.total == 28
+    # Known: 2 structural inter failures; behavioral/outcome may vary
+    assert report.passed <= 28
+    assert report.passed >= 12  # at minimum all other structural checks pass
+    assert 0.0 <= report.score <= 1.0
+    assert len(report.failures()) == report.total - report.passed
+
+print("test_run_validation_canonical ...", end=" ", flush=True)
+test_run_validation_canonical()
+print("OK")
+print("\nAll tests passed.")
