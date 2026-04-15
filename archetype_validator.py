@@ -281,3 +281,36 @@ def _check_behavioral(stats: List[CharacterStats]) -> List[ArchetypeCheck]:
             expected_rank=expected_rank,
         ))
     return checks
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Layer 4 — Outcome
+# ─────────────────────────────────────────────────────────────────────────────
+
+# (archetype_id, metric_name, expected_rank, description)
+_OUTCOME_ASSERTIONS: List[Tuple] = [
+    (ArchetypeID.GRAPPLER,     "ko_rate",            1, "ko_rate = highest (burst damage — finishes enemies)"),
+    (ArchetypeID.TURTLE,       "avg_hp_pct_on_win",  1, "avg_hp_pct_on_win = highest (absorbs damage cleanly)"),
+    (ArchetypeID.RUSHDOWN,     "avg_ticks_on_win",   5, "avg_ticks_on_win = lowest (overwhelms fast)"),
+    (ArchetypeID.TURTLE,       "avg_ticks_on_win",   1, "avg_ticks_on_win = highest (wins by attrition)"),
+    (ArchetypeID.COMBO_MASTER, "avg_stun_applied",   1, "avg_stun_applied = highest (lockdown identity)"),
+]
+
+
+def _check_outcome(stats: List[CharacterStats]) -> List[ArchetypeCheck]:
+    arch_to_idx = {arch_id: i for i, arch_id in enumerate(ARCHETYPE_ORDER)}
+    checks = []
+    for arch_id, metric, expected_rank, description in _OUTCOME_ASSERTIONS:
+        values = [getattr(s, metric) for s in stats]
+        ranks  = _rank_desc(values)
+        idx    = arch_to_idx[arch_id]
+        actual = ranks[idx]
+        checks.append(ArchetypeCheck(
+            archetype=arch_id,
+            layer="outcome",
+            description=description,
+            passed=(actual == expected_rank),
+            actual_rank=actual,
+            expected_rank=expected_rank,
+        ))
+    return checks

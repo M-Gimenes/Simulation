@@ -173,3 +173,21 @@ def test_behavioral_checks_structure():
 print("test_behavioral_checks_structure ...", end=" ", flush=True)
 test_behavioral_checks_structure()
 print("OK")
+
+# ── Task 7 ────────────────────────────────────────────────────────────────────
+
+def test_outcome_checks_structure():
+    from archetype_validator import _check_outcome, _collect_stats
+    from individual import Individual
+
+    canon  = Individual.from_canonical()
+    stats  = _collect_stats(canon, n_sims=5)
+    checks = _check_outcome(stats)
+
+    assert len(checks) == 5
+    assert all(c.layer == "outcome" for c in checks)
+    assert all(1 <= c.actual_rank <= 5 for c in checks)
+
+print("test_outcome_checks_structure ...", end=" ", flush=True)
+test_outcome_checks_structure()
+print("OK")
