@@ -30,9 +30,9 @@ LAMBDA_DRIFT           = 0.0   # peso da penalidade de desvio arquetípico (drif
                                 # trade-off central do TCC: equilíbrio vs preservação
 LAMBDA_MATCHUP         = 1     # peso da penalidade do pior matchup direto
 
-MATCHUP_THRESHOLD      = 0.15  # excesso acima de 50% que inicia penalização (65% WR = limiar)
+MATCHUP_THRESHOLD      = 0.10  # excesso acima de 50% que inicia penalização (60% WR = limiar)
 
-BALANCE_MODE = "matchup"       # como calcular balance_error:
+BALANCE_MODE = "aggregate"     # como calcular balance_error:
                                 # "matchup"   → mean(|wr_ij - 0.5|) sobre os 10 pares
                                 # "aggregate" → mean(|wr_i  - 0.5|) sobre os 5 personagens
 
