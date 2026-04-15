@@ -250,3 +250,34 @@ def _collect_stats(individual: Individual, n_sims: int) -> List[CharacterStats]:
             sw.ticks_on_wins.append(result.ticks)
 
     return stats
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Layer 3 — Behavioral
+# ─────────────────────────────────────────────────────────────────────────────
+
+# (archetype_id, metric_name, expected_rank, description)
+_BEHAVIORAL_ASSERTIONS: List[Tuple] = [
+    (ArchetypeID.RUSHDOWN, "aggression_rate", 1, "aggression_rate = highest (always closing/attacking)"),
+    (ArchetypeID.TURTLE,   "defend_rate",     1, "defend_rate = highest (absorb-first strategy)"),
+    (ArchetypeID.ZONER,    "retreat_rate",    1, "retreat_rate = highest (kiting — creates distance)"),
+]
+
+
+def _check_behavioral(stats: List[CharacterStats]) -> List[ArchetypeCheck]:
+    arch_to_idx = {arch_id: i for i, arch_id in enumerate(ARCHETYPE_ORDER)}
+    checks = []
+    for arch_id, metric, expected_rank, description in _BEHAVIORAL_ASSERTIONS:
+        values = [getattr(s, metric) for s in stats]
+        ranks  = _rank_desc(values)
+        idx    = arch_to_idx[arch_id]
+        actual = ranks[idx]
+        checks.append(ArchetypeCheck(
+            archetype=arch_id,
+            layer="behavioral",
+            description=description,
+            passed=(actual == expected_rank),
+            actual_rank=actual,
+            expected_rank=expected_rank,
+        ))
+    return checks
