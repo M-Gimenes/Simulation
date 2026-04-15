@@ -10,6 +10,8 @@ Total: 60 genes por indivíduo (5 personagens × 12 genes cada).
 from __future__ import annotations
 
 import copy
+import json
+import os
 import random
 from dataclasses import dataclass, field
 from typing import List, Optional
@@ -49,6 +51,21 @@ class Individual:
             for aid in ARCHETYPE_ORDER
         ]
         return cls(characters=characters)
+
+    @classmethod
+    def from_results(cls, path: str = "results.json") -> "Individual":
+        """Carrega o melhor indivíduo salvo pelo AG em results.json."""
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"'{path}' não encontrado — rode main.py primeiro.")
+        with open(path) as fh:
+            data = json.load(fh)
+        if "best_individual" not in data:
+            raise KeyError(f"'{path}' não contém 'best_individual'.")
+        ind = cls.from_canonical()
+        for char, genes in zip(ind.characters, data["best_individual"]):
+            char.load_genes(genes)
+            char.clip()
+        return ind
 
     # ── Acesso por arquétipo ──────────────────────────────────────────────
 

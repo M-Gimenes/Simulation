@@ -23,6 +23,7 @@ import math
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass, field
 from itertools import combinations
+from statistics import mean
 from typing import Dict, List, Tuple
 
 from combat import simulate_combat
@@ -106,7 +107,7 @@ def _matchup_dominance(matchup_winrates: Dict[Tuple[int, int], float]) -> float:
     sem ser diluído pelos demais pares.
     """
     scale = 0.5 - MATCHUP_THRESHOLD
-    return max(
+    return mean(
         max(0.0, (abs(wr - 0.5) - MATCHUP_THRESHOLD) / scale)
         for wr in matchup_winrates.values()
     )

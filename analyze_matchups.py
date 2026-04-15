@@ -274,13 +274,26 @@ NAME_TO_ID = ARCHETYPE_ALIASES
 
 
 def main() -> None:
-    canon = Individual.from_canonical()
-    chars = {c.archetype.id: c for c in canon.characters}
+    import argparse
+    parser = argparse.ArgumentParser(description="Análise detalhada de matchups")
+    parser.add_argument("matchup", nargs="*",
+                        help="Par de arquétipos (ex: rushdown zoner). Omita para todos.")
+    parser.add_argument("--evolved", action="store_true",
+                        help="Usa o melhor indivíduo salvo em results.json (default: canônico)")
+    args = parser.parse_args()
 
-    if len(sys.argv) == 3:
+    if args.evolved:
+        ind = Individual.from_results()
+        label = "EVOLUÍDO (results.json)"
+    else:
+        ind = Individual.from_canonical()
+        label = "CANÔNICO"
+    chars = {c.archetype.id: c for c in ind.characters}
+
+    if len(args.matchup) == 2:
         try:
-            id_a = NAME_TO_ID[sys.argv[1].lower()]
-            id_b = NAME_TO_ID[sys.argv[2].lower()]
+            id_a = NAME_TO_ID[args.matchup[0].lower()]
+            id_b = NAME_TO_ID[args.matchup[1].lower()]
         except KeyError:
             print(f"Nomes disponíveis: {', '.join(sorted(NAME_TO_ID.keys()))}")
             return
@@ -290,7 +303,7 @@ def main() -> None:
         pairs = [(ids[i], ids[j]) for i in range(len(ids)) for j in range(i + 1, len(ids))]
 
     print("\n" + "═" * 66)
-    print("  ANÁLISE DE MATCHUPS CANÔNICOS  (seed=42, 1 combate cada)")
+    print(f"  ANÁLISE DE MATCHUPS — {label}  (1 combate cada)")
     print("═" * 66)
 
     summary = []

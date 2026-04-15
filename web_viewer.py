@@ -756,9 +756,7 @@ class Handler(BaseHTTPRequestHandler):
             if id_a is None or id_b is None:
                 self._send(400, "text/plain", b"Arquetipo invalido")
                 return
-            ind = Individual.from_canonical()
-            chars = {c.archetype.id: c for c in ind.characters}
-            result = record_combat(chars[id_a], chars[id_b])
+            result = record_combat(self.server.chars[id_a], self.server.chars[id_b])
             self._send(200, "application/json", json.dumps(result).encode())
 
         else:
@@ -780,7 +778,16 @@ class Handler(BaseHTTPRequestHandler):
 def main():
     parser = argparse.ArgumentParser(description="Visualizador web de combate")
     parser.add_argument("--port", type=int, default=8080)
+    parser.add_argument("--evolved", action="store_true",
+                        help="Usa o melhor indivíduo salvo em results.json (default: canônico)")
     args = parser.parse_args()
+
+    if args.evolved:
+        ind = Individual.from_results()
+        print("  Usando indivíduo evoluído (results.json)")
+    else:
+        ind = Individual.from_canonical()
+        print("  Usando indivíduo canônico")
 
     url = f"http://localhost:{args.port}"
     print(f"  Servidor rodando em {url}")
@@ -788,6 +795,7 @@ def main():
     webbrowser.open(url)
 
     server = HTTPServer(("localhost", args.port), Handler)
+    server.chars = {c.archetype.id: c for c in ind.characters}
     try:
         server.serve_forever()
     except KeyboardInterrupt:

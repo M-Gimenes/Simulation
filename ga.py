@@ -231,16 +231,19 @@ def run(
         # Candidato: bal_err da avaliação normal já abaixo do threshold.
         # Confirmação: re-avalia com SIMS_CONVERGENCE_CHECK (mais sims = menos ruído)
         # para evitar falsos positivos causados pela estocasticidade.
-        # Exige também que nenhum matchup direto ultrapasse MATCHUP_CONVERGENCE_THRESHOLD,
-        # evitando parada prematura com personagens equilibrados em média mas dominantes em pares.
+        # Três condições devem ser satisfeitas simultaneamente:
+        #   1. balance_error <= CONVERGENCE_THRESHOLD  (WR agregado ≈50%)
+        #   2. todo matchup direto dentro de MATCHUP_CONVERGENCE_THRESHOLD (≤70%)
+        #   3. matchup_dominance_penalty == 0  (nenhum par acima de 60% ou abaixo de 40%)
         if best_detail.balance_error <= CONVERGENCE_THRESHOLD:
-            confirmed   = evaluate_detail_n(best_ind, SIMS_CONVERGENCE_CHECK)
-            balance_ok  = confirmed.balance_error <= CONVERGENCE_THRESHOLD
-            matchups_ok = all(
+            confirmed    = evaluate_detail_n(best_ind, SIMS_CONVERGENCE_CHECK)
+            balance_ok   = confirmed.balance_error <= CONVERGENCE_THRESHOLD
+            matchups_ok  = all(
                 abs(wr - 0.5) <= MATCHUP_CONVERGENCE_THRESHOLD
                 for wr in confirmed.matchup_winrates.values()
             )
-            if balance_ok and matchups_ok:
+            no_dominance = confirmed.matchup_dominance_penalty == 0.0
+            if balance_ok and matchups_ok and no_dominance:
                 best_ind.fitness = confirmed.fitness
                 _log_result(GAResult(best_ind, confirmed, gen, True, False, history), verbose)
                 return GAResult(

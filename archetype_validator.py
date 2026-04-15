@@ -1,7 +1,7 @@
 """
 Diagnóstico de identidade de arquétipo.
 
-Executa 28 asserções em 4 camadas sobre qualquer Individual
+Executa 38 asserções em 5 camadas sobre qualquer Individual
 (canônico ou evoluído) e imprime relatório pass/fail.
 
 Uso standalone:
@@ -398,9 +398,21 @@ def print_report(report: ArchetypeValidationReport) -> None:
 # ─────────────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
+    import argparse
     import sys
     sys.stdout.reconfigure(encoding="utf-8")
-    canon = Individual.from_canonical()
-    print("Validating canonical individual...\n")
-    report = run_validation(canon)
+
+    parser = argparse.ArgumentParser(description="Validador de identidade de arquétipo")
+    parser.add_argument("--evolved", action="store_true",
+                        help="Usa o melhor indivíduo salvo em results.json (default: canônico)")
+    args = parser.parse_args()
+
+    if args.evolved:
+        ind = Individual.from_results()
+        print("Validando indivíduo evoluído (results.json)...\n")
+    else:
+        ind = Individual.from_canonical()
+        print("Validando indivíduo canônico...\n")
+
+    report = run_validation(ind)
     print_report(report)

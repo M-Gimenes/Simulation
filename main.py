@@ -4,6 +4,7 @@ Rode com: python main.py [--seed N] [--quiet] [--log-every N]
 """
 
 import argparse
+import json
 import sys
 import os
 sys.path.insert(0, os.path.dirname(__file__))
@@ -49,6 +50,11 @@ def main():
     print(f"Fitness: {result.best.fitness:+.4f}")
     print(f"Balance error:             {result.best_detail.balance_error:.4f}")
     print(f"Matchup dominance penalty: {result.best_detail.matchup_dominance_penalty:.4f}")
+
+    out = {"best_individual": [c.genes() for c in result.best.characters]}
+    with open("results.json", "w") as fh:
+        json.dump(out, fh)
+    print("\nIndivíduo salvo em results.json")
 
 
 if __name__ == "__main__":
