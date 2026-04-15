@@ -8,14 +8,14 @@
 - [x] Task 2 — Data structures in `archetype_validator.py` ✅ (commit 0603069)
 - [x] Task 3 — Layer 1 `_check_structural_inter` ✅ (commit 7a158da)
 - [x] Task 4 — Layer 2 `_check_structural_intra` ✅ (commit 7a158da)
-- [ ] Task 5 — `_collect_stats` ← **NEXT**
-- [ ] Task 6 — Layer 3 `_check_behavioral`
-- [ ] Task 7 — Layer 4 `_check_outcome`
-- [ ] Task 8 — `run_validation`, `print_report`, entry point
+- [x] Task 5 — `_collect_stats` ✅ (commit 1f92a3b)
+- [x] Task 6 — Layer 3 `_check_behavioral` ✅ (commit 8f1f934)
+- [x] Task 7 — Layer 4 `_check_outcome` ✅ (commit 0b1987d)
+- [x] Task 8 — `run_validation`, `print_report`, entry point ✅ (commit 6177a5a)
 
 **Note on canonical values:** The two "known canonical bugs" listed in Task 3 (Turtle recovery < Grappler, Turtle attack_cooldown < Grappler) were already fixed in commit `5bdd2ee` before this plan was written. Current canonical values are correct: Turtle recovery=0.5, attack_cooldown=5.0. All 14 Layer 1 assertions pass on canonical.
 
-**Current HEAD:** `7a158da`
+**Current HEAD:** `6177a5a`
 
 **Goal:** Build `archetype_validator.py`, a standalone diagnostic tool that runs 28 archetype identity assertions on any `Individual` and prints a structured pass/fail report.
 
