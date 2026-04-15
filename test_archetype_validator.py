@@ -123,3 +123,34 @@ def test_structural_intra_canonical():
 print("test_structural_intra_canonical ...", end=" ", flush=True)
 test_structural_intra_canonical()
 print("OK")
+
+# ── Task 5 ────────────────────────────────────────────────────────────────────
+
+def test_collect_stats_structure():
+    from archetype_validator import _collect_stats, CharacterStats
+    from combat import Action
+    from individual import Individual
+
+    canon = Individual.from_canonical()
+    stats = _collect_stats(canon, n_sims=5)
+
+    assert len(stats) == 5  # one per character
+
+    for s in stats:
+        assert isinstance(s, CharacterStats)
+        # Each character fights 4 others × 5 sims = 20 combats
+        assert s.n_combats == 20
+        # Action counts cover all four actions
+        assert set(s.action_counts.keys()) == {Action.ATTACK, Action.ADVANCE, Action.RETREAT, Action.DEFEND}
+        # Active ticks = sum of action counts
+        assert sum(s.action_counts.values()) == s.active_ticks
+        assert s.active_ticks > 0
+        # Wins within valid range
+        assert 0 <= s.wins <= s.n_combats
+        assert 0 <= s.ko_wins <= s.wins
+        # hp_pct_on_wins entries in [0, 1]
+        assert all(0.0 <= hp <= 1.0 for hp in s.hp_pct_on_wins)
+
+print("test_collect_stats_structure ...", end=" ", flush=True)
+test_collect_stats_structure()
+print("OK")

@@ -196,3 +196,57 @@ def _check_structural_intra(chars) -> List[ArchetypeCheck]:
             expected_rank=0,
         ))
     return checks
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Coleta de stats simulados
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _collect_stats(individual: Individual, n_sims: int) -> List[CharacterStats]:
+    """
+    Executa round-robin completo com simulate_combat_detailed.
+    Retorna uma lista de CharacterStats na ordem de individual.characters.
+    """
+    chars = individual.characters
+    n     = len(chars)
+
+    stats = [
+        CharacterStats(
+            action_counts={Action.ATTACK: 0, Action.ADVANCE: 0, Action.RETREAT: 0, Action.DEFEND: 0},
+            active_ticks=0,
+            wins=0,
+            n_combats=0,
+            ko_wins=0,
+            hp_pct_on_wins=[],
+            ticks_on_wins=[],
+            stun_applied=0,
+        )
+        for _ in range(n)
+    ]
+
+    for i, j in combinations(range(n), 2):
+        for _ in range(n_sims):
+            result, log = simulate_combat_detailed(chars[i], chars[j])
+
+            # Atualiza stats de ação para ambos os lutadores
+            for fighter_pos, char_idx in ((0, i), (1, j)):
+                s = stats[char_idx]
+                for action, count in log.action_counts[fighter_pos].items():
+                    s.action_counts[action] += count
+                s.active_ticks += log.active_ticks[fighter_pos]
+                s.stun_applied += log.stun_applied[fighter_pos]
+                s.n_combats    += 1
+
+            # Atualiza stats de resultado para o vencedor
+            winner_char_idx = i if result.winner == 0 else j
+            winner_hp = result.hp_remaining[result.winner]
+            winner_hp_pct = winner_hp / chars[winner_char_idx].hp
+
+            sw = stats[winner_char_idx]
+            sw.wins += 1
+            if result.ko:
+                sw.ko_wins += 1
+            sw.hp_pct_on_wins.append(winner_hp_pct)
+            sw.ticks_on_wins.append(result.ticks)
+
+    return stats
