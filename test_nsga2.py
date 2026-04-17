@@ -310,6 +310,19 @@ def test_save_results_roundtrip_genes():
     os.unlink(path)
 
 
+from nsga2_plots import save_plots
+
+
+def test_save_plots_creates_three_2d_pngs():
+    result = run(seed=42, pop_size=10, n_generations=2, verbose=False)
+    with tempfile.TemporaryDirectory() as outdir:
+        save_plots(result, outdir, plot_3d=False)
+        for name in ("proj_balance_drift.png", "proj_balance_matchup.png", "proj_drift_matchup.png"):
+            path = os.path.join(outdir, name)
+            assert os.path.exists(path), f"arquivo esperado não existe: {name}"
+            assert os.path.getsize(path) > 1000, f"{name} parece vazio"
+
+
 if __name__ == "__main__":
     test_individual_has_nsga2_fields()
     test_individual_clone_copies_nsga2_fields()
@@ -335,4 +348,5 @@ if __name__ == "__main__":
     test_run_smoke_small_config()
     test_save_results_produces_valid_json()
     test_save_results_roundtrip_genes()
-    print("Task 8 — OK")
+    test_save_plots_creates_three_2d_pngs()
+    print("Task 9 — OK")
