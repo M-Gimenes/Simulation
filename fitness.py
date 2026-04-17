@@ -249,8 +249,8 @@ def evaluate_objectives(individual: Individual) -> Tuple[float, float, float]:
     """
     Avalia o indivíduo e retorna (balance_error, matchup_dominance_penalty, drift_penalty).
 
-    Todos os três objetivos estão em [0, 1] e são minimizados pelo NSGA-II.
-    Cacheia em `individual.objectives`; não reavalia se já cacheado.
+    Minimizados pelo NSGA-II. Cacheia em `individual.objectives`; não reavalia se já cacheado.
+    Escalas: balance_error ∈ [0, 0.5]; matchup_dominance_penalty ∈ [0, 1]; drift_penalty ∈ [0, 1].
     """
     if individual.objectives is not None:
         return individual.objectives

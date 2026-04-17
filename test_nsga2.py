@@ -5,8 +5,11 @@ Rode com: py test_nsga2.py
 import sys, os
 sys.path.insert(0, os.path.dirname(__file__))
 
+import random
+
 from individual import Individual
 from config import NSGA2_POP_SIZE, NSGA2_GENERATIONS, NSGA2_OBJECTIVES
+from fitness import evaluate_objectives
 
 
 def test_individual_has_nsga2_fields():
@@ -36,9 +39,6 @@ def test_config_constants_exist():
     assert NSGA2_GENERATIONS == MAX_GENERATIONS
     assert NSGA2_OBJECTIVES == ["balance_error", "matchup_dominance_penalty", "drift_penalty"]
 
-
-import random
-from fitness import evaluate_objectives
 
 
 def test_evaluate_objectives_returns_3tuple():
