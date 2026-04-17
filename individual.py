@@ -14,7 +14,7 @@ import json
 import os
 import random
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from archetypes import ARCHETYPE_ORDER, ArchetypeID, ARCHETYPES
 from character import Character
@@ -34,7 +34,7 @@ class Individual:
     """
     characters: List[Character]
     fitness: Optional[float] = field(default=None, compare=False)
-    objectives: Optional[tuple] = field(default=None, compare=False)
+    objectives: Optional[Tuple[float, float, float]] = field(default=None, compare=False)
     rank: Optional[int] = field(default=None, compare=False)
     crowding: Optional[float] = field(default=None, compare=False)
 
