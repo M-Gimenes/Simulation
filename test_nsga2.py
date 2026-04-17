@@ -178,6 +178,37 @@ def test_crowding_middle_has_finite_value():
     assert front[1].crowding > 0
 
 
+from operators import nsga2_binary_tournament
+
+
+def test_tournament_picks_lower_rank():
+    a = _ind_with_obj([0.1, 0.1, 0.1]); a.rank = 0; a.crowding = 1.0
+    b = _ind_with_obj([0.5, 0.5, 0.5]); b.rank = 2; b.crowding = 10.0
+    random.seed(0)
+    winner = nsga2_binary_tournament([a, b])
+    assert winner is a
+
+
+def test_tournament_breaks_tie_by_crowding():
+    a = _ind_with_obj([0.1, 0.1, 0.1]); a.rank = 1; a.crowding = 5.0
+    b = _ind_with_obj([0.2, 0.2, 0.2]); b.rank = 1; b.crowding = 1.0
+    random.seed(0)
+    winner = nsga2_binary_tournament([a, b])
+    assert winner is a, "mesmo rank → vence maior crowding"
+
+
+def test_tournament_stochastic_on_full_tie():
+    a = _ind_with_obj([0.1, 0.1, 0.1]); a.rank = 1; a.crowding = 5.0
+    b = _ind_with_obj([0.2, 0.2, 0.2]); b.rank = 1; b.crowding = 5.0
+    wins_a = 0
+    for s in range(200):
+        random.seed(s)
+        winner = nsga2_binary_tournament([a, b])
+        if winner is a:
+            wins_a += 1
+    assert 60 < wins_a < 140, f"empate total não está aleatório o suficiente: {wins_a}/200"
+
+
 if __name__ == "__main__":
     test_individual_has_nsga2_fields()
     test_individual_clone_copies_nsga2_fields()
@@ -193,4 +224,7 @@ if __name__ == "__main__":
     test_crowding_assigns_inf_to_extremes()
     test_crowding_small_front_all_inf()
     test_crowding_middle_has_finite_value()
-    print("Task 4 — OK")
+    test_tournament_picks_lower_rank()
+    test_tournament_breaks_tie_by_crowding()
+    test_tournament_stochastic_on_full_tie()
+    print("Task 5 — OK")

@@ -122,3 +122,26 @@ def next_generation(population: List[Individual]) -> List[Individual]:
         new_gen.append(child)
 
     return new_gen
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# NSGA-II — torneio binário por dominância + crowding
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def nsga2_binary_tournament(population: List[Individual]) -> Individual:
+    """
+    Torneio binário usando (rank, crowding).
+    Vence o de menor rank; empate → vence o de maior crowding; empate total → sorteio.
+    Pressupõe que `rank` e `crowding` estão atribuídos em todos os indivíduos.
+    """
+    a, b = random.sample(population, 2)
+    if a.rank < b.rank:
+        return a
+    if b.rank < a.rank:
+        return b
+    if a.crowding > b.crowding:
+        return a
+    if b.crowding > a.crowding:
+        return b
+    return random.choice([a, b])
