@@ -5,12 +5,13 @@ Rode com: py test_nsga2.py
 import sys, os
 sys.path.insert(0, os.path.dirname(__file__))
 
+import math
 import random
 
 from individual import Individual
 from config import NSGA2_POP_SIZE, NSGA2_GENERATIONS, NSGA2_OBJECTIVES
 from fitness import evaluate_objectives
-from nsga2 import _dominates, fast_non_dominated_sort
+from nsga2 import _dominates, fast_non_dominated_sort, crowding_distance_assignment
 
 
 def test_individual_has_nsga2_fields():
@@ -139,6 +140,44 @@ def test_sort_divergent_dominated_sets():
     assert pop[4].rank == 1
 
 
+def test_crowding_assigns_inf_to_extremes():
+    front = [
+        _ind_with_obj([0.1, 0.5, 0.5]),
+        _ind_with_obj([0.3, 0.3, 0.3]),
+        _ind_with_obj([0.5, 0.1, 0.5]),
+        _ind_with_obj([0.5, 0.5, 0.1]),
+    ]
+    crowding_distance_assignment(front)
+    # Extremos em cada dimensão recebem inf.
+    inf_count = sum(1 for ind in front if math.isinf(ind.crowding))
+    assert inf_count >= 3, "extremos em cada objetivo recebem +inf"
+
+
+def test_crowding_small_front_all_inf():
+    # Fronteira com 2 pontos: ambos são extremos em todas as dimensões.
+    front = [
+        _ind_with_obj([0.1, 0.1, 0.1]),
+        _ind_with_obj([0.9, 0.9, 0.9]),
+    ]
+    crowding_distance_assignment(front)
+    assert math.isinf(front[0].crowding)
+    assert math.isinf(front[1].crowding)
+
+
+def test_crowding_middle_has_finite_value():
+    # 3 pontos colineares em f[0]: meio tem valor finito, extremos tem inf.
+    front = [
+        _ind_with_obj([0.0, 0.5, 0.5]),
+        _ind_with_obj([0.5, 0.5, 0.5]),
+        _ind_with_obj([1.0, 0.5, 0.5]),
+    ]
+    crowding_distance_assignment(front)
+    assert math.isinf(front[0].crowding)
+    assert math.isinf(front[2].crowding)
+    assert not math.isinf(front[1].crowding)
+    assert front[1].crowding > 0
+
+
 if __name__ == "__main__":
     test_individual_has_nsga2_fields()
     test_individual_clone_copies_nsga2_fields()
@@ -151,4 +190,7 @@ if __name__ == "__main__":
     test_sort_single_pareto_layer()
     test_sort_multiple_layers()
     test_sort_divergent_dominated_sets()
-    print("Task 3 — OK")
+    test_crowding_assigns_inf_to_extremes()
+    test_crowding_small_front_all_inf()
+    test_crowding_middle_has_finite_value()
+    print("Task 4 — OK")
