@@ -1,29 +1,32 @@
 """
 Ponto de entrada do experimento.
-Rode com: python main.py [--seed N] [--quiet] [--log-every N]
+Rode com: py main.py [--algorithm ga|nsga2] [--seed N] [--quiet] [--log-every N] [--plot-3d]
 """
 
 import argparse
 import json
 import sys
 import os
+import datetime
 sys.path.insert(0, os.path.dirname(__file__))
 
-from ga import run, log_matchup_matrix
+from ga import run as run_ga, log_matchup_matrix
 from archetypes import ARCHETYPE_ORDER, ARCHETYPES
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description="AG para balanceamento de personagens")
+    parser.add_argument("--algorithm", choices=["ga", "nsga2"], default="ga",
+                        help="Algoritmo evolutivo (default: ga)")
     parser.add_argument("--seed",      type=int, default=None, help="Semente aleatória")
     parser.add_argument("--quiet",     action="store_true",    help="Suprime log por geração")
-    parser.add_argument("--log-every", type=int, default=1,    help="Loga a cada N gerações")
+    parser.add_argument("--log-every", type=int, default=1,    help="Loga a cada N gerações (só AG)")
+    parser.add_argument("--plot-3d",   action="store_true",    help="Gera plot 3D adicional (só NSGA-II)")
     return parser.parse_args()
 
 
-def main():
-    args = parse_args()
-    result = run(
+def _main_ga(args):
+    result = run_ga(
         seed=args.seed,
         verbose=not args.quiet,
         log_every=args.log_every,
@@ -55,6 +58,34 @@ def main():
     with open("results.json", "w") as fh:
         json.dump(out, fh)
     print("\nIndivíduo salvo em results.json")
+
+
+def _main_nsga2(args):
+    from nsga2 import run as run_nsga2, save_results
+    from nsga2_plots import save_plots
+
+    result = run_nsga2(seed=args.seed, verbose=not args.quiet)
+
+    save_results(result, "nsga2_results.json")
+    print(f"\nFronteira salva em nsga2_results.json  ({len(result.pareto_front)} indivíduos)")
+
+    timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    outdir = os.path.join("plots", "nsga2", timestamp)
+    save_plots(result, outdir, plot_3d=args.plot_3d)
+    print(f"Plots salvos em {outdir}")
+
+    print("\n=== Representantes da fronteira ===\n")
+    for name, ind in result.representatives.items():
+        bal, mat, drf = ind.objectives
+        print(f"  {name:15s}  bal={bal:.4f}  mat={mat:.4f}  drift={drf:.4f}")
+
+
+def main():
+    args = parse_args()
+    if args.algorithm == "ga":
+        _main_ga(args)
+    else:
+        _main_nsga2(args)
 
 
 if __name__ == "__main__":
