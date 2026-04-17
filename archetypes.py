@@ -81,8 +81,8 @@ ARCHETYPES: Dict[ArchetypeID, ArchetypeDefinition] = {
             "Sofre contra quem fecha distância rápido."
         ),
         initial_attributes=AttributeSet(
-            hp=300.0, damage=12.0, attack_cooldown=3.0, range_=20.0,
-            speed=2.5, defense=0.10, stun=1.0, knockback=3.0, recovery=0.3,
+            hp=300.0, damage=12.0, attack_cooldown=4.0, range_=18.0,
+            speed=2.5, defense=0.05, stun=1.0, knockback=2.0, recovery=0.2,
         ),
         initial_weights=WeightSet(
             w_retreat=0.6, w_defend=0.2, w_aggressiveness=0.3,
@@ -97,11 +97,11 @@ ARCHETYPES: Dict[ArchetypeID, ArchetypeDefinition] = {
             "Se ferra contra alta defesa e personagens que absorvem pressão."
         ),
         initial_attributes=AttributeSet(
-            hp=320.0, damage=11.0, attack_cooldown=2.0, range_=10.0,
-            speed=5.0, defense=0.20, stun=1.0, knockback=1.0, recovery=0.60,
+            hp=320.0, damage=11.0, attack_cooldown=1.0, range_=10.0,
+            speed=5.0, defense=0.10, stun=1.0, knockback=1.0, recovery=0.3,
         ),
         initial_weights=WeightSet(
-            w_retreat=0.1, w_defend=0.1, w_aggressiveness=0.9,
+            w_retreat=0.05, w_defend=0.1, w_aggressiveness=0.9,
         ),
         beats=(ArchetypeID.ZONER, ArchetypeID.COMBO_MASTER),
     ),
@@ -115,10 +115,10 @@ ARCHETYPES: Dict[ArchetypeID, ArchetypeDefinition] = {
         ),
         initial_attributes=AttributeSet(
             hp=350.0, damage=13.0, attack_cooldown=3.0, range_=10.0,
-            speed=4.0, defense=0.25, stun=5.0, knockback=0.5, recovery=0.25,
+            speed=3.0, defense=0.15, stun=3.5, knockback=0.5, recovery=0.25,
         ),
         initial_weights=WeightSet(
-            w_retreat=0.0, w_defend=0.2, w_aggressiveness=0.7,
+            w_retreat=0.05, w_defend=0.2, w_aggressiveness=0.7,
         ),
         beats=(ArchetypeID.TURTLE, ArchetypeID.ZONER),
     ),
@@ -132,10 +132,10 @@ ARCHETYPES: Dict[ArchetypeID, ArchetypeDefinition] = {
         ),
         initial_attributes=AttributeSet(
             hp=400.0, damage=20.0, attack_cooldown=4.0, range_=8.0,
-            speed=2.0, defense=0.30, stun=2.5, knockback=0.5, recovery=0.35,
+            speed=2.0, defense=0.20, stun=2.5, knockback=0.5, recovery=0.35,
         ),
         initial_weights=WeightSet(
-            w_retreat=0.1, w_defend=0.5, w_aggressiveness=0.8,
+            w_retreat=0.1, w_defend=0.4, w_aggressiveness=0.7,
         ),
         beats=(ArchetypeID.COMBO_MASTER, ArchetypeID.RUSHDOWN),
     ),
@@ -149,10 +149,10 @@ ARCHETYPES: Dict[ArchetypeID, ArchetypeDefinition] = {
         ),
         initial_attributes=AttributeSet(
             hp=450.0, damage=10.0, attack_cooldown=5.0, range_=13.0,
-            speed=1.5, defense=0.35, stun=2.5, knockback=2.0, recovery=0.35,
+            speed=1.5, defense=0.25, stun=2, knockback=1, recovery=0.5,
         ),
         initial_weights=WeightSet(
-            w_retreat=0.5, w_defend=0.7, w_aggressiveness=0.2,
+            w_retreat=0.4, w_defend=0.7, w_aggressiveness=0.2,
         ),
         beats=(ArchetypeID.RUSHDOWN, ArchetypeID.GRAPPLER),
     ),
