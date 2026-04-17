@@ -37,8 +37,36 @@ def test_config_constants_exist():
     assert NSGA2_OBJECTIVES == ["balance_error", "matchup_dominance_penalty", "drift_penalty"]
 
 
+import random
+from fitness import evaluate_objectives
+
+
+def test_evaluate_objectives_returns_3tuple():
+    random.seed(0)
+    ind = Individual.from_canonical()
+    objs = evaluate_objectives(ind)
+    assert isinstance(objs, tuple), "deve retornar tupla"
+    assert len(objs) == 3,          "deve ter 3 objetivos"
+    for o in objs:
+        assert isinstance(o, float), f"objetivo deve ser float, recebeu {type(o)}"
+        assert 0.0 <= o <= 1.0,       f"objetivo fora de [0,1]: {o}"
+
+
+def test_evaluate_objectives_caches_on_individual():
+    random.seed(0)
+    ind = Individual.from_canonical()
+    assert ind.objectives is None
+    objs = evaluate_objectives(ind)
+    assert ind.objectives == objs, "objectives deve ser cacheado no indivíduo"
+    # Segunda chamada retorna o cacheado sem reavaliar
+    second = evaluate_objectives(ind)
+    assert second is ind.objectives
+
+
 if __name__ == "__main__":
     test_individual_has_nsga2_fields()
     test_individual_clone_copies_nsga2_fields()
     test_config_constants_exist()
-    print("Task 1 — OK")
+    test_evaluate_objectives_returns_3tuple()
+    test_evaluate_objectives_caches_on_individual()
+    print("Task 2 — OK")

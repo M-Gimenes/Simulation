@@ -238,3 +238,23 @@ def evaluate_population(population: List[Individual]) -> None:
 
     for ind, fit in zip(unevaluated, fitnesses):
         ind.fitness = fit
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# NSGA-II — avaliação multi-objetivo
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def evaluate_objectives(individual: Individual) -> Tuple[float, float, float]:
+    """
+    Avalia o indivíduo e retorna (balance_error, matchup_dominance_penalty, drift_penalty).
+
+    Todos os três objetivos estão em [0, 1] e são minimizados pelo NSGA-II.
+    Cacheia em `individual.objectives`; não reavalia se já cacheado.
+    """
+    if individual.objectives is not None:
+        return individual.objectives
+    detail = evaluate_detail(individual)
+    objs = (detail.balance_error, detail.matchup_dominance_penalty, detail.drift_penalty)
+    individual.objectives = objs
+    return objs
