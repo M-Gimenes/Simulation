@@ -252,6 +252,26 @@ def test_representatives_all_five_keys():
     assert set(reps.keys()) == expected_keys
 
 
+from nsga2 import run
+
+
+def test_run_smoke_small_config():
+    """Roda NSGA-II com configuração reduzida e valida shape dos resultados."""
+    result = run(seed=42, pop_size=20, n_generations=3, verbose=False)
+
+    # Fronteira final não-vazia
+    assert len(result.pareto_front) > 0, "fronteira de Pareto vazia"
+    # Todos os indivíduos da fronteira final têm rank=0
+    assert all(ind.rank == 0 for ind in result.pareto_front)
+    # Todos têm objectives avaliado
+    assert all(ind.objectives is not None for ind in result.pareto_front)
+    # 5 representantes distintos (ou pelo menos as 5 chaves existentes)
+    reps = result.representatives
+    assert set(reps.keys()) == {"best_balance", "best_matchup", "best_drift", "knee_point", "ideal_point"}
+    # Histórico tem 3 entradas (n_generations)
+    assert len(result.history) == 3
+
+
 if __name__ == "__main__":
     test_individual_has_nsga2_fields()
     test_individual_clone_copies_nsga2_fields()
@@ -274,4 +294,5 @@ if __name__ == "__main__":
     test_representatives_ideal_closest_to_origin()
     test_representatives_knee_is_interior()
     test_representatives_all_five_keys()
-    print("Task 6 — OK")
+    test_run_smoke_small_config()
+    print("Task 7 — OK")

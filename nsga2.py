@@ -11,9 +11,15 @@ Todos minimizados, todos em [0, 1].
 from __future__ import annotations
 
 import math
-from typing import List
+import random
+import time
+from dataclasses import dataclass
+from typing import Dict, List, Optional
 
+from config import NSGA2_POP_SIZE, NSGA2_GENERATIONS
+from fitness import evaluate_objectives
 from individual import Individual
+from operators import crossover, mutate, nsga2_binary_tournament
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -207,3 +213,131 @@ def select_representatives(front: List[Individual]) -> dict:
         "knee_point":   knee,
         "ideal_point":  ideal,
     }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Loop principal
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+@dataclass
+class GenerationStats:
+    generation:          int
+    front_sizes:         List[int]               # tamanho de cada fronteira em R (após merge)
+    best_per_objective:  List[float]             # melhor valor em cada um dos 3 objetivos
+    elapsed_s:           float
+
+
+@dataclass
+class NSGAResult:
+    pareto_front:    List[Individual]            # rank=0 da população final
+    representatives: Dict[str, Individual]       # 5 representantes
+    history:         List[GenerationStats]
+    generations_run: int
+    seed:            Optional[int] = None
+
+
+def _evaluate_population(pop: List[Individual]) -> None:
+    """Chama evaluate_objectives em cada indivíduo; o cache interno evita reavaliação."""
+    for ind in pop:
+        evaluate_objectives(ind)
+
+
+def _assign_rank_and_crowding(pop: List[Individual]) -> List[List[Individual]]:
+    """Aplica non-dominated sort e crowding distance em toda a população; retorna fronteiras."""
+    fronts = fast_non_dominated_sort(pop)
+    for front in fronts:
+        crowding_distance_assignment(front)
+    return fronts
+
+
+def _select_next_population(
+    fronts: List[List[Individual]], target_size: int
+) -> List[Individual]:
+    """
+    Preenche P_next com fronteiras em ordem de rank. Fronteira que "transborda"
+    é ordenada por crowding desc e truncada ao tamanho restante.
+    """
+    next_pop: List[Individual] = []
+    for front in fronts:
+        if len(next_pop) + len(front) <= target_size:
+            next_pop.extend(front)
+        else:
+            remaining = target_size - len(next_pop)
+            front_sorted = sorted(front, key=lambda ind: ind.crowding, reverse=True)
+            next_pop.extend(front_sorted[:remaining])
+            break
+    return next_pop
+
+
+def _generate_offspring(parents: List[Individual], size: int) -> List[Individual]:
+    offspring: List[Individual] = []
+    while len(offspring) < size:
+        p1 = nsga2_binary_tournament(parents)
+        p2 = nsga2_binary_tournament(parents)
+        child = crossover(p1, p2)
+        mutate(child)   # calls invalidate_fitness() → resets objectives; rank/crowding default to None
+        offspring.append(child)
+    return offspring
+
+
+def _log_generation(stats: GenerationStats, verbose: bool) -> None:
+    if not verbose:
+        return
+    bals, mats, drfs = stats.best_per_objective
+    print(
+        f"Gen {stats.generation:4d} | "
+        f"front0={stats.front_sizes[0]:3d}  "
+        f"bal={bals:.4f}  mat={mats:.4f}  drift={drfs:.4f}  "
+        f"({stats.elapsed_s:.1f}s)"
+    )
+
+
+def run(
+    seed:          Optional[int] = None,
+    pop_size:      int           = NSGA2_POP_SIZE,
+    n_generations: int           = NSGA2_GENERATIONS,
+    verbose:       bool          = True,
+) -> NSGAResult:
+    """Executa o NSGA-II e retorna a fronteira + 5 representantes."""
+    if seed is not None:
+        random.seed(seed)
+
+    t_start = time.time()
+
+    population = [Individual.from_canonical()] + [
+        Individual.random() for _ in range(pop_size - 1)
+    ]
+    _evaluate_population(population)
+    _assign_rank_and_crowding(population)
+
+    history: List[GenerationStats] = []
+
+    for gen in range(n_generations):
+        offspring = _generate_offspring(population, pop_size)
+        _evaluate_population(offspring)
+
+        combined = population + offspring
+        fronts   = _assign_rank_and_crowding(combined)
+        population = _select_next_population(fronts, pop_size)
+
+        best_per_obj = [min(ind.objectives[m] for ind in population) for m in range(3)]
+        stats = GenerationStats(
+            generation=gen,
+            front_sizes=[len(f) for f in fronts],
+            best_per_objective=best_per_obj,
+            elapsed_s=time.time() - t_start,
+        )
+        history.append(stats)
+        _log_generation(stats, verbose)
+
+    pareto_front    = [ind for ind in population if ind.rank == 0]
+    representatives = select_representatives(pareto_front)
+
+    return NSGAResult(
+        pareto_front=pareto_front,
+        representatives=representatives,
+        history=history,
+        generations_run=n_generations,
+        seed=seed,
+    )
