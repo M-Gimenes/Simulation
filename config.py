@@ -78,3 +78,10 @@ WEIGHT_BOUNDS = [
 
 ATTRIBUTE_NAMES = ["hp", "damage", "attack_cooldown", "range", "speed", "defense", "stun", "knockback", "recovery"]
 WEIGHT_NAMES    = ["w_retreat", "w_defend", "w_aggressiveness"]
+
+# ── NSGA-II ─────────────────────────────────────────────────────────────────
+
+# Aliases — permitem tunar o NSGA-II sem alterar os parâmetros do AG clássico.
+NSGA2_POP_SIZE      = POPULATION_SIZE
+NSGA2_GENERATIONS   = MAX_GENERATIONS
+NSGA2_OBJECTIVES    = ["balance_error", "matchup_dominance_penalty", "drift_penalty"]

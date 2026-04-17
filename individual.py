@@ -28,9 +28,15 @@ class Individual:
     characters: lista de 5 Character, um por arquétipo,
                 na ordem definida por ARCHETYPE_ORDER.
     fitness:    valor calculado pela função de aptidão (None = não avaliado).
+    objectives: tupla de 3 valores NSGA-II (None = não avaliado).
+    rank:       rank de não-dominância no NSGA-II (None = não classificado).
+    crowding:   distância de aglomeração no NSGA-II (None = não calculado).
     """
     characters: List[Character]
     fitness: Optional[float] = field(default=None, compare=False)
+    objectives: Optional[tuple] = field(default=None, compare=False)
+    rank: Optional[int] = field(default=None, compare=False)
+    crowding: Optional[float] = field(default=None, compare=False)
 
     # ── Construtores ──────────────────────────────────────────────────────
 
@@ -88,6 +94,7 @@ class Individual:
 
     def invalidate_fitness(self) -> None:
         self.fitness = None
+        self.objectives = None  # genes mudaram → objetivos ficam inválidos também
 
     @property
     def is_evaluated(self) -> bool:
@@ -99,6 +106,9 @@ class Individual:
         ind = Individual(
             characters=[c.clone() for c in self.characters],
             fitness=self.fitness,
+            objectives=self.objectives,
+            rank=self.rank,
+            crowding=self.crowding,
         )
         return ind
 
