@@ -10,9 +10,6 @@ Todos minimizados, todos em [0, 1].
 """
 from __future__ import annotations
 
-import sys, os
-sys.path.insert(0, os.path.dirname(__file__))
-
 from typing import List
 
 from individual import Individual
@@ -54,16 +51,16 @@ def fast_non_dominated_sort(population: List[Individual]) -> List[List[Individua
     múltiplos indivíduos têm o mesmo conteúdo comparável (ex.: clones do canônico).
     """
     n = len(population)
-    dominated_by     = [[] for _ in range(n)]   # dominated_by[i] = j's dominados por i
+    dominates_set    = [[] for _ in range(n)]   # dominates_set[i] = índices dominados por i (S_i — Deb 2002)
     domination_count = [0] * n                  # domination_count[i] = quantos dominam i
 
     for i in range(n):
         for j in range(i + 1, n):
             if _dominates(population[i], population[j]):
-                dominated_by[i].append(j)
+                dominates_set[i].append(j)
                 domination_count[j] += 1
             elif _dominates(population[j], population[i]):
-                dominated_by[j].append(i)
+                dominates_set[j].append(i)
                 domination_count[i] += 1
 
     front_indices: List[List[int]] = [[]]
@@ -76,7 +73,7 @@ def fast_non_dominated_sort(population: List[Individual]) -> List[List[Individua
     while front_indices[k]:
         next_front: List[int] = []
         for p in front_indices[k]:
-            for q in dominated_by[p]:
+            for q in dominates_set[p]:
                 domination_count[q] -= 1
                 if domination_count[q] == 0:
                     population[q].rank = k + 1

@@ -10,6 +10,7 @@ import random
 from individual import Individual
 from config import NSGA2_POP_SIZE, NSGA2_GENERATIONS, NSGA2_OBJECTIVES
 from fitness import evaluate_objectives
+from nsga2 import _dominates, fast_non_dominated_sort
 
 
 def test_individual_has_nsga2_fields():
@@ -62,8 +63,6 @@ def test_evaluate_objectives_caches_on_individual():
     second = evaluate_objectives(ind)
     assert second is ind.objectives
 
-
-from nsga2 import _dominates, fast_non_dominated_sort
 
 
 def _ind_with_obj(objs):
