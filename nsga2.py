@@ -122,3 +122,88 @@ def crowding_distance_assignment(front: List[Individual]) -> None:
             if math.isinf(front[i].crowding):
                 continue
             front[i].crowding += (front[i + 1].objectives[m] - front[i - 1].objectives[m]) / span
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Seleção dos 5 representantes da fronteira final
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def _best_in(front: List[Individual], objective_idx: int) -> Individual:
+    return min(front, key=lambda ind: ind.objectives[objective_idx])
+
+
+def _euclidean_norm(objs) -> float:
+    return math.sqrt(sum(o * o for o in objs))
+
+
+def _distance_to_plane(point, plane_p, plane_normal_unit) -> float:
+    """Distância perpendicular de `point` ao plano (p0, n̂)."""
+    d = sum((p - p0) * n for p, p0, n in zip(point, plane_p, plane_normal_unit))
+    return abs(d)
+
+
+def _cross3(u, v):
+    return (
+        u[1] * v[2] - u[2] * v[1],
+        u[2] * v[0] - u[0] * v[2],
+        u[0] * v[1] - u[1] * v[0],
+    )
+
+
+def _dist_to_line(objs, anchor, line, line_norm) -> float:
+    """Distância perpendicular de `objs` à reta definida por `anchor + t*line`."""
+    d = tuple(a - b for a, b in zip(objs, anchor))
+    proj = sum(di * li for di, li in zip(d, line)) / line_norm
+    perp_sq = sum(di * di for di in d) - proj * proj
+    return math.sqrt(max(0.0, perp_sq))
+
+
+def _find_knee(front: List[Individual], extremes: List[Individual]) -> Individual:
+    """
+    Knee point = indivíduo mais distante do plano formado pelos 3 extremos.
+
+    Se os 3 extremos forem colineares (plano degenerado), fallback para o
+    ponto mais distante da reta entre o 1º e o 3º extremo.
+    """
+    p1 = extremes[0].objectives
+    p2 = extremes[1].objectives
+    p3 = extremes[2].objectives
+    u = tuple(a - b for a, b in zip(p2, p1))
+    v = tuple(a - b for a, b in zip(p3, p1))
+    n = _cross3(u, v)
+    norm_n = _euclidean_norm(n)
+    if norm_n == 0.0:
+        # Fallback: distância à reta p1–p3 (extremos colineares — plano degenerado)
+        line = tuple(a - b for a, b in zip(p3, p1))
+        line_norm = _euclidean_norm(line)
+        if line_norm == 0.0:
+            return front[0]
+        return max(front, key=lambda ind: _dist_to_line(ind.objectives, p1, line, line_norm))
+
+    n_hat = tuple(ni / norm_n for ni in n)
+    return max(front, key=lambda ind: _distance_to_plane(ind.objectives, p1, n_hat))
+
+
+def select_representatives(front: List[Individual]) -> dict:
+    """
+    Retorna 5 representantes da fronteira de Pareto:
+      - 3 extremos (melhor em cada objetivo)
+      - knee_point  — ponto de máxima curvatura (mais distante do plano dos extremos)
+      - ideal_point — mais próximo da utopia (0, 0, 0) em distância Euclidiana
+
+    Ordem dos objetivos: (balance_error, matchup_dominance_penalty, drift_penalty).
+    """
+    best_balance = _best_in(front, 0)
+    best_matchup = _best_in(front, 1)
+    best_drift   = _best_in(front, 2)
+    ideal        = min(front, key=lambda ind: _euclidean_norm(ind.objectives))
+    knee         = _find_knee(front, [best_balance, best_matchup, best_drift])
+
+    return {
+        "best_balance": best_balance,
+        "best_matchup": best_matchup,
+        "best_drift":   best_drift,
+        "knee_point":   knee,
+        "ideal_point":  ideal,
+    }

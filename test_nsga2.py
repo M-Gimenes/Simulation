@@ -179,6 +179,7 @@ def test_crowding_middle_has_finite_value():
 
 
 from operators import nsga2_binary_tournament
+from nsga2 import select_representatives
 
 
 def test_tournament_picks_lower_rank():
@@ -209,6 +210,48 @@ def test_tournament_stochastic_on_full_tie():
     assert 60 < wins_a < 140, f"empate total não está aleatório o suficiente: {wins_a}/200"
 
 
+def test_representatives_identifies_extremes():
+    front = [
+        _ind_with_obj([0.05, 0.50, 0.50]),   # menor f[0]
+        _ind_with_obj([0.50, 0.05, 0.50]),   # menor f[1]
+        _ind_with_obj([0.50, 0.50, 0.05]),   # menor f[2]
+        _ind_with_obj([0.20, 0.20, 0.20]),   # interior
+    ]
+    reps = select_representatives(front)
+    assert reps["best_balance"] is front[0]
+    assert reps["best_matchup"] is front[1]
+    assert reps["best_drift"]   is front[2]
+
+
+def test_representatives_ideal_closest_to_origin():
+    front = [
+        _ind_with_obj([0.05, 0.50, 0.50]),   # dist ≈ 0.707
+        _ind_with_obj([0.20, 0.20, 0.20]),   # dist ≈ 0.346 — mais perto
+        _ind_with_obj([0.50, 0.50, 0.05]),   # dist ≈ 0.707
+    ]
+    reps = select_representatives(front)
+    assert reps["ideal_point"] is front[1]
+
+
+def test_representatives_knee_is_interior():
+    # Fronteira em formato "L" — knee deve ser o ponto da curva, não os extremos.
+    front = [
+        _ind_with_obj([0.05, 0.95, 0.50]),   # extremo de f[0]
+        _ind_with_obj([0.15, 0.15, 0.50]),   # joelho — mais distante do plano dos extremos
+        _ind_with_obj([0.95, 0.05, 0.50]),   # extremo de f[1]
+        _ind_with_obj([0.50, 0.50, 0.05]),   # extremo de f[2]
+    ]
+    reps = select_representatives(front)
+    assert reps["knee_point"] is front[1]
+
+
+def test_representatives_all_five_keys():
+    front = [_ind_with_obj([0.1 * i, 0.2, 0.3]) for i in range(5)]
+    reps = select_representatives(front)
+    expected_keys = {"best_balance", "best_matchup", "best_drift", "knee_point", "ideal_point"}
+    assert set(reps.keys()) == expected_keys
+
+
 if __name__ == "__main__":
     test_individual_has_nsga2_fields()
     test_individual_clone_copies_nsga2_fields()
@@ -227,4 +270,8 @@ if __name__ == "__main__":
     test_tournament_picks_lower_rank()
     test_tournament_breaks_tie_by_crowding()
     test_tournament_stochastic_on_full_tie()
-    print("Task 5 — OK")
+    test_representatives_identifies_extremes()
+    test_representatives_ideal_closest_to_origin()
+    test_representatives_knee_is_interior()
+    test_representatives_all_five_keys()
+    print("Task 6 — OK")
