@@ -272,6 +272,44 @@ def test_run_smoke_small_config():
     assert len(result.history) == 3
 
 
+import json
+import tempfile
+from nsga2 import save_results
+
+
+def test_save_results_produces_valid_json():
+    result = run(seed=42, pop_size=10, n_generations=2, verbose=False)
+    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as fh:
+        path = fh.name
+    save_results(result, path)
+    with open(path) as fh:
+        data = json.load(fh)
+    assert data["algorithm"] == "nsga2"
+    assert data["seed"] == 42
+    assert data["generations_run"] == 2
+    assert len(data["pareto_front"]) == len(result.pareto_front)
+    first = data["pareto_front"][0]
+    assert "genes" in first and "objectives" in first
+    assert len(first["genes"]) == 5
+    assert len(first["objectives"]) == 3
+    for key in ("best_balance", "best_matchup", "best_drift", "knee_point", "ideal_point"):
+        assert key in data["representatives"]
+    os.unlink(path)
+
+
+def test_save_results_roundtrip_genes():
+    result = run(seed=42, pop_size=10, n_generations=2, verbose=False)
+    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as fh:
+        path = fh.name
+    save_results(result, path)
+    with open(path) as fh:
+        data = json.load(fh)
+    original_genes_c0 = result.pareto_front[0].characters[0].genes()
+    loaded_genes_c0   = data["pareto_front"][0]["genes"][0]
+    assert original_genes_c0 == loaded_genes_c0
+    os.unlink(path)
+
+
 if __name__ == "__main__":
     test_individual_has_nsga2_fields()
     test_individual_clone_copies_nsga2_fields()
@@ -295,4 +333,6 @@ if __name__ == "__main__":
     test_representatives_knee_is_interior()
     test_representatives_all_five_keys()
     test_run_smoke_small_config()
-    print("Task 7 — OK")
+    test_save_results_produces_valid_json()
+    test_save_results_roundtrip_genes()
+    print("Task 8 — OK")

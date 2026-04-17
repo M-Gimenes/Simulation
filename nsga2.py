@@ -341,3 +341,44 @@ def run(
         generations_run=n_generations,
         seed=seed,
     )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Serialização JSON
+# ─────────────────────────────────────────────────────────────────────────────
+
+import json
+
+
+def _individual_to_dict(ind: Individual) -> dict:
+    return {
+        "genes":      [c.genes() for c in ind.characters],
+        "objectives": list(ind.objectives),
+    }
+
+
+def save_results(result: NSGAResult, path: str = "nsga2_results.json") -> None:
+    """
+    Salva fronteira, representantes e histórico em JSON.
+    """
+    data = {
+        "algorithm":       "nsga2",
+        "seed":            result.seed,
+        "generations_run": result.generations_run,
+        "pareto_front":    [_individual_to_dict(ind) for ind in result.pareto_front],
+        "representatives": {
+            name: _individual_to_dict(ind)
+            for name, ind in result.representatives.items()
+        },
+        "history": [
+            {
+                "gen":                s.generation,
+                "front_sizes":        s.front_sizes,
+                "best_per_objective": s.best_per_objective,
+                "elapsed_s":          round(s.elapsed_s, 3),
+            }
+            for s in result.history
+        ],
+    }
+    with open(path, "w") as fh:
+        json.dump(data, fh, indent=2)
