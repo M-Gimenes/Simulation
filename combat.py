@@ -39,6 +39,8 @@ from config import (
     INITIAL_DISTANCE,
     MAX_TICKS,
     RETREAT_ZONE_FACTOR,
+    STUN_CAP_MULTIPLIER,
+    TICK_SCALE,
     WALL_CORNER_THRESHOLD,
 )
 
@@ -188,18 +190,12 @@ def _resolve_attack(
 ) -> Tuple[float, int, float]:
     """
     Resolve um ataque. Chamado apenas quando o atacante está com attack_ready=True.
-    Retorna (dano_causado, stun_ticks_aplicados, knockback_unidades).
+    Retorna (dano_causado, stun_sub_ticks_aplicados, knockback_unidades).
     Retorna (0, 0, 0) se fora de alcance.
 
-    Dano (MD):
-        normal:     damage * (1 - defense/100)
-        defendendo: damage * (1 - defense/100) * 0.2
-
-    Stun:
-        round(attacker.stun/10 * (1 - defender.recovery/100))
-
-    Knockback:
-        attacker.knockback / 10  unidades
+    Stun e cooldown usam TICK_SCALE para resolução sub-tick:
+      stun_sub   = round(stun * TICK_SCALE * (1 - recovery))
+      cooldown   = round(attack_cooldown * TICK_SCALE)
     """
     if distance > attacker.range_:
         return 0.0, 0, 0.0
@@ -212,11 +208,12 @@ def _resolve_attack(
 
     stun_ticks = max(
         0,
-        round(attacker.stun * (1.0 - defender_state.character.recovery)),
+        round(attacker.stun * TICK_SCALE * (1.0 - defender_state.character.recovery)),
     )
 
-    # Cap de stun: nunca pode exceder o cooldown do próprio atacante.
-    stun_ticks = min(stun_ticks, round(attacker.attack_cooldown))
+    # Cap de stun: limita a STUN_CAP_MULTIPLIER × cooldown do atacante.
+    # Com multiplier=2, permite 1 hit extra durante stun (combo chaining).
+    stun_ticks = min(stun_ticks, round(STUN_CAP_MULTIPLIER * attacker.attack_cooldown * TICK_SCALE))
 
     knockback_units = attacker.knockback  # escala natural: unidades de campo
 
@@ -275,7 +272,9 @@ def simulate_combat(char_a: Character, char_b: Character) -> CombatResult:
         for i in range(2):
             if actions[i] not in (Action.ADVANCE, Action.RETREAT):
                 continue
-            speed = fighters[i].character.speed  # escala natural: unidades/tick
+            # Movimento por sub-tick: preserva a relação original entre
+            # velocidade e cooldown dividindo pela resolução temporal.
+            speed = fighters[i].character.speed / TICK_SCALE
             direction = 1.0 if pos[i] < pos[1 - i] else -1.0
             if actions[i] == Action.ADVANCE:
                 pos[i] = max(0.0, min(FIELD_SIZE, pos[i] + direction * speed))
@@ -319,7 +318,7 @@ def simulate_combat(char_a: Character, char_b: Character) -> CombatResult:
 
                 # Cooldown só é setado em hit — ataque fora de range não desperdiça cooldown
                 fighters[attacker_idx].cooldown_remaining = round(
-                    fighters[attacker_idx].character.attack_cooldown
+                    fighters[attacker_idx].character.attack_cooldown * TICK_SCALE
                 )
 
         # ── Fase 4: Decrementar timers ────────────────────────────────────
@@ -433,7 +432,7 @@ def simulate_combat_detailed(
         for i in range(2):
             if actions[i] not in (Action.ADVANCE, Action.RETREAT):
                 continue
-            speed = fighters[i].character.speed
+            speed = fighters[i].character.speed / TICK_SCALE
             direction = 1.0 if pos[i] < pos[1 - i] else -1.0
             if actions[i] == Action.ADVANCE:
                 pos[i] = max(0.0, min(FIELD_SIZE, pos[i] + direction * speed))
@@ -474,7 +473,7 @@ def simulate_combat_detailed(
                 pos[defender_idx] = max(0.0, min(FIELD_SIZE, pos[defender_idx] + kb_dir * kb))
 
                 fighters[attacker_idx].cooldown_remaining = round(
-                    fighters[attacker_idx].character.attack_cooldown
+                    fighters[attacker_idx].character.attack_cooldown * TICK_SCALE
                 )
 
         # ── Fase 4: Decrementar timers ──────────────────────────────────────────────

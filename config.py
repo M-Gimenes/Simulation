@@ -51,9 +51,19 @@ WALL_CORNER_THRESHOLD = 10   # distância da parede para considerar o lutador en
 DAMAGE_VARIANCE = 0.20  # ±20% por hit — variância de execução no dano
 ACTION_EPSILON  = 0.20  # prob. de ação aleatória por tick — erros de decisão
 
+# ── Simulação — Resolução temporal ────────────────────────────────────────────
+
+TICK_SCALE = 5  # resolução sub-tick para cooldown e stun
+                # cooldown e stun são multiplicados por este fator antes de round()
+                # → 5× mais valores discretos possíveis, eliminando platôs do GA
+
+STUN_CAP_MULTIPLIER = 2.0  # cap de stun = multiplier × cooldown do atacante
+                            # 1.0 = stun nunca excede cooldown (impossibilita combos)
+                            # 2.0 = permite 1 hit extra durante stun (habilita combo chaining)
+
 # ── Simulação — Decisão ──────────────────────────────────────────────────────
 
-MAX_TICKS           = 500  # duração máxima de uma partida (ticks)
+MAX_TICKS           = 500 * TICK_SCALE  # duração máxima ajustada à resolução
 RETREAT_ZONE_FACTOR = 2.0  # zona de ameaça proativa = fator × range do inimigo
 
 # ── Bounds dos genes ─────────────────────────────────────────────────────────
@@ -67,7 +77,7 @@ ATTRIBUTE_BOUNDS = [
     (0.0,   0.5),    # defense
     (0.0,   5.0),    # stun
     (0.0,   5.0),    # knockback
-    (0.0,   0.5),    # recovery
+    (0.0,   0.7),    # recovery
 ]
 
 WEIGHT_BOUNDS = [
