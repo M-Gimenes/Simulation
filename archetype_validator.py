@@ -1,7 +1,7 @@
 """
 Diagnóstico de identidade de arquétipo.
 
-Executa 23 asserções em 3 camadas sobre qualquer Individual
+Executa 20 asserções em 2 camadas sobre qualquer Individual
 (canônico ou evoluído) e imprime relatório pass/fail.
 
 Uso:
@@ -15,13 +15,11 @@ Uso:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field      # field used in Task 5+
-from itertools import combinations            # used in Task 5 (_collect_stats)
-from typing import Dict, List, Tuple          # Tuple used in Task 3+
+from dataclasses import dataclass
+from typing import Dict, List, Tuple
 
 from archetypes import ARCHETYPE_ORDER, ArchetypeID
-from combat import Action, ActionLog, CombatResult, simulate_combat_detailed
-from config import ATTRIBUTE_BOUNDS, SIMS_PER_MATCHUP
+from config import ATTRIBUTE_BOUNDS
 from individual import Individual
 
 
@@ -32,53 +30,11 @@ from individual import Individual
 @dataclass
 class ArchetypeCheck:
     archetype:     ArchetypeID
-    layer:         str   # "structural_inter" | "structural_intra" | "behavioral"
+    layer:         str   # "structural_inter" | "structural_intra"
     description:   str
     passed:        bool
     actual_rank:   int   # 1 = highest value; 0 = N/A (intra assertions)
     expected_rank: int   # 1 = should be highest; 5 = should be lowest; 0 = N/A
-
-
-@dataclass
-class CharacterStats:
-    """Stats agregados de um personagem sobre todos os combates do round-robin."""
-    action_counts:   Dict[Action, int]  # Action → total de ticks nessa ação
-    active_ticks:    int                # total de ticks não-stunados
-    wins:            int
-    n_combats:       int
-    ko_wins:         int
-    hp_pct_on_wins:  List[float]        # HP% restante em cada vitória
-    ticks_on_wins:   List[int]          # duração do combate em cada vitória
-    stun_applied:    int                # total de stun bruto aplicado (proxy de pressão)
-
-    @property
-    def aggression_rate(self) -> float:
-        atk = self.action_counts.get(Action.ATTACK, 0) + self.action_counts.get(Action.ADVANCE, 0)
-        return atk / self.active_ticks if self.active_ticks > 0 else 0.0
-
-    @property
-    def defend_rate(self) -> float:
-        return self.action_counts.get(Action.DEFEND, 0) / self.active_ticks if self.active_ticks > 0 else 0.0
-
-    @property
-    def retreat_rate(self) -> float:
-        return self.action_counts.get(Action.RETREAT, 0) / self.active_ticks if self.active_ticks > 0 else 0.0
-
-    @property
-    def ko_rate(self) -> float:
-        return self.ko_wins / self.wins if self.wins > 0 else 0.0
-
-    @property
-    def avg_hp_pct_on_win(self) -> float:
-        return sum(self.hp_pct_on_wins) / len(self.hp_pct_on_wins) if self.hp_pct_on_wins else 0.0
-
-    @property
-    def avg_ticks_on_win(self) -> float:
-        return sum(self.ticks_on_wins) / len(self.ticks_on_wins) if self.ticks_on_wins else 0.0
-
-    @property
-    def avg_stun_applied(self) -> float:
-        return self.stun_applied / self.n_combats if self.n_combats > 0 else 0.0
 
 
 @dataclass
@@ -204,109 +160,16 @@ def _check_structural_intra(chars) -> List[ArchetypeCheck]:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Coleta de stats simulados
-# ─────────────────────────────────────────────────────────────────────────────
-
-def _collect_stats(individual: Individual, n_sims: int) -> List[CharacterStats]:
-    """
-    Executa round-robin completo com simulate_combat_detailed.
-    Retorna uma lista de CharacterStats na ordem de individual.characters.
-    """
-    chars = individual.characters
-    n     = len(chars)
-
-    stats = [
-        CharacterStats(
-            action_counts={Action.ATTACK: 0, Action.ADVANCE: 0, Action.RETREAT: 0, Action.DEFEND: 0},
-            active_ticks=0,
-            wins=0,
-            n_combats=0,
-            ko_wins=0,
-            hp_pct_on_wins=[],
-            ticks_on_wins=[],
-            stun_applied=0,
-        )
-        for _ in range(n)
-    ]
-
-    for i, j in combinations(range(n), 2):
-        for _ in range(n_sims):
-            result, log = simulate_combat_detailed(chars[i], chars[j])
-
-            # Atualiza stats de ação para ambos os lutadores
-            for fighter_pos, char_idx in ((0, i), (1, j)):
-                s = stats[char_idx]
-                for action, count in log.action_counts[fighter_pos].items():
-                    s.action_counts[action] += count
-                s.active_ticks += log.active_ticks[fighter_pos]
-                s.stun_applied += log.stun_applied[fighter_pos]
-                s.n_combats    += 1
-
-            # Atualiza stats de resultado para o vencedor
-            winner_char_idx = i if result.winner == 0 else j
-            winner_hp = result.hp_remaining[result.winner]
-            winner_hp_pct = winner_hp / chars[winner_char_idx].hp
-
-            sw = stats[winner_char_idx]
-            sw.wins += 1
-            if result.ko:
-                sw.ko_wins += 1
-            sw.hp_pct_on_wins.append(winner_hp_pct)
-            sw.ticks_on_wins.append(result.ticks)
-
-    return stats
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Layer 3 — Behavioral
-# ─────────────────────────────────────────────────────────────────────────────
-
-# (archetype_id, metric_name, expected_rank, description)
-_BEHAVIORAL_ASSERTIONS: List[Tuple] = [
-    (ArchetypeID.RUSHDOWN, "aggression_rate", 1, "aggression_rate = highest (always closing/attacking)"),
-    (ArchetypeID.TURTLE,   "defend_rate",     1, "defend_rate = highest (absorb-first strategy)"),
-    (ArchetypeID.ZONER,    "retreat_rate",    1, "retreat_rate = highest (kiting — creates distance)"),
-]
-
-
-def _check_behavioral(stats: List[CharacterStats]) -> List[ArchetypeCheck]:
-    arch_to_idx = {arch_id: i for i, arch_id in enumerate(ARCHETYPE_ORDER)}
-    checks = []
-    for arch_id, metric, expected_rank, description in _BEHAVIORAL_ASSERTIONS:
-        values = [getattr(s, metric) for s in stats]
-        ranks  = _rank_desc(values)
-        idx    = arch_to_idx[arch_id]
-        actual = ranks[idx]
-        checks.append(ArchetypeCheck(
-            archetype=arch_id,
-            layer="behavioral",
-            description=description,
-            passed=(actual == expected_rank),
-            actual_rank=actual,
-            expected_rank=expected_rank,
-        ))
-    return checks
-
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Orquestração
 # ─────────────────────────────────────────────────────────────────────────────
 
-def run_validation(
-    individual: Individual,
-    n_sims: int = SIMS_PER_MATCHUP,
-) -> ArchetypeValidationReport:
-    """Executa as 23 asserções e retorna o relatório completo."""
+def run_validation(individual: Individual) -> ArchetypeValidationReport:
+    """Executa as 20 asserções e retorna o relatório completo."""
     chars  = individual.characters
     checks: List[ArchetypeCheck] = []
 
-    # Camadas 1–2: apenas genes, sem simulação
     checks.extend(_check_structural_inter(chars))
     checks.extend(_check_structural_intra(chars))
-
-    # Camada 3: requer simulação
-    stats = _collect_stats(individual, n_sims)
-    checks.extend(_check_behavioral(stats))
 
     passed = sum(1 for c in checks if c.passed)
     return ArchetypeValidationReport(checks=checks, passed=passed, total=len(checks))
@@ -319,7 +182,6 @@ def run_validation(
 _LAYER_LABELS = {
     "structural_inter": "LAYER 1 — Structural (inter-character)",
     "structural_intra": "LAYER 2 — Structural (intra-character, normalized)",
-    "behavioral":       "LAYER 3 — Behavioral",
 }
 _ARCH_NAMES = {a: a.name.replace("_", " ").title() for a in ArchetypeID}
 _LINE = "═" * 66

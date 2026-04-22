@@ -43,9 +43,8 @@ print("OK")
 # ── Task 2 ────────────────────────────────────────────────────────────────────
 
 def test_datastructures():
-    from archetype_validator import ArchetypeCheck, CharacterStats, ArchetypeValidationReport
+    from archetype_validator import ArchetypeCheck, ArchetypeValidationReport
     from archetypes import ArchetypeID
-    from combat import Action
 
     check = ArchetypeCheck(
         archetype=ArchetypeID.RUSHDOWN,
@@ -56,24 +55,6 @@ def test_datastructures():
         expected_rank=1,
     )
     assert check.passed
-
-    stats = CharacterStats(
-        action_counts={Action.ATTACK: 10, Action.ADVANCE: 20, Action.RETREAT: 5, Action.DEFEND: 15},
-        active_ticks=50,
-        wins=3,
-        n_combats=4,
-        ko_wins=2,
-        hp_pct_on_wins=[0.8, 0.6, 0.7],
-        ticks_on_wins=[100, 150, 120],
-        stun_applied=8,
-    )
-    assert abs(stats.aggression_rate - 0.60) < 1e-9   # (10+20)/50
-    assert abs(stats.defend_rate     - 0.30) < 1e-9   # 15/50
-    assert abs(stats.retreat_rate    - 0.10) < 1e-9   # 5/50
-    assert abs(stats.ko_rate         - 2/3)  < 1e-9   # 2/3
-    assert abs(stats.avg_hp_pct_on_win - 0.7)          < 1e-9
-    assert abs(stats.avg_ticks_on_win  - 370/3)        < 1e-9
-    assert abs(stats.avg_stun_applied  - 2.0)          < 1e-9  # 8/4
 
     report = ArchetypeValidationReport(checks=[check], passed=1, total=1)
     assert report.score == 1.0
@@ -126,89 +107,20 @@ print("OK")
 
 # ── Task 5 ────────────────────────────────────────────────────────────────────
 
-def test_collect_stats_structure():
-    from archetype_validator import _collect_stats, CharacterStats
-    from combat import Action
-    from individual import Individual
-
-    canon = Individual.from_canonical()
-    stats = _collect_stats(canon, n_sims=5)
-
-    assert len(stats) == 5  # one per character
-
-    for s in stats:
-        assert isinstance(s, CharacterStats)
-        # Each character fights 4 others × 5 sims = 20 combats
-        assert s.n_combats == 20
-        # Action counts cover all four actions
-        assert set(s.action_counts.keys()) == {Action.ATTACK, Action.ADVANCE, Action.RETREAT, Action.DEFEND}
-        # Active ticks = sum of action counts
-        assert sum(s.action_counts.values()) == s.active_ticks
-        assert s.active_ticks > 0
-        # Wins within valid range
-        assert 0 <= s.wins <= s.n_combats
-        assert 0 <= s.ko_wins <= s.wins
-        # hp_pct_on_wins entries in [0, 1]
-        assert all(0.0 <= hp <= 1.0 for hp in s.hp_pct_on_wins)
-
-print("test_collect_stats_structure ...", end=" ", flush=True)
-test_collect_stats_structure()
-print("OK")
-
-# ── Task 6 ────────────────────────────────────────────────────────────────────
-
-def test_behavioral_checks_structure():
-    from archetype_validator import _check_behavioral, _collect_stats
-    from individual import Individual
-
-    canon  = Individual.from_canonical()
-    stats  = _collect_stats(canon, n_sims=5)
-    checks = _check_behavioral(stats)
-
-    assert len(checks) == 3
-    assert all(c.layer == "behavioral" for c in checks)
-    # Each check has a valid actual_rank (1–5)
-    assert all(1 <= c.actual_rank <= 5 for c in checks)
-
-print("test_behavioral_checks_structure ...", end=" ", flush=True)
-test_behavioral_checks_structure()
-print("OK")
-
-# ── Task 7 ────────────────────────────────────────────────────────────────────
-
-def test_outcome_checks_structure():
-    from archetype_validator import _check_outcome, _collect_stats
-    from individual import Individual
-
-    canon  = Individual.from_canonical()
-    stats  = _collect_stats(canon, n_sims=5)
-    checks = _check_outcome(stats)
-
-    assert len(checks) == 5
-    assert all(c.layer == "outcome" for c in checks)
-    assert all(1 <= c.actual_rank <= 5 for c in checks)
-
-print("test_outcome_checks_structure ...", end=" ", flush=True)
-test_outcome_checks_structure()
-print("OK")
-
-# ── Task 8 ────────────────────────────────────────────────────────────────────
-
 def test_run_validation_canonical():
     from archetype_validator import run_validation
     from individual import Individual
 
     canon  = Individual.from_canonical()
-    report = run_validation(canon, n_sims=10)
+    report = run_validation(canon)
 
-    assert report.total == 28
-    # Known: 2 structural inter failures; behavioral/outcome may vary
-    assert report.passed <= 28
-    assert report.passed >= 12  # at minimum all other structural checks pass
+    assert report.total == 20
+    assert report.passed == 20  # todas as asserções estruturais passam no canônico
     assert 0.0 <= report.score <= 1.0
     assert len(report.failures()) == report.total - report.passed
 
 print("test_run_validation_canonical ...", end=" ", flush=True)
 test_run_validation_canonical()
+
 print("OK")
 print("\nAll tests passed.")
