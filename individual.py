@@ -59,6 +59,34 @@ class Individual:
         return cls(characters=characters)
 
     @classmethod
+    def from_nsga2(
+        cls,
+        path: str = "nsga2_results.json",
+        representative: str = "knee_point",
+    ) -> "Individual":
+        """Carrega um representante da fronteira de Pareto do NSGA-II.
+
+        representative: 'knee_point' | 'best_balance' | 'best_matchup' | 'best_drift'
+        """
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"'{path}' não encontrado — rode main.py --algorithm nsga2 primeiro.")
+        with open(path) as fh:
+            data = json.load(fh)
+        reps = data.get("representatives", {})
+        if representative not in reps:
+            available = ", ".join(reps.keys()) if reps else "nenhum"
+            raise KeyError(f"Representante '{representative}' não encontrado. Disponíveis: {available}")
+        genes = reps[representative]["genes"]
+        ind = cls.from_canonical()
+        for char, char_genes in zip(ind.characters, genes):
+            char.load_genes(char_genes)
+            char.clip()
+        objectives = reps[representative].get("objectives")
+        if objectives is not None:
+            ind.objectives = tuple(objectives)
+        return ind
+
+    @classmethod
     def from_results(cls, path: str = "results.json") -> "Individual":
         """Carrega o melhor indivíduo salvo pelo AG em results.json."""
         if not os.path.exists(path):

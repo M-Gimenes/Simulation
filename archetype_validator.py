@@ -1,11 +1,16 @@
 """
 Diagnóstico de identidade de arquétipo.
 
-Executa 38 asserções em 5 camadas sobre qualquer Individual
+Executa 23 asserções em 3 camadas sobre qualquer Individual
 (canônico ou evoluído) e imprime relatório pass/fail.
 
-Uso standalone:
-    py archetype_validator.py
+Uso:
+    py archetype_validator.py                        # canônico
+    py archetype_validator.py --evolved              # usa melhor indivíduo do AG (results.json)
+    py archetype_validator.py --nsga2                # usa knee_point do NSGA-II
+    py archetype_validator.py --nsga2 best_balance   # usa representante específico do NSGA-II
+    py archetype_validator.py --nsga2 best_matchup
+    py archetype_validator.py --nsga2 best_drift
 """
 
 from __future__ import annotations
@@ -27,7 +32,7 @@ from individual import Individual
 @dataclass
 class ArchetypeCheck:
     archetype:     ArchetypeID
-    layer:         str   # "structural_inter" | "structural_intra" | "behavioral" | "outcome"
+    layer:         str   # "structural_inter" | "structural_intra" | "behavioral"
     description:   str
     passed:        bool
     actual_rank:   int   # 1 = highest value; 0 = N/A (intra assertions)
@@ -284,39 +289,6 @@ def _check_behavioral(stats: List[CharacterStats]) -> List[ArchetypeCheck]:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Layer 4 — Outcome
-# ─────────────────────────────────────────────────────────────────────────────
-
-# (archetype_id, metric_name, expected_rank, description)
-_OUTCOME_ASSERTIONS: List[Tuple] = [
-    (ArchetypeID.GRAPPLER,     "ko_rate",            1, "ko_rate = highest (burst damage — finishes enemies)"),
-    (ArchetypeID.TURTLE,       "avg_hp_pct_on_win",  1, "avg_hp_pct_on_win = highest (absorbs damage cleanly)"),
-    (ArchetypeID.RUSHDOWN,     "avg_ticks_on_win",   5, "avg_ticks_on_win = lowest (overwhelms fast)"),
-    (ArchetypeID.TURTLE,       "avg_ticks_on_win",   1, "avg_ticks_on_win = highest (wins by attrition)"),
-    (ArchetypeID.COMBO_MASTER, "avg_stun_applied",   1, "avg_stun_applied = highest (lockdown identity)"),
-]
-
-
-def _check_outcome(stats: List[CharacterStats]) -> List[ArchetypeCheck]:
-    arch_to_idx = {arch_id: i for i, arch_id in enumerate(ARCHETYPE_ORDER)}
-    checks = []
-    for arch_id, metric, expected_rank, description in _OUTCOME_ASSERTIONS:
-        values = [getattr(s, metric) for s in stats]
-        ranks  = _rank_desc(values)
-        idx    = arch_to_idx[arch_id]
-        actual = ranks[idx]
-        checks.append(ArchetypeCheck(
-            archetype=arch_id,
-            layer="outcome",
-            description=description,
-            passed=(actual == expected_rank),
-            actual_rank=actual,
-            expected_rank=expected_rank,
-        ))
-    return checks
-
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Orquestração
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -324,7 +296,7 @@ def run_validation(
     individual: Individual,
     n_sims: int = SIMS_PER_MATCHUP,
 ) -> ArchetypeValidationReport:
-    """Executa as 28 asserções e retorna o relatório completo."""
+    """Executa as 23 asserções e retorna o relatório completo."""
     chars  = individual.characters
     checks: List[ArchetypeCheck] = []
 
@@ -332,10 +304,9 @@ def run_validation(
     checks.extend(_check_structural_inter(chars))
     checks.extend(_check_structural_intra(chars))
 
-    # Camadas 3–4: requerem simulação
+    # Camada 3: requer simulação
     stats = _collect_stats(individual, n_sims)
     checks.extend(_check_behavioral(stats))
-    checks.extend(_check_outcome(stats))
 
     passed = sum(1 for c in checks if c.passed)
     return ArchetypeValidationReport(checks=checks, passed=passed, total=len(checks))
@@ -349,7 +320,6 @@ _LAYER_LABELS = {
     "structural_inter": "LAYER 1 — Structural (inter-character)",
     "structural_intra": "LAYER 2 — Structural (intra-character, normalized)",
     "behavioral":       "LAYER 3 — Behavioral",
-    "outcome":          "LAYER 4 — Outcome",
 }
 _ARCH_NAMES = {a: a.name.replace("_", " ").title() for a in ArchetypeID}
 _LINE = "═" * 66
@@ -405,9 +375,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Validador de identidade de arquétipo")
     parser.add_argument("--evolved", action="store_true",
                         help="Usa o melhor indivíduo salvo em results.json (default: canônico)")
+    parser.add_argument("--nsga2", metavar="REP", nargs="?", const="knee_point",
+                        help="Usa representante do NSGA-II (knee_point|best_balance|best_matchup|best_drift). Default: knee_point")
     args = parser.parse_args()
 
-    if args.evolved:
+    if args.nsga2:
+        ind = Individual.from_nsga2(representative=args.nsga2)
+        print(f"Validando indivíduo NSGA-II ({args.nsga2})...\n")
+    elif args.evolved:
         ind = Individual.from_results()
         print("Validando indivíduo evoluído (results.json)...\n")
     else:

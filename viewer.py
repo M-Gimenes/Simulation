@@ -7,6 +7,8 @@ Uso:
     py viewer.py rushdown grappler --delay 0.04
     py viewer.py --list                    # lista arquétipos disponíveis
     py viewer.py --evolved                 # usa resultado da última execução do AG
+    py viewer.py --nsga2                   # usa knee_point do NSGA-II
+    py viewer.py --nsga2 best_balance      # usa representante específico do NSGA-II
     py viewer.py --all                     # roda todos os 10 matchups em sequência
     py viewer.py --no-vs                   # pula a tela de apresentação
 
@@ -547,6 +549,8 @@ def main() -> None:
                         help="Roda todos os 10 matchups em sequência")
     parser.add_argument("--evolved", action="store_true",
                         help="Usa personagens do último AG (results.json)")
+    parser.add_argument("--nsga2", metavar="REP", nargs="?", const="knee_point",
+                        help="Usa representante do NSGA-II (knee_point|best_balance|best_matchup|best_drift). Default: knee_point")
     parser.add_argument("--results", default="results.json",
                         help="Caminho para o arquivo de resultados do AG")
     parser.add_argument("--no-vs",   action="store_true",
@@ -560,7 +564,11 @@ def main() -> None:
         print()
         return
 
-    if args.evolved:
+    if args.nsga2:
+        ind = Individual.from_nsga2(representative=args.nsga2)
+        print(f"{G}Carregando personagens NSGA-II ({args.nsga2})…{RS}\n")
+        time.sleep(0.4)
+    elif args.evolved:
         ind = _load_evolved(args.results)
         if ind is None:
             print(f"Arquivo '{args.results}' não encontrado ou sem 'best_individual'.")

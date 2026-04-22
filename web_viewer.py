@@ -2,8 +2,11 @@
 Visualizador web de combate.
 
 Uso:
-    py web_viewer.py                  # abre no browser na porta 8080
+    py web_viewer.py                         # abre no browser na porta 8080
     py web_viewer.py --port 9000
+    py web_viewer.py --evolved               # usa resultado da última execução do AG
+    py web_viewer.py --nsga2                 # usa knee_point do NSGA-II
+    py web_viewer.py --nsga2 best_balance    # usa representante específico do NSGA-II
 
 Acesse http://localhost:8080 no browser.
 Ctrl+C para encerrar.
@@ -780,9 +783,14 @@ def main():
     parser.add_argument("--port", type=int, default=8080)
     parser.add_argument("--evolved", action="store_true",
                         help="Usa o melhor indivíduo salvo em results.json (default: canônico)")
+    parser.add_argument("--nsga2", metavar="REP", nargs="?", const="knee_point",
+                        help="Usa representante do NSGA-II (knee_point|best_balance|best_matchup|best_drift). Default: knee_point")
     args = parser.parse_args()
 
-    if args.evolved:
+    if args.nsga2:
+        ind = Individual.from_nsga2(representative=args.nsga2)
+        print(f"  Usando indivíduo NSGA-II ({args.nsga2})")
+    elif args.evolved:
         ind = Individual.from_results()
         print("  Usando indivíduo evoluído (results.json)")
     else:

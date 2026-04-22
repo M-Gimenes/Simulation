@@ -2,8 +2,14 @@
 Análise detalhada tick-a-tick dos 10 matchups canônicos.
 Identifica padrões de desbalanceamento no combate.
 
-Uso: py analyze_matchups.py
-     py analyze_matchups.py zoner grappler   (matchup específico)
+Uso:
+    py analyze_matchups.py                           # todos os matchups (canônico)
+    py analyze_matchups.py zoner grappler            # matchup específico
+    py analyze_matchups.py --evolved                 # usa melhor indivíduo do AG (results.json)
+    py analyze_matchups.py --nsga2                   # usa knee_point do NSGA-II
+    py analyze_matchups.py --nsga2 best_balance      # usa representante específico do NSGA-II
+    py analyze_matchups.py --nsga2 best_matchup
+    py analyze_matchups.py --nsga2 best_drift
 """
 
 from __future__ import annotations
@@ -280,9 +286,14 @@ def main() -> None:
                         help="Par de arquétipos (ex: rushdown zoner). Omita para todos.")
     parser.add_argument("--evolved", action="store_true",
                         help="Usa o melhor indivíduo salvo em results.json (default: canônico)")
+    parser.add_argument("--nsga2", metavar="REP", nargs="?", const="knee_point",
+                        help="Usa representante do NSGA-II (knee_point|best_balance|best_matchup|best_drift). Default: knee_point")
     args = parser.parse_args()
 
-    if args.evolved:
+    if args.nsga2:
+        ind = Individual.from_nsga2(representative=args.nsga2)
+        label = f"NSGA-II ({args.nsga2})"
+    elif args.evolved:
         ind = Individual.from_results()
         label = "EVOLUÍDO (results.json)"
     else:
