@@ -10,13 +10,15 @@ Todos minimizados, todos em [0, 1].
 """
 from __future__ import annotations
 
+import json
 import math
 import random
 import time
+from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
-from config import NSGA2_POP_SIZE, NSGA2_GENERATIONS
+from config import N_WORKERS, NSGA2_GENERATIONS, NSGA2_POP_SIZE
 from fitness import evaluate_objectives
 from individual import Individual
 from operators import crossover, mutate, nsga2_binary_tournament
@@ -237,10 +239,22 @@ class NSGAResult:
     seed:            Optional[int] = None
 
 
+def _objectives_worker(ind: Individual) -> Tuple[float, float, float]:
+    return evaluate_objectives(ind)
+
+
 def _evaluate_population(pop: List[Individual]) -> None:
-    """Chama evaluate_objectives em cada indivíduo; o cache interno evita reavaliação."""
-    for ind in pop:
-        evaluate_objectives(ind)
+    unevaluated = [ind for ind in pop if ind.objectives is None]
+    if not unevaluated:
+        return
+    if N_WORKERS == 1 or len(unevaluated) == 1:
+        for ind in unevaluated:
+            evaluate_objectives(ind)
+        return
+    with ProcessPoolExecutor(max_workers=N_WORKERS) as executor:
+        results = list(executor.map(_objectives_worker, unevaluated))
+    for ind, objs in zip(unevaluated, results):
+        ind.objectives = objs
 
 
 def _assign_rank_and_crowding(pop: List[Individual]) -> List[List[Individual]]:
@@ -347,9 +361,6 @@ def run(
 # Serialização JSON
 # ─────────────────────────────────────────────────────────────────────────────
 
-import json
-
-
 def _individual_to_dict(ind: Individual) -> dict:
     return {
         "genes":      [c.genes() for c in ind.characters],
@@ -357,7 +368,7 @@ def _individual_to_dict(ind: Individual) -> dict:
     }
 
 
-def save_results(result: NSGAResult, path: str = "nsga2_results.json") -> None:
+def save_results(result: NSGAResult, path: str = "results/nsga2_results.json") -> None:
     """
     Salva fronteira, representantes e histórico em JSON.
     """

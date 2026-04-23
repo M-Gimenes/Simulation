@@ -101,10 +101,11 @@ def _archetype_deviation(char) -> float:
 
 def _matchup_dominance(matchup_winrates: Dict[Tuple[int, int], float]) -> float:
     """
-    Penalidade do pior matchup: max(excess_ij) normalizado em [0, 1].
+    Penalidade média dos excessos de dominância em todos os 10 pares, normalizada em [0, 1].
 
-    Usa max (não mean) para que um único matchup dominante force correção
-    sem ser diluído pelos demais pares.
+    Usa mean (não max): todos os matchups desbalanceados contribuem — o GA recebe
+    sinal de melhora ao corrigir qualquer par ruim, não apenas o pior.
+    Pares dentro de MATCHUP_THRESHOLD não penalizam (excess clampado em 0).
     """
     scale = 0.5 - MATCHUP_THRESHOLD
     return mean(

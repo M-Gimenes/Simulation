@@ -54,10 +54,11 @@ def _main_ga(args):
     print(f"Balance error:             {result.best_detail.balance_error:.4f}")
     print(f"Matchup dominance penalty: {result.best_detail.matchup_dominance_penalty:.4f}")
 
+    os.makedirs("results", exist_ok=True)
     out = {"best_individual": [c.genes() for c in result.best.characters]}
-    with open("results.json", "w") as fh:
+    with open("results/results.json", "w") as fh:
         json.dump(out, fh)
-    print("\nIndivíduo salvo em results.json")
+    print("\nIndivíduo salvo em results/results.json")
 
 
 def _main_nsga2(args):
@@ -66,11 +67,12 @@ def _main_nsga2(args):
 
     result = run_nsga2(seed=args.seed, verbose=not args.quiet)
 
-    save_results(result, "nsga2_results.json")
-    print(f"\nFronteira salva em nsga2_results.json  ({len(result.pareto_front)} indivíduos)")
+    os.makedirs("results", exist_ok=True)
+    save_results(result, "results/nsga2_results.json")
+    print(f"\nFronteira salva em results/nsga2_results.json  ({len(result.pareto_front)} indivíduos)")
 
     timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    outdir = os.path.join("plots", "nsga2", timestamp)
+    outdir = os.path.join("results", "plots", "nsga2", timestamp)
     save_plots(result, outdir, plot_3d=args.plot_3d)
     print(f"Plots salvos em {outdir}")
 

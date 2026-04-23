@@ -220,6 +220,27 @@ def _resolve_attack(
     return dmg, stun_ticks, knockback_units
 
 
+def _tick_timers(fighter: FighterState, pre_stun: int, pre_cd: int) -> None:
+    if fighter.stun_remaining <= pre_stun:
+        fighter.stun_remaining = max(0, fighter.stun_remaining - 1)
+    if fighter.cooldown_remaining <= pre_cd:
+        fighter.cooldown_remaining = max(0, fighter.cooldown_remaining - 1)
+
+
+def _combat_result(fighters: List[FighterState], end_tick: int) -> CombatResult:
+    hp_a = max(0.0, fighters[0].hp)
+    hp_b = max(0.0, fighters[1].hp)
+    if not fighters[0].is_alive and not fighters[1].is_alive:
+        winner = 0 if fighters[0].hp_pct >= fighters[1].hp_pct else 1
+        return CombatResult(winner=winner, ticks=end_tick, ko=True, hp_remaining=(hp_a, hp_b))
+    if not fighters[0].is_alive:
+        return CombatResult(winner=1, ticks=end_tick, ko=True, hp_remaining=(hp_a, hp_b))
+    if not fighters[1].is_alive:
+        return CombatResult(winner=0, ticks=end_tick, ko=True, hp_remaining=(hp_a, hp_b))
+    winner = 0 if fighters[0].hp_pct >= fighters[1].hp_pct else 1
+    return CombatResult(winner=winner, ticks=end_tick, ko=False, hp_remaining=(hp_a, hp_b))
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Simulação principal
 # ─────────────────────────────────────────────────────────────────────────────
@@ -321,44 +342,10 @@ def simulate_combat(char_a: Character, char_b: Character) -> CombatResult:
                     fighters[attacker_idx].character.attack_cooldown * TICK_SCALE
                 )
 
-        # ── Fase 4: Decrementar timers ────────────────────────────────────
-        # Só decrementa timers que não foram recém-setados por um ataque neste tick.
-        # Timers aumentados pelo ataque (current > pre) ficam intactos até o próximo tick.
-        f0, f1 = fighters
-        if f0.stun_remaining <= pre_stun_0:
-            f0.stun_remaining = max(0, f0.stun_remaining - 1)
-        if f0.cooldown_remaining <= pre_cd_0:
-            f0.cooldown_remaining = max(0, f0.cooldown_remaining - 1)
-        if f1.stun_remaining <= pre_stun_1:
-            f1.stun_remaining = max(0, f1.stun_remaining - 1)
-        if f1.cooldown_remaining <= pre_cd_1:
-            f1.cooldown_remaining = max(0, f1.cooldown_remaining - 1)
+        _tick_timers(fighters[0], pre_stun_0, pre_cd_0)
+        _tick_timers(fighters[1], pre_stun_1, pre_cd_1)
 
-    # ── Condição de vitória ───────────────────────────────────────────────────
-
-    hp_a = max(0.0, fighters[0].hp)
-    hp_b = max(0.0, fighters[1].hp)
-
-    if not fighters[0].is_alive and not fighters[1].is_alive:
-        winner = 0 if fighters[0].hp_pct >= fighters[1].hp_pct else 1
-        return CombatResult(
-            winner=winner, ticks=end_tick, ko=True, hp_remaining=(hp_a, hp_b)
-        )
-
-    if not fighters[0].is_alive:
-        return CombatResult(
-            winner=1, ticks=end_tick, ko=True, hp_remaining=(hp_a, hp_b)
-        )
-
-    if not fighters[1].is_alive:
-        return CombatResult(
-            winner=0, ticks=end_tick, ko=True, hp_remaining=(hp_a, hp_b)
-        )
-
-    winner = 0 if fighters[0].hp_pct >= fighters[1].hp_pct else 1
-    return CombatResult(
-        winner=winner, ticks=MAX_TICKS, ko=False, hp_remaining=(hp_a, hp_b)
-    )
+    return _combat_result(fighters, end_tick)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -476,34 +463,12 @@ def simulate_combat_detailed(
                     fighters[attacker_idx].character.attack_cooldown * TICK_SCALE
                 )
 
-        # ── Fase 4: Decrementar timers ──────────────────────────────────────────────
-        f0, f1 = fighters
-        if f0.stun_remaining <= pre_stun_0:
-            f0.stun_remaining = max(0, f0.stun_remaining - 1)
-        if f0.cooldown_remaining <= pre_cd_0:
-            f0.cooldown_remaining = max(0, f0.cooldown_remaining - 1)
-        if f1.stun_remaining <= pre_stun_1:
-            f1.stun_remaining = max(0, f1.stun_remaining - 1)
-        if f1.cooldown_remaining <= pre_cd_1:
-            f1.cooldown_remaining = max(0, f1.cooldown_remaining - 1)
-
-    hp_a = max(0.0, fighters[0].hp)
-    hp_b = max(0.0, fighters[1].hp)
-
-    if not fighters[0].is_alive and not fighters[1].is_alive:
-        winner = 0 if fighters[0].hp_pct >= fighters[1].hp_pct else 1
-        result = CombatResult(winner=winner, ticks=end_tick, ko=True, hp_remaining=(hp_a, hp_b))
-    elif not fighters[0].is_alive:
-        result = CombatResult(winner=1, ticks=end_tick, ko=True, hp_remaining=(hp_a, hp_b))
-    elif not fighters[1].is_alive:
-        result = CombatResult(winner=0, ticks=end_tick, ko=True, hp_remaining=(hp_a, hp_b))
-    else:
-        winner = 0 if fighters[0].hp_pct >= fighters[1].hp_pct else 1
-        result = CombatResult(winner=winner, ticks=MAX_TICKS, ko=False, hp_remaining=(hp_a, hp_b))
+        _tick_timers(fighters[0], pre_stun_0, pre_cd_0)
+        _tick_timers(fighters[1], pre_stun_1, pre_cd_1)
 
     log = ActionLog(
         action_counts=(action_counts[0], action_counts[1]),
         active_ticks=(active_ticks[0], active_ticks[1]),
         stun_applied=(stun_applied[0], stun_applied[1]),
     )
-    return result, log
+    return _combat_result(fighters, end_tick), log

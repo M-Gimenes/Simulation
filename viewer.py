@@ -551,7 +551,7 @@ def main() -> None:
                         help="Usa personagens do último AG (results.json)")
     parser.add_argument("--nsga2", metavar="REP", nargs="?", const="knee_point",
                         help="Usa representante do NSGA-II (knee_point|best_balance|best_matchup|best_drift). Default: knee_point")
-    parser.add_argument("--results", default="results.json",
+    parser.add_argument("--results", default="results/results.json",
                         help="Caminho para o arquivo de resultados do AG")
     parser.add_argument("--no-vs",   action="store_true",
                         help="Pula a tela de apresentação (VS screen)")

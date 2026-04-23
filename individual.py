@@ -61,7 +61,7 @@ class Individual:
     @classmethod
     def from_nsga2(
         cls,
-        path: str = "nsga2_results.json",
+        path: str = "results/nsga2_results.json",
         representative: str = "knee_point",
     ) -> "Individual":
         """Carrega um representante da fronteira de Pareto do NSGA-II.
@@ -87,8 +87,8 @@ class Individual:
         return ind
 
     @classmethod
-    def from_results(cls, path: str = "results.json") -> "Individual":
-        """Carrega o melhor indivíduo salvo pelo AG em results.json."""
+    def from_results(cls, path: str = "results/results.json") -> "Individual":
+        """Carrega o melhor indivíduo salvo pelo AG em results/results.json."""
         if not os.path.exists(path):
             raise FileNotFoundError(f"'{path}' não encontrado — rode main.py primeiro.")
         with open(path) as fh:

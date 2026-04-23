@@ -1,6 +1,6 @@
 """
 Análise detalhada tick-a-tick dos 10 matchups canônicos.
-Identifica padrões de desbalanceamento no combate.
+Executa N combates por matchup e apresenta médias das estatísticas.
 
 Uso:
     py analyze_matchups.py                           # todos os matchups (canônico)
@@ -10,27 +10,27 @@ Uso:
     py analyze_matchups.py --nsga2 best_balance      # usa representante específico do NSGA-II
     py analyze_matchups.py --nsga2 best_matchup
     py analyze_matchups.py --nsga2 best_drift
+    py analyze_matchups.py --n 50                    # número de simulações por matchup
 """
 
 from __future__ import annotations
 
-import sys
+import random
 from dataclasses import dataclass, field
 from typing import List, Optional, Tuple
 
 from archetypes import ARCHETYPE_ALIASES, ARCHETYPE_ORDER, ARCHETYPES, ArchetypeID
 from character import Character
 from combat import Action, FighterState, _choose_action, _resolve_attack
-from config import ACTION_EPSILON, FIELD_SIZE, INITIAL_DISTANCE, MAX_TICKS
+from config import ACTION_EPSILON, FIELD_SIZE, INITIAL_DISTANCE, MAX_TICKS, TICK_SCALE
 from individual import Individual
 
 
-ACTION_NAMES = {Action.ATTACK: "ATK", Action.ADVANCE: "ADV",
-                Action.RETREAT: "RET", Action.DEFEND: "DEF"}
+ANALYZE_SIMS = 30
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Estrutura de resultado
+# Estrutura de resultado de uma luta
 # ─────────────────────────────────────────────────────────────────────────────
 
 @dataclass
@@ -78,13 +78,56 @@ class MatchupResult:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Simulação instrumentada
+# Estrutura de resultado agregado (N combates)
 # ─────────────────────────────────────────────────────────────────────────────
 
-def analyze_combat(char_a: Character, char_b: Character, seed: int = 42) -> MatchupResult:
-    import random
-    random.seed(seed)
+@dataclass
+class AveragedFighterStats:
+    name: str
+    hp_start: float
+    hp_end: float = 0.0
+    hits_landed: float = 0.0
+    damage_dealt: float = 0.0
+    stun_applied: float = 0.0
+    stun_ticks_applied: float = 0.0
+    ticks_stunned: float = 0.0
+    ticks_in_cooldown: float = 0.0
+    ticks_out_of_range: float = 0.0
+    ticks_in_range: float = 0.0
+    knockback_taken: float = 0.0
+    action_counts: dict = field(default_factory=lambda: {0: 0.0, 1: 0.0, 2: 0.0, 3: 0.0})
 
+    @property
+    def hp_lost_pct(self) -> float:
+        return (self.hp_start - self.hp_end) / self.hp_start
+
+
+@dataclass
+class AveragedMatchupResult:
+    name_a: str
+    name_b: str
+    winrate_a: float
+    avg_ticks: float
+    ko_rate: float
+    avg_distance: float
+    min_distance: float
+    stats: Tuple[AveragedFighterStats, AveragedFighterStats]
+    n_sims: int
+
+    @property
+    def winner_name(self) -> str:
+        return self.name_a if self.winrate_a >= 0.5 else self.name_b
+
+    @property
+    def winner_wr(self) -> float:
+        return self.winrate_a if self.winrate_a >= 0.5 else 1.0 - self.winrate_a
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Simulação instrumentada (luta única)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def analyze_combat(char_a: Character, char_b: Character) -> MatchupResult:
     fighters = [
         FighterState(character=char_a, hp=char_a.hp),
         FighterState(character=char_b, hp=char_b.hp),
@@ -108,7 +151,6 @@ def analyze_combat(char_a: Character, char_b: Character, seed: int = 42) -> Matc
             end_tick = tick
             break
 
-        # Fase 1: escolha de ação
         actions: List[Optional[int]] = []
         for i in range(2):
             if fighters[i].is_stunned:
@@ -124,24 +166,22 @@ def analyze_combat(char_a: Character, char_b: Character, seed: int = 42) -> Matc
             if not fighters[i].attack_ready:
                 stats[i].ticks_in_cooldown += 1
 
-        # Rastreia range antes de mover
         for i in range(2):
             if distance <= fighters[i].character.range_:
                 stats[i].ticks_in_range += 1
             else:
                 stats[i].ticks_out_of_range += 1
 
-        # Fase 2: movimento
         for i in range(2):
             if actions[i] not in (Action.ADVANCE, Action.RETREAT):
                 continue
             direction = 1.0 if pos[i] < pos[1 - i] else -1.0
+            speed = fighters[i].character.speed / TICK_SCALE
             if actions[i] == Action.ADVANCE:
-                pos[i] = max(0.0, min(FIELD_SIZE, pos[i] + direction * fighters[i].character.speed))
+                pos[i] = max(0.0, min(FIELD_SIZE, pos[i] + direction * speed))
             else:
-                pos[i] = max(0.0, min(FIELD_SIZE, pos[i] - direction * fighters[i].character.speed))
+                pos[i] = max(0.0, min(FIELD_SIZE, pos[i] - direction * speed))
 
-        # Fase 3: ataques
         distance = abs(pos[1] - pos[0])
         defending = [a == Action.DEFEND for a in actions]
         pre_stun = [f.stun_remaining for f in fighters]
@@ -171,9 +211,8 @@ def analyze_combat(char_a: Character, char_b: Character, seed: int = 42) -> Matc
                     kb_dir = 1.0 if pos[def_idx] >= pos[att_idx] else -1.0
                     pos[def_idx] = max(0.0, min(FIELD_SIZE, pos[def_idx] + kb_dir * kb))
                     stats[def_idx].knockback_taken += 1
-                fighters[att_idx].cooldown_remaining = round(fighters[att_idx].character.attack_cooldown)
+                fighters[att_idx].cooldown_remaining = round(fighters[att_idx].character.attack_cooldown * TICK_SCALE)
 
-        # Fase 4: decrementa timers
         for i, f in enumerate(fighters):
             if f.stun_remaining <= pre_stun[i]:
                 f.stun_remaining = max(0, f.stun_remaining - 1)
@@ -203,6 +242,72 @@ def analyze_combat(char_a: Character, char_b: Character, seed: int = 42) -> Matc
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Análise agregada (N combates)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def analyze_combat_multi(char_a: Character, char_b: Character, n: int = ANALYZE_SIMS) -> AveragedMatchupResult:
+    wins_a = 0
+    total_ticks = 0.0
+    total_ko = 0
+    total_avg_dist = 0.0
+    total_min_dist = 0.0
+
+    avg_stats = [
+        AveragedFighterStats(name=char_a.archetype.name, hp_start=char_a.hp),
+        AveragedFighterStats(name=char_b.archetype.name, hp_start=char_b.hp),
+    ]
+
+    for _ in range(n):
+        r = analyze_combat(char_a, char_b)
+        if r.winner == 0:
+            wins_a += 1
+        total_ticks += r.ticks
+        total_ko += int(r.ko)
+        total_avg_dist += r.avg_distance
+        total_min_dist += r.min_distance
+
+        for i, s in enumerate(r.stats):
+            avg_stats[i].hp_end += s.hp_end
+            avg_stats[i].hits_landed += s.hits_landed
+            avg_stats[i].damage_dealt += s.damage_dealt
+            avg_stats[i].stun_applied += s.stun_applied
+            avg_stats[i].stun_ticks_applied += s.stun_ticks_applied
+            avg_stats[i].ticks_stunned += s.ticks_stunned
+            avg_stats[i].ticks_in_cooldown += s.ticks_in_cooldown
+            avg_stats[i].ticks_out_of_range += s.ticks_out_of_range
+            avg_stats[i].ticks_in_range += s.ticks_in_range
+            avg_stats[i].knockback_taken += s.knockback_taken
+            for k in range(4):
+                avg_stats[i].action_counts[k] += s.action_counts[k]
+
+    for i in range(2):
+        avg_stats[i].hp_end /= n
+        avg_stats[i].hits_landed /= n
+        avg_stats[i].damage_dealt /= n
+        avg_stats[i].stun_applied /= n
+        avg_stats[i].stun_ticks_applied /= n
+        avg_stats[i].ticks_stunned /= n
+        avg_stats[i].ticks_in_cooldown /= n
+        avg_stats[i].ticks_out_of_range /= n
+        avg_stats[i].ticks_in_range /= n
+        avg_stats[i].knockback_taken /= n
+        for k in range(4):
+            avg_stats[i].action_counts[k] /= n
+
+    return AveragedMatchupResult(
+        name_a=char_a.archetype.name,
+        name_b=char_b.archetype.name,
+        winrate_a=wins_a / n,
+        avg_ticks=total_ticks / n,
+        ko_rate=total_ko / n,
+        avg_distance=total_avg_dist / n,
+        min_distance=total_min_dist / n,
+        stats=tuple(avg_stats),
+        n_sims=n,
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Impressão
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -211,13 +316,16 @@ def _bar(v: float, w: int = 20) -> str:
     return "█" * filled + "░" * (w - filled)
 
 
-def print_result(r: MatchupResult) -> None:
+def print_result(r: AveragedMatchupResult) -> None:
     a, b = r.stats
-    total = max(r.ticks, 1)
+    total = max(r.avg_ticks, 1)
+    wr_a = r.winrate_a
+    wr_b = 1.0 - wr_a
 
     print(f"\n{'━'*66}")
-    print(f"  {a.name:15s}  vs  {b.name}")
-    print(f"  Vencedor: {r.winner_name}  |  {r.ticks} ticks  |  {'KO' if r.ko else 'Timer'}"
+    print(f"  {a.name:15s}  vs  {b.name}  (n={r.n_sims})")
+    print(f"  WR: {a.name}={wr_a:.0%}  {b.name}={wr_b:.0%}"
+          f"  |  avg {r.avg_ticks:.0f} ticks  |  KO={r.ko_rate:.0%}"
           f"  |  dist avg={r.avg_distance:.1f}  min={r.min_distance:.1f}")
     print(f"{'─'*66}")
 
@@ -226,17 +334,16 @@ def print_result(r: MatchupResult) -> None:
         ac = s.action_counts
         print(f"\n  {s.name}")
         print(f"    HP perdido  : {hp_lost:5.0f}/{s.hp_start:.0f}  [{_bar(s.hp_lost_pct)}] {s.hp_lost_pct:.0%}")
-        print(f"    Hits/Dano   : {s.hits_landed} hits  {s.damage_dealt:.0f} dmg"
-              f"  |  stun aplicado: {s.stun_applied}x ({s.stun_ticks_applied} ticks)"
-              f"  |  kb sofrido: {s.knockback_taken}x")
-        print(f"    Stunado     : {s.ticks_stunned}/{total} ticks ({s.ticks_stunned/total:.0%})")
-        print(f"    Fora de range: {s.ticks_out_of_range}/{total} ({s.ticks_out_of_range/total:.0%})"
-              f"  |  Em range: {s.ticks_in_range}/{total} ({s.ticks_in_range/total:.0%})")
-        print(f"    Ações       : ATK={ac[0]} ADV={ac[1]} RET={ac[2]} DEF={ac[3]}")
+        print(f"    Hits/Dano   : {s.hits_landed:.1f} hits  {s.damage_dealt:.0f} dmg"
+              f"  |  stun aplicado: {s.stun_applied:.1f}x ({s.stun_ticks_applied:.1f} ticks)"
+              f"  |  kb sofrido: {s.knockback_taken:.1f}x")
+        print(f"    Stunado     : {s.ticks_stunned:.1f}/{total:.0f} ticks ({s.ticks_stunned/total:.0%})")
+        print(f"    Fora de range: {s.ticks_out_of_range:.1f}/{total:.0f} ({s.ticks_out_of_range/total:.0%})"
+              f"  |  Em range: {s.ticks_in_range:.1f}/{total:.0f} ({s.ticks_in_range/total:.0%})")
+        print(f"    Ações (média): ATK={ac[0]:.1f} ADV={ac[1]:.1f} RET={ac[2]:.1f} DEF={ac[3]:.1f}")
 
-    # Diagnósticos automáticos
     issues = []
-    for i, s in enumerate((a, b)):
+    for s in (a, b):
         if s.ticks_out_of_range / total > 0.50:
             issues.append(f"  [!] {s.name}: {s.ticks_out_of_range/total:.0%} dos ticks fora de range → dificuldade de fechar distância")
         if s.ticks_stunned / total > 0.30:
@@ -245,13 +352,11 @@ def print_result(r: MatchupResult) -> None:
             issues.append(f"  [!] {s.name}: knockback sofrido em {s.knockback_taken/total:.0%} dos ticks → expulso de range repetidamente")
         if s.action_counts[Action.RETREAT] / total > 0.20:
             issues.append(f"  [!] {s.name}: recuando em {s.action_counts[Action.RETREAT]/total:.0%} dos ticks")
-        if s.hits_landed == 0:
-            issues.append(f"  [!!] {s.name}: ZERO hits — nunca acertou o inimigo")
-        if s.hits_landed > 0 and s.ticks_in_range > 0:
-            hit_rate = s.hits_landed / (s.ticks_in_range / round(s.name and 1))
-            attack_efficiency = s.action_counts[Action.ATTACK] / max(s.ticks_in_range, 1)
-            if attack_efficiency < 0.20:
-                issues.append(f"  [!] {s.name}: apenas {attack_efficiency:.0%} dos ticks em range usados para atacar")
+        if s.hits_landed < 1.0:
+            issues.append(f"  [!!] {s.name}: média de hits quase zero — raramente acerta")
+        attack_efficiency = s.action_counts[Action.ATTACK] / max(s.ticks_in_range, 1)
+        if s.ticks_in_range > 0 and attack_efficiency < 0.20:
+            issues.append(f"  [!] {s.name}: apenas {attack_efficiency:.0%} dos ticks em range usados para atacar")
 
     if issues:
         print(f"\n  Diagnósticos:")
@@ -281,14 +386,21 @@ NAME_TO_ID = ARCHETYPE_ALIASES
 
 def main() -> None:
     import argparse
-    parser = argparse.ArgumentParser(description="Análise detalhada de matchups")
+    parser = argparse.ArgumentParser(description="Análise detalhada de matchups (média de N combates)")
     parser.add_argument("matchup", nargs="*",
                         help="Par de arquétipos (ex: rushdown zoner). Omita para todos.")
     parser.add_argument("--evolved", action="store_true",
                         help="Usa o melhor indivíduo salvo em results.json (default: canônico)")
     parser.add_argument("--nsga2", metavar="REP", nargs="?", const="knee_point",
                         help="Usa representante do NSGA-II (knee_point|best_balance|best_matchup|best_drift). Default: knee_point")
+    parser.add_argument("--n", type=int, default=ANALYZE_SIMS, metavar="N",
+                        help=f"Número de simulações por matchup (default: {ANALYZE_SIMS})")
+    parser.add_argument("--seed", type=int, default=None, metavar="S",
+                        help="Semente para reprodutibilidade (omita para randomness natural)")
     args = parser.parse_args()
+
+    if args.seed is not None:
+        random.seed(args.seed)
 
     if args.nsga2:
         ind = Individual.from_nsga2(representative=args.nsga2)
@@ -314,27 +426,27 @@ def main() -> None:
         pairs = [(ids[i], ids[j]) for i in range(len(ids)) for j in range(i + 1, len(ids))]
 
     print("\n" + "═" * 66)
-    print(f"  ANÁLISE DE MATCHUPS — {label}  (1 combate cada)")
+    print(f"  ANÁLISE DE MATCHUPS — {label}  ({args.n} combates cada, médias)")
     print("═" * 66)
 
     summary = []
     for id_a, id_b in pairs:
-        r = analyze_combat(chars[id_a], chars[id_b])
+        r = analyze_combat_multi(chars[id_a], chars[id_b], n=args.n)
         print_result(r)
 
-        winner_id = id_a if r.winner == 0 else id_b
+        winner_id = id_a if r.winrate_a >= 0.5 else id_b
         key_fwd, key_rev = (id_a, id_b), (id_b, id_a)
         expected = EXPECTED_WINNER.get(key_fwd) or EXPECTED_WINNER.get(key_rev)
         correct = (winner_id == expected) if expected else None
-        summary.append((r.name_a, r.name_b, r.winner_name, correct, r.ticks))
+        summary.append((r.name_a, r.name_b, r.winner_name, r.winner_wr, correct, int(r.avg_ticks)))
 
     print("\n" + "═" * 66)
     print("  RESUMO")
     print("═" * 66)
     ok_count = sum(1 for *_, ok, _ in summary if ok)
-    for na, nb, wn, ok, ticks in summary:
+    for na, nb, wn, wr, ok, ticks in summary:
         tag = "✓" if ok else ("✗" if ok is False else "?")
-        print(f"  {tag}  {na:15s} vs {nb:15s}  →  {wn:15s}  ({ticks} ticks)")
+        print(f"  {tag}  {na:15s} vs {nb:15s}  →  {wn:15s}  WR={wr:.0%}  (~{ticks} ticks)")
     print(f"\n  Matchups corretos: {ok_count}/{len(summary)}")
 
 
