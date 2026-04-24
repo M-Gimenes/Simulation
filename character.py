@@ -123,7 +123,8 @@ class Character:
     # ── Utilitários ───────────────────────────────────────────────────────
 
     def clone(self) -> "Character":
-        return copy.deepcopy(self)
+        # archetype is frozen — safe to share the reference
+        return Character(self.archetype, self.attributes[:], self.weights[:])
 
     def genes(self) -> List[float]:
         """Retorna todos os genes concatenados (usado no AG)."""

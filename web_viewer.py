@@ -17,6 +17,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import random
 import sys
 import webbrowser
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -28,7 +29,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from archetypes import ARCHETYPES, ARCHETYPE_ORDER, ArchetypeID, ARCHETYPE_ALIASES
 from character import Character
 from combat import Action, FighterState, _choose_action, _resolve_attack
-from config import FIELD_SIZE, INITIAL_DISTANCE, MAX_TICKS
+from config import ACTION_EPSILON, FIELD_SIZE, INITIAL_DISTANCE, MAX_TICKS, TICK_SCALE
 from individual import Individual
 
 
@@ -69,6 +70,8 @@ def record_combat(char_a: Character, char_b: Character) -> dict:
     end_tick = MAX_TICKS
 
     for tick in range(MAX_TICKS):
+        distance = abs(pos[1] - pos[0])
+
         if not fighters[0].is_alive or not fighters[1].is_alive:
             end_tick = tick
             ko = True
@@ -79,16 +82,16 @@ def record_combat(char_a: Character, char_b: Character) -> dict:
         for i in range(2):
             if fighters[i].is_stunned:
                 actions.append(None)
+            elif ACTION_EPSILON > 0.0 and random.random() < ACTION_EPSILON:
+                actions.append(random.randint(0, 3))
             else:
-                distance = abs(pos[1] - pos[0])
                 actions.append(_choose_action(fighters[i], fighters[1 - i], distance, pos[i]))
 
-        # Fase 2: movimento
-        distance = abs(pos[1] - pos[0])
+        # Fase 2: movimento (distance recalculado antes para evitar stale)
         for i in range(2):
             if actions[i] not in (Action.ADVANCE, Action.RETREAT):
                 continue
-            speed = fighters[i].character.speed
+            speed = fighters[i].character.speed / TICK_SCALE
             direction = 1.0 if pos[i] < pos[1 - i] else -1.0
             if actions[i] == Action.ADVANCE:
                 pos[i] = max(0.0, min(FIELD_SIZE, pos[i] + direction * speed))
@@ -138,7 +141,7 @@ def record_combat(char_a: Character, char_b: Character) -> dict:
 
                 # Cooldown só é setado em hit — ataque fora de range não desperdiça cooldown
                 fighters[att_idx].cooldown_remaining = round(
-                    fighters[att_idx].character.attack_cooldown
+                    fighters[att_idx].character.attack_cooldown * TICK_SCALE
                 )
 
         # Fase 4: decrementar apenas timers não recém-setados

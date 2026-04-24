@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+> **Instrução permanente**: sempre que qualquer decisão de design do sistema for alterada — comportamento do combate, semântica dos parâmetros, lógica do GA, ciclo de vantagens — atualize a seção **Key Design Decisions** neste arquivo antes de encerrar a tarefa. A seção deve refletir o estado atual do código, não o estado histórico.
+
 ## Project Context
 
 TCC (undergraduate thesis) — Genetic Algorithm for competitive game character balancing.  
@@ -82,9 +84,24 @@ Each individual = 5 characters (one per archetype) = 60 genes total (9 attrs + 3
 **Data model** (`archetypes.py` → `character.py` → `individual.py`):  
 `ArchetypeDefinition` (frozen, canonical values) → `Character` (mutable genes, 9 attrs + 3 weights) → `Individual` (list of 5 Characters + fitness cache). `Individual.from_canonical()` creates the canonical seed; `Individual.random()` creates a random individual.
 
+## Canonical Advantage Cycle
+
+| Vencedor | Perdedor | Motivo FGC |
+|---|---|---|
+| Rushdown | Zoner | pressão não deixa iniciar setup |
+| Rushdown | Combo Master | pressão antes do setup de combo |
+| Zoner | Grappler | controla espaço, fica fora da zona de punição |
+| Zoner | Turtle | fica fora da zona de punição da Turtle |
+| Grappler | Rushdown | grab/burst pune fuga e combos rápidos |
+| Grappler | Turtle | grab é o counter canônico ao bloqueio |
+| Combo Master | Grappler | Grappler lento morre pra combo |
+| Combo Master | Zoner | burst converte um acerto em match |
+| Turtle | Rushdown | bloqueio absorve pressão agressiva |
+| Turtle | Combo Master | bloqueio quebra setup de combo |
+
 ## Key Design Decisions
 
-**Priority-based action selection**: Deterministic strategy modelling an experienced player. Priorities (highest to lowest): (1) ATTACK if in range and ready; (2) respond to threat — if enemy is ready and within `RETREAT_ZONE_FACTOR * enemy.range_`: the three behavioral weights compete directly — if `w_aggressiveness > w_retreat and w_aggressiveness > w_defend` → ADVANCE; else if `w_retreat > w_defend` → RETREAT; else → DEFEND; (3) ADVANCE if out of range or cornered; (4) DEFEND (default while waiting for cooldown). The `w_*` weights compete symmetrically — no hardcoded thresholds, giving the GA a continuous fitness landscape.
+**Priority-based action selection**: Deterministic strategy modelling an experienced player. Priorities (highest to lowest): (1) ATTACK if in range and ready; (2) respond to threat — enemy must be **within their own attack range** (`distance ≤ enemy.range_`) AND ready: if `w_aggressiveness > w_retreat and w_aggressiveness > w_defend` → ADVANCE; else if `w_retreat > w_defend` → RETREAT; else → DEFEND; (3) ADVANCE if out of range or cornered; (4) DEFEND (default while waiting for cooldown). The `w_*` weights compete symmetrically — no hardcoded thresholds, giving the GA a continuous fitness landscape. **Critical**: threat detection requires `distance ≤ enemy.range_` — a character that never successfully attacks keeps `cooldown=0` forever and would otherwise create a false perpetual-threat loop (ghost fight).
 
 **Timer decrement order**: Decrements happen at the END of each tick (after attacks), using pre-attack timer values to decide what to decrement. Timers freshly set by an attack (`current > pre`) are preserved until the next tick. This means `stun=1` blocks the target for exactly 1 tick, and `attack_cooldown=1` forces a 1-tick wait before the next attack.
 

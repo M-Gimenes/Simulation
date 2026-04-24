@@ -2,11 +2,11 @@
 Definição dos 5 arquétipos e seus valores iniciais.
 
 Ciclo de vantagens fechado:
-  Grappler    → vence Combo Master e Rushdown
-  Combo Master→ vence Turtle e Zoner
-  Zoner       → vence Grappler e Turtle
-  Turtle      → vence Rushdown e Grappler
-  Rushdown    → vence Zoner e Combo Master
+  Rushdown     → vence Zoner e Combo Master   (pressão não deixa iniciar setup)
+  Zoner        → vence Grappler e Turtle       (controla espaço, fica fora da zona de punição)
+  Grappler     → vence Rushdown e Turtle       (grab é counter ao bloqueio; burst pune recuo)
+  Combo Master → vence Grappler e Zoner        (Grappler lento morre pra combo; burst converte acerto)
+  Turtle       → vence Rushdown e Combo Master (bloqueio absorve pressão e quebra setup de combo)
 """
 
 from __future__ import annotations
@@ -87,7 +87,7 @@ ARCHETYPES: Dict[ArchetypeID, ArchetypeDefinition] = {
         initial_weights=WeightSet(
             w_retreat=0.6, w_defend=0.2, w_aggressiveness=0.3,
         ),
-        beats=(ArchetypeID.GRAPPLER, ArchetypeID.TURTLE),
+        beats=(ArchetypeID.GRAPPLER, ArchetypeID.TURTLE),  # controla espaço, fica fora da zona de punição
     ),
     ArchetypeID.RUSHDOWN: ArchetypeDefinition(
         id=ArchetypeID.RUSHDOWN,
@@ -103,7 +103,7 @@ ARCHETYPES: Dict[ArchetypeID, ArchetypeDefinition] = {
         initial_weights=WeightSet(
             w_retreat=0.05, w_defend=0.1, w_aggressiveness=0.9,
         ),
-        beats=(ArchetypeID.ZONER, ArchetypeID.COMBO_MASTER),
+        beats=(ArchetypeID.ZONER, ArchetypeID.COMBO_MASTER),  # pressão não deixa iniciar setup
     ),
     ArchetypeID.COMBO_MASTER: ArchetypeDefinition(
         id=ArchetypeID.COMBO_MASTER,
@@ -120,7 +120,7 @@ ARCHETYPES: Dict[ArchetypeID, ArchetypeDefinition] = {
         initial_weights=WeightSet(
             w_retreat=0.05, w_defend=0.2, w_aggressiveness=0.7,
         ),
-        beats=(ArchetypeID.TURTLE, ArchetypeID.ZONER),
+        beats=(ArchetypeID.GRAPPLER, ArchetypeID.ZONER),  # Grappler lento morre pra combo; burst converte acerto no Zoner
     ),
     ArchetypeID.GRAPPLER: ArchetypeDefinition(
         id=ArchetypeID.GRAPPLER,
@@ -137,7 +137,7 @@ ARCHETYPES: Dict[ArchetypeID, ArchetypeDefinition] = {
         initial_weights=WeightSet(
             w_retreat=0.1, w_defend=0.4, w_aggressiveness=0.7,
         ),
-        beats=(ArchetypeID.COMBO_MASTER, ArchetypeID.RUSHDOWN),
+        beats=(ArchetypeID.RUSHDOWN, ArchetypeID.TURTLE),  # grab é counter ao bloqueio; burst pune recuo
     ),
     ArchetypeID.TURTLE: ArchetypeDefinition(
         id=ArchetypeID.TURTLE,
@@ -154,7 +154,7 @@ ARCHETYPES: Dict[ArchetypeID, ArchetypeDefinition] = {
         initial_weights=WeightSet(
             w_retreat=0.4, w_defend=0.7, w_aggressiveness=0.2,
         ),
-        beats=(ArchetypeID.RUSHDOWN, ArchetypeID.GRAPPLER),
+        beats=(ArchetypeID.RUSHDOWN, ArchetypeID.COMBO_MASTER),  # bloqueio absorve pressão e quebra setup de combo
     ),
 }
 

@@ -19,21 +19,21 @@ Propor e validar uma forma de medir quantitativamente se arquétipos foram prese
 
 ### Ciclo de vantagens fechado — cada arquétipo vence 2 e perde para 2
 
-| Arquétipo    | Vence                   |
-| ------------ | ----------------------- |
-| Grappler     | Combo Master e Rushdown |
-| Combo Master | Turtle e Zoner          |
-| Zoner        | Grappler e Turtle       |
-| Turtle       | Rushdown e Grappler     |
-| Rushdown     | Zoner e Combo Master    |
+| Arquétipo    | Vence                    | Motivo FGC                                              |
+| ------------ | ------------------------ | ------------------------------------------------------- |
+| Rushdown     | Zoner e Combo Master     | pressão não deixa iniciar setup                         |
+| Zoner        | Grappler e Turtle        | controla espaço, fica fora da zona de punição           |
+| Grappler     | Rushdown e Turtle        | grab é o counter canônico ao bloqueio; burst pune recuo |
+| Combo Master | Grappler e Zoner         | Grappler lento morre pra combo; burst converte acerto   |
+| Turtle       | Rushdown e Combo Master  | bloqueio absorve pressão e quebra setup de combo        |
 
 ### Justificativas
 
-- **Zoner:** Controla espaço com alcance máximo e knockback. Sofre contra quem fecha distância rápido.
-- **Rushdown:** Explode quem precisa de setup. Se ferra contra quem aguenta pressão e pune erro.
-- **Combo Master:** Encadeia combos via stun. Perde para pressão constante e burst alto.
-- **Grappler:** Se encosta, acabou — burst máximo. Sofre contra distância e quem stuna.
-- **Turtle:** Vive de erro do outro — destrói agressivos por atrito de HP%. Perde para quem quebra defesa com stun.
+- **Zoner:** Controla espaço com alcance máximo e knockback. Ataca antes do inimigo chegar e mantém distância. Perde para quem fecha rapidamente (Rushdown) ou burst em um acerto (Combo Master).
+- **Rushdown:** Explode quem precisa de setup. Se ferra contra absorvedores de pressão (Turtle) e personagens com burst alto em contra-ataque (Grappler).
+- **Combo Master:** Encadeia combos via stun — Grappler lento não consegue escapar do lockdown e Zoner morre para um acerto convertido em combo. Perde para pressão constante (Rushdown) e para quem bloqueia o setup (Turtle).
+- **Grappler:** Se encosta, acabou — burst máximo. Grab é o counter canônico ao bloqueio (Turtle). Sofre contra personagens rápidos que não deixam aproximar (Rushdown) e Combo Master que o stuna antes.
+- **Turtle:** Vive de erro do outro — destrói agressivos por atrito de HP%. Bloqueia o setup do Combo Master. Perde para quem controla distância (Zoner) e para o grab do Grappler que quebra o bloqueio.
 
 ---
 
@@ -57,21 +57,21 @@ Propor e validar uma forma de medir quantitativamente se arquétipos foram prese
 
 | Classe       | HP  | Dmg | Cooldown | Range | Speed | Defense | Stun | Knockback | Recovery |
 | ------------ | --- | --- | -------- | ----- | ----- | ------- | ---- | --------- | -------- |
-| Zoner        | 300 | 12  | 3        | 20    | 2.0   | 0.10    | 1.0  | 5.0       | 0.30     |
-| Rushdown     | 320 | 11  | 2        | 10    | 5.0   | 0.20    | 1.0  | 1.0       | 0.20     |
-| Combo Master | 310 | 13  | 3        | 10    | 3.0   | 0.25    | 2.0  | 0.5       | 0.25     |
-| Grappler     | 450 | 20  | 5        | 8     | 1.5   | 0.35    | 4.0  | 0.5       | 0.40     |
-| Turtle       | 500 | 10  | 4        | 15    | 1.0   | 0.50    | 3.0  | 3.0       | 0.50     |
+| Zoner        | 300 | 12  | 4        | 18    | 2.5   | 0.05    | 1.0  | 2.0       | 0.20     |
+| Rushdown     | 320 | 11  | 1        | 10    | 5.0   | 0.10    | 1.0  | 1.0       | 0.30     |
+| Combo Master | 350 | 13  | 3        | 10    | 3.0   | 0.15    | 3.5  | 0.5       | 0.25     |
+| Grappler     | 400 | 20  | 4        | 8     | 2.0   | 0.20    | 2.5  | 0.5       | 0.35     |
+| Turtle       | 450 | 10  | 5        | 13    | 1.5   | 0.25    | 2.0  | 1.0       | 0.50     |
 
 ### Pesos comportamentais canônicos (w_*)
 
 | Classe       | w_retreat | w_defend | w_aggressiveness |
 | ------------ | --------- | -------- | ---------------- |
-| Zoner        | 0.6       | 0.2      | 0.3              |
-| Rushdown     | 0.1       | 0.1      | 0.9              |
-| Combo Master | 0.0       | 0.2      | 0.7              |
-| Grappler     | 0.1       | 0.5      | 0.8              |
-| Turtle       | 0.5       | 0.7      | 0.2              |
+| Zoner        | 0.60      | 0.20     | 0.30             |
+| Rushdown     | 0.05      | 0.10     | 0.90             |
+| Combo Master | 0.05      | 0.20     | 0.70             |
+| Grappler     | 0.10      | 0.40     | 0.70             |
+| Turtle       | 0.40      | 0.70     | 0.20             |
 
 Os valores canônicos **não são hardcoded** no motor — são usados como semente da população inicial e como baseline para medir drift. O AG pode divergir livremente deles.
 
@@ -128,7 +128,7 @@ Modela um jogador experiente com decisões determinísticas baseadas no estado a
 ```
 Prioridades (ordem decrescente):
   1. ATTACK  — se em range e pronto (can_hit)
-  2. Sob ameaça (inimigo pronto e dentro de RETREAT_ZONE_FACTOR × range_inimigo):
+  2. Sob ameaça (inimigo pronto E dentro do próprio range de ataque):
        w_aggressiveness > w_retreat E w_aggressiveness > w_defend → ADVANCE
        w_retreat > w_defend → RETREAT  (kite / criar distância)
        senão                → DEFEND   (absorver e punir na oportunidade)
@@ -137,6 +137,8 @@ Prioridades (ordem decrescente):
 ```
 
 Os três pesos competem simetricamente — o dominante vence. Não há limiares fixos, o que garante que o espaço genético seja contínuo e o AG tenha gradiente real para evoluir o comportamento sob ameaça.
+
+**Semântica de "ameaça":** o inimigo é considerado ameaça real somente se estiver dentro do próprio range de ataque (`distance ≤ enemy.range_`) E com cooldown zerado. Sem essa condição, um personagem que nunca consegue fechar distância permanece com `cooldown = 0` indefinidamente — sendo percebido como ameaça constante por oponentes de range maior, criando um loop de recuo sem combate real ("ghost fight").
 
 ### Regras de Combate
 
@@ -317,7 +319,7 @@ O AG pode, em princípio, satisfazer todas as 20 asserções do validator e aind
 
 - **Dois algoritmos independentes:** AG clássico (mono-objetivo) e NSGA-II (multi-objetivo) compartilham o mesmo motor de simulação e operadores. O NSGA-II torna explícito o trade-off que o AG colapsa num escalar.
 - **Preservação emergente:** Arquétipos não são forçados — o AG evolui livremente e a preservação é medida via `drift_penalty`. `LAMBDA_DRIFT = 0.0` é o ponto de partida; variar esse parâmetro é o experimento central do TCC.
-- **Sistema de prioridade determinístico:** Simula um jogador experiente — mesma situação → mesma ação. Academicamente mais defensável que softmax: separa *identidade* (quem o personagem é, via `w_*`) de *competência* (o que ele faz em cada situação, via prioridades fixas).
+- **Sistema de prioridade determinístico:** Simula um jogador experiente — mesma situação → mesma ação. Academicamente mais defensável que softmax: separa *identidade* (quem o personagem é, via `w_*`) de *competência* (o que ele faz em cada situação, via prioridades fixas). A detecção de ameaça exige que o inimigo esteja dentro do próprio range (`distance ≤ enemy.range_`) — evita o "ghost fight" onde um personagem sem acesso ao oponente permanece "pronto" para sempre e paralisa oponentes de range maior com recuo infinito.
 - **Estocasticidade em duas camadas:** `DAMAGE_VARIANCE = 0.20` (±20% por hit) modela imprecisão de execução no dano; `ACTION_EPSILON = 0.20` (20% de ação aleatória por tick) modela erros de decisão. As duas fontes são independentes e criam spread suficiente para winrates não-binários em 30 simulações.
 - **Pesos como limiares comportamentais:** `w_aggressiveness ≥ 0.7` separa agressivos (Rushdown, Grappler, CM) de reativos. `w_retreat > w_defend` separa kitadores (Zoner) de absorvedores (Turtle).
 - **Inércia evolutiva:** Pesos (`w_*`) têm sigma de mutação 5× menor que atributos, tendendo a preservar comportamento naturalmente — o AG precisa de pressão seletiva maior para mudar estratégias do que para ajustar estatísticas.

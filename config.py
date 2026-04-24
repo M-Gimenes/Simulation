@@ -63,8 +63,9 @@ STUN_CAP_MULTIPLIER = 2.0  # cap de stun = multiplier × cooldown do atacante
 
 # ── Simulação — Decisão ──────────────────────────────────────────────────────
 
-MAX_TICKS           = 500 * TICK_SCALE  # duração máxima ajustada à resolução
-RETREAT_ZONE_FACTOR = 2.0  # zona de ameaça proativa = fator × range do inimigo
+MAX_TICKS              = 500 * TICK_SCALE  # duração máxima ajustada à resolução
+RETREAT_ZONE_FACTOR    = 2.0  # zona de ameaça proativa = fator × range do inimigo
+DEFEND_DAMAGE_REDUCTION = 0.2  # multiplicador de dano recebido ao defender (20%)
 
 # ── Bounds dos genes ─────────────────────────────────────────────────────────
 

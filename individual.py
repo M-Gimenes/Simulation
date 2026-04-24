@@ -59,6 +59,15 @@ class Individual:
         return cls(characters=characters)
 
     @classmethod
+    def _from_genes(cls, genes_list: List[List[float]]) -> "Individual":
+        """Cria indivíduo a partir dos valores canônicos e sobrescreve com genes fornecidos."""
+        ind = cls.from_canonical()
+        for char, genes in zip(ind.characters, genes_list):
+            char.load_genes(genes)
+            char.clip()
+        return ind
+
+    @classmethod
     def from_nsga2(
         cls,
         path: str = "results/nsga2_results.json",
@@ -76,12 +85,9 @@ class Individual:
         if representative not in reps:
             available = ", ".join(reps.keys()) if reps else "nenhum"
             raise KeyError(f"Representante '{representative}' não encontrado. Disponíveis: {available}")
-        genes = reps[representative]["genes"]
-        ind = cls.from_canonical()
-        for char, char_genes in zip(ind.characters, genes):
-            char.load_genes(char_genes)
-            char.clip()
-        objectives = reps[representative].get("objectives")
+        rep = reps[representative]
+        ind = cls._from_genes(rep["genes"])
+        objectives = rep.get("objectives")
         if objectives is not None:
             ind.objectives = tuple(objectives)
         return ind
@@ -95,11 +101,7 @@ class Individual:
             data = json.load(fh)
         if "best_individual" not in data:
             raise KeyError(f"'{path}' não contém 'best_individual'.")
-        ind = cls.from_canonical()
-        for char, genes in zip(ind.characters, data["best_individual"]):
-            char.load_genes(genes)
-            char.clip()
-        return ind
+        return cls._from_genes(data["best_individual"])
 
     # ── Acesso por arquétipo ──────────────────────────────────────────────
 
