@@ -11,12 +11,13 @@ from individual import Individual
 from map_elites import _bucket, _place, _mutate_from, _compute_frontier, _find_knee, _suggest_lambdas, GRID_X_BINS, GRID_Y_BINS, GRID_X_MAX, GRID_Y_MAX
 
 
-def _detail(balance_error: float, drift_penalty: float, matchup_pen: float) -> FitnessDetail:
+def _detail(dominance_penalty: float, drift_penalty: float, specialization_penalty: float = 0.2) -> FitnessDetail:
     """Cria FitnessDetail mínimo para testes — sem simulações."""
     return FitnessDetail(
-        fitness=0.0, winrates=[], balance_error=balance_error,
-        attribute_cost=0.2, drift_penalty=drift_penalty,
-        matchup_dominance_penalty=matchup_pen,
+        fitness=0.0, winrates=[],
+        specialization_penalty=specialization_penalty,
+        drift_penalty=drift_penalty,
+        dominance_penalty=dominance_penalty,
     )
 
 
@@ -51,7 +52,7 @@ def test_place_replaces_when_better():
     _place(archive, ind, d_good)
     bx = _bucket(0.08, 0.0, GRID_X_MAX, GRID_X_BINS)
     by = _bucket(0.10, 0.0, GRID_Y_MAX, GRID_Y_BINS)
-    assert archive[(bx, by)][1].matchup_dominance_penalty == 0.3
+    assert archive[(bx, by)][1].dominance_penalty == 0.3
 
 
 def test_place_keeps_when_worse():
@@ -63,7 +64,7 @@ def test_place_keeps_when_worse():
     _place(archive, ind, d_bad)
     bx = _bucket(0.08, 0.0, GRID_X_MAX, GRID_X_BINS)
     by = _bucket(0.10, 0.0, GRID_Y_MAX, GRID_Y_BINS)
-    assert archive[(bx, by)][1].matchup_dominance_penalty == 0.3
+    assert archive[(bx, by)][1].dominance_penalty == 0.3
 
 
 def test_place_out_of_bounds_clamps_to_last_bucket():
@@ -95,11 +96,11 @@ def test_mutate_from_genes_differ():
 
 
 def _make_archive(cells: list) -> dict:
-    """cells: list de (bx, by, balance_error, drift_penalty, matchup_pen)"""
+    """cells: list de (bx, by, dominance_penalty, drift_penalty, specialization_penalty)"""
     archive = {}
     ind = Individual.from_canonical()
-    for bx, by, bal, drift, pen in cells:
-        archive[(bx, by)] = (ind, _detail(bal, drift, pen))
+    for bx, by, dom, drift, spec in cells:
+        archive[(bx, by)] = (ind, _detail(dom, drift, spec))
     return archive
 
 
@@ -149,9 +150,9 @@ def test_suggest_lambdas_returns_required_keys():
         (4, 4, 0.22, 0.34, 0.7),
     ])
     result = _suggest_lambdas(archive)
-    assert "LAMBDA_DRIFT"   in result
-    assert "LAMBDA_MATCHUP" in result
-    assert "LAMBDA"         in result
+    assert "LAMBDA_DRIFT"     in result
+    assert "LAMBDA_DOMINANCE" in result
+    assert "LAMBDA"           in result
     assert result["LAMBDA"] == 0.2
 
 
@@ -170,8 +171,8 @@ def test_suggest_lambdas_values_are_positive():
         (3, 6, 0.17, 0.49, 0.6),
     ])
     result = _suggest_lambdas(archive)
-    assert result["LAMBDA_DRIFT"]   >= 0.0
-    assert result["LAMBDA_MATCHUP"] >  0.0
+    assert result["LAMBDA_DRIFT"]     >= 0.0
+    assert result["LAMBDA_DOMINANCE"] >  0.0
 
 
 if __name__ == "__main__":

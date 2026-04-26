@@ -6,7 +6,7 @@ Fluxo:
   2. Avalia toda a população (round-robin).
   3. A cada geração:
        a. Registra estatísticas e loga.
-       b. Verifica convergência  → para se balance_error ≤ CONVERGENCE_THRESHOLD.
+       b. Verifica convergência  → para se dominance_penalty == 0 (todos matchups ≤ 60% WR).
        c. Verifica estagnação    → para se sem melhoria > 0.001 por STAGNATION_LIMIT gerações.
        d. Produz próxima geração (elitismo + torneio + crossover + mutação).
        e. Avalia os novos indivíduos (elites já têm fitness).
@@ -21,7 +21,6 @@ from dataclasses import dataclass, field
 from typing import List, Optional
 
 from config import (
-    CONVERGENCE_THRESHOLD,
     ELITE_SIZE,
     MATCHUP_CONVERGENCE_THRESHOLD,
     MAX_GENERATIONS,
@@ -41,24 +40,23 @@ from operators import next_generation
 
 @dataclass
 class GenerationStats:
-    generation:                int
-    best_fitness:              float
-    mean_fitness:              float
-    worst_fitness:             float
-    balance_error:             float
-    attribute_cost:            float
-    drift_penalty:             float        # mean dos desvios arquetípicos
-    matchup_dominance_penalty: float        # max(excess_ij) — pior matchup
-    winrates:                  List[float]  # WR agregado por personagem (ARCHETYPE_ORDER)
-    archetype_deviations:      List[float]  # drift de cada personagem ao canônico
-    elapsed_s:                 float        # tempo acumulado desde o início
+    generation:             int
+    best_fitness:           float
+    mean_fitness:           float
+    worst_fitness:          float
+    specialization_penalty: float
+    drift_penalty:          float
+    dominance_penalty:      float
+    winrates:               List[float]
+    archetype_deviations:   List[float]
+    elapsed_s:              float
 
 
 @dataclass
 class GAResult:
     best: Individual
     best_detail: FitnessDetail
-    generation: int            # geração em que parou
+    generation: int
     converged: bool
     stagnated: bool
     history: List[GenerationStats]
@@ -83,9 +81,8 @@ def _log(stats: GenerationStats, verbose: bool) -> None:
         f"Gen {stats.generation:4d} | "
         f"fit={stats.best_fitness:+.4f}  "
         f"mean={stats.mean_fitness:+.4f}  "
-        f"bal={stats.balance_error:.4f}  "
-        f"matchup_pen={stats.matchup_dominance_penalty:.4f}  "
-        f"attr={stats.attribute_cost:.4f}  "
+        f"dom={stats.dominance_penalty:.4f}  "
+        f"spec={stats.specialization_penalty:.4f}  "
         f"drift={stats.drift_penalty:.3f}  "
         f"({stats.elapsed_s:.1f}s)"
     )
@@ -97,7 +94,7 @@ def _log_header(verbose: bool) -> None:
     names = "  ".join(f"{ARCHETYPES[aid].name[:4]:>4}" for aid in ARCHETYPE_ORDER)
     print(f"\n{'─'*80}")
     print(f"  AG iniciado — pop={POPULATION_SIZE}  elites={ELITE_SIZE}  "
-          f"max_gen={MAX_GENERATIONS}  conv={CONVERGENCE_THRESHOLD}")
+          f"max_gen={MAX_GENERATIONS}")
     print(f"  Arquétipos: [{names}]")
     print(f"{'─'*80}")
 
@@ -136,9 +133,8 @@ def _log_result(result: GAResult, verbose: bool) -> None:
     print(f"\n{'─'*80}")
     print(f"  Parada: {result.stop_reason}  (geração {result.generation})")
     print(f"  {'Fitness':22s} {result.best.fitness:+.4f}")
-    print(f"  {'Balance error':22s} {d.balance_error:.4f}")
-    print(f"  {'Matchup dominance pen.':22s} {d.matchup_dominance_penalty:.4f}")
-    print(f"  {'Attribute cost':22s} {d.attribute_cost:.4f}")
+    print(f"  {'Dominance penalty':22s} {d.dominance_penalty:.4f}")
+    print(f"  {'Specialization penalty':22s} {d.specialization_penalty:.4f}")
     print(f"  {'Drift penalty':22s} {d.drift_penalty:.4f}")
 
     print(f"\n  Winrate agregado por personagem:")
@@ -214,10 +210,9 @@ def run(
             best_fitness=best_detail.fitness,
             mean_fitness=sum(fitnesses) / len(fitnesses),
             worst_fitness=min(fitnesses),
-            balance_error=best_detail.balance_error,
-            attribute_cost=best_detail.attribute_cost,
+            specialization_penalty=best_detail.specialization_penalty,
             drift_penalty=best_detail.drift_penalty,
-            matchup_dominance_penalty=best_detail.matchup_dominance_penalty,
+            dominance_penalty=best_detail.dominance_penalty,
             winrates=best_detail.winrates,
             archetype_deviations=best_detail.archetype_deviations,
             elapsed_s=time.time() - t_start,
@@ -231,14 +226,13 @@ def run(
         # Candidato: bal_err da avaliação normal já abaixo do threshold.
         # Confirmação: re-avalia com SIMS_CONVERGENCE_CHECK para reduzir falsos
         # positivos causados pela estocasticidade.
-        if best_detail.balance_error <= CONVERGENCE_THRESHOLD:
+        if best_detail.dominance_penalty <= 1e-9:
             confirmed   = evaluate_detail_n(best_ind, SIMS_CONVERGENCE_CHECK)
-            balance_ok  = confirmed.balance_error <= CONVERGENCE_THRESHOLD
             matchups_ok = all(
                 abs(wr - 0.5) <= MATCHUP_CONVERGENCE_THRESHOLD
                 for wr in confirmed.matchup_winrates.values()
             )
-            if balance_ok and matchups_ok:
+            if matchups_ok:
                 best_ind.fitness = confirmed.fitness
                 _log_result(GAResult(best_ind, confirmed, gen, True, False, history), verbose)
                 return GAResult(

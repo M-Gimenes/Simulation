@@ -28,10 +28,12 @@ for i, aid in enumerate(ARCHETYPE_ORDER):
     name = ARCHETYPES[aid].name
     print(f"  {name:15s}  winrate={detail.winrates[i]:.1%}")
 
-print(f"\n  balance_error  = {detail.balance_error:.4f}")
-print(f"  attribute_cost = {detail.attribute_cost:.4f}")
-print(f"  fitness        = {detail.fitness:.4f}")
-assert -1.0 < detail.fitness <= 1.0, f"Fitness fora do range: {detail.fitness}"
+print(f"\n  specialization_penalty = {detail.specialization_penalty:.4f}")
+print(f"  dominance_penalty      = {detail.dominance_penalty:.4f}")
+print(f"  fitness                = {detail.fitness:.4f}")
+# Nova fórmula: fitness = -(LAMBDA_SPECIALIZATION*spec + LAMBDA_DRIFT*drift + LAMBDA_DOMINANCE*dom)
+# Máxima penalidade com lambdas padrão (0.2 + 0.0 + 1.0): fitness >= -1.2
+assert -2.0 < detail.fitness <= 0.0, f"Fitness fora do range: {detail.fitness}"
 print("  ✓ Fitness dentro do range esperado")
 
 # Matriz de matchup direto
@@ -91,13 +93,15 @@ print("  ✓ Indivíduo aleatório avaliado sem crash")
 
 # ── 5. evaluate_population ──────────────────────────────────────────────────
 
-separator("evaluate_population (5 indivíduos)")
-pop = [Individual.random() for _ in range(5)]
-evaluate_population(pop)
-assert all(ind.is_evaluated for ind in pop)
-fitnesses = [ind.fitness for ind in pop]
-print(f"  Fitnesses: {[f'{f:.3f}' for f in fitnesses]}")
-print("  ✓ Todos os indivíduos avaliados")
+if __name__ == '__main__':
+    separator("evaluate_population (5 indivíduos)")
+    pop = [Individual.random() for _ in range(5)]
+    evaluate_population(pop)
+    assert all(ind.is_evaluated for ind in pop)
+    fitnesses = [ind.fitness for ind in pop]
+    print(f"  Fitnesses: {[f'{f:.3f}' for f in fitnesses]}")
+    print("  ✓ Todos os indivíduos avaliados")
 
-
-separator("Todos os testes de fitness passaram ✓")
+    separator("Todos os testes de fitness passaram ✓")
+else:
+    separator("Todos os testes de fitness passaram ✓")

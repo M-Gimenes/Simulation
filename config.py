@@ -9,7 +9,6 @@ POPULATION_SIZE       = 100
 ELITE_SIZE            = 10     # indivíduos preservados por elitismo por geração
 MAX_GENERATIONS       = 100     # limite de gerações
 STAGNATION_LIMIT      = 50     # gerações sem melhoria > 0.001 antes de parar
-CONVERGENCE_THRESHOLD = 0.02   # desvio máximo de balance_error para convergência (≈48–52%)
 MATCHUP_CONVERGENCE_THRESHOLD = 0.10  # desvio máximo de WR por matchup (≈30–70%)
 
 # ── AG — Operadores ──────────────────────────────────────────────────────────
@@ -24,17 +23,13 @@ WEIGHT_MUTATION_SIGMA    = 0.02 # sigma como fração do range do peso — inér
 SIMS_PER_MATCHUP       = 30    # simulações por matchup no round-robin
 SIMS_CONVERGENCE_CHECK = 50    # simulações extras para confirmar convergência
 
-LAMBDA                 = 0.2   # peso da penalidade de especialização (attribute_cost)
+LAMBDA_SPECIALIZATION  = 0.2   # peso da penalidade de homogeneização (specialization_penalty)
 LAMBDA_DRIFT           = 0.0   # peso da penalidade de desvio arquetípico (drift_penalty)
                                 # 0.0 = evolução livre  |  alto = âncora ao canônico
                                 # trade-off central do TCC: equilíbrio vs preservação
-LAMBDA_MATCHUP         = 1     # peso da penalidade do pior matchup direto
+LAMBDA_DOMINANCE       = 1.0   # peso da penalidade de dominância em matchups (dominance_penalty)
 
 MATCHUP_THRESHOLD      = 0.10  # excesso acima de 50% que inicia penalização (60% WR = limiar)
-
-BALANCE_MODE = "aggregate"     # como calcular balance_error:
-                                # "matchup"   → mean(|wr_ij - 0.5|) sobre os 10 pares
-                                # "aggregate" → mean(|wr_i  - 0.5|) sobre os 5 personagens
 
 # ── Paralelismo ──────────────────────────────────────────────────────────────
 
@@ -95,4 +90,4 @@ WEIGHT_NAMES    = ["w_retreat", "w_defend", "w_aggressiveness"]
 # Aliases — permitem tunar o NSGA-II sem alterar os parâmetros do AG clássico.
 NSGA2_POP_SIZE      = POPULATION_SIZE
 NSGA2_GENERATIONS   = MAX_GENERATIONS
-NSGA2_OBJECTIVES    = ["balance_error", "matchup_dominance_penalty", "drift_penalty"]
+NSGA2_OBJECTIVES    = ["dominance_penalty", "specialization_penalty"]

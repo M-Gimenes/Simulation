@@ -1,10 +1,9 @@
 """
 NSGA-II — Algoritmo genético multi-objetivo (Deb et al., 2002).
 
-Otimiza 3 objetivos simultaneamente:
-  f1 = balance_error             (equilíbrio agregado — WR médio)
-  f2 = matchup_dominance_penalty (pior matchup direto)
-  f3 = drift_penalty             (preservação de arquétipo)
+Otimiza 2 objetivos simultaneamente:
+  f1 = dominance_penalty      (dominância em matchups diretos)
+  f2 = specialization_penalty (homogeneização de atributos)
 
 Todos minimizados, todos em [0, 1].
 """
@@ -133,7 +132,7 @@ def crowding_distance_assignment(front: List[Individual]) -> None:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Seleção dos 5 representantes da fronteira final
+# Seleção dos 4 representantes da fronteira final
 # ─────────────────────────────────────────────────────────────────────────────
 
 
@@ -145,75 +144,40 @@ def _euclidean_norm(objs) -> float:
     return math.sqrt(sum(o * o for o in objs))
 
 
-def _distance_to_plane(point, plane_p, plane_normal_unit) -> float:
-    """Distância perpendicular de `point` ao plano (p0, n̂)."""
-    d = sum((p - p0) * n for p, p0, n in zip(point, plane_p, plane_normal_unit))
-    return abs(d)
-
-
-def _cross3(u, v):
-    return (
-        u[1] * v[2] - u[2] * v[1],
-        u[2] * v[0] - u[0] * v[2],
-        u[0] * v[1] - u[1] * v[0],
-    )
-
-
-def _dist_to_line(objs, anchor, line, line_norm) -> float:
-    """Distância perpendicular de `objs` à reta definida por `anchor + t*line`."""
-    d = tuple(a - b for a, b in zip(objs, anchor))
-    proj = sum(di * li for di, li in zip(d, line)) / line_norm
-    perp_sq = sum(di * di for di in d) - proj * proj
-    return math.sqrt(max(0.0, perp_sq))
-
-
-def _find_knee(front: List[Individual], extremes: List[Individual]) -> Individual:
-    """
-    Knee point = indivíduo mais distante do plano formado pelos 3 extremos.
-
-    Se os 3 extremos forem colineares (plano degenerado), fallback para o
-    ponto mais distante da reta entre o 1º e o 3º extremo.
-    """
-    p1 = extremes[0].objectives
-    p2 = extremes[1].objectives
-    p3 = extremes[2].objectives
-    u = tuple(a - b for a, b in zip(p2, p1))
-    v = tuple(a - b for a, b in zip(p3, p1))
-    n = _cross3(u, v)
-    norm_n = _euclidean_norm(n)
-    if norm_n == 0.0:
-        # Fallback: distância à reta p1–p3 (extremos colineares — plano degenerado)
-        line = tuple(a - b for a, b in zip(p3, p1))
-        line_norm = _euclidean_norm(line)
-        if line_norm == 0.0:
-            return front[0]
-        return max(front, key=lambda ind: _dist_to_line(ind.objectives, p1, line, line_norm))
-
-    n_hat = tuple(ni / norm_n for ni in n)
-    return max(front, key=lambda ind: _distance_to_plane(ind.objectives, p1, n_hat))
-
-
 def select_representatives(front: List[Individual]) -> dict:
     """
-    Retorna 5 representantes da fronteira de Pareto:
-      - 3 extremos (melhor em cada objetivo)
-      - knee_point  — ponto de máxima curvatura (mais distante do plano dos extremos)
-      - ideal_point — mais próximo da utopia (0, 0, 0) em distância Euclidiana
+    Retorna 4 representantes da fronteira de Pareto 2D:
+      - best_dominance — menor dominance_penalty (objetivo 0)
+      - best_cost      — menor specialization_penalty (objetivo 1)
+      - knee_point     — mais distante da reta entre os dois extremos
+      - ideal_point    — mais próximo da utopia (0, 0)
 
-    Ordem dos objetivos: (balance_error, matchup_dominance_penalty, drift_penalty).
+    Ordem dos objetivos: (dominance_penalty, specialization_penalty).
     """
-    best_balance = _best_in(front, 0)
-    best_matchup = _best_in(front, 1)
-    best_drift   = _best_in(front, 2)
-    ideal        = min(front, key=lambda ind: _euclidean_norm(ind.objectives))
-    knee         = _find_knee(front, [best_balance, best_matchup, best_drift])
+    best_dominance = _best_in(front, 0)
+    best_cost      = _best_in(front, 1)
+    ideal          = min(front, key=lambda ind: _euclidean_norm(ind.objectives))
+
+    p1        = best_dominance.objectives
+    p2        = best_cost.objectives
+    line      = (p2[0] - p1[0], p2[1] - p1[1])
+    line_norm = math.sqrt(line[0] ** 2 + line[1] ** 2)
+
+    if line_norm == 0.0 or len(front) <= 2:
+        knee = front[0]
+    else:
+        def _dist(ind):
+            d     = (ind.objectives[0] - p1[0], ind.objectives[1] - p1[1])
+            proj  = (d[0] * line[0] + d[1] * line[1]) / line_norm
+            perp2 = d[0] ** 2 + d[1] ** 2 - proj ** 2
+            return math.sqrt(max(0.0, perp2))
+        knee = max(front, key=_dist)
 
     return {
-        "best_balance": best_balance,
-        "best_matchup": best_matchup,
-        "best_drift":   best_drift,
-        "knee_point":   knee,
-        "ideal_point":  ideal,
+        "best_dominance": best_dominance,
+        "best_cost":      best_cost,
+        "knee_point":     knee,
+        "ideal_point":    ideal,
     }
 
 
@@ -226,20 +190,20 @@ def select_representatives(front: List[Individual]) -> dict:
 class GenerationStats:
     generation:          int
     front_sizes:         List[int]               # tamanho de cada fronteira em R (após merge)
-    best_per_objective:  List[float]             # melhor valor em cada um dos 3 objetivos
+    best_per_objective:  List[float]             # melhor valor em cada um dos 2 objetivos
     elapsed_s:           float
 
 
 @dataclass
 class NSGAResult:
     pareto_front:    List[Individual]            # rank=0 da população final
-    representatives: Dict[str, Individual]       # 5 representantes
+    representatives: Dict[str, Individual]       # 4 representantes
     history:         List[GenerationStats]
     generations_run: int
     seed:            Optional[int] = None
 
 
-def _objectives_worker(ind: Individual) -> Tuple[float, float, float]:
+def _objectives_worker(ind: Individual) -> Tuple[float, float]:
     return evaluate_objectives(ind)
 
 
@@ -298,11 +262,11 @@ def _generate_offspring(parents: List[Individual], size: int) -> List[Individual
 def _log_generation(stats: GenerationStats, verbose: bool) -> None:
     if not verbose:
         return
-    bals, mats, drfs = stats.best_per_objective
+    dom, cost = stats.best_per_objective
     print(
         f"Gen {stats.generation:4d} | "
         f"front0={stats.front_sizes[0]:3d}  "
-        f"bal={bals:.4f}  mat={mats:.4f}  drift={drfs:.4f}  "
+        f"dom={dom:.4f}  cost={cost:.4f}  "
         f"({stats.elapsed_s:.1f}s)"
     )
 
@@ -313,7 +277,7 @@ def run(
     n_generations: int           = NSGA2_GENERATIONS,
     verbose:       bool          = True,
 ) -> NSGAResult:
-    """Executa o NSGA-II e retorna a fronteira + 5 representantes."""
+    """Executa o NSGA-II e retorna a fronteira + 4 representantes."""
     if seed is not None:
         random.seed(seed)
 
@@ -335,7 +299,7 @@ def run(
         fronts   = _assign_rank_and_crowding(combined)
         population = _select_next_population(fronts, pop_size)
 
-        best_per_obj = [min(ind.objectives[m] for ind in population) for m in range(3)]
+        best_per_obj = [min(ind.objectives[m] for ind in population) for m in range(2)]
         stats = GenerationStats(
             generation=gen,
             front_sizes=[len(f) for f in fronts],

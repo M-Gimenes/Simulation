@@ -5,16 +5,14 @@ Avaliação via round-robin completo:
   C(5,2) = 10 matchups × SIMS_PER_MATCHUP simulações por indivíduo.
 
 Fórmula:
-  fitness = (1 - balance_error)
-          - LAMBDA         * attribute_cost
-          - LAMBDA_DRIFT   * drift_penalty
-          - LAMBDA_MATCHUP * matchup_dominance_penalty
+  fitness = -(LAMBDA_SPECIALIZATION * specialization_penalty
+            + LAMBDA_DRIFT          * drift_penalty
+            + LAMBDA_DOMINANCE      * dominance_penalty)
 
-Componentes:
-  balance_error             = mean(|wr_i - 0.5|)
-  attribute_cost            = 1 - mean(specialization_i)
-  drift_penalty             = mean(archetype_deviation_i)
-  matchup_dominance_penalty = max(excess_ij) sobre os 10 pares
+Componentes (todos em [0, 1], todos minimizados):
+  specialization_penalty = 1 - mean(specialization_i)
+  drift_penalty          = mean(archetype_deviation_i)
+  dominance_penalty      = mean(excess_ij) sobre os 10 pares
 """
 
 from __future__ import annotations
@@ -29,17 +27,14 @@ from typing import Dict, List, Tuple
 from combat import simulate_combat
 from config import (
     ATTRIBUTE_BOUNDS,
-    BALANCE_MODE,
-    LAMBDA,
+    LAMBDA_DOMINANCE,
     LAMBDA_DRIFT,
-    LAMBDA_MATCHUP,
+    LAMBDA_SPECIALIZATION,
     MATCHUP_THRESHOLD,
     N_WORKERS,
     SIMS_PER_MATCHUP,
 )
 from individual import Individual
-
-assert BALANCE_MODE in ("matchup", "aggregate"), f"BALANCE_MODE inválido: {BALANCE_MODE!r}"
 
 # Teto de cada atributo — normaliza genes para [0, 1].
 _ATTR_MAXES: List[float] = [hi for _, hi in ATTRIBUTE_BOUNDS]
@@ -54,14 +49,13 @@ _ATTR_MAXES: List[float] = [hi for _, hi in ATTRIBUTE_BOUNDS]
 class FitnessDetail:
     """Resultado completo da avaliação de um indivíduo."""
 
-    fitness:                   float
-    winrates:                  List[float]                    # WR agregado por personagem (ordem ARCHETYPE_ORDER)
-    balance_error:             float                          # mean(|wr_i - 0.5|)
-    attribute_cost:            float                          # 1 - mean(specialization_i)
-    drift_penalty:             float = 0.0                   # mean(archetype_deviation_i)
-    archetype_deviations:      List[float] = field(default_factory=list)
-    matchup_winrates:          Dict[Tuple[int, int], float] = field(default_factory=dict)  # (i,j) → WR de i, i < j
-    matchup_dominance_penalty: float = 0.0                   # max(excess_ij) normalizado em [0, 1]
+    fitness:                float
+    winrates:               List[float]                    # WR agregado por personagem (ordem ARCHETYPE_ORDER)
+    specialization_penalty: float                          # 1 - mean(specialization_i)
+    drift_penalty:          float = 0.0                   # mean(archetype_deviation_i)
+    archetype_deviations:   List[float] = field(default_factory=list)
+    matchup_winrates:       Dict[Tuple[int, int], float] = field(default_factory=dict)
+    dominance_penalty:      float = 0.0                   # mean(excess_ij) normalizado em [0, 1]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -99,7 +93,7 @@ def _archetype_deviation(char) -> float:
     return math.sqrt((attr_sq + weight_sq) / n_genes)
 
 
-def _matchup_dominance(matchup_winrates: Dict[Tuple[int, int], float]) -> float:
+def _dominance_penalty(matchup_winrates: Dict[Tuple[int, int], float]) -> float:
     """
     Penalidade média dos excessos de dominância em todos os 10 pares, normalizada em [0, 1].
 
@@ -165,31 +159,25 @@ def evaluate_detail_n(individual: Individual, sims: int) -> FitnessDetail:
     winrates         = [wins[i] / total_games[i] for i in range(n)]
     matchup_winrates = {key: v / sims for key, v in matchup_wins.items()}
 
-    if BALANCE_MODE == "matchup":
-        balance_error = sum(abs(wr - 0.5) for wr in matchup_winrates.values()) / len(matchup_winrates)
-    else:
-        balance_error = sum(abs(wr - 0.5) for wr in winrates) / n
-    attribute_cost            = 1.0 - sum(_specialization(c) for c in chars) / n
-    archetype_deviations      = [_archetype_deviation(c) for c in chars]
-    drift_penalty             = sum(archetype_deviations) / n
-    matchup_dominance_penalty = _matchup_dominance(matchup_winrates)
+    specialization_penalty = 1.0 - sum(_specialization(c) for c in chars) / n
+    archetype_deviations   = [_archetype_deviation(c) for c in chars]
+    drift_penalty          = sum(archetype_deviations) / n
+    dominance_pen          = _dominance_penalty(matchup_winrates)
 
-    fitness = (
-        (1.0 - balance_error)
-        - LAMBDA         * attribute_cost
-        - LAMBDA_DRIFT   * drift_penalty
-        - LAMBDA_MATCHUP * matchup_dominance_penalty
+    fitness = -(
+        LAMBDA_SPECIALIZATION * specialization_penalty
+        + LAMBDA_DRIFT        * drift_penalty
+        + LAMBDA_DOMINANCE    * dominance_pen
     )
 
     return FitnessDetail(
         fitness=fitness,
         winrates=winrates,
-        balance_error=balance_error,
-        attribute_cost=attribute_cost,
+        specialization_penalty=specialization_penalty,
         drift_penalty=drift_penalty,
         archetype_deviations=archetype_deviations,
         matchup_winrates=matchup_winrates,
-        matchup_dominance_penalty=matchup_dominance_penalty,
+        dominance_penalty=dominance_pen,
     )
 
 
@@ -246,16 +234,16 @@ def evaluate_population(population: List[Individual]) -> None:
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-def evaluate_objectives(individual: Individual) -> Tuple[float, float, float]:
+def evaluate_objectives(individual: Individual) -> Tuple[float, float]:
     """
-    Avalia o indivíduo e retorna (balance_error, matchup_dominance_penalty, drift_penalty).
+    Avalia o indivíduo e retorna (dominance_penalty, specialization_penalty).
 
     Minimizados pelo NSGA-II. Cacheia em `individual.objectives`; não reavalia se já cacheado.
-    Escalas: balance_error ∈ [0, 0.5]; matchup_dominance_penalty ∈ [0, 1]; drift_penalty ∈ [0, 1].
+    Escalas: dominance_penalty ∈ [0, 1]; specialization_penalty ∈ [0, 1].
     """
     if individual.objectives is not None:
         return individual.objectives
     detail = evaluate_detail(individual)
-    objs = (detail.balance_error, detail.matchup_dominance_penalty, detail.drift_penalty)
+    objs = (detail.dominance_penalty, detail.specialization_penalty)
     individual.objectives = objs
     return objs

@@ -51,8 +51,8 @@ def _main_ga(args):
     print(f"Parada: {result.stop_reason}")
     print(f"Geração: {result.generation}")
     print(f"Fitness: {result.best.fitness:+.4f}")
-    print(f"Balance error:             {result.best_detail.balance_error:.4f}")
-    print(f"Matchup dominance penalty: {result.best_detail.matchup_dominance_penalty:.4f}")
+    print(f"Dominance penalty:      {result.best_detail.dominance_penalty:.4f}")
+    print(f"Specialization penalty: {result.best_detail.specialization_penalty:.4f}")
 
     os.makedirs("results", exist_ok=True)
     out = {"best_individual": [c.genes() for c in result.best.characters]}
@@ -78,8 +78,8 @@ def _main_nsga2(args):
 
     print("\n=== Representantes da fronteira ===\n")
     for name, ind in result.representatives.items():
-        bal, mat, drf = ind.objectives
-        print(f"  {name:15s}  bal={bal:.4f}  mat={mat:.4f}  drift={drf:.4f}")
+        dom, cost = ind.objectives
+        print(f"  {name:15s}  dom={dom:.4f}  cost={cost:.4f}")
 
 
 def main():
