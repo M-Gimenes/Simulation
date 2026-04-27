@@ -236,14 +236,14 @@ def evaluate_population(population: List[Individual]) -> None:
 
 def evaluate_objectives(individual: Individual) -> Tuple[float, float]:
     """
-    Avalia o indivíduo e retorna (dominance_penalty, specialization_penalty).
+    Avalia o indivíduo e retorna (dominance_penalty, drift_penalty).
 
     Minimizados pelo NSGA-II. Cacheia em `individual.objectives`; não reavalia se já cacheado.
-    Escalas: dominance_penalty ∈ [0, 1]; specialization_penalty ∈ [0, 1].
+    Escalas: dominance_penalty ∈ [0, 1]; drift_penalty ∈ [0, 1].
     """
     if individual.objectives is not None:
         return individual.objectives
     detail = evaluate_detail(individual)
-    objs = (detail.dominance_penalty, detail.specialization_penalty)
+    objs = (detail.dominance_penalty, detail.drift_penalty)
     individual.objectives = objs
     return objs

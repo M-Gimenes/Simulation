@@ -1,7 +1,7 @@
 """
 Visualização da fronteira de Pareto do NSGA-II (2 objetivos).
 
-Gera 1 scatter 2D: dominance_penalty × specialization_penalty.
+Gera 1 scatter 2D: dominance_penalty × drift_penalty.
 Os 4 representantes são destacados.
 """
 from __future__ import annotations
@@ -14,11 +14,11 @@ import matplotlib.pyplot as plt
 
 from nsga2 import NSGAResult
 
-_AXIS_LABEL = {0: "dominance_penalty", 1: "specialization_penalty"}
+_AXIS_LABEL = {0: "dominance_penalty", 1: "drift_penalty"}
 
 _REP_STYLE = {
     "best_dominance": {"marker": "o", "color": "tab:red",    "label": "Melhor dominância"},
-    "best_cost":      {"marker": "o", "color": "tab:blue",   "label": "Melhor custo"},
+    "best_drift":     {"marker": "o", "color": "tab:blue",   "label": "Melhor drift"},
     "knee_point":     {"marker": "^", "color": "black",      "label": "Knee point"},
     "ideal_point":    {"marker": "*", "color": "tab:orange", "label": "Ideal point"},
 }
@@ -43,7 +43,7 @@ def save_plots(result: NSGAResult, outdir: str, plot_3d: bool = False) -> None:
 
     ax.set_xlabel(_AXIS_LABEL[0])
     ax.set_ylabel(_AXIS_LABEL[1])
-    ax.set_title("Fronteira de Pareto — dominância vs custo de especialização")
+    ax.set_title("Fronteira de Pareto — dominância vs drift de arquétipo")
     ax.legend(loc="best", fontsize=8)
     ax.grid(alpha=0.3)
     fig.tight_layout()

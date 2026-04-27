@@ -38,7 +38,7 @@ def test_config_constants_exist():
     from config import POPULATION_SIZE, MAX_GENERATIONS
     assert NSGA2_POP_SIZE == POPULATION_SIZE
     assert NSGA2_GENERATIONS == MAX_GENERATIONS
-    assert NSGA2_OBJECTIVES == ["dominance_penalty", "specialization_penalty"]
+    assert NSGA2_OBJECTIVES == ["dominance_penalty", "drift_penalty"]
 
 
 def test_evaluate_objectives_returns_2tuple():
@@ -204,7 +204,7 @@ def test_representatives_identifies_extremes():
     ]
     reps = select_representatives(front)
     assert reps["best_dominance"] is front[0]
-    assert reps["best_cost"]      is front[1]
+    assert reps["best_drift"]     is front[1]
 
 
 def test_representatives_ideal_closest_to_origin():
@@ -230,7 +230,7 @@ def test_representatives_knee_is_interior():
 def test_representatives_all_four_keys():
     front = [_ind_with_obj([0.1 * i, 0.9 - 0.1 * i]) for i in range(5)]
     reps = select_representatives(front)
-    assert set(reps.keys()) == {"best_dominance", "best_cost", "knee_point", "ideal_point"}
+    assert set(reps.keys()) == {"best_dominance", "best_drift", "knee_point", "ideal_point"}
 
 
 from nsga2 import run
@@ -241,7 +241,7 @@ def test_run_smoke_small_config():
     assert len(result.pareto_front) > 0
     assert all(ind.rank == 0 for ind in result.pareto_front)
     assert all(ind.objectives is not None for ind in result.pareto_front)
-    assert set(result.representatives.keys()) == {"best_dominance", "best_cost", "knee_point", "ideal_point"}
+    assert set(result.representatives.keys()) == {"best_dominance", "best_drift", "knee_point", "ideal_point"}
     assert len(result.history) == 3
 
 
@@ -265,7 +265,7 @@ def test_save_results_produces_valid_json():
     assert "genes" in first and "objectives" in first
     assert len(first["genes"]) == 5
     assert len(first["objectives"]) == 2
-    for key in ("best_dominance", "best_cost", "knee_point", "ideal_point"):
+    for key in ("best_dominance", "best_drift", "knee_point", "ideal_point"):
         assert key in data["representatives"]
     os.unlink(path)
 

@@ -7,7 +7,7 @@ Todos os hiperparâmetros do AG e da simulação de combate estão aqui.
 
 POPULATION_SIZE       = 100
 ELITE_SIZE            = 10     # indivíduos preservados por elitismo por geração
-MAX_GENERATIONS       = 100     # limite de gerações
+MAX_GENERATIONS       = 50     # limite de gerações
 STAGNATION_LIMIT      = 50     # gerações sem melhoria > 0.001 antes de parar
 MATCHUP_CONVERGENCE_THRESHOLD = 0.10  # desvio máximo de WR por matchup (≈30–70%)
 
@@ -90,4 +90,4 @@ WEIGHT_NAMES    = ["w_retreat", "w_defend", "w_aggressiveness"]
 # Aliases — permitem tunar o NSGA-II sem alterar os parâmetros do AG clássico.
 NSGA2_POP_SIZE      = POPULATION_SIZE
 NSGA2_GENERATIONS   = MAX_GENERATIONS
-NSGA2_OBJECTIVES    = ["dominance_penalty", "specialization_penalty"]
+NSGA2_OBJECTIVES    = ["dominance_penalty", "drift_penalty"]

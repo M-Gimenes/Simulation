@@ -2,8 +2,8 @@
 NSGA-II — Algoritmo genético multi-objetivo (Deb et al., 2002).
 
 Otimiza 2 objetivos simultaneamente:
-  f1 = dominance_penalty      (dominância em matchups diretos)
-  f2 = specialization_penalty (homogeneização de atributos)
+  f1 = dominance_penalty (dominância em matchups diretos)
+  f2 = drift_penalty     (desvio dos arquétipos canônicos — preservação de identidade)
 
 Todos minimizados, todos em [0, 1].
 """
@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import random
 import time
 from concurrent.futures import ProcessPoolExecutor
@@ -148,18 +149,18 @@ def select_representatives(front: List[Individual]) -> dict:
     """
     Retorna 4 representantes da fronteira de Pareto 2D:
       - best_dominance — menor dominance_penalty (objetivo 0)
-      - best_cost      — menor specialization_penalty (objetivo 1)
+      - best_drift     — menor drift_penalty (objetivo 1)
       - knee_point     — mais distante da reta entre os dois extremos
       - ideal_point    — mais próximo da utopia (0, 0)
 
-    Ordem dos objetivos: (dominance_penalty, specialization_penalty).
+    Ordem dos objetivos: (dominance_penalty, drift_penalty).
     """
     best_dominance = _best_in(front, 0)
-    best_cost      = _best_in(front, 1)
+    best_drift     = _best_in(front, 1)
     ideal          = min(front, key=lambda ind: _euclidean_norm(ind.objectives))
 
     p1        = best_dominance.objectives
-    p2        = best_cost.objectives
+    p2        = best_drift.objectives
     line      = (p2[0] - p1[0], p2[1] - p1[1])
     line_norm = math.sqrt(line[0] ** 2 + line[1] ** 2)
 
@@ -175,7 +176,7 @@ def select_representatives(front: List[Individual]) -> dict:
 
     return {
         "best_dominance": best_dominance,
-        "best_cost":      best_cost,
+        "best_drift":     best_drift,
         "knee_point":     knee,
         "ideal_point":    ideal,
     }
@@ -188,10 +189,11 @@ def select_representatives(front: List[Individual]) -> dict:
 
 @dataclass
 class GenerationStats:
-    generation:          int
-    front_sizes:         List[int]               # tamanho de cada fronteira em R (após merge)
-    best_per_objective:  List[float]             # melhor valor em cada um dos 2 objetivos
-    elapsed_s:           float
+    generation:        int
+    front_sizes:       List[int]                       # tamanho de cada fronteira em R (após merge)
+    front0_ranges:     List[Tuple[float, float]]       # (min, max) por objetivo na fronteira de Pareto (rank 0)
+    gen_elapsed_s:     float                           # tempo desta geração
+    total_elapsed_s:   float                           # tempo total desde o início do run
 
 
 @dataclass
@@ -262,12 +264,15 @@ def _generate_offspring(parents: List[Individual], size: int) -> List[Individual
 def _log_generation(stats: GenerationStats, verbose: bool) -> None:
     if not verbose:
         return
-    dom, cost = stats.best_per_objective
+    (dom_lo, dom_hi), (drift_lo, drift_hi) = stats.front0_ranges
+    front0 = stats.front_sizes[0]
+    n_fronts = len(stats.front_sizes)
     print(
         f"Gen {stats.generation:4d} | "
-        f"front0={stats.front_sizes[0]:3d}  "
-        f"dom={dom:.4f}  cost={cost:.4f}  "
-        f"({stats.elapsed_s:.1f}s)"
+        f"front0={front0:3d}/{n_fronts:<2d}  "
+        f"dom∈[{dom_lo:.3f}, {dom_hi:.3f}]  "
+        f"drift∈[{drift_lo:.3f}, {drift_hi:.3f}]  "
+        f"Δ{stats.gen_elapsed_s:5.1f}s · {stats.total_elapsed_s:6.1f}s"
     )
 
 
@@ -289,7 +294,15 @@ def run(
     _evaluate_population(population)
     _assign_rank_and_crowding(population)
 
+    if verbose:
+        n_workers = N_WORKERS if N_WORKERS is not None else os.cpu_count()
+        print(
+            f"NSGA-II | pop={pop_size}  gens={n_generations}  workers={n_workers}  "
+            f"objectives=(dominance, drift)"
+        )
+
     history: List[GenerationStats] = []
+    t_prev = time.time()
 
     for gen in range(n_generations):
         offspring = _generate_offspring(population, pop_size)
@@ -299,13 +312,21 @@ def run(
         fronts   = _assign_rank_and_crowding(combined)
         population = _select_next_population(fronts, pop_size)
 
-        best_per_obj = [min(ind.objectives[m] for ind in population) for m in range(2)]
+        front0 = [ind for ind in population if ind.rank == 0]
+        front0_ranges = [
+            (min(ind.objectives[m] for ind in front0),
+             max(ind.objectives[m] for ind in front0))
+            for m in range(2)
+        ]
+        t_now = time.time()
         stats = GenerationStats(
             generation=gen,
             front_sizes=[len(f) for f in fronts],
-            best_per_objective=best_per_obj,
-            elapsed_s=time.time() - t_start,
+            front0_ranges=front0_ranges,
+            gen_elapsed_s=t_now - t_prev,
+            total_elapsed_s=t_now - t_start,
         )
+        t_prev = t_now
         history.append(stats)
         _log_generation(stats, verbose)
 
@@ -347,10 +368,11 @@ def save_results(result: NSGAResult, path: str = "results/nsga2_results.json") -
         },
         "history": [
             {
-                "gen":                s.generation,
-                "front_sizes":        s.front_sizes,
-                "best_per_objective": s.best_per_objective,
-                "elapsed_s":          round(s.elapsed_s, 3),
+                "gen":             s.generation,
+                "front_sizes":     s.front_sizes,
+                "front0_ranges":   [list(r) for r in s.front0_ranges],
+                "gen_elapsed_s":   round(s.gen_elapsed_s, 3),
+                "total_elapsed_s": round(s.total_elapsed_s, 3),
             }
             for s in result.history
         ],
