@@ -24,7 +24,7 @@ SIMS_PER_MATCHUP       = 30    # simulações por matchup no round-robin
 SIMS_CONVERGENCE_CHECK = 50    # simulações extras para confirmar convergência
 
 LAMBDA_SPECIALIZATION  = 0.2   # peso da penalidade de homogeneização (specialization_penalty)
-LAMBDA_DRIFT           = 0.0   # peso da penalidade de desvio arquetípico (drift_penalty)
+LAMBDA_DRIFT           = 6.0   # peso da penalidade de desvio arquetípico (drift_penalty)
                                 # 0.0 = evolução livre  |  alto = âncora ao canônico
                                 # trade-off central do TCC: equilíbrio vs preservação
 LAMBDA_DOMINANCE       = 1.0   # peso da penalidade de dominância em matchups (dominance_penalty)
