@@ -12,7 +12,7 @@ Fórmula:
 Componentes (todos em [0, 1], todos minimizados):
   specialization_penalty = 1 - mean(specialization_i)
   drift_penalty          = mean(archetype_deviation_i)
-  dominance_penalty      = mean(excess_ij) sobre os 10 pares
+  dominance_penalty      = sqrt(mean(excess_ij²)) sobre os 10 pares  (RMS)
 """
 
 from __future__ import annotations
@@ -21,7 +21,6 @@ import math
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass, field
 from itertools import combinations
-from statistics import mean
 from typing import Dict, List, Tuple
 
 from combat import simulate_combat
@@ -55,7 +54,7 @@ class FitnessDetail:
     drift_penalty:          float = 0.0                   # mean(archetype_deviation_i)
     archetype_deviations:   List[float] = field(default_factory=list)
     matchup_winrates:       Dict[Tuple[int, int], float] = field(default_factory=dict)
-    dominance_penalty:      float = 0.0                   # mean(excess_ij) normalizado em [0, 1]
+    dominance_penalty:      float = 0.0                   # sqrt(mean(excess_ij²)) — RMS em [0, 1]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -95,17 +94,21 @@ def _archetype_deviation(char) -> float:
 
 def _dominance_penalty(matchup_winrates: Dict[Tuple[int, int], float]) -> float:
     """
-    Penalidade média dos excessos de dominância em todos os 10 pares, normalizada em [0, 1].
+    Penalidade RMS (root mean square) dos excessos de dominância sobre os 10 pares,
+    normalizada em [0, 1].
 
-    Usa mean (não max): todos os matchups desbalanceados contribuem — o GA recebe
-    sinal de melhora ao corrigir qualquer par ruim, não apenas o pior.
+    O quadrado dá peso desproporcional a matchups extremos: uma matchup 100/0 pesa
+    16× mais que uma 70/30, contra 4× na média linear. Isso fecha o regime onde o
+    GA tolerava uma matchup destruidora se o resto estava OK.
+
     Pares dentro de MATCHUP_THRESHOLD não penalizam (excess clampado em 0).
     """
     scale = 0.5 - MATCHUP_THRESHOLD
-    return mean(
+    excesses = [
         max(0.0, (abs(wr - 0.5) - MATCHUP_THRESHOLD) / scale)
         for wr in matchup_winrates.values()
-    )
+    ]
+    return math.sqrt(sum(e * e for e in excesses) / len(excesses))
 
 
 # ─────────────────────────────────────────────────────────────────────────────

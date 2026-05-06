@@ -15,9 +15,10 @@ Uso:
 
 from __future__ import annotations
 
+import math
 import random
 from dataclasses import dataclass, field
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from archetypes import ARCHETYPE_ALIASES, ARCHETYPE_ORDER, ARCHETYPES, ArchetypeID
 from character import Character
@@ -26,7 +27,7 @@ from config import ACTION_EPSILON, FIELD_SIZE, INITIAL_DISTANCE, MAX_TICKS, TICK
 from individual import Individual
 
 
-ANALYZE_SIMS = 30
+ANALYZE_SIMS = 100
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -63,10 +64,6 @@ class MatchupResult:
     ko: bool
     stats: Tuple[FighterStats, FighterStats]
     distances: List[float] = field(default_factory=list)
-
-    @property
-    def winner_name(self) -> str:
-        return self.stats[self.winner].name
 
     @property
     def avg_distance(self) -> float:
@@ -107,20 +104,13 @@ class AveragedMatchupResult:
     name_a: str
     name_b: str
     winrate_a: float
+    wins_a: int
     avg_ticks: float
     ko_rate: float
     avg_distance: float
     min_distance: float
     stats: Tuple[AveragedFighterStats, AveragedFighterStats]
     n_sims: int
-
-    @property
-    def winner_name(self) -> str:
-        return self.name_a if self.winrate_a >= 0.5 else self.name_b
-
-    @property
-    def winner_wr(self) -> float:
-        return self.winrate_a if self.winrate_a >= 0.5 else 1.0 - self.winrate_a
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -298,6 +288,7 @@ def analyze_combat_multi(char_a: Character, char_b: Character, n: int = ANALYZE_
         name_a=char_a.archetype.name,
         name_b=char_b.archetype.name,
         winrate_a=wins_a / n,
+        wins_a=wins_a,
         avg_ticks=total_ticks / n,
         ko_rate=total_ko / n,
         avg_distance=total_avg_dist / n,
@@ -365,7 +356,7 @@ def print_result(r: AveragedMatchupResult) -> None:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Main
+# Vencedor canônico esperado (cycle FGC)
 # ─────────────────────────────────────────────────────────────────────────────
 
 EXPECTED_WINNER = {
@@ -383,6 +374,190 @@ EXPECTED_WINNER = {
 
 NAME_TO_ID = ARCHETYPE_ALIASES
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Inferência estatística sobre WR (IC Wilson score)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def wilson_ci(wins: int, n: int, z: float = 1.96) -> Tuple[float, float]:
+    """IC95% de Wilson score para proporção binomial — preciso mesmo perto de 0 ou 1
+    e para N pequeno, ao contrário da aproximação normal ingênua."""
+    if n == 0:
+        return (0.0, 1.0)
+    p = wins / n
+    denom = 1.0 + z * z / n
+    center = (p + z * z / (2 * n)) / denom
+    half = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / denom
+    return (max(0.0, center - half), min(1.0, center + half))
+
+
+def classify_canonical(canonical_wr: Optional[float], ci: Tuple[float, float]) -> Tuple[str, str]:
+    """Classifica matchup pela posição do IC95% da WR canônica em relação a 50%."""
+    if canonical_wr is None:
+        return ("?", "sem canônico esperado")
+    lo, hi = ci
+    if lo > 0.5:
+        return ("✓", "canônico confirmado")
+    if hi < 0.5:
+        return ("✗", "canônico violado")
+    return ("~", "balanceado (IC cruza 50%)")
+
+
+def classify_global(ci: Tuple[float, float]) -> Tuple[str, str]:
+    """Classifica WR global de um personagem em relação a 50%."""
+    lo, hi = ci
+    if lo > 0.5:
+        return ("⬆", "Forte demais (WR > 50% confirmado)")
+    if hi < 0.5:
+        return ("⬇", "Fraco (WR < 50% confirmado)")
+    return ("=", "Equilibrado")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Registro consolidado por matchup
+# ─────────────────────────────────────────────────────────────────────────────
+
+@dataclass
+class MatchupRecord:
+    """Resultado de uma matchup já anotado com inferência canônica."""
+    id_a: ArchetypeID
+    id_b: ArchetypeID
+    name_a: str
+    name_b: str
+    wins_a: int
+    n_sims: int
+    canonical_id: Optional[ArchetypeID]
+    canonical_wr: Optional[float]
+    canonical_ci: Tuple[float, float]
+
+    @property
+    def status(self) -> Tuple[str, str]:
+        return classify_canonical(self.canonical_wr, self.canonical_ci)
+
+
+def build_record(id_a: ArchetypeID, id_b: ArchetypeID, r: AveragedMatchupResult) -> MatchupRecord:
+    expected = EXPECTED_WINNER.get((id_a, id_b)) or EXPECTED_WINNER.get((id_b, id_a))
+    if expected == id_a:
+        canon_wins, canon_wr = r.wins_a, r.winrate_a
+    elif expected == id_b:
+        canon_wins, canon_wr = r.n_sims - r.wins_a, 1.0 - r.winrate_a
+    else:
+        canon_wins, canon_wr = r.wins_a, None
+    return MatchupRecord(
+        id_a=id_a, id_b=id_b,
+        name_a=r.name_a, name_b=r.name_b,
+        wins_a=r.wins_a, n_sims=r.n_sims,
+        canonical_id=expected,
+        canonical_wr=canon_wr,
+        canonical_ci=wilson_ci(canon_wins, r.n_sims),
+    )
+
+
+def aggregate_wr(records: List[MatchupRecord], aid: ArchetypeID) -> Tuple[int, int]:
+    """(wins, total_sims) do personagem somando todas as matchups onde participa."""
+    wins = total = 0
+    for r in records:
+        if r.id_a == aid:
+            wins += r.wins_a
+            total += r.n_sims
+        elif r.id_b == aid:
+            wins += r.n_sims - r.wins_a
+            total += r.n_sims
+    return wins, total
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Vistas de saída
+# ─────────────────────────────────────────────────────────────────────────────
+
+def print_matrix_view(records: List[MatchupRecord], ids: List[ArchetypeID]) -> None:
+    """Matriz 5×5 — WR(linha vs coluna) com símbolo de aderência ao canônico
+    + agregado global por personagem na última coluna."""
+    idx: Dict[Tuple[ArchetypeID, ArchetypeID], MatchupRecord] = {}
+    for r in records:
+        idx[(r.id_a, r.id_b)] = r
+
+    abbr = {aid: ARCHETYPES[aid].name[:4] for aid in ids}
+
+    print("\n" + "═" * 78)
+    print("  MATRIZ DE MATCHUPS — WR(linha vs coluna)  |  ✓ canônico  ✗ violado  ~ balanceado")
+    print("═" * 78)
+    print()
+
+    header = " " * 16 + "".join(f"  {abbr[aid]:^4s}  " for aid in ids) + "  | Global"
+    print(header)
+    print(" " * 16 + "─" * (8 * len(ids) + 11))
+
+    for row_id in ids:
+        line = f"  {ARCHETYPES[row_id].name:<14s}"
+        for col_id in ids:
+            if row_id == col_id:
+                line += "  ────  "
+                continue
+            rec = idx.get((row_id, col_id)) or idx.get((col_id, row_id))
+            if rec is None:
+                line += "    —   "
+                continue
+            wr_row = rec.wins_a / rec.n_sims if rec.id_a == row_id else 1.0 - rec.wins_a / rec.n_sims
+            sym = rec.status[0]
+            line += f" {wr_row:>4.0%} {sym} "
+        wins, total = aggregate_wr(records, row_id)
+        if total > 0:
+            line += f"  | {wins/total:>4.0%}"
+        print(line)
+
+
+def print_aggregate_view(records: List[MatchupRecord], ids: List[ArchetypeID]) -> None:
+    """WR global por personagem (todas as matchups onde participa)."""
+    print("\n" + "═" * 78)
+    print("  WR GLOBAL — agregado por personagem")
+    print("═" * 78)
+    print(f"\n  {'Personagem':14s}  {'Vitórias':>11s}  {'WR':>5s}  {'IC95%':>14s}   Status")
+    print(f"  {'─'*76}")
+
+    for aid in ids:
+        wins, total = aggregate_wr(records, aid)
+        if total == 0:
+            continue
+        ci = wilson_ci(wins, total)
+        sym, lbl = classify_global(ci)
+        print(
+            f"  {ARCHETYPES[aid].name:14s}  {f'{wins}/{total}':>11s}"
+            f"  {wins/total:>5.0%}  [{ci[0]:>3.0%}, {ci[1]:>3.0%}]   {sym} {lbl}"
+        )
+
+
+def print_canonical_summary(records: List[MatchupRecord], n_per_matchup: int) -> None:
+    """Tabela detalhada por matchup com WR do canônico, IC95% e classificação."""
+    print("\n" + "═" * 78)
+    print(f"  RESUMO POR MATCHUP — N={n_per_matchup} sims, IC95% via Wilson score")
+    print("═" * 78)
+    print(f"\n  {'Matchup':30s}  {'Canônico':14s}  {'WR':>5s}  {'IC95%':>14s}   Status")
+    print(f"  {'─'*76}")
+
+    counts = {"✓": 0, "~": 0, "✗": 0, "?": 0}
+    for r in records:
+        sym, lbl = r.status
+        counts[sym] += 1
+        canonical_name = ARCHETYPES[r.canonical_id].name if r.canonical_id else "—"
+        wr_str = f"{r.canonical_wr:.0%}" if r.canonical_wr is not None else "—"
+        ci_str = f"[{r.canonical_ci[0]:.0%}, {r.canonical_ci[1]:.0%}]"
+        print(
+            f"  {r.name_a + ' vs ' + r.name_b:30s}  {canonical_name:14s}"
+            f"  {wr_str:>5s}  {ci_str:>14s}   {sym} {lbl}"
+        )
+
+    total = len(records)
+    print(f"\n  ✓ Canônico confirmado:         {counts['✓']}/{total}   (IC95% inteiramente acima de 50%)")
+    print(f"  ~ Estatisticamente balanceado: {counts['~']}/{total}   (IC95% cruza 50% — winner instável)")
+    print(f"  ✗ Canônico violado:            {counts['✗']}/{total}   (IC95% inteiramente abaixo de 50%)")
+    if counts["?"]:
+        print(f"  ? Sem canônico esperado:       {counts['?']}/{total}")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Main
+# ─────────────────────────────────────────────────────────────────────────────
 
 def main() -> None:
     import argparse
@@ -429,25 +604,16 @@ def main() -> None:
     print(f"  ANÁLISE DE MATCHUPS — {label}  ({args.n} combates cada, médias)")
     print("═" * 66)
 
-    summary = []
+    records: List[MatchupRecord] = []
     for id_a, id_b in pairs:
         r = analyze_combat_multi(chars[id_a], chars[id_b], n=args.n)
         print_result(r)
+        records.append(build_record(id_a, id_b, r))
 
-        winner_id = id_a if r.winrate_a >= 0.5 else id_b
-        key_fwd, key_rev = (id_a, id_b), (id_b, id_a)
-        expected = EXPECTED_WINNER.get(key_fwd) or EXPECTED_WINNER.get(key_rev)
-        correct = (winner_id == expected) if expected else None
-        summary.append((r.name_a, r.name_b, r.winner_name, r.winner_wr, correct, int(r.avg_ticks)))
-
-    print("\n" + "═" * 66)
-    print("  RESUMO")
-    print("═" * 66)
-    ok_count = sum(1 for *_, ok, _ in summary if ok)
-    for na, nb, wn, wr, ok, ticks in summary:
-        tag = "✓" if ok else ("✗" if ok is False else "?")
-        print(f"  {tag}  {na:15s} vs {nb:15s}  →  {wn:15s}  WR={wr:.0%}  (~{ticks} ticks)")
-    print(f"\n  Matchups corretos: {ok_count}/{len(summary)}")
+    if len(records) > 1:
+        print_matrix_view(records, ARCHETYPE_ORDER)
+        print_aggregate_view(records, ARCHETYPE_ORDER)
+    print_canonical_summary(records, args.n)
 
 
 if __name__ == "__main__":

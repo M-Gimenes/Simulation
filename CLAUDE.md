@@ -81,7 +81,7 @@ The system has two independent layers that the GA orchestrates:
 Tick-based 1v1 combat. Each tick: choose action via priority system → apply movement → resolve attacks simultaneously → decrement timers. Actions: ATTACK / ADVANCE / RETREAT / DEFEND. Key mechanics: `attack_cooldown` is deterministic, stun is capped at `STUN_CAP_MULTIPLIER × attacker_cooldown` (2× by default — allows 1 follow-up hit, enabling combo chaining). Timers are decremented **after** attacks — values freshly set by an attack are not decremented until the following tick, making `cooldown=1` and `stun=1` meaningful minimums. Two sources of stochasticity: `DAMAGE_VARIANCE=0.20` (±20% per hit) and `ACTION_EPSILON=0.20` (20% chance of random action per tick, modelling execution errors).
 
 **GA layer** (`ga.py`, `fitness.py`, `operators.py`):  
-Each individual = 5 characters (one per archetype) = 60 genes total (9 attrs + 3 weights per character). Fitness is evaluated via full round-robin (C(5,2)=10 matchups × `SIMS_PER_MATCHUP` simulations). Fitness formula: `(1 - balance_error) - LAMBDA * attribute_cost - LAMBDA_DRIFT * drift_penalty - LAMBDA_MATCHUP * matchup_dominance_penalty`. The `attribute_cost` term uses a *specialization* metric (max−min of normalized attributes) — rewards archetype differentiation and prevents homogenization. `matchup_dominance_penalty` uses `mean(excess_ij)` over the 10 pairs — all unbalanced matchups contribute, giving the GA gradient signal to fix any bad pair.
+Each individual = 5 characters (one per archetype) = 60 genes total (9 attrs + 3 weights per character). Fitness is evaluated via full round-robin (C(5,2)=10 matchups × `SIMS_PER_MATCHUP` simulations). Fitness formula: `(1 - balance_error) - LAMBDA * attribute_cost - LAMBDA_DRIFT * drift_penalty - LAMBDA_MATCHUP * matchup_dominance_penalty`. The `attribute_cost` term uses a *specialization* metric (max−min of normalized attributes) — rewards archetype differentiation and prevents homogenization. `matchup_dominance_penalty` uses `sqrt(mean(excess_ij²))` (RMS) over the 10 pairs — quadratic emphasis means a single 100/0 matchup is no longer cheaper to leave alone than several 70/30 matchups, closing the regime where the GA tolerated extreme dominance in exchange for moderate balance elsewhere.
 
 **Data model** (`archetypes.py` → `character.py` → `individual.py`):  
 `ArchetypeDefinition` (frozen, canonical values) → `Character` (mutable genes, 9 attrs + 3 weights) → `Individual` (list of 5 Characters + fitness cache). `Individual.from_canonical()` creates the canonical seed; `Individual.random()` creates a random individual.
@@ -115,7 +115,7 @@ Each individual = 5 characters (one per archetype) = 60 genes total (9 attrs + 3
 **Attribute cost vs. drift penalty vs. matchup penalty**: Three orthogonal fitness terms:
 - `attribute_cost` (via `LAMBDA=0.2`) penalizes homogeneous builds
 - `drift_penalty` (via `LAMBDA_DRIFT=0.0`) penalizes deviation from canonical values — the central trade-off of the thesis
-- `matchup_dominance_penalty` (via `LAMBDA_MATCHUP=1`) penalizes mean WR excess across all pairs beyond `MATCHUP_THRESHOLD=0.10` (60%)
+- `matchup_dominance_penalty` (via `LAMBDA_MATCHUP=1`) penalizes WR excess across all pairs beyond `MATCHUP_THRESHOLD=0.10` (60%) using **RMS** (root mean square): `sqrt(mean(excess²))`. The square gives extreme matchups (100/0) ~16× the weight of moderate ones (70/30), preventing the GA from "hiding" a single destroyed matchup behind a balanced average
 
 **Convergence criteria**: Two conditions must both hold (confirmed with `SIMS_CONVERGENCE_CHECK` extra simulations):
 1. Each character's aggregate WR within `CONVERGENCE_THRESHOLD` of 50%
@@ -151,7 +151,7 @@ Located in `config.py`. Commonly adjusted:
 | `MATCHUP_THRESHOLD` | 0.10 | WR excess above 50% that starts penalizing (60% = trigger) |
 | `MATCHUP_CONVERGENCE_THRESHOLD` | 0.10 | Max WR deviation per matchup to declare convergence (60%) |
 | `SIMS_PER_MATCHUP` | 30 | Simulations per matchup (more = stable WR, slower) |
-| `SIMS_CONVERGENCE_CHECK` | 50 | Extra sims used only for convergence confirmation |
+| `SIMS_CONVERGENCE_CHECK` | 200 | Extra sims used only for convergence confirmation (high enough that ±10% per-matchup band is statistically reachable across all 10 pairs) |
 | `MAX_GENERATIONS` | 100 | GA termination limit |
 | `STAGNATION_LIMIT` | 50 | Generations without improvement before stopping |
 | `TICK_SCALE` | 5 | Sub-tick resolution multiplier for cooldown/stun/movement |

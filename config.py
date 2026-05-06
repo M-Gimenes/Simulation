@@ -20,8 +20,11 @@ WEIGHT_MUTATION_SIGMA    = 0.02 # sigma como fração do range do peso — inér
 
 # ── Função de fitness ────────────────────────────────────────────────────────
 
-SIMS_PER_MATCHUP       = 30    # simulações por matchup no round-robin
-SIMS_CONVERGENCE_CHECK = 50    # simulações extras para confirmar convergência
+SIMS_PER_MATCHUP       = 50    # simulações por matchup no round-robin
+SIMS_CONVERGENCE_CHECK = 200   # simulações extras para confirmar convergência
+                                # alto o suficiente para que a margem de erro
+                                # binomial (~3.5% a 50% WR) caiba folgadamente
+                                # dentro de MATCHUP_CONVERGENCE_THRESHOLD (10%)
 
 LAMBDA_SPECIALIZATION  = 0.2   # peso da penalidade de homogeneização (specialization_penalty)
 LAMBDA_DRIFT           = 6.0   # peso da penalidade de desvio arquetípico (drift_penalty)
