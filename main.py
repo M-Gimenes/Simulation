@@ -39,7 +39,7 @@ def _main_ga(args):
         print(f"  {ARCHETYPES[aid].name}")
         print(f"    WR: {wr:.1%}  |  hp={char.hp:.1f}  dmg={char.damage:.1f}  "
               f"cd={char.attack_cooldown:.1f}  rng={char.range_:.1f}  spd={char.speed:.1f}")
-        print(f"    def={char.defense:.1f}  stun={char.stun:.1f}  kb={char.knockback:.1f}  rec={char.recovery:.1f}")
+        print(f"    def={char.defense:.2f}  stun={char.stun:.1f}  kb={char.knockback:.1f}  rec={int(char.recovery)}")
         print(f"    w=[ret={char.w_retreat:.2f}  def={char.w_defend:.2f}  agg={char.w_aggressiveness:.2f}]")
         print()
 

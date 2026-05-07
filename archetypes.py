@@ -1,12 +1,12 @@
 """
-Definição dos 5 arquétipos e seus valores iniciais.
+Definição dos 5 arquétipos canônicos: atributos iniciais, pesos e ciclo de vantagens.
 
-Ciclo de vantagens fechado:
-  Rushdown     → vence Zoner e Combo Master   (pressão não deixa iniciar setup)
-  Zoner        → vence Grappler e Turtle       (controla espaço, fica fora da zona de punição)
-  Grappler     → vence Rushdown e Turtle       (grab é counter ao bloqueio; burst pune recuo)
-  Combo Master → vence Grappler e Zoner        (Grappler lento morre pra combo; burst converte acerto)
-  Turtle       → vence Rushdown e Combo Master (bloqueio absorve pressão e quebra setup de combo)
+Ciclo:
+  Rushdown     → Zoner, Combo Master
+  Zoner        → Grappler, Turtle
+  Grappler     → Rushdown, Turtle
+  Combo Master → Grappler, Zoner
+  Turtle       → Rushdown, Combo Master
 """
 
 from __future__ import annotations
@@ -57,8 +57,6 @@ class WeightSet:
 
 @dataclass(frozen=True)
 class ArchetypeDefinition:
-    """Metadados imutáveis de um arquétipo."""
-
     id:          ArchetypeID
     name:        str
     description: str
@@ -82,12 +80,12 @@ ARCHETYPES: Dict[ArchetypeID, ArchetypeDefinition] = {
         ),
         initial_attributes=AttributeSet(
             hp=300.0, damage=12.0, attack_cooldown=4.0, range_=18.0,
-            speed=2.5, defense=0.05, stun=1.0, knockback=2.0, recovery=0.2,
+            speed=2.5, defense=0.05, stun=1.0, knockback=2.0, recovery=2,
         ),
         initial_weights=WeightSet(
             w_retreat=0.6, w_defend=0.2, w_aggressiveness=0.3,
         ),
-        beats=(ArchetypeID.GRAPPLER, ArchetypeID.TURTLE),  # controla espaço, fica fora da zona de punição
+        beats=(ArchetypeID.GRAPPLER, ArchetypeID.TURTLE),
     ),
     ArchetypeID.RUSHDOWN: ArchetypeDefinition(
         id=ArchetypeID.RUSHDOWN,
@@ -98,12 +96,12 @@ ARCHETYPES: Dict[ArchetypeID, ArchetypeDefinition] = {
         ),
         initial_attributes=AttributeSet(
             hp=320.0, damage=11.0, attack_cooldown=1.0, range_=10.0,
-            speed=5.0, defense=0.10, stun=1.0, knockback=1.0, recovery=0.3,
+            speed=5.0, defense=0.10, stun=1.0, knockback=1.0, recovery=3,
         ),
         initial_weights=WeightSet(
             w_retreat=0.05, w_defend=0.1, w_aggressiveness=0.9,
         ),
-        beats=(ArchetypeID.ZONER, ArchetypeID.COMBO_MASTER),  # pressão não deixa iniciar setup
+        beats=(ArchetypeID.ZONER, ArchetypeID.COMBO_MASTER),
     ),
     ArchetypeID.COMBO_MASTER: ArchetypeDefinition(
         id=ArchetypeID.COMBO_MASTER,
@@ -115,12 +113,12 @@ ARCHETYPES: Dict[ArchetypeID, ArchetypeDefinition] = {
         ),
         initial_attributes=AttributeSet(
             hp=350.0, damage=13.0, attack_cooldown=3.0, range_=10.0,
-            speed=3.0, defense=0.15, stun=3.5, knockback=0.5, recovery=0.25,
+            speed=3.0, defense=0.15, stun=3.5, knockback=0.5, recovery=3,
         ),
         initial_weights=WeightSet(
             w_retreat=0.05, w_defend=0.2, w_aggressiveness=0.7,
         ),
-        beats=(ArchetypeID.GRAPPLER, ArchetypeID.ZONER),  # Grappler lento morre pra combo; burst converte acerto no Zoner
+        beats=(ArchetypeID.GRAPPLER, ArchetypeID.ZONER),
     ),
     ArchetypeID.GRAPPLER: ArchetypeDefinition(
         id=ArchetypeID.GRAPPLER,
@@ -132,12 +130,12 @@ ARCHETYPES: Dict[ArchetypeID, ArchetypeDefinition] = {
         ),
         initial_attributes=AttributeSet(
             hp=400.0, damage=20.0, attack_cooldown=4.0, range_=8.0,
-            speed=2.0, defense=0.20, stun=2.5, knockback=0.5, recovery=0.35,
+            speed=2.0, defense=0.20, stun=2.5, knockback=0.5, recovery=4,
         ),
         initial_weights=WeightSet(
             w_retreat=0.1, w_defend=0.4, w_aggressiveness=0.7,
         ),
-        beats=(ArchetypeID.RUSHDOWN, ArchetypeID.TURTLE),  # grab é counter ao bloqueio; burst pune recuo
+        beats=(ArchetypeID.RUSHDOWN, ArchetypeID.TURTLE),
     ),
     ArchetypeID.TURTLE: ArchetypeDefinition(
         id=ArchetypeID.TURTLE,
@@ -149,16 +147,15 @@ ARCHETYPES: Dict[ArchetypeID, ArchetypeDefinition] = {
         ),
         initial_attributes=AttributeSet(
             hp=450.0, damage=10.0, attack_cooldown=5.0, range_=13.0,
-            speed=1.5, defense=0.25, stun=2, knockback=1, recovery=0.5,
+            speed=1.5, defense=0.25, stun=2, knockback=1, recovery=7,
         ),
         initial_weights=WeightSet(
             w_retreat=0.4, w_defend=0.7, w_aggressiveness=0.2,
         ),
-        beats=(ArchetypeID.RUSHDOWN, ArchetypeID.COMBO_MASTER),  # bloqueio absorve pressão e quebra setup de combo
+        beats=(ArchetypeID.RUSHDOWN, ArchetypeID.COMBO_MASTER),
     ),
 }
 
-# Lista ordenada (garante indexação consistente no cromossomo)
 ARCHETYPE_ORDER: List[ArchetypeID] = [
     ArchetypeID.ZONER,
     ArchetypeID.RUSHDOWN,
@@ -169,7 +166,6 @@ ARCHETYPE_ORDER: List[ArchetypeID] = [
 
 NUM_ARCHETYPES = len(ARCHETYPE_ORDER)
 
-# Aliases de CLI — ponto único de verdade para viewers e scripts
 ARCHETYPE_ALIASES: Dict[str, ArchetypeID] = {
     "zoner":       ArchetypeID.ZONER,
     "z":           ArchetypeID.ZONER,

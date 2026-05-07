@@ -1,8 +1,5 @@
 """
-Visualização da fronteira de Pareto do NSGA-II (2 objetivos).
-
-Gera 1 scatter 2D: dominance_penalty × drift_penalty.
-Os 4 representantes são destacados.
+Plot 2D da fronteira de Pareto do NSGA-II (dominance × drift) com 4 representantes destacados.
 """
 from __future__ import annotations
 
@@ -25,7 +22,6 @@ _REP_STYLE = {
 
 
 def save_plots(result: NSGAResult, outdir: str, plot_3d: bool = False) -> None:
-    """Gera o scatter 2D da fronteira de Pareto em `outdir`. `plot_3d` é ignorado."""
     os.makedirs(outdir, exist_ok=True)
     fig, ax = plt.subplots(figsize=(7, 6))
 

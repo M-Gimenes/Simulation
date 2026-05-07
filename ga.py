@@ -1,16 +1,8 @@
 """
-Loop principal do Algoritmo Genético.
+Loop principal do AG escalar — inicializa, evolui e retorna o melhor indivíduo.
 
-Fluxo:
-  1. Inicializa população com indivíduos aleatórios.
-  2. Avalia toda a população (round-robin).
-  3. A cada geração:
-       a. Registra estatísticas e loga.
-       b. Verifica convergência  → para se dominance_penalty == 0 (todos matchups ≤ 60% WR).
-       c. Verifica estagnação    → para se sem melhoria > 0.001 por STAGNATION_LIMIT gerações.
-       d. Produz próxima geração (elitismo + torneio + crossover + mutação).
-       e. Avalia os novos indivíduos (elites já têm fitness).
-  4. Retorna GAResult com o melhor indivíduo e histórico.
+Para por convergência (todos matchups dentro do threshold), estagnação
+(STAGNATION_LIMIT gerações sem melhoria) ou MAX_GENERATIONS.
 """
 
 from __future__ import annotations
@@ -161,26 +153,12 @@ def run(
     verbose: bool = True,
     log_every: int = 1,
 ) -> GAResult:
-    """
-    Executa o AG completo.
-
-    Args:
-        seed:       semente para reprodutibilidade (None = aleatório).
-        verbose:    imprime log por geração.
-        log_every:  loga a cada N gerações (reduz output em runs longas).
-
-    Returns:
-        GAResult com o melhor indivíduo, histórico e motivo de parada.
-    """
     if seed is not None:
         random.seed(seed)
 
     _log_header(verbose)
     t_start = time.time()
 
-    # ── Inicialização ─────────────────────────────────────────────────────
-    # Um indivíduo canônico semeia a população — dá ao AG um ponto de partida
-    # com a estrutura de arquétipos, sem forçar preservação.
     population = [Individual.from_canonical()] + [
         Individual.random() for _ in range(POPULATION_SIZE - 1)
     ]
@@ -192,18 +170,14 @@ def run(
     best_ind          = max(population, key=lambda ind: ind.fitness)
     best_detail       = evaluate_detail(best_ind)
 
-    # ── Loop evolutivo ────────────────────────────────────────────────────
     for gen in range(MAX_GENERATIONS):
 
-        # Melhor da geração atual (atualiza se necessário)
         current_best = max(population, key=lambda ind: ind.fitness)
         if current_best.fitness != best_detail.fitness or gen == 0:
             best_ind    = current_best
             best_detail = evaluate_detail(best_ind)
-            # Sincroniza fitness com a avaliação de detalhe para manter consistência no log
             best_ind.fitness = best_detail.fitness
 
-        # Estatísticas
         fitnesses = [ind.fitness for ind in population]
         stats = GenerationStats(
             generation=gen,
@@ -222,10 +196,6 @@ def run(
         if gen % log_every == 0:
             _log(stats, verbose)
 
-        # ── Critério de convergência ──────────────────────────────────────
-        # Candidato: bal_err da avaliação normal já abaixo do threshold.
-        # Confirmação: re-avalia com SIMS_CONVERGENCE_CHECK para reduzir falsos
-        # positivos causados pela estocasticidade.
         if best_detail.dominance_penalty <= 1e-9:
             confirmed   = evaluate_detail_n(best_ind, SIMS_CONVERGENCE_CHECK)
             matchups_ok = all(
@@ -244,7 +214,6 @@ def run(
                     history=history,
                 )
 
-        # ── Critério de estagnação ────────────────────────────────────────
         if best_ind.fitness - best_fitness_ever > 0.001:
             best_fitness_ever = best_ind.fitness
             stagnation_count  = 0
@@ -262,11 +231,9 @@ def run(
                 history=history,
             )
 
-        # ── Próxima geração ───────────────────────────────────────────────
         population = next_generation(population)
         evaluate_population(population)
 
-    # Máximo de gerações atingido
     best_ind    = max(population, key=lambda ind: ind.fitness)
     best_detail = evaluate_detail(best_ind)
     result = GAResult(

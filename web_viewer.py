@@ -1,15 +1,7 @@
 """
 Visualizador web de combate.
 
-Uso:
-    py web_viewer.py                         # abre no browser na porta 8080
-    py web_viewer.py --port 9000
-    py web_viewer.py --evolved               # usa resultado da última execução do AG
-    py web_viewer.py --nsga2                 # usa knee_point do NSGA-II
-    py web_viewer.py --nsga2 best_balance    # usa representante específico do NSGA-II
-
-Acesse http://localhost:8080 no browser.
-Ctrl+C para encerrar.
+Uso: py web_viewer.py [--port 8080] [--evolved | --nsga2 [REP]]
 """
 
 from __future__ import annotations
@@ -17,7 +9,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import random
 import sys
 import webbrowser
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -29,7 +20,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from archetypes import ARCHETYPES, ARCHETYPE_ORDER, ArchetypeID, ARCHETYPE_ALIASES
 from character import Character
 from combat import Action, FighterState, _choose_action, _resolve_attack
-from config import ACTION_EPSILON, FIELD_SIZE, INITIAL_DISTANCE, MAX_TICKS, TICK_SCALE
+from config import FIELD_SIZE, INITIAL_DISTANCE, MAX_TICKS, TICK_SCALE
 from individual import Individual
 
 
@@ -82,8 +73,6 @@ def record_combat(char_a: Character, char_b: Character) -> dict:
         for i in range(2):
             if fighters[i].is_stunned:
                 actions.append(None)
-            elif ACTION_EPSILON > 0.0 and random.random() < ACTION_EPSILON:
-                actions.append(random.randint(0, 3))
             else:
                 actions.append(_choose_action(fighters[i], fighters[1 - i], distance, pos[i]))
 
@@ -197,7 +186,7 @@ def record_combat(char_a: Character, char_b: Character) -> dict:
             "defense": round(char.defense, 2),
             "stun": round(char.stun, 1),
             "knockback": round(char.knockback, 1),
-            "recovery": round(char.recovery, 2),
+            "recovery": int(char.recovery),
         }
 
     return {
@@ -526,7 +515,7 @@ async function runCombat() {
     ['Defesa',        'defense',         v => (v*100).toFixed(0)+'%'],
     ['Stun',          'stun',            v => v.toFixed(1)],
     ['Knockback',     'knockback',       v => v.toFixed(1)],
-    ['Recovery',      'recovery',        v => (v*100).toFixed(0)+'%'],
+    ['Recovery (sub-ticks)', 'recovery',  v => v.toString()],
   ];
   const tbody = document.getElementById('stats-tbody');
   tbody.innerHTML = '';

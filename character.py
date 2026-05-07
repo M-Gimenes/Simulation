@@ -1,12 +1,6 @@
 """
-Representação de um personagem dentro do AG.
-
-Cada personagem possui:
-  - 9 atributos numéricos (cromossomo 1)
-  - 3 pesos comportamentais (cromossomo 2)
-
-Um indivíduo do AG é composto por 5 personagens (um por arquétipo),
-totalizando 60 genes.
+Personagem do AG: 9 atributos numéricos + 3 pesos comportamentais (12 genes).
+Indivíduo é composto por 5 personagens, um por arquétipo (60 genes total).
 """
 
 from __future__ import annotations
@@ -17,11 +11,11 @@ from dataclasses import dataclass, field
 from typing import List, Tuple
 
 from archetypes import ArchetypeDefinition, ArchetypeID
-from config import ATTRIBUTE_BOUNDS, WEIGHT_BOUNDS
+from config import ATTRIBUTE_BOUNDS, INTEGER_ATTRIBUTES, WEIGHT_BOUNDS
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Índices dos atributos (facilita leitura no código de combate)
+# Índices dos atributos
 # ─────────────────────────────────────────────────────────────────────────────
 
 class Attr:
@@ -47,16 +41,9 @@ class WIdx:
 
 @dataclass
 class Character:
-    """
-    Representa um personagem com seus genes (atributos + pesos).
-
-    Os valores são normalizados internamente na escala definida pelo design:
-      - atributos: 0–100
-      - pesos:     0–1
-    """
     archetype: ArchetypeDefinition
-    attributes: List[float]   # 9 genes
-    weights: List[float]      # 3 genes
+    attributes: List[float]
+    weights: List[float]
 
     # ── Propriedades de acesso rápido ─────────────────────────────────────
 
@@ -94,22 +81,18 @@ class Character:
     def name(self) -> str:
         return self.archetype.name
 
-    # ── Construtor a partir do arquétipo (valores iniciais canônicos) ──────
+    # ── Construtores ──────────────────────────────────────────────────────
 
     @classmethod
     def from_archetype(cls, archetype: ArchetypeDefinition) -> "Character":
-        """Cria personagem com os valores iniciais definidos pelo arquétipo."""
         return cls(
             archetype=archetype,
             attributes=list(archetype.initial_attributes),
             weights=list(archetype.initial_weights),
         )
 
-    # ── Construtor aleatório dentro dos bounds globais ────────────────────
-
     @classmethod
     def random(cls, archetype: ArchetypeDefinition) -> "Character":
-        """Cria personagem com genes aleatórios dentro dos bounds globais."""
         attributes = [
             random.uniform(lo, hi)
             for lo, hi in ATTRIBUTE_BOUNDS
@@ -118,28 +101,29 @@ class Character:
             random.uniform(lo, hi)
             for lo, hi in WEIGHT_BOUNDS
         ]
-        return cls(archetype=archetype, attributes=attributes, weights=weights)
+        char = cls(archetype=archetype, attributes=attributes, weights=weights)
+        char.clip()
+        return char
 
     # ── Utilitários ───────────────────────────────────────────────────────
 
     def clone(self) -> "Character":
-        # archetype is frozen — safe to share the reference
         return Character(self.archetype, self.attributes[:], self.weights[:])
 
     def genes(self) -> List[float]:
-        """Retorna todos os genes concatenados (usado no AG)."""
         return self.attributes + self.weights
 
     def load_genes(self, genes: List[float]) -> None:
-        """Carrega genes a partir de uma lista plana de 12 valores."""
         assert len(genes) == 12, f"Esperado 12 genes, recebido {len(genes)}"
         self.attributes = list(genes[:9])
         self.weights    = list(genes[9:])
 
     def clip(self) -> None:
-        """Garante que todos os genes estão dentro dos bounds."""
         for i, (lo, hi) in enumerate(ATTRIBUTE_BOUNDS):
-            self.attributes[i] = max(lo, min(hi, self.attributes[i]))
+            val = max(lo, min(hi, self.attributes[i]))
+            if i in INTEGER_ATTRIBUTES:
+                val = float(round(val))
+            self.attributes[i] = val
         for i, (lo, hi) in enumerate(WEIGHT_BOUNDS):
             self.weights[i] = max(lo, min(hi, self.weights[i]))
 

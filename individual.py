@@ -1,10 +1,7 @@
 """
-Indivíduo do AG — representa um conjunto completo de 5 personagens.
+Indivíduo do AG = conjunto de 5 personagens (um por arquétipo).
 
-Por que coletivo? O winrate de cada personagem depende de todos os outros
-simultaneamente. Avaliar um personagem isolado não tem sentido aqui.
-
-Total: 60 genes por indivíduo (5 personagens × 12 genes cada).
+Construtores: from_canonical, random, from_results, from_nsga2.
 """
 
 from __future__ import annotations
@@ -22,16 +19,6 @@ from character import Character
 
 @dataclass
 class Individual:
-    """
-    Um indivíduo da população evolutiva.
-
-    characters: lista de 5 Character, um por arquétipo,
-                na ordem definida por ARCHETYPE_ORDER.
-    fitness:    valor calculado pela função de aptidão (None = não avaliado).
-    objectives: tupla de 3 valores NSGA-II (None = não avaliado).
-    rank:       rank de não-dominância no NSGA-II (None = não classificado).
-    crowding:   distância de aglomeração no NSGA-II (None = não calculado).
-    """
     characters: List[Character]
     fitness: Optional[float] = field(default=None, compare=False)
     objectives: Optional[Tuple[float, float, float]] = field(default=None, compare=False)
@@ -42,7 +29,6 @@ class Individual:
 
     @classmethod
     def from_canonical(cls) -> "Individual":
-        """Cria indivíduo com os valores iniciais canônicos de cada arquétipo."""
         characters = [
             Character.from_archetype(ARCHETYPES[aid])
             for aid in ARCHETYPE_ORDER
@@ -51,7 +37,6 @@ class Individual:
 
     @classmethod
     def random(cls) -> "Individual":
-        """Cria indivíduo com genes completamente aleatórios."""
         characters = [
             Character.random(ARCHETYPES[aid])
             for aid in ARCHETYPE_ORDER
@@ -60,7 +45,6 @@ class Individual:
 
     @classmethod
     def _from_genes(cls, genes_list: List[List[float]]) -> "Individual":
-        """Cria indivíduo a partir dos valores canônicos e sobrescreve com genes fornecidos."""
         ind = cls.from_canonical()
         for char, genes in zip(ind.characters, genes_list):
             char.load_genes(genes)
@@ -73,10 +57,6 @@ class Individual:
         path: str = "results/nsga2_results.json",
         representative: str = "knee_point",
     ) -> "Individual":
-        """Carrega um representante da fronteira de Pareto do NSGA-II.
-
-        representative: 'knee_point' | 'best_balance' | 'best_matchup' | 'best_drift'
-        """
         if not os.path.exists(path):
             raise FileNotFoundError(f"'{path}' não encontrado — rode main.py --algorithm nsga2 primeiro.")
         with open(path) as fh:
@@ -94,7 +74,6 @@ class Individual:
 
     @classmethod
     def from_results(cls, path: str = "results/results.json") -> "Individual":
-        """Carrega o melhor indivíduo salvo pelo AG em results/results.json."""
         if not os.path.exists(path):
             raise FileNotFoundError(f"'{path}' não encontrado — rode main.py primeiro.")
         with open(path) as fh:
@@ -118,13 +97,12 @@ class Individual:
     # ── Validação e correção ──────────────────────────────────────────────
 
     def clip(self) -> None:
-        """Aplica clipping em todos os personagens."""
         for c in self.characters:
             c.clip()
 
     def invalidate_fitness(self) -> None:
         self.fitness = None
-        self.objectives = None  # genes mudaram → objetivos ficam inválidos também
+        self.objectives = None
 
     @property
     def is_evaluated(self) -> bool:

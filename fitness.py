@@ -1,18 +1,11 @@
 """
-Função de fitness para o AG.
+Fitness do AG via round-robin completo (C(5,2)=10 matchups × SIMS_PER_MATCHUP).
 
-Avaliação via round-robin completo:
-  C(5,2) = 10 matchups × SIMS_PER_MATCHUP simulações por indivíduo.
+    fitness = -(LAMBDA_SPECIALIZATION × specialization_penalty
+              + LAMBDA_DRIFT          × drift_penalty
+              + LAMBDA_DOMINANCE      × dominance_penalty)
 
-Fórmula:
-  fitness = -(LAMBDA_SPECIALIZATION * specialization_penalty
-            + LAMBDA_DRIFT          * drift_penalty
-            + LAMBDA_DOMINANCE      * dominance_penalty)
-
-Componentes (todos em [0, 1], todos minimizados):
-  specialization_penalty = 1 - mean(specialization_i)
-  drift_penalty          = mean(archetype_deviation_i)
-  dominance_penalty      = sqrt(mean(excess_ij²)) sobre os 10 pares  (RMS)
+NSGA-II usa apenas (dominance_penalty, drift_penalty) sem ponderação.
 """
 
 from __future__ import annotations
@@ -35,7 +28,6 @@ from config import (
 )
 from individual import Individual
 
-# Teto de cada atributo — normaliza genes para [0, 1].
 _ATTR_MAXES: List[float] = [hi for _, hi in ATTRIBUTE_BOUNDS]
 
 
@@ -46,15 +38,14 @@ _ATTR_MAXES: List[float] = [hi for _, hi in ATTRIBUTE_BOUNDS]
 
 @dataclass
 class FitnessDetail:
-    """Resultado completo da avaliação de um indivíduo."""
-
     fitness:                float
-    winrates:               List[float]                    # WR agregado por personagem (ordem ARCHETYPE_ORDER)
-    specialization_penalty: float                          # 1 - mean(specialization_i)
-    drift_penalty:          float = 0.0                   # mean(archetype_deviation_i)
+    winrates:               List[float]
+    specialization_penalty: float
+    drift_penalty:          float = 0.0
     archetype_deviations:   List[float] = field(default_factory=list)
     matchup_winrates:       Dict[Tuple[int, int], float] = field(default_factory=dict)
-    dominance_penalty:      float = 0.0                   # sqrt(mean(excess_ij²)) — RMS em [0, 1]
+    matchup_scores:         Dict[Tuple[int, int], float] = field(default_factory=dict)
+    dominance_penalty:      float = 0.0
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -63,23 +54,11 @@ class FitnessDetail:
 
 
 def _specialization(char) -> float:
-    """
-    Dispersão interna dos atributos normalizados: max − min ∈ [0, 1].
-
-    0.0 → atributos homogêneos (sem identidade).
-    1.0 → máxima diferença interna (altamente especializado).
-    """
     norm = [a / m for a, m in zip(char.attributes, _ATTR_MAXES)]
     return max(norm) - min(norm)
 
 
 def _archetype_deviation(char) -> float:
-    """
-    Distância Euclidiana normalizada ao perfil canônico ∈ [0, 1].
-
-    0.0 → idêntico ao canônico; 1.0 → maximamente distante.
-    Atributos normalizados pelo teto; pesos já estão em [0, 1].
-    """
     attr_sq = sum(
         ((a - c) / m) ** 2
         for a, c, m in zip(char.attributes, char.archetype.initial_attributes, _ATTR_MAXES)
@@ -92,21 +71,11 @@ def _archetype_deviation(char) -> float:
     return math.sqrt((attr_sq + weight_sq) / n_genes)
 
 
-def _dominance_penalty(matchup_winrates: Dict[Tuple[int, int], float]) -> float:
-    """
-    Penalidade RMS (root mean square) dos excessos de dominância sobre os 10 pares,
-    normalizada em [0, 1].
-
-    O quadrado dá peso desproporcional a matchups extremos: uma matchup 100/0 pesa
-    16× mais que uma 70/30, contra 4× na média linear. Isso fecha o regime onde o
-    GA tolerava uma matchup destruidora se o resto estava OK.
-
-    Pares dentro de MATCHUP_THRESHOLD não penalizam (excess clampado em 0).
-    """
+def _dominance_penalty(matchup_scores: Dict[Tuple[int, int], float]) -> float:
     scale = 0.5 - MATCHUP_THRESHOLD
     excesses = [
-        max(0.0, (abs(wr - 0.5) - MATCHUP_THRESHOLD) / scale)
-        for wr in matchup_winrates.values()
+        max(0.0, (abs(s - 0.5) - MATCHUP_THRESHOLD) / scale)
+        for s in matchup_scores.values()
     ]
     return math.sqrt(sum(e * e for e in excesses) / len(excesses))
 
@@ -118,22 +87,21 @@ def _dominance_penalty(matchup_winrates: Dict[Tuple[int, int], float]) -> float:
 
 def _run_round_robin(
     chars: List, sims: int
-) -> Tuple[List[int], List[int], Dict[Tuple[int, int], int]]:
-    """
-    Executa C(n,2) matchups × sims simulações cada.
-
-    Retorna:
-      wins         — vitórias acumuladas por personagem
-      total_games  — partidas totais por personagem
-      matchup_wins — vitórias de i no head-to-head (i, j), i < j
-    """
+) -> Tuple[
+    List[int],
+    List[int],
+    Dict[Tuple[int, int], int],
+    Dict[Tuple[int, int], float],
+]:
     n = len(chars)
     wins        = [0] * n
     total_games = [0] * n
-    matchup_wins: Dict[Tuple[int, int], int] = {}
+    matchup_wins:   Dict[Tuple[int, int], int]   = {}
+    matchup_scores: Dict[Tuple[int, int], float] = {}
 
     for i, j in combinations(range(n), 2):
         matchup_wins[(i, j)] = 0
+        score_sum = 0.0
         for _ in range(sims):
             result = simulate_combat(chars[i], chars[j])
             if result.winner == 0:
@@ -144,7 +112,17 @@ def _run_round_robin(
             total_games[i] += 1
             total_games[j] += 1
 
-    return wins, total_games, matchup_wins
+            if result.ko:
+                score_sum += 1.0 if result.winner == 0 else 0.0
+            else:
+                hp_pct_i = result.hp_remaining[0] / chars[i].hp
+                hp_pct_j = result.hp_remaining[1] / chars[j].hp
+                total_pct = hp_pct_i + hp_pct_j
+                score_sum += hp_pct_i / total_pct if total_pct > 0 else 0.5
+
+        matchup_scores[(i, j)] = score_sum / sims
+
+    return wins, total_games, matchup_wins, matchup_scores
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -153,11 +131,10 @@ def _run_round_robin(
 
 
 def evaluate_detail_n(individual: Individual, sims: int) -> FitnessDetail:
-    """Avalia o indivíduo com `sims` simulações por matchup."""
     chars = individual.characters
     n     = len(chars)
 
-    wins, total_games, matchup_wins = _run_round_robin(chars, sims)
+    wins, total_games, matchup_wins, matchup_scores = _run_round_robin(chars, sims)
 
     winrates         = [wins[i] / total_games[i] for i in range(n)]
     matchup_winrates = {key: v / sims for key, v in matchup_wins.items()}
@@ -165,7 +142,7 @@ def evaluate_detail_n(individual: Individual, sims: int) -> FitnessDetail:
     specialization_penalty = 1.0 - sum(_specialization(c) for c in chars) / n
     archetype_deviations   = [_archetype_deviation(c) for c in chars]
     drift_penalty          = sum(archetype_deviations) / n
-    dominance_pen          = _dominance_penalty(matchup_winrates)
+    dominance_pen          = _dominance_penalty(matchup_scores)
 
     fitness = -(
         LAMBDA_SPECIALIZATION * specialization_penalty
@@ -180,20 +157,16 @@ def evaluate_detail_n(individual: Individual, sims: int) -> FitnessDetail:
         drift_penalty=drift_penalty,
         archetype_deviations=archetype_deviations,
         matchup_winrates=matchup_winrates,
+        matchup_scores=matchup_scores,
         dominance_penalty=dominance_pen,
     )
 
 
 def evaluate_detail(individual: Individual) -> FitnessDetail:
-    """Avalia com SIMS_PER_MATCHUP simulações. Sempre reavalia (ignora cache)."""
     return evaluate_detail_n(individual, SIMS_PER_MATCHUP)
 
 
 def evaluate(individual: Individual) -> float:
-    """
-    Calcula e cacheia o fitness do indivíduo. Retorna o valor.
-    Não reavalia se individual.is_evaluated == True.
-    """
     if individual.is_evaluated:
         return individual.fitness
     detail = evaluate_detail(individual)
@@ -207,15 +180,10 @@ def evaluate(individual: Individual) -> float:
 
 
 def _eval_worker(ind: Individual) -> float:
-    """Worker para avaliação paralela — roda em processo separado."""
     return evaluate_detail(ind).fitness
 
 
 def evaluate_population(population: List[Individual]) -> None:
-    """
-    Avalia todos os indivíduos não avaliados da população.
-    Usa ProcessPoolExecutor quando N_WORKERS != 1 (speedup ≈ nº de núcleos).
-    """
     unevaluated = [ind for ind in population if not ind.is_evaluated]
     if not unevaluated:
         return
@@ -238,12 +206,6 @@ def evaluate_population(population: List[Individual]) -> None:
 
 
 def evaluate_objectives(individual: Individual) -> Tuple[float, float]:
-    """
-    Avalia o indivíduo e retorna (dominance_penalty, drift_penalty).
-
-    Minimizados pelo NSGA-II. Cacheia em `individual.objectives`; não reavalia se já cacheado.
-    Escalas: dominance_penalty ∈ [0, 1]; drift_penalty ∈ [0, 1].
-    """
     if individual.objectives is not None:
         return individual.objectives
     detail = evaluate_detail(individual)

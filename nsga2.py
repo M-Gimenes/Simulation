@@ -1,11 +1,9 @@
 """
-NSGA-II — Algoritmo genético multi-objetivo (Deb et al., 2002).
+NSGA-II — variante multi-objetivo do AG (Deb et al., 2002).
 
-Otimiza 2 objetivos simultaneamente:
-  f1 = dominance_penalty (dominância em matchups diretos)
-  f2 = drift_penalty     (desvio dos arquétipos canônicos — preservação de identidade)
-
-Todos minimizados, todos em [0, 1].
+Otimiza simultaneamente (dominance_penalty, drift_penalty) sem ponderação,
+produzindo Pareto front e extraindo 4 representantes (best_dominance,
+best_drift, knee_point, ideal_point).
 """
 from __future__ import annotations
 
@@ -30,11 +28,6 @@ from operators import crossover, mutate, nsga2_binary_tournament
 
 
 def _dominates(a: Individual, b: Individual) -> bool:
-    """
-    `a` domina `b` sse a.f_i ≤ b.f_i para todo i E a.f_j < b.f_j para algum j.
-
-    Pressupõe que ambos têm `objectives` preenchido.
-    """
     strictly_better = False
     for oa, ob in zip(a.objectives, b.objectives):
         if oa > ob:
@@ -50,18 +43,11 @@ def _dominates(a: Individual, b: Individual) -> bool:
 
 
 def fast_non_dominated_sort(population: List[Individual]) -> List[List[Individual]]:
-    """
-    Particiona a população em fronteiras não-dominadas (Deb 2002, O(MN²)).
-
-    Atribui `ind.rank` in-place (0 = melhor).
-    Retorna `[[rank_0], [rank_1], ...]`.
-
-    Trabalha com índices internamente (não `.index()`) — evita bug quando
-    múltiplos indivíduos têm o mesmo conteúdo comparável (ex.: clones do canônico).
-    """
+    # Trabalha com índices (não .index()) — múltiplos indivíduos com o mesmo
+    # conteúdo comparável (ex.: clones do canônico) quebram .index() silenciosamente.
     n = len(population)
-    dominates_set    = [[] for _ in range(n)]   # dominates_set[i] = índices dominados por i (S_i — Deb 2002)
-    domination_count = [0] * n                  # domination_count[i] = quantos dominam i
+    dominates_set    = [[] for _ in range(n)]
+    domination_count = [0] * n
 
     for i in range(n):
         for j in range(i + 1, n):
@@ -89,7 +75,7 @@ def fast_non_dominated_sort(population: List[Individual]) -> List[List[Individua
                     next_front.append(q)
         k += 1
         front_indices.append(next_front)
-    front_indices.pop()   # último é vazio — sentinela do while
+    front_indices.pop()
 
     return [[population[i] for i in indices] for indices in front_indices]
 
@@ -100,13 +86,6 @@ def fast_non_dominated_sort(population: List[Individual]) -> List[List[Individua
 
 
 def crowding_distance_assignment(front: List[Individual]) -> None:
-    """
-    Atribui `ind.crowding` in-place para cada indivíduo da fronteira.
-
-    Fronteiras com ≤ 2 pontos: todos recebem +inf (preferência máxima).
-    Caso geral: para cada objetivo m, ordena pela m-ésima componente;
-    extremos recebem +inf, intermediários recebem distância normalizada.
-    """
     size = len(front)
     if size <= 2:
         for ind in front:
@@ -125,7 +104,7 @@ def crowding_distance_assignment(front: List[Individual]) -> None:
         front[0].crowding  = math.inf
         front[-1].crowding = math.inf
         if span == 0:
-            continue   # todos iguais neste objetivo — intermediários inalterados
+            continue
         for i in range(1, size - 1):
             if math.isinf(front[i].crowding):
                 continue
@@ -133,7 +112,7 @@ def crowding_distance_assignment(front: List[Individual]) -> None:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Seleção dos 4 representantes da fronteira final
+# Seleção dos representantes da fronteira final
 # ─────────────────────────────────────────────────────────────────────────────
 
 
@@ -146,15 +125,6 @@ def _euclidean_norm(objs) -> float:
 
 
 def select_representatives(front: List[Individual]) -> dict:
-    """
-    Retorna 4 representantes da fronteira de Pareto 2D:
-      - best_dominance — menor dominance_penalty (objetivo 0)
-      - best_drift     — menor drift_penalty (objetivo 1)
-      - knee_point     — mais distante da reta entre os dois extremos
-      - ideal_point    — mais próximo da utopia (0, 0)
-
-    Ordem dos objetivos: (dominance_penalty, drift_penalty).
-    """
     best_dominance = _best_in(front, 0)
     best_drift     = _best_in(front, 1)
     ideal          = min(front, key=lambda ind: _euclidean_norm(ind.objectives))
@@ -190,16 +160,16 @@ def select_representatives(front: List[Individual]) -> dict:
 @dataclass
 class GenerationStats:
     generation:        int
-    front_sizes:       List[int]                       # tamanho de cada fronteira em R (após merge)
-    front0_ranges:     List[Tuple[float, float]]       # (min, max) por objetivo na fronteira de Pareto (rank 0)
-    gen_elapsed_s:     float                           # tempo desta geração
-    total_elapsed_s:   float                           # tempo total desde o início do run
+    front_sizes:       List[int]
+    front0_ranges:     List[Tuple[float, float]]
+    gen_elapsed_s:     float
+    total_elapsed_s:   float
 
 
 @dataclass
 class NSGAResult:
-    pareto_front:    List[Individual]            # rank=0 da população final
-    representatives: Dict[str, Individual]       # 4 representantes
+    pareto_front:    List[Individual]
+    representatives: Dict[str, Individual]
     history:         List[GenerationStats]
     generations_run: int
     seed:            Optional[int] = None
@@ -224,7 +194,6 @@ def _evaluate_population(pop: List[Individual]) -> None:
 
 
 def _assign_rank_and_crowding(pop: List[Individual]) -> List[List[Individual]]:
-    """Aplica non-dominated sort e crowding distance em toda a população; retorna fronteiras."""
     fronts = fast_non_dominated_sort(pop)
     for front in fronts:
         crowding_distance_assignment(front)
@@ -234,10 +203,6 @@ def _assign_rank_and_crowding(pop: List[Individual]) -> List[List[Individual]]:
 def _select_next_population(
     fronts: List[List[Individual]], target_size: int
 ) -> List[Individual]:
-    """
-    Preenche P_next com fronteiras em ordem de rank. Fronteira que "transborda"
-    é ordenada por crowding desc e truncada ao tamanho restante.
-    """
     next_pop: List[Individual] = []
     for front in fronts:
         if len(next_pop) + len(front) <= target_size:
@@ -256,7 +221,7 @@ def _generate_offspring(parents: List[Individual], size: int) -> List[Individual
         p1 = nsga2_binary_tournament(parents)
         p2 = nsga2_binary_tournament(parents)
         child = crossover(p1, p2)
-        mutate(child)   # calls invalidate_fitness() → resets objectives; rank/crowding default to None
+        mutate(child)
         offspring.append(child)
     return offspring
 
@@ -282,7 +247,6 @@ def run(
     n_generations: int           = NSGA2_GENERATIONS,
     verbose:       bool          = True,
 ) -> NSGAResult:
-    """Executa o NSGA-II e retorna a fronteira + 4 representantes."""
     if seed is not None:
         random.seed(seed)
 
@@ -354,9 +318,6 @@ def _individual_to_dict(ind: Individual) -> dict:
 
 
 def save_results(result: NSGAResult, path: str = "results/nsga2_results.json") -> None:
-    """
-    Salva fronteira, representantes e histórico em JSON.
-    """
     data = {
         "algorithm":       "nsga2",
         "seed":            result.seed,

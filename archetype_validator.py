@@ -1,16 +1,10 @@
 """
-Diagnóstico de identidade de arquétipo.
-
-Executa 20 asserções em 2 camadas sobre qualquer Individual
-(canônico ou evoluído) e imprime relatório pass/fail.
+Diagnóstico de identidade de arquétipo — 20 asserções estruturais (inter + intra).
 
 Uso:
-    py archetype_validator.py                        # canônico
-    py archetype_validator.py --evolved              # usa melhor indivíduo do AG (results.json)
-    py archetype_validator.py --nsga2                # usa knee_point do NSGA-II
-    py archetype_validator.py --nsga2 best_balance   # usa representante específico do NSGA-II
-    py archetype_validator.py --nsga2 best_matchup
-    py archetype_validator.py --nsga2 best_drift
+    py archetype_validator.py
+    py archetype_validator.py --evolved
+    py archetype_validator.py --nsga2 [knee_point|best_dominance|best_drift|ideal_point]
 """
 
 from __future__ import annotations
@@ -30,11 +24,11 @@ from individual import Individual
 @dataclass
 class ArchetypeCheck:
     archetype:     ArchetypeID
-    layer:         str   # "structural_inter" | "structural_intra"
+    layer:         str
     description:   str
     passed:        bool
-    actual_rank:   int   # 1 = highest value; 0 = N/A (intra assertions)
-    expected_rank: int   # 1 = should be highest; 5 = should be lowest; 0 = N/A
+    actual_rank:   int
+    expected_rank: int
 
 
 @dataclass
@@ -56,10 +50,6 @@ class ArchetypeValidationReport:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _rank_desc(values: List[float]) -> List[int]:
-    """
-    Retorna rank para cada valor (1 = maior). Empates recebem ranks consecutivos
-    pela posição original (sort estável).
-    """
     ranks = [0] * len(values)
     for rank_pos, orig_idx in enumerate(
         sorted(range(len(values)), key=lambda i: values[i], reverse=True)
@@ -72,9 +62,6 @@ def _rank_desc(values: List[float]) -> List[int]:
 # Layer 1 — Structural inter-character
 # ─────────────────────────────────────────────────────────────────────────────
 
-# (archetype_id, attr_name, expected_rank, description)
-# expected_rank=1 → deve ter o maior valor entre os 5 personagens
-# expected_rank=5 → deve ter o menor valor entre os 5 personagens
 _INTER_ASSERTIONS: List[Tuple] = [
     (ArchetypeID.RUSHDOWN,     "speed",             1, "speed = highest (closes distance first)"),
     (ArchetypeID.RUSHDOWN,     "attack_cooldown",   5, "attack_cooldown = lowest (fastest attacker)"),
@@ -113,10 +100,9 @@ def _check_structural_inter(chars) -> List[ArchetypeCheck]:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Layer 2 — Structural intra-character (normalized comparisons)
+# Layer 2 — Structural intra-character (normalized)
 # ─────────────────────────────────────────────────────────────────────────────
 
-# Mapa de nome de propriedade → (lo, hi) dos ATTRIBUTE_BOUNDS
 _ATTR_BOUNDS: Dict[str, Tuple[float, float]] = dict(zip(
     ["hp", "damage", "attack_cooldown", "range_", "speed", "defense", "stun", "knockback", "recovery"],
     ATTRIBUTE_BOUNDS,
@@ -124,13 +110,10 @@ _ATTR_BOUNDS: Dict[str, Tuple[float, float]] = dict(zip(
 
 
 def _norm(char, attr_name: str) -> float:
-    """Normaliza o atributo para [0, 1] usando os bounds globais."""
     lo, hi = _ATTR_BOUNDS[attr_name]
     return (getattr(char, attr_name) - lo) / (hi - lo)
 
 
-# (archetype_id, attr_a, attr_b, description)
-# Asserção: norm(attr_a) > norm(attr_b) para o personagem do arquétipo dado
 _INTRA_ASSERTIONS: List[Tuple] = [
     (ArchetypeID.ZONER,        "range_",  "speed",    "norm(range) > norm(speed) — space control over mobility"),
     (ArchetypeID.RUSHDOWN,     "speed",   "range_",   "norm(speed) > norm(range) — closes gap, not ranged"),
@@ -164,7 +147,6 @@ def _check_structural_intra(chars) -> List[ArchetypeCheck]:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def run_validation(individual: Individual) -> ArchetypeValidationReport:
-    """Executa as 20 asserções e retorna o relatório completo."""
     chars  = individual.characters
     checks: List[ArchetypeCheck] = []
 
@@ -238,7 +220,7 @@ if __name__ == "__main__":
     parser.add_argument("--evolved", action="store_true",
                         help="Usa o melhor indivíduo salvo em results.json (default: canônico)")
     parser.add_argument("--nsga2", metavar="REP", nargs="?", const="knee_point",
-                        help="Usa representante do NSGA-II (knee_point|best_balance|best_matchup|best_drift). Default: knee_point")
+                        help="Usa representante do NSGA-II (knee_point|best_dominance|best_drift|ideal_point)")
     args = parser.parse_args()
 
     if args.nsga2:

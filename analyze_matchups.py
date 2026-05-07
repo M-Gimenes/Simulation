@@ -1,16 +1,11 @@
 """
-Análise detalhada tick-a-tick dos 10 matchups canônicos.
-Executa N combates por matchup e apresenta médias das estatísticas.
+Análise detalhada dos 10 matchups canônicos: N combates por matchup, médias das estatísticas.
 
 Uso:
-    py analyze_matchups.py                           # todos os matchups (canônico)
-    py analyze_matchups.py zoner grappler            # matchup específico
-    py analyze_matchups.py --evolved                 # usa melhor indivíduo do AG (results.json)
-    py analyze_matchups.py --nsga2                   # usa knee_point do NSGA-II
-    py analyze_matchups.py --nsga2 best_balance      # usa representante específico do NSGA-II
-    py analyze_matchups.py --nsga2 best_matchup
-    py analyze_matchups.py --nsga2 best_drift
-    py analyze_matchups.py --n 50                    # número de simulações por matchup
+    py analyze_matchups.py                       # todos os matchups (canônico)
+    py analyze_matchups.py zoner grappler        # matchup específico
+    py analyze_matchups.py --evolved             # usa melhor indivíduo do AG
+    py analyze_matchups.py --nsga2 [REP]         # usa representante do NSGA-II
 """
 
 from __future__ import annotations
@@ -23,11 +18,11 @@ from typing import Dict, List, Optional, Tuple
 from archetypes import ARCHETYPE_ALIASES, ARCHETYPE_ORDER, ARCHETYPES, ArchetypeID
 from character import Character
 from combat import Action, FighterState, _choose_action, _resolve_attack
-from config import ACTION_EPSILON, FIELD_SIZE, INITIAL_DISTANCE, MAX_TICKS, TICK_SCALE
+from config import FIELD_SIZE, INITIAL_DISTANCE, MAX_TICKS, TICK_SCALE
 from individual import Individual
 
 
-ANALYZE_SIMS = 100
+ANALYZE_SIMS = 500
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -147,10 +142,7 @@ def analyze_combat(char_a: Character, char_b: Character) -> MatchupResult:
                 stats[i].ticks_stunned += 1
                 actions.append(None)
                 continue
-            if random.random() < ACTION_EPSILON:
-                a = random.randint(0, 3)
-            else:
-                a = _choose_action(fighters[i], fighters[1 - i], distance, pos[i])
+            a = _choose_action(fighters[i], fighters[1 - i], distance, pos[i])
             actions.append(a)
             stats[i].action_counts[a] += 1
             if not fighters[i].attack_ready:

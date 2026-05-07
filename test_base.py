@@ -52,8 +52,8 @@ print("  ✓ Todos os genes dentro dos bounds")
 separator("Clone e carga de genes")
 clone = r.clone()
 genes = clone.genes()
-clone.attributes[Attr.HP] = 9999         # modifica o clone
-clone.clip()                              # deve voltar para o bound máximo (500)
+clone.attributes[Attr.HP] = 9999
+clone.clip()
 assert clone.hp == 500.0, f"Clip falhou: {clone.hp}"
 assert r.hp != 999, "Clone afetou o original!"
 print("  ✓ Clone isolado + clip funcionando")

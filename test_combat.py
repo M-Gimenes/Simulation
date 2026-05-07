@@ -1,6 +1,6 @@
 """
 Smoke test do módulo de combate.
-Rode com: python test_combat.py
+Rode com: py test_combat.py
 """
 
 import sys

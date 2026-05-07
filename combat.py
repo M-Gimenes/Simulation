@@ -1,25 +1,9 @@
 """
-Simulação de combate tick a tick entre dois personagens.
+Simulação de combate tick a tick 1v1.
 
-Campo: 100 unidades, distância inicial 50 (config.INITIAL_DISTANCE).
-Resolução simultânea — ambos escolhem e executam ação no mesmo tick.
-
-Fluxo por tick:
-  1. Cada lutador escolhe ação via sistema de prioridade.
-     Personagem stunado perde a ação.
-  2. Movimento aplicado (ADVANCE / RETREAT).
-  3. Ataques resolvidos simultaneamente.
-  4. Timers decrementados — apenas timers não recém-setados neste tick.
-
-Semântica dos timers:
-  O decremento ocorre no FINAL do tick, após os ataques.
-  Timers recém-definidos por um ataque NÃO são decrementados no mesmo tick.
-  cooldown=1 → atacante fica bloqueado por 1 tick (ataca a cada 2 ticks).
-  stun=1     → alvo perde exatamente 1 tick de ação.
-
-Condições de vitória:
-  KO: HP chega a 0.
-  Timer: ao esgotar MAX_TICKS, vence quem tem maior HP percentual.
+API pública:
+    simulate_combat(char_a, char_b) -> CombatResult
+    simulate_combat_detailed(char_a, char_b) -> (CombatResult, ActionLog)
 """
 
 from __future__ import annotations
@@ -31,13 +15,11 @@ from typing import Dict, List, Optional, Tuple
 
 from character import Character
 from config import (
-    ACTION_EPSILON,
-    DAMAGE_VARIANCE,
+    ACTION_PERSISTENCE_SUBTICKS,
     DEFEND_DAMAGE_REDUCTION,
     FIELD_SIZE,
     INITIAL_DISTANCE,
     MAX_TICKS,
-    RETREAT_ZONE_FACTOR,
     STUN_CAP_MULTIPLIER,
     TICK_SCALE,
     WALL_CORNER_THRESHOLD,
@@ -62,6 +44,8 @@ class FighterState:
     hp: float
     stun_remaining: int = 0
     cooldown_remaining: int = 0
+    committed_action: Optional["Action"] = None
+    commitment_remaining: int = 0
 
     @property
     def hp_max(self) -> float:
@@ -86,8 +70,6 @@ class FighterState:
 
 @dataclass
 class TimerSnapshot:
-    """Captura os timers de um lutador antes da fase de ataque."""
-
     stun: int
     cooldown: int
 
@@ -98,9 +80,9 @@ class TimerSnapshot:
 
 @dataclass
 class CombatResult:
-    winner: int  # 0 = char_a, 1 = char_b
+    winner: int
     ticks: int
-    ko: bool  # True = KO, False = timer
+    ko: bool
     hp_remaining: Tuple[float, float]
 
     @property
@@ -110,11 +92,6 @@ class CombatResult:
 
 @dataclass
 class ActionLog:
-    """
-    Distribuição de ações e stun por lutador em um único combate.
-    stun_applied é o stun bruto gerado — proxy de pressão, não de stun efetivamente sofrido.
-    """
-
     action_counts: Tuple[Dict[int, int], Dict[int, int]]
     active_ticks: Tuple[int, int]
     stun_applied: Tuple[int, int]
@@ -127,8 +104,6 @@ class ActionLog:
 
 @dataclass
 class ActionTracker:
-    """Acumula estatísticas de ações durante o combate para produzir um ActionLog."""
-
     action_counts: List[Dict[int, int]] = field(
         default_factory=lambda: [{a: 0 for a in Action}, {a: 0 for a in Action}]
     )
@@ -149,53 +124,42 @@ class CombatState:
 # ─────────────────────────────────────────────────────────────────────────────
 
 
+def _soft_policy(char: Character) -> Action:
+    weights = [char.w_aggressiveness, char.w_retreat, char.w_defend]
+    if sum(weights) <= 0.0:
+        return Action.DEFEND
+    return random.choices(
+        [Action.ADVANCE, Action.RETREAT, Action.DEFEND],
+        weights=weights,
+        k=1,
+    )[0]
+
+
 def _choose_action(
-    me_state: FighterState,
-    enemy_state: FighterState,
+    me: FighterState,
+    enemy: FighterState,
     distance: float,
-    pos_me: float = 50.0,
+    pos_me: float,
 ) -> Action:
-    """
-    Prioridades (maior para menor):
-      1. ATTACK  — em range e pronto.
-      2. Sob ameaça (inimigo em range, pronto, não stunado):
-           w_aggressiveness dominante → ADVANCE
-           w_retreat > w_defend       → RETREAT
-           caso contrário             → DEFEND
-      3. ADVANCE — fora de range ou encurralado.
-      4. DEFEND  — aguarda cooldown sem ameaça ativa.
-    """
-    me = me_state.character
-    enemy = enemy_state.character
+    char = me.character
+    in_my_range = distance <= char.range_
 
-    in_range_me = distance <= me.range_
-    ready_me = me_state.attack_ready
-    ready_en = (
-        enemy_state.attack_ready
-        and not enemy_state.is_stunned
-        and distance <= enemy.range_
-    )
-
-    can_hit = in_range_me and ready_me
-    cornered = (
-        pos_me < WALL_CORNER_THRESHOLD or pos_me > FIELD_SIZE - WALL_CORNER_THRESHOLD
-    )
-    in_threat = ready_en and distance < RETREAT_ZONE_FACTOR * enemy.range_
-
-    if can_hit:
+    if in_my_range and me.attack_ready:
+        me.commitment_remaining = 0
         return Action.ATTACK
 
-    if in_threat:
-        if me.w_aggressiveness > me.w_retreat and me.w_aggressiveness > me.w_defend:
-            return Action.ADVANCE
-        if me.w_retreat > me.w_defend:
-            return Action.RETREAT
-        return Action.DEFEND
-
-    if not in_range_me or cornered:
+    cornered = pos_me < WALL_CORNER_THRESHOLD or pos_me > FIELD_SIZE - WALL_CORNER_THRESHOLD
+    if not in_my_range or cornered:
+        me.commitment_remaining = 0
         return Action.ADVANCE
 
-    return Action.DEFEND
+    if me.commitment_remaining > 0 and me.committed_action is not None:
+        me.commitment_remaining -= 1
+        return me.committed_action
+
+    me.committed_action = _soft_policy(char)
+    me.commitment_remaining = ACTION_PERSISTENCE_SUBTICKS
+    return me.committed_action
 
 
 def _resolve_attack(
@@ -204,23 +168,17 @@ def _resolve_attack(
     defender_is_defending: bool,
     distance: float,
 ) -> Tuple[float, int, float]:
-    """
-    Retorna (damage, stun_sub_ticks, knockback). Retorna (0, 0, 0) se fora de range.
-    Stun em sub-ticks: round(stun * TICK_SCALE * (1 - recovery)).
-    """
     if distance > attacker.range_:
         return 0.0, 0, 0.0
 
-    variance = random.uniform(1.0 - DAMAGE_VARIANCE, 1.0 + DAMAGE_VARIANCE)
-    dmg = attacker.damage * (1.0 - defender_state.character.defense) * variance
+    dmg = attacker.damage * (1.0 - defender_state.character.defense)
     if defender_is_defending:
         dmg *= DEFEND_DAMAGE_REDUCTION
 
     stun_ticks = max(
-        0, round(attacker.stun * TICK_SCALE * (1.0 - defender_state.character.recovery))
+        0,
+        round(attacker.stun * TICK_SCALE) - int(defender_state.character.recovery),
     )
-    # Cap: STUN_CAP_MULTIPLIER × cooldown do atacante.
-    # Com multiplier=2 permite 1 hit extra durante o stun (combo chaining).
     stun_ticks = min(
         stun_ticks, round(STUN_CAP_MULTIPLIER * attacker.attack_cooldown * TICK_SCALE)
     )
@@ -228,8 +186,7 @@ def _resolve_attack(
     return dmg, stun_ticks, attacker.knockback
 
 
-def _tick_timers(fighter: FighterState, snapshot: TimerSnapshot) -> None:
-    """Decrementa apenas timers que não foram recém-setados por um ataque neste tick."""
+def _decrement_stale_timers(fighter: FighterState, snapshot: TimerSnapshot) -> None:
     if fighter.stun_remaining <= snapshot.stun:
         fighter.stun_remaining = max(0, fighter.stun_remaining - 1)
     if fighter.cooldown_remaining <= snapshot.cooldown:
@@ -249,7 +206,6 @@ def _combat_result(fighters: List[FighterState], end_tick: int) -> CombatResult:
     if alive_b and not alive_a:
         return CombatResult(1, end_tick, ko=True, hp_remaining=(hp_a, hp_b))
 
-    # Ambos vivos (timer) ou ambos mortos no mesmo tick — desempate por HP%
     ko = not (alive_a and alive_b)
     return CombatResult(
         _winner_by_hp_pct(fighters), end_tick, ko=ko, hp_remaining=(hp_a, hp_b)
@@ -283,20 +239,17 @@ def _phase_choose_actions(state: CombatState) -> List[Optional[Action]]:
     for i in range(2):
         if state.fighters[i].is_stunned:
             actions.append(None)
-        else:
-            if ACTION_EPSILON > 0.0 and random.random() < ACTION_EPSILON:
-                a = random.choice(list(Action))
-            else:
-                a = _choose_action(
-                    state.fighters[i],
-                    state.fighters[1 - i],
-                    distance,
-                    state.positions[i],
-                )
-            actions.append(a)
-            if state.tracker:
-                state.tracker.active_ticks[i] += 1
-                state.tracker.action_counts[i][a] += 1
+            continue
+        a = _choose_action(
+            state.fighters[i],
+            state.fighters[1 - i],
+            distance,
+            state.positions[i],
+        )
+        actions.append(a)
+        if state.tracker:
+            state.tracker.active_ticks[i] += 1
+            state.tracker.action_counts[i][a] += 1
     return actions
 
 
@@ -361,7 +314,7 @@ def _phase_decrement_timers(
     fighters: List[FighterState], snapshots: List[TimerSnapshot]
 ) -> None:
     for fighter, snapshot in zip(fighters, snapshots):
-        _tick_timers(fighter, snapshot)
+        _decrement_stale_timers(fighter, snapshot)
 
 
 def _build_output(state: CombatState) -> Tuple[CombatResult, Optional[ActionLog]]:
@@ -412,6 +365,5 @@ def simulate_combat(char_a: Character, char_b: Character) -> CombatResult:
 def simulate_combat_detailed(
     char_a: Character, char_b: Character
 ) -> Tuple[CombatResult, ActionLog]:
-    """Registra distribuição de ações e stun aplicado. Usado pelo archetype_validator."""
     result, log = _run_combat_loop(char_a, char_b, track_actions=True)
     return result, log
