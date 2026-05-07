@@ -13,6 +13,8 @@ import os
 import random
 import time
 from concurrent.futures import ProcessPoolExecutor
+
+import numpy as np
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
@@ -249,6 +251,7 @@ def run(
 ) -> NSGAResult:
     if seed is not None:
         random.seed(seed)
+        np.random.seed(seed)
 
     t_start = time.time()
 

@@ -12,6 +12,8 @@ import time
 from dataclasses import dataclass, field
 from typing import List, Optional
 
+import numpy as np
+
 from config import (
     ELITE_SIZE,
     MATCHUP_CONVERGENCE_THRESHOLD,
@@ -155,6 +157,7 @@ def run(
 ) -> GAResult:
     if seed is not None:
         random.seed(seed)
+        np.random.seed(seed)
 
     _log_header(verbose)
     t_start = time.time()

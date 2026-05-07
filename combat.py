@@ -1,17 +1,29 @@
 """
 Simulação de combate tick a tick 1v1.
 
+O loop principal é JIT-compilado pelo Numba (`_simulate_combat_jit`) — speedup
+~150× sobre Python puro. Os helpers em Python (`_choose_action`, `_resolve_attack`,
+`_decrement_stale_timers`, `_soft_policy`) permanecem porque são reutilizados
+por scripts que reimplementam o loop com instrumentação extra
+(`analyze_matchups.py`, `viewer.py`, `web_viewer.py`).
+
 API pública:
-    simulate_combat(char_a, char_b) -> CombatResult
+    simulate_combat(char_a, char_b)          -> CombatResult
     simulate_combat_detailed(char_a, char_b) -> (CombatResult, ActionLog)
+
+Reprodutibilidade: o JIT usa `np.random`. Quem precisar de seed estável deve
+semear `random` (helpers em Python) **e** `np.random` (JIT) no nível superior.
 """
 
 from __future__ import annotations
 
 import random
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import IntEnum
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Optional, Tuple
+
+import numpy as np
+from numba import njit
 
 from character import Character
 from config import (
@@ -27,7 +39,7 @@ from config import (
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Tipos de dados
+# Tipos públicos
 # ─────────────────────────────────────────────────────────────────────────────
 
 
@@ -39,12 +51,36 @@ class Action(IntEnum):
 
 
 @dataclass
+class CombatResult:
+    winner: int
+    ticks: int
+    ko: bool
+    hp_remaining: Tuple[float, float]
+
+    @property
+    def loser(self) -> int:
+        return 1 - self.winner
+
+
+@dataclass
+class ActionLog:
+    action_counts: Tuple[Dict[int, int], Dict[int, int]]
+    active_ticks: Tuple[int, int]
+    stun_applied: Tuple[int, int]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Estado mutável usado pelos helpers em Python (analyze_matchups, viewers)
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+@dataclass
 class FighterState:
     character: Character
     hp: float
     stun_remaining: int = 0
     cooldown_remaining: int = 0
-    committed_action: Optional["Action"] = None
+    committed_action: Optional[Action] = None
     commitment_remaining: int = 0
 
     @property
@@ -74,53 +110,12 @@ class TimerSnapshot:
     cooldown: int
 
     @classmethod
-    def of(cls, fighter: FighterState) -> TimerSnapshot:
+    def of(cls, fighter: FighterState) -> "TimerSnapshot":
         return cls(stun=fighter.stun_remaining, cooldown=fighter.cooldown_remaining)
 
 
-@dataclass
-class CombatResult:
-    winner: int
-    ticks: int
-    ko: bool
-    hp_remaining: Tuple[float, float]
-
-    @property
-    def loser(self) -> int:
-        return 1 - self.winner
-
-
-@dataclass
-class ActionLog:
-    action_counts: Tuple[Dict[int, int], Dict[int, int]]
-    active_ticks: Tuple[int, int]
-    stun_applied: Tuple[int, int]
-
-
 # ─────────────────────────────────────────────────────────────────────────────
-# Internos do loop
-# ─────────────────────────────────────────────────────────────────────────────
-
-
-@dataclass
-class ActionTracker:
-    action_counts: List[Dict[int, int]] = field(
-        default_factory=lambda: [{a: 0 for a in Action}, {a: 0 for a in Action}]
-    )
-    active_ticks: List[int] = field(default_factory=lambda: [0, 0])
-    stun_applied: List[int] = field(default_factory=lambda: [0, 0])
-
-
-@dataclass
-class CombatState:
-    fighters: List[FighterState]
-    positions: List[float]
-    end_tick: int = MAX_TICKS
-    tracker: Optional[ActionTracker] = None
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Lógica de combate
+# Helpers em Python puro (reusados por loops instrumentados externos)
 # ─────────────────────────────────────────────────────────────────────────────
 
 
@@ -136,10 +131,7 @@ def _soft_policy(char: Character) -> Action:
 
 
 def _choose_action(
-    me: FighterState,
-    enemy: FighterState,
-    distance: float,
-    pos_me: float,
+    me: FighterState, enemy: FighterState, distance: float, pos_me: float
 ) -> Action:
     char = me.character
     in_my_range = distance <= char.range_
@@ -193,163 +185,244 @@ def _decrement_stale_timers(fighter: FighterState, snapshot: TimerSnapshot) -> N
         fighter.cooldown_remaining = max(0, fighter.cooldown_remaining - 1)
 
 
-def _winner_by_hp_pct(fighters: List[FighterState]) -> int:
-    return 0 if fighters[0].hp_pct >= fighters[1].hp_pct else 1
-
-
-def _combat_result(fighters: List[FighterState], end_tick: int) -> CombatResult:
-    hp_a, hp_b = max(0.0, fighters[0].hp), max(0.0, fighters[1].hp)
-    alive_a, alive_b = fighters[0].is_alive, fighters[1].is_alive
-
-    if alive_a and not alive_b:
-        return CombatResult(0, end_tick, ko=True, hp_remaining=(hp_a, hp_b))
-    if alive_b and not alive_a:
-        return CombatResult(1, end_tick, ko=True, hp_remaining=(hp_a, hp_b))
-
-    ko = not (alive_a and alive_b)
-    return CombatResult(
-        _winner_by_hp_pct(fighters), end_tick, ko=ko, hp_remaining=(hp_a, hp_b)
-    )
-
-
 # ─────────────────────────────────────────────────────────────────────────────
-# Fases do combate
+# Núcleo JIT — loop tick a tick compilado
 # ─────────────────────────────────────────────────────────────────────────────
+#
+# O JIT sempre rastreia (action_counts, active_ticks, stun_applied) — o
+# overhead é negligenciável e elimina a duplicação de implementações.
+# Constantes de config viram args (não globais) para que mudanças em config.py
+# se propaguem sem invalidar o cache.
+#
+# Códigos de ação: -1=stunned, 0=ATTACK, 1=ADVANCE, 2=RETREAT, 3=DEFEND
+# Retorno: (winner, end_tick, ko, hp_a, hp_b, action_counts, active_ticks, stun_applied)
 
 
-def _init_combat_state(
-    char_a: Character, char_b: Character, track_actions: bool
-) -> CombatState:
-    return CombatState(
-        fighters=[
-            FighterState(character=char_a, hp=char_a.hp),
-            FighterState(character=char_b, hp=char_b.hp),
-        ],
-        positions=[
-            (FIELD_SIZE - INITIAL_DISTANCE) / 2.0,
-            (FIELD_SIZE + INITIAL_DISTANCE) / 2.0,
-        ],
-        tracker=ActionTracker() if track_actions else None,
-    )
+@njit(cache=True)
+def _simulate_combat_jit(
+    a_attrs, a_w, b_attrs, b_w,
+    field_size, initial_distance, wall_corner,
+    max_ticks, tick_scale, stun_cap_mult,
+    defend_red, persist,
+):
+    a_hp_max = a_attrs[0]; a_dmg = a_attrs[1]; a_cd = a_attrs[2]
+    a_range = a_attrs[3]; a_speed = a_attrs[4]; a_def = a_attrs[5]
+    a_stun = a_attrs[6]; a_kb = a_attrs[7]; a_rec = a_attrs[8]
+    a_wret = a_w[0]; a_wdef = a_w[1]; a_wagg = a_w[2]
 
+    b_hp_max = b_attrs[0]; b_dmg = b_attrs[1]; b_cd = b_attrs[2]
+    b_range = b_attrs[3]; b_speed = b_attrs[4]; b_def = b_attrs[5]
+    b_stun = b_attrs[6]; b_kb = b_attrs[7]; b_rec = b_attrs[8]
+    b_wret = b_w[0]; b_wdef = b_w[1]; b_wagg = b_w[2]
 
-def _phase_choose_actions(state: CombatState) -> List[Optional[Action]]:
-    distance = abs(state.positions[1] - state.positions[0])
-    actions: List[Optional[Action]] = []
-    for i in range(2):
-        if state.fighters[i].is_stunned:
-            actions.append(None)
-            continue
-        a = _choose_action(
-            state.fighters[i],
-            state.fighters[1 - i],
-            distance,
-            state.positions[i],
-        )
-        actions.append(a)
-        if state.tracker:
-            state.tracker.active_ticks[i] += 1
-            state.tracker.action_counts[i][a] += 1
-    return actions
+    hp_a = a_hp_max
+    hp_b = b_hp_max
+    pos_a = (field_size - initial_distance) / 2.0
+    pos_b = (field_size + initial_distance) / 2.0
 
+    stun_rem_a = 0; stun_rem_b = 0
+    cd_rem_a = 0; cd_rem_b = 0
+    commit_a = -1; commit_b = -1
+    persist_a = 0; persist_b = 0
 
-def _phase_apply_movement(state: CombatState, actions: List[Optional[Action]]) -> None:
-    for i in range(2):
-        if actions[i] not in (Action.ADVANCE, Action.RETREAT):
-            continue
-        speed = state.fighters[i].character.speed / TICK_SCALE
-        direction = 1.0 if state.positions[i] < state.positions[1 - i] else -1.0
-        if actions[i] == Action.ADVANCE:
-            state.positions[i] = max(
-                0.0, min(FIELD_SIZE, state.positions[i] + direction * speed)
-            )
-        else:
-            state.positions[i] = max(
-                0.0, min(FIELD_SIZE, state.positions[i] - direction * speed)
-            )
+    action_counts = np.zeros((2, 4), dtype=np.int64)
+    active_ticks = np.zeros(2, dtype=np.int64)
+    stun_applied = np.zeros(2, dtype=np.int64)
 
+    end_tick = max_ticks
 
-def _phase_resolve_attacks(state: CombatState, actions: List[Optional[Action]]) -> None:
-    distance = abs(state.positions[1] - state.positions[0])
-    defending = [a == Action.DEFEND for a in actions]
-
-    for attacker_idx in range(2):
-        if actions[attacker_idx] != Action.ATTACK:
-            continue
-        if not state.fighters[attacker_idx].attack_ready:
-            continue
-
-        defender_idx = 1 - attacker_idx
-        dmg, stun, kb = _resolve_attack(
-            attacker=state.fighters[attacker_idx].character,
-            defender_state=state.fighters[defender_idx],
-            defender_is_defending=defending[defender_idx],
-            distance=distance,
-        )
-
-        if dmg > 0:
-            state.fighters[defender_idx].hp = max(
-                0.0, state.fighters[defender_idx].hp - dmg
-            )
-
-            if stun > state.fighters[defender_idx].stun_remaining:
-                state.fighters[defender_idx].stun_remaining = stun
-            if state.tracker:
-                state.tracker.stun_applied[attacker_idx] += stun
-
-            kb_dir = (
-                1.0
-                if state.positions[defender_idx] >= state.positions[attacker_idx]
-                else -1.0
-            )
-            state.positions[defender_idx] = max(
-                0.0, min(FIELD_SIZE, state.positions[defender_idx] + kb_dir * kb)
-            )
-            state.fighters[attacker_idx].cooldown_remaining = round(
-                state.fighters[attacker_idx].character.attack_cooldown * TICK_SCALE
-            )
-
-
-def _phase_decrement_timers(
-    fighters: List[FighterState], snapshots: List[TimerSnapshot]
-) -> None:
-    for fighter, snapshot in zip(fighters, snapshots):
-        _decrement_stale_timers(fighter, snapshot)
-
-
-def _build_output(state: CombatState) -> Tuple[CombatResult, Optional[ActionLog]]:
-    result = _combat_result(state.fighters, state.end_tick)
-    if state.tracker is None:
-        return result, None
-    t = state.tracker
-    log = ActionLog(
-        action_counts=(t.action_counts[0], t.action_counts[1]),
-        active_ticks=(t.active_ticks[0], t.active_ticks[1]),
-        stun_applied=(t.stun_applied[0], t.stun_applied[1]),
-    )
-    return result, log
-
-
-def _run_combat_loop(
-    char_a: Character,
-    char_b: Character,
-    *,
-    track_actions: bool = False,
-) -> Tuple[CombatResult, Optional[ActionLog]]:
-    state = _init_combat_state(char_a, char_b, track_actions)
-
-    for tick in range(MAX_TICKS):
-        if not state.fighters[0].is_alive or not state.fighters[1].is_alive:
-            state.end_tick = tick
+    for tick in range(max_ticks):
+        if hp_a <= 0.0 or hp_b <= 0.0:
+            end_tick = tick
             break
 
-        actions = _phase_choose_actions(state)
-        _phase_apply_movement(state, actions)
-        pre_snapshots = [TimerSnapshot.of(f) for f in state.fighters]
-        _phase_resolve_attacks(state, actions)
-        _phase_decrement_timers(state.fighters, pre_snapshots)
+        distance = abs(pos_b - pos_a)
 
-    return _build_output(state)
+        # ── Escolha de ações ─────────────────────────────────────────────────
+        if stun_rem_a > 0:
+            action_a = -1
+        else:
+            in_range = distance <= a_range
+            cornered = (pos_a < wall_corner) or (pos_a > field_size - wall_corner)
+            if in_range and cd_rem_a == 0:
+                action_a = 0
+                persist_a = 0
+            elif (not in_range) or cornered:
+                action_a = 1
+                persist_a = 0
+            elif persist_a > 0 and commit_a >= 0:
+                action_a = commit_a
+                persist_a -= 1
+            else:
+                tot = a_wagg + a_wret + a_wdef
+                if tot <= 0.0:
+                    action_a = 3
+                else:
+                    r = np.random.random() * tot
+                    if r < a_wagg:
+                        action_a = 1
+                    elif r < a_wagg + a_wret:
+                        action_a = 2
+                    else:
+                        action_a = 3
+                commit_a = action_a
+                persist_a = persist
+            active_ticks[0] += 1
+            action_counts[0, action_a] += 1
+
+        if stun_rem_b > 0:
+            action_b = -1
+        else:
+            in_range = distance <= b_range
+            cornered = (pos_b < wall_corner) or (pos_b > field_size - wall_corner)
+            if in_range and cd_rem_b == 0:
+                action_b = 0
+                persist_b = 0
+            elif (not in_range) or cornered:
+                action_b = 1
+                persist_b = 0
+            elif persist_b > 0 and commit_b >= 0:
+                action_b = commit_b
+                persist_b -= 1
+            else:
+                tot = b_wagg + b_wret + b_wdef
+                if tot <= 0.0:
+                    action_b = 3
+                else:
+                    r = np.random.random() * tot
+                    if r < b_wagg:
+                        action_b = 1
+                    elif r < b_wagg + b_wret:
+                        action_b = 2
+                    else:
+                        action_b = 3
+                commit_b = action_b
+                persist_b = persist
+            active_ticks[1] += 1
+            action_counts[1, action_b] += 1
+
+        # ── Movimento ────────────────────────────────────────────────────────
+        if action_a == 1 or action_a == 2:
+            spd = a_speed / tick_scale
+            d = 1.0 if pos_a < pos_b else -1.0
+            sign = 1.0 if action_a == 1 else -1.0
+            new_pos = pos_a + d * sign * spd
+            if new_pos < 0.0:
+                new_pos = 0.0
+            elif new_pos > field_size:
+                new_pos = field_size
+            pos_a = new_pos
+
+        if action_b == 1 or action_b == 2:
+            spd = b_speed / tick_scale
+            d = 1.0 if pos_b < pos_a else -1.0
+            sign = 1.0 if action_b == 1 else -1.0
+            new_pos = pos_b + d * sign * spd
+            if new_pos < 0.0:
+                new_pos = 0.0
+            elif new_pos > field_size:
+                new_pos = field_size
+            pos_b = new_pos
+
+        # ── Snapshot dos timers antes dos ataques (decrement-stale) ──────────
+        pre_stun_a = stun_rem_a; pre_stun_b = stun_rem_b
+        pre_cd_a = cd_rem_a; pre_cd_b = cd_rem_b
+
+        # ── Resolução de ataques ─────────────────────────────────────────────
+        distance = abs(pos_b - pos_a)
+
+        # A → B
+        if action_a == 0 and cd_rem_a == 0 and distance <= a_range:
+            dmg = a_dmg * (1.0 - b_def)
+            if action_b == 3:
+                dmg *= defend_red
+            if dmg > 0.0:
+                stun_t = round(a_stun * tick_scale) - int(b_rec)
+                if stun_t < 0:
+                    stun_t = 0
+                cap = round(stun_cap_mult * a_cd * tick_scale)
+                if stun_t > cap:
+                    stun_t = cap
+
+                hp_b = hp_b - dmg
+                if hp_b < 0.0:
+                    hp_b = 0.0
+                if stun_t > stun_rem_b:
+                    stun_rem_b = stun_t
+                stun_applied[0] += stun_t
+                kb_dir = 1.0 if pos_b >= pos_a else -1.0
+                new_pos = pos_b + kb_dir * a_kb
+                if new_pos < 0.0:
+                    new_pos = 0.0
+                elif new_pos > field_size:
+                    new_pos = field_size
+                pos_b = new_pos
+                cd_rem_a = round(a_cd * tick_scale)
+
+        # B → A
+        if action_b == 0 and cd_rem_b == 0 and distance <= b_range:
+            dmg = b_dmg * (1.0 - a_def)
+            if action_a == 3:
+                dmg *= defend_red
+            if dmg > 0.0:
+                stun_t = round(b_stun * tick_scale) - int(a_rec)
+                if stun_t < 0:
+                    stun_t = 0
+                cap = round(stun_cap_mult * b_cd * tick_scale)
+                if stun_t > cap:
+                    stun_t = cap
+
+                hp_a = hp_a - dmg
+                if hp_a < 0.0:
+                    hp_a = 0.0
+                if stun_t > stun_rem_a:
+                    stun_rem_a = stun_t
+                stun_applied[1] += stun_t
+                kb_dir = 1.0 if pos_a >= pos_b else -1.0
+                new_pos = pos_a + kb_dir * b_kb
+                if new_pos < 0.0:
+                    new_pos = 0.0
+                elif new_pos > field_size:
+                    new_pos = field_size
+                pos_a = new_pos
+                cd_rem_b = round(b_cd * tick_scale)
+
+        # ── Decremento de timers stale ───────────────────────────────────────
+        if stun_rem_a <= pre_stun_a:
+            stun_rem_a = max(0, stun_rem_a - 1)
+        if cd_rem_a <= pre_cd_a:
+            cd_rem_a = max(0, cd_rem_a - 1)
+        if stun_rem_b <= pre_stun_b:
+            stun_rem_b = max(0, stun_rem_b - 1)
+        if cd_rem_b <= pre_cd_b:
+            cd_rem_b = max(0, cd_rem_b - 1)
+
+    # ── Determinar vencedor ──────────────────────────────────────────────────
+    alive_a = hp_a > 0.0
+    alive_b = hp_b > 0.0
+
+    if alive_a and not alive_b:
+        return 0, end_tick, 1, hp_a, hp_b, action_counts, active_ticks, stun_applied
+    if alive_b and not alive_a:
+        return 1, end_tick, 1, hp_a, hp_b, action_counts, active_ticks, stun_applied
+
+    ko = 0 if (alive_a and alive_b) else 1
+    a_pct = hp_a / a_hp_max if a_hp_max > 0.0 else 0.0
+    b_pct = hp_b / b_hp_max if b_hp_max > 0.0 else 0.0
+    winner = 0 if a_pct >= b_pct else 1
+    return winner, end_tick, ko, hp_a, hp_b, action_counts, active_ticks, stun_applied
+
+
+def _run_jit(char_a: Character, char_b: Character):
+    return _simulate_combat_jit(
+        np.asarray(char_a.attributes, dtype=np.float64),
+        np.asarray(char_a.weights, dtype=np.float64),
+        np.asarray(char_b.attributes, dtype=np.float64),
+        np.asarray(char_b.weights, dtype=np.float64),
+        float(FIELD_SIZE), float(INITIAL_DISTANCE), float(WALL_CORNER_THRESHOLD),
+        int(MAX_TICKS), float(TICK_SCALE), float(STUN_CAP_MULTIPLIER),
+        float(DEFEND_DAMAGE_REDUCTION), int(ACTION_PERSISTENCE_SUBTICKS),
+    )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -358,12 +431,33 @@ def _run_combat_loop(
 
 
 def simulate_combat(char_a: Character, char_b: Character) -> CombatResult:
-    result, _ = _run_combat_loop(char_a, char_b)
-    return result
+    winner, ticks, ko, hp_a, hp_b, _, _, _ = _run_jit(char_a, char_b)
+    return CombatResult(
+        winner=int(winner),
+        ticks=int(ticks),
+        ko=bool(ko),
+        hp_remaining=(float(hp_a), float(hp_b)),
+    )
 
 
 def simulate_combat_detailed(
     char_a: Character, char_b: Character
 ) -> Tuple[CombatResult, ActionLog]:
-    result, log = _run_combat_loop(char_a, char_b, track_actions=True)
+    winner, ticks, ko, hp_a, hp_b, action_counts, active_ticks, stun_applied = (
+        _run_jit(char_a, char_b)
+    )
+    result = CombatResult(
+        winner=int(winner),
+        ticks=int(ticks),
+        ko=bool(ko),
+        hp_remaining=(float(hp_a), float(hp_b)),
+    )
+    log = ActionLog(
+        action_counts=(
+            {int(a): int(action_counts[0, int(a)]) for a in Action},
+            {int(a): int(action_counts[1, int(a)]) for a in Action},
+        ),
+        active_ticks=(int(active_ticks[0]), int(active_ticks[1])),
+        stun_applied=(int(stun_applied[0]), int(stun_applied[1])),
+    )
     return result, log

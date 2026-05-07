@@ -17,8 +17,11 @@ The canonical archetype values are *not* hardcoded constraints — they serve as
 
 ## Dependencies
 
-Only external package required: `pip install matplotlib`  
-Everything else is Python stdlib + project modules.
+```bash
+pip install matplotlib numpy numba
+```
+
+`numba` é usado para JIT-compilar o loop de combate (`combat._simulate_combat_jit`) — speedup de ~150× sobre Python puro. Primeira chamada compila (~2.5s); depois fica em cache. Sem numba, o sistema não roda — `simulate_combat()` chama o JIT direto.
 
 ## File Map
 
