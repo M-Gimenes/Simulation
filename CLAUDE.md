@@ -80,7 +80,7 @@ All GA/NSGA-II outputs go to `results/` (created automatically on first run):
 The system has two independent layers that the GA orchestrates:
 
 **Simulation layer** (`combat.py`):  
-Tick-based 1v1 combat. Each tick: choose action via priority system → apply movement → resolve attacks simultaneously → decrement timers. Actions: ATTACK / ADVANCE / RETREAT / DEFEND. Key mechanics: `attack_cooldown` is deterministic, stun is computed as `round(attacker.stun × TICK_SCALE) − defender.recovery` (recovery is an integer in sub-ticks, subtractive — see Key Design Decisions), then capped at `STUN_CAP_MULTIPLIER × attacker_cooldown` (1× by default — stun never exceeds the attacker's own cooldown, so combo chaining is impossible). Defending reduces incoming damage by `1 - DEFEND_DAMAGE_REDUCTION` (60% reduction at 0.4). Damage is deterministic: `damage × (1 − defense)`; no per-hit variance. Timers are decremented **after** attacks — values freshly set by an attack are not decremented until the following tick, making `cooldown=1` and `stun=1` meaningful minimums. Single source of stochasticity: **soft-policy threat response** — when the enemy can hit the character (distance ≤ enemy range, enemy ready, not stunned), the action is sampled from `{ADVANCE, RETREAT, DEFEND}` with probabilities proportional to `(w_aggressiveness, w_retreat, w_defend)`. All other priority branches are deterministic.
+Tick-based 1v1 combat. Each tick: choose action via priority system → apply movement → resolve attacks simultaneously → decrement timers. Actions: ATTACK / ADVANCE / RETREAT / DEFEND. Key mechanics: `attack_cooldown` is deterministic, stun is computed as `round(attacker.stun × TICK_SCALE) − defender.recovery` (recovery is an integer in sub-ticks, subtractive — see Key Design Decisions), then capped at `STUN_CAP_MULTIPLIER × attacker_cooldown` (0.6 by default — stun é estritamente menor que o cooldown do atacante, garantindo uma janela livre entre hits para o defensor agir). Defending reduces incoming damage by `1 - DEFEND_DAMAGE_REDUCTION` (60% reduction at 0.4). Damage is deterministic: `damage × (1 − defense)`; no per-hit variance. Timers are decremented **after** attacks — values freshly set by an attack are not decremented until the following tick, making `cooldown=1` and `stun=1` meaningful minimums. Single source of stochasticity: **soft-policy threat response** — when the enemy can hit the character (distance ≤ enemy range, enemy ready, not stunned), the action is sampled from `{ADVANCE, RETREAT, DEFEND}` with probabilities proportional to `(w_aggressiveness, w_retreat, w_defend)`. All other priority branches are deterministic.
 
 **GA layer** (`ga.py`, `fitness.py`, `operators.py`):  
 Each individual = 5 characters (one per archetype) = 60 genes total (9 attrs + 3 weights per character). Fitness is evaluated via full round-robin (C(5,2)=10 matchups × `SIMS_PER_MATCHUP` simulations). Fitness formula (scalar GA): `fitness = -(LAMBDA_SPECIALIZATION × specialization_penalty + LAMBDA_DRIFT × drift_penalty + LAMBDA_DOMINANCE × dominance_penalty)`. The `specialization_penalty` uses a *specialization* metric (max−min of normalized attributes) — rewards archetype differentiation and prevents homogenization. `dominance_penalty` uses `sqrt(mean(excess_ij²))` (RMS) over the 10 pairs computed on **HP-weighted scores** rather than binary WR — KO matches contribute 1.0/0.0 like a WR, but timeout matches contribute the loser's HP-share fraction (a 55%/45% timeout enters as score≈0.55, not 1.0). The square gives extreme matchups (100/0) ~16× the weight of moderate ones (70/30). **NSGA-II** ignores all `LAMBDA_*` constants — `evaluate_objectives` returns `(dominance_penalty, drift_penalty)` raw; the Pareto front is computed in those two unweighted dimensions.
@@ -132,10 +132,12 @@ Each individual = 5 characters (one per archetype) = 60 genes total (9 attrs + 3
 2. Every direct matchup WR within `MATCHUP_CONVERGENCE_THRESHOLD` (10%) of 50%
 
 **Canonical calibration rules**:
-- HP range: 300–500; Damage range: 10–20 — minimum ~15 hits to KO (300 HP / 20 dmg)
+- HP range: 300–400; Damage range: 10–20 — minimum ~15 hits to KO (300 HP / 20 dmg). Bounds apertados (era 500) eliminam "tanque acima do Turtle" como espaço de exploit do AG; canônicos: Zoner=300, Rush=320, CM=350, Grap=380, Turtle=400
 - All `range` values ≤ 20 < `INITIAL_DISTANCE` (50) — no character can attack from tick 1
 - `attack_cooldown` ∈ [1, 5]: Rushdown=1 (fastest), Turtle=5 (slowest), Grappler=4
-- `recovery` ∈ [0, 15] (integer sub-ticks): Zoner=2, Rushdown=3, CM=3, Grappler=4, Turtle=7
+- `defense` ∈ [0, 0.30] (era 0.5): teto colado em Turtle (0.25) + headroom mínimo, evita evolução de defesa absurda
+- `knockback` ∈ [0, 3] (era 5): teto razoável acima do Zoner (2), evita zoning trivial via expulsão de range
+- `recovery` ∈ [0, 10] (era 15, integer sub-ticks): Zoner=2, Rushdown=3, CM=3, Grappler=4, Turtle=7. Teto reduzido evita "stun-immunity" via recovery alta
 - Behaviors expressed via `w_*` weights (3 per character: `w_retreat`, `w_defend`, `w_aggressiveness`)
 - `w_aggressiveness >= 0.7` → aggressive archetypes (Rushdown, Grappler, Combo Master) push through threats
 - `w_retreat > w_defend` → reactive archetypes (Zoner) kite; `w_defend >= w_retreat` → absorbers (Turtle) hold ground
@@ -168,5 +170,5 @@ Located in `config.py`. Commonly adjusted:
 | `MAX_GENERATIONS` | 100 | GA termination limit |
 | `STAGNATION_LIMIT` | 50 | Generations without improvement before stopping |
 | `TICK_SCALE` | 5 | Sub-tick resolution multiplier for cooldown/stun/movement |
-| `STUN_CAP_MULTIPLIER` | 1.0 | Max stun = multiplier × attacker cooldown (1.0 = no combo chaining) |
+| `STUN_CAP_MULTIPLIER` | 0.6 | Max stun = multiplier × attacker cooldown (<1.0 garante janela livre entre hits, quebrando soft-perma-lock) |
 | `DEFEND_DAMAGE_REDUCTION` | 0.4 | Multiplier on incoming damage when defending (40% taken = 60% reduction) |

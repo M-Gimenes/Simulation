@@ -129,7 +129,7 @@ ARCHETYPES: Dict[ArchetypeID, ArchetypeDefinition] = {
             "Sofre contra distância — range mínimo exige encosto total."
         ),
         initial_attributes=AttributeSet(
-            hp=400.0, damage=20.0, attack_cooldown=4.0, range_=8.0,
+            hp=380.0, damage=20.0, attack_cooldown=4.0, range_=8.0,
             speed=2.0, defense=0.20, stun=2.5, knockback=0.5, recovery=4,
         ),
         initial_weights=WeightSet(
@@ -146,7 +146,7 @@ ARCHETYPES: Dict[ArchetypeID, ArchetypeDefinition] = {
             "Perde para quem quebra a defesa com stun."
         ),
         initial_attributes=AttributeSet(
-            hp=450.0, damage=10.0, attack_cooldown=5.0, range_=13.0,
+            hp=400.0, damage=10.0, attack_cooldown=5.0, range_=13.0,
             speed=1.5, defense=0.25, stun=2, knockback=1, recovery=7,
         ),
         initial_weights=WeightSet(
