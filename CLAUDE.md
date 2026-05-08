@@ -109,7 +109,7 @@ All GA/NSGA-II outputs go to `results/` (created automatically on first run):
 The system has two independent layers that the GA orchestrates:
 
 **Simulation layer** (`src/combat.py`):  
-Tick-based 1v1 combat. Each tick: choose action via priority system → apply movement → resolve attacks simultaneously → decrement timers. Actions: ATTACK / ADVANCE / RETREAT / DEFEND. Key mechanics: `attack_cooldown` is deterministic, stun is computed as `round(attacker.stun × TICK_SCALE) − defender.recovery` (recovery is an integer in sub-ticks, subtractive — see Key Design Decisions), then capped at `STUN_CAP_MULTIPLIER × attacker_cooldown` (0.6 by default — stun é estritamente menor que o cooldown do atacante, garantindo uma janela livre entre hits para o defensor agir). Defending reduces incoming damage by `1 - DEFEND_DAMAGE_REDUCTION` (60% reduction at 0.4). Damage is deterministic: `damage × (1 − defense)`; no per-hit variance. Timers are decremented **after** attacks — values freshly set by an attack are not decremented until the following tick, making `cooldown=1` and `stun=1` meaningful minimums. Single source of stochasticity: **soft-policy threat response** — when the enemy can hit the character (distance ≤ enemy range, enemy ready, not stunned), the action is sampled from `{ADVANCE, RETREAT, DEFEND}` with probabilities proportional to `(w_aggressiveness, w_retreat, w_defend)`. All other priority branches are deterministic.
+Tick-based 1v1 combat. Each tick: choose action via priority system → apply movement → resolve attacks simultaneously → decrement timers. Actions: ATTACK / ADVANCE / RETREAT / DEFEND. Key mechanics: `attack_cooldown` is deterministic, stun is computed as `round(attacker.stun × TICK_SCALE) − defender.recovery` (recovery is an integer in sub-ticks, subtractive — see Key Design Decisions), then capped at `STUN_CAP_MULTIPLIER × attacker_cooldown` (0.6 by default — stun é estritamente menor que o cooldown do atacante, garantindo uma janela livre entre hits para o defensor agir). Defending reduces incoming damage by `1 - DEFEND_DAMAGE_REDUCTION` (60% reduction at 0.4). Damage is deterministic: `damage × (1 − defense)`; no per-hit variance. Timers are decremented **after** attacks — values freshly set by an attack are not decremented until the following tick, making `cooldown=1` and `stun=1` meaningful minimums. Single source of stochasticity: **soft-policy commitment** — when the character is within its own range but the cooldown is not ready, the action is sampled from `{ADVANCE, RETREAT, DEFEND}` with probabilities proportional to `(w_aggressiveness, w_retreat, w_defend)` and **held for `ACTION_PERSISTENCE_SUBTICKS` sub-ticks** before re-rolling. This simulates commitment/momentum: a decision to retreat or defend persists for a beat instead of flipping every sub-tick. All other priority branches are deterministic.
 
 **GA layer** (`src/ga.py`, `src/fitness.py`, `src/operators.py`):  
 Each individual = 5 characters (one per archetype) = 60 genes total (9 attrs + 3 weights per character). Fitness is evaluated via full round-robin (C(5,2)=10 matchups × `SIMS_PER_MATCHUP` simulations). Fitness formula (scalar GA): `fitness = -(LAMBDA_SPECIALIZATION × specialization_penalty + LAMBDA_DRIFT × drift_penalty + LAMBDA_DOMINANCE × dominance_penalty)`. The `specialization_penalty` uses a *specialization* metric (max−min of normalized attributes) — rewards archetype differentiation and prevents homogenization. `dominance_penalty` uses `sqrt(mean(excess_ij²))` (RMS) over the 10 pairs computed on **HP-weighted scores** rather than binary WR — KO matches contribute 1.0/0.0 like a WR, but timeout matches contribute the loser's HP-share fraction (a 55%/45% timeout enters as score≈0.55, not 1.0). The square gives extreme matchups (100/0) ~16× the weight of moderate ones (70/30). **NSGA-II** ignores all `LAMBDA_*` constants — `evaluate_objectives` returns `(dominance_penalty, drift_penalty)` raw; the Pareto front is computed in those two unweighted dimensions.
@@ -134,20 +134,24 @@ Each individual = 5 characters (one per archetype) = 60 genes total (9 attrs + 3
 
 ## Key Design Decisions
 
-**Priority-based action selection** (see `_choose_action` in `src/combat.py`). Priorities (highest to lowest):
-1. **ATTACK** — if in own range and `attack_ready`.
-2. **THREAT RESPONSE** — if the enemy can hit the character now (`distance ≤ enemy.range_` AND `enemy.attack_ready` AND not stunned), choose ADVANCE/RETREAT/DEFEND probabilistically via `_threat_response` — `random.choices` weighted by `(w_aggressiveness, w_retreat, w_defend)`. This is the **soft-policy** branch: weights act continuously (a Δ in any weight produces a proportional Δ in action probability), giving the GA a continuous gradient on these genes. The previous hard-comparison form (`w_aggressiveness > w_retreat and w_aggressiveness > w_defend`) was replaced because it made weights *categorical* — only the order mattered, magnitudes were invisible to selection.
-3. **ADVANCE** — if out of own range or cornered against a wall.
-4. **DEFEND** — default while waiting for cooldown.
+**Priority-based action selection** (definido inline em `_simulate_combat_jit` / `_simulate_combat_traced_jit`). Priorities (highest to lowest):
+1. **ATTACK** — if in own range and `attack_ready`. Clears any pending soft-policy commitment.
+2. **ADVANCE** — if out of own range OR cornered against a wall. Clears any pending soft-policy commitment.
+3. **HELD COMMITMENT** — if a previous soft-policy choice is still within its persistence window (`commitment_remaining > 0`), repeat it and decrement the counter.
+4. **NEW SOFT POLICY** — sample one of `{ADVANCE, RETREAT, DEFEND}` via `random.choices` weighted by `(w_aggressiveness, w_retreat, w_defend)`, store it as the committed action, and reset the counter to `ACTION_PERSISTENCE_SUBTICKS`.
 
-**Critical**: threat detection requires `distance ≤ enemy.range_` — a character that never successfully attacks keeps `cooldown=0` forever and would otherwise create a false perpetual-threat loop (ghost fight).
+The soft-policy branch (3 + 4) is the only stochastic node in the loop. Weights act continuously: a Δ in any weight produces a proportional Δ in action probability, giving the GA a continuous gradient on these genes. The previous hard-comparison form (`w_aggressiveness > w_retreat and w_aggressiveness > w_defend`) made weights *categorical* — only the order mattered, magnitudes were invisible to selection.
+
+**Action persistence** (`ACTION_PERSISTENCE_SUBTICKS = 10`): once a soft-policy action is sampled, it is reused for the next 10 sub-ticks instead of resampling every sub-tick. This simulates commitment/momentum and prevents pathological flip-flopping — without it, the character would re-roll RETREAT/DEFEND/ADVANCE 5× per logical tick. The commitment is broken whenever a higher-priority branch fires (in own range + ready → ATTACK, or out of range / cornered → ADVANCE).
 
 **Timer decrement order**: Decrements happen at the END of each tick (after attacks), using pre-attack timer values to decide what to decrement. Timers freshly set by an attack (`current > pre`) are preserved until the next tick. This means `stun=1` blocks the target for exactly 1 tick, and `attack_cooldown=1` forces a 1-tick wait before the next attack.
 
-**TICK_SCALE sub-tick resolution**: All timers and movement operate in sub-tick units (TICK_SCALE=5). Any script that re-implements the combat loop **must** apply this:
+**TICK_SCALE sub-tick resolution**: All timers and movement operate in sub-tick units (TICK_SCALE=5):
 - Movement per sub-tick: `speed / TICK_SCALE`
 - Cooldown on hit: `round(attack_cooldown * TICK_SCALE)`
-- `_resolve_attack` already returns stun in sub-tick units (handles TICK_SCALE internally)
+- Stun on hit: `round(attacker.stun * TICK_SCALE) − defender.recovery`, capped at `STUN_CAP_MULTIPLIER × attack_cooldown × TICK_SCALE`
+
+Toda a lógica de combate vive **exclusivamente** dentro do JIT (`_simulate_combat_jit` para o fitness, `_simulate_combat_traced_jit` para tools). Não há reimplementação Python do loop — tools que precisam instrumentar consomem `CombatTrace` em vez de redobrar a lógica.
 
 **Three orthogonal fitness terms** (scalar GA — NSGA-II uses only the latter two, unweighted):
 - `specialization_penalty` (via `LAMBDA_SPECIALIZATION=0.2`) penalizes homogeneous builds
@@ -171,9 +175,9 @@ Each individual = 5 characters (one per archetype) = 60 genes total (9 attrs + 3
 - `w_aggressiveness >= 0.7` → aggressive archetypes (Rushdown, Grappler, Combo Master) push through threats
 - `w_retreat > w_defend` → reactive archetypes (Zoner) kite; `w_defend >= w_retreat` → absorbers (Turtle) hold ground
 
-**Cooldown only on hit**: `_resolve_attack` returns `(0, 0, 0)` if `distance > attacker.range_`. The cooldown is set only inside the `if dmg > 0` block — a whiffed attack (chosen before movement changed distance) does not waste the attacker's cooldown.
+**Cooldown only on hit**: o JIT só seta o cooldown do atacante dentro do bloco `if dmg > 0.0` (i.e. quando há dano efetivo). Um ataque que sai mas sai fora de range (a distância pode ter mudado depois do movimento daquele tick) não desperdiça cooldown.
 
-**Recovery as integer subtraction**: `recovery` is stored as an integer in sub-tick units, with bounds `[0, 15]`. Each unit shaves exactly 1 sub-tick from any incoming stun: `effective_stun = max(0, raw_stun_subticks − defender.recovery)`. The previous multiplicative form `stun × (1 − recovery_float)` produced rounding plateaus in which small mutations were invisible to the AG; the additive integer form gives a visible behavior change per gene unit. Mutation operates on the float internal value; `Character.clip()` rounds genes listed in `INTEGER_ATTRIBUTES` to int after each clamp, keeping representation and combat semantics aligned.
+**Recovery as integer subtraction**: `recovery` is stored as an integer in sub-tick units, with bounds `[0, 10]`. Each unit shaves exactly 1 sub-tick from any incoming stun: `effective_stun = max(0, raw_stun_subticks − defender.recovery)`. The previous multiplicative form `stun × (1 − recovery_float)` produced rounding plateaus in which small mutations were invisible to the AG; the additive integer form gives a visible behavior change per gene unit. Mutation operates on the float internal value; `Character.clip()` rounds genes listed in `INTEGER_ATTRIBUTES` to int after each clamp, keeping representation and combat semantics aligned.
 
 ## Quick Matchup Check
 
@@ -194,10 +198,11 @@ Located in `src/config.py`. Commonly adjusted:
 | `LAMBDA_DOMINANCE` | 1.0 | Weight of dominance penalty (scalar GA only) |
 | `MATCHUP_THRESHOLD` | 0.10 | Score excess above 50% that starts penalizing (60% = trigger) |
 | `MATCHUP_CONVERGENCE_THRESHOLD` | 0.10 | Max WR deviation per matchup to declare convergence |
-| `SIMS_PER_MATCHUP` | 100 | Simulations per matchup (more = stable WR, slower; 100 → ~5% binomial std at 50% WR) |
+| `SIMS_PER_MATCHUP` | 150 | Simulations per matchup (more = stable WR, slower; ~4% binomial std at 50% WR) |
 | `SIMS_CONVERGENCE_CHECK` | 200 | Extra sims used only for convergence confirmation (high enough that ±10% per-matchup band is statistically reachable across all 10 pairs) |
-| `MAX_GENERATIONS` | 100 | GA termination limit |
-| `STAGNATION_LIMIT` | 50 | Generations without improvement before stopping |
+| `MAX_GENERATIONS` | 150 | GA termination limit |
+| `STAGNATION_LIMIT` | 30 | Generations without improvement before stopping |
 | `TICK_SCALE` | 5 | Sub-tick resolution multiplier for cooldown/stun/movement |
+| `ACTION_PERSISTENCE_SUBTICKS` | 10 | Sub-ticks a soft-policy action is held before re-rolling (commitment/momentum) |
 | `STUN_CAP_MULTIPLIER` | 0.6 | Max stun = multiplier × attacker cooldown (<1.0 garante janela livre entre hits, quebrando soft-perma-lock) |
 | `DEFEND_DAMAGE_REDUCTION` | 0.4 | Multiplier on incoming damage when defending (40% taken = 60% reduction) |

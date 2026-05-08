@@ -8,17 +8,15 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
 import webbrowser
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from typing import List, Optional
 from urllib.parse import parse_qs, urlparse
 
 from src.archetypes import ARCHETYPES, ARCHETYPE_ORDER, ArchetypeID, ARCHETYPE_ALIASES
 from src.character import Character
-from src.combat import Action, FighterState, _choose_action, _resolve_attack
-from src.config import FIELD_SIZE, INITIAL_DISTANCE, MAX_TICKS, TICK_SCALE
+from src.combat import Action, simulate_combat_traced
+from src.config import FIELD_SIZE
 from src.individual import Individual
 
 
@@ -41,135 +39,58 @@ ARCHETYPE_COLORS = {
 # Gravação do combate
 # ─────────────────────────────────────────────────────────────────────────────
 
+_ACTION_NAME = {
+    -1:                  "STUNNED",
+    int(Action.ATTACK):  "ATTACK",
+    int(Action.ADVANCE): "ADVANCE",
+    int(Action.RETREAT): "RETREAT",
+    int(Action.DEFEND):  "DEFEND",
+}
+
+
 def record_combat(char_a: Character, char_b: Character) -> dict:
     """Roda o combate e retorna todos os dados tick a tick como dict JSON-serializável."""
-
-    fighters = [
-        FighterState(character=char_a, hp=char_a.hp),
-        FighterState(character=char_b, hp=char_b.hp),
-    ]
-    pos = [
-        (FIELD_SIZE - INITIAL_DISTANCE) / 2.0,
-        (FIELD_SIZE + INITIAL_DISTANCE) / 2.0,
-    ]
+    trace = simulate_combat_traced(char_a, char_b)
+    hp_max_a, hp_max_b = char_a.hp, char_b.hp
 
     ticks = []
-    winner_idx = 0
-    ko = False
-    end_tick = MAX_TICKS
-
-    for tick in range(MAX_TICKS):
-        distance = abs(pos[1] - pos[0])
-
-        if not fighters[0].is_alive or not fighters[1].is_alive:
-            end_tick = tick
-            ko = True
-            break
-
-        # Fase 1: ações
-        actions: List[Optional[int]] = []
-        for i in range(2):
-            if fighters[i].is_stunned:
-                actions.append(None)
-            else:
-                actions.append(_choose_action(fighters[i], fighters[1 - i], distance, pos[i]))
-
-        # Fase 2: movimento (distance recalculado antes para evitar stale)
-        for i in range(2):
-            if actions[i] not in (Action.ADVANCE, Action.RETREAT):
+    for t in range(trace.end_tick):
+        hp_a = float(trace.hp[t, 0])
+        hp_b = float(trace.hp[t, 1])
+        events = []
+        for att in (0, 1):
+            dmg = float(trace.damage_dealt[t, att])
+            if dmg <= 0.0:
                 continue
-            speed = fighters[i].character.speed / TICK_SCALE
-            direction = 1.0 if pos[i] < pos[1 - i] else -1.0
-            if actions[i] == Action.ADVANCE:
-                pos[i] = max(0.0, min(FIELD_SIZE, pos[i] + direction * speed))
-            else:
-                pos[i] = max(0.0, min(FIELD_SIZE, pos[i] - direction * speed))
-
-        # Fase 3: ataques
-        distance = abs(pos[1] - pos[0])
-        defending = [a == Action.DEFEND for a in actions]
-        tick_events = []
-
-        pre_stun = [f.stun_remaining for f in fighters]
-        pre_cd   = [f.cooldown_remaining for f in fighters]
-
-        for att_idx in range(2):
-            if actions[att_idx] != Action.ATTACK:
-                continue
-            if not fighters[att_idx].attack_ready:
-                continue
-
-            def_idx = 1 - att_idx
-            hp_before_pct = fighters[def_idx].hp_pct
-
-            dmg, stun, kb = _resolve_attack(
-                attacker=fighters[att_idx].character,
-                defender_state=fighters[def_idx],
-                defender_is_defending=defending[def_idx],
-                distance=distance,
-            )
-
-            if dmg > 0:
-                fighters[def_idx].hp = max(0.0, fighters[def_idx].hp - dmg)
-                if stun > fighters[def_idx].stun_remaining:
-                    fighters[def_idx].stun_remaining = stun
-                kb_dir = 1.0 if pos[def_idx] >= pos[att_idx] else -1.0
-                pos[def_idx] = max(0.0, min(FIELD_SIZE, pos[def_idx] + kb_dir * kb))
-
-                tick_events.append({
-                    "attacker_idx": att_idx,
-                    "damage": round(dmg, 1),
-                    "stun": stun,
-                    "knockback": round(kb, 1),
-                    "ko": not fighters[def_idx].is_alive,
-                    "hp_before": round(hp_before_pct, 3),
-                    "hp_after": round(fighters[def_idx].hp_pct, 3),
-                })
-
-                # Cooldown só é setado em hit — ataque fora de range não desperdiça cooldown
-                fighters[att_idx].cooldown_remaining = round(
-                    fighters[att_idx].character.attack_cooldown * TICK_SCALE
-                )
-
-        # Fase 4: decrementar apenas timers não recém-setados
-        for i, f in enumerate(fighters):
-            if f.stun_remaining <= pre_stun[i]:
-                f.stun_remaining = max(0, f.stun_remaining - 1)
-            if f.cooldown_remaining <= pre_cd[i]:
-                f.cooldown_remaining = max(0, f.cooldown_remaining - 1)
-
-        def _action_name(a) -> str:
-            if a is None:
-                return "STUNNED"
-            return {Action.ATTACK: "ATTACK", Action.ADVANCE: "ADVANCE",
-                    Action.RETREAT: "RETREAT", Action.DEFEND: "DEFEND"}.get(a, "?")
+            defender = 1 - att
+            hp_after_def = float(trace.hp[t, defender])
+            hp_max_def = hp_max_a if defender == 0 else hp_max_b
+            events.append({
+                "attacker_idx": att,
+                "damage":      round(dmg, 1),
+                "stun":        int(trace.stun_applied[t, att]),
+                "knockback":   round(float(trace.knockback_dealt[t, att]), 1),
+                "ko":          hp_after_def <= 0.0,
+                "hp_before":   round((hp_after_def + dmg) / hp_max_def, 3),
+                "hp_after":    round(hp_after_def / hp_max_def, 3),
+            })
 
         ticks.append({
-            "tick": tick,
-            "hp_a": round(fighters[0].hp, 1),
-            "hp_b": round(fighters[1].hp, 1),
-            "hp_pct_a": round(fighters[0].hp_pct, 4),
-            "hp_pct_b": round(fighters[1].hp_pct, 4),
-            "pos_a": round(pos[0], 2),
-            "pos_b": round(pos[1], 2),
-            "action_a": _action_name(actions[0]),
-            "action_b": _action_name(actions[1]),
-            "cd_a": fighters[0].cooldown_remaining,
-            "cd_b": fighters[1].cooldown_remaining,
-            "stun_a": fighters[0].stun_remaining,
-            "stun_b": fighters[1].stun_remaining,
-            "events": tick_events,
+            "tick":     t,
+            "hp_a":     round(hp_a, 1),
+            "hp_b":     round(hp_b, 1),
+            "hp_pct_a": round(hp_a / hp_max_a, 4),
+            "hp_pct_b": round(hp_b / hp_max_b, 4),
+            "pos_a":    round(float(trace.pos[t, 0]), 2),
+            "pos_b":    round(float(trace.pos[t, 1]), 2),
+            "action_a": _ACTION_NAME[int(trace.action[t, 0])],
+            "action_b": _ACTION_NAME[int(trace.action[t, 1])],
+            "cd_a":     int(trace.cooldown[t, 0]),
+            "cd_b":     int(trace.cooldown[t, 1]),
+            "stun_a":   int(trace.stun[t, 0]),
+            "stun_b":   int(trace.stun[t, 1]),
+            "events":   events,
         })
-
-    # Vencedor
-    if not fighters[0].is_alive and not fighters[1].is_alive:
-        winner_idx = 0 if fighters[0].hp_pct >= fighters[1].hp_pct else 1
-    elif not fighters[0].is_alive:
-        winner_idx = 1
-    elif not fighters[1].is_alive:
-        winner_idx = 0
-    else:
-        winner_idx = 0 if fighters[0].hp_pct >= fighters[1].hp_pct else 1
 
     def _char_info(char: Character) -> dict:
         return {
@@ -191,10 +112,10 @@ def record_combat(char_a: Character, char_b: Character) -> dict:
         "char_a": _char_info(char_a),
         "char_b": _char_info(char_b),
         "ticks": ticks,
-        "winner_idx": winner_idx,
-        "winner_name": [char_a.name, char_b.name][winner_idx],
-        "ko": ko,
-        "total_ticks": end_tick,
+        "winner_idx": trace.winner,
+        "winner_name": [char_a.name, char_b.name][trace.winner],
+        "ko": trace.ko,
+        "total_ticks": trace.end_tick,
         "field_size": FIELD_SIZE,
     }
 

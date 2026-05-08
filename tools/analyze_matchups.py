@@ -16,21 +16,15 @@ import random
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 
+import numpy as np
+
 from src.archetypes import ARCHETYPE_ALIASES, ARCHETYPE_ORDER, ARCHETYPES, ArchetypeID
 from src.character import Character
-from src.combat import (
-    Action,
-    FighterState,
-    TimerSnapshot,
-    _choose_action,
-    _decrement_stale_timers,
-    _resolve_attack,
-)
-from src.config import FIELD_SIZE, INITIAL_DISTANCE, MAX_TICKS, TICK_SCALE
+from src.combat import Action, simulate_combat_traced
 from src.individual import Individual
 
 
-ANALYZE_SIMS = 500
+ANALYZE_SIMS = 1000
 
 # Bandas de classificação aplicadas à WR do vencedor canônico do par:
 #   ≥ DOMINANCE_THRESHOLD  → canônico vence demais
@@ -119,158 +113,56 @@ class AveragedMatchupResult:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Simulação instrumentada (1 luta)
+# Extração de estatísticas a partir do CombatTrace
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-def _initial_positions() -> List[float]:
-    return [
-        (FIELD_SIZE - INITIAL_DISTANCE) / 2.0,
-        (FIELD_SIZE + INITIAL_DISTANCE) / 2.0,
-    ]
-
-
-def _clamp_position(p: float) -> float:
-    return max(0.0, min(FIELD_SIZE, p))
-
-
-def _apply_movement(pos: List[float], i: int, action: Action, speed: float) -> None:
-    direction = 1.0 if pos[i] < pos[1 - i] else -1.0
-    sign = 1.0 if action == Action.ADVANCE else -1.0
-    pos[i] = _clamp_position(pos[i] + direction * sign * speed)
-
-
-def _apply_knockback(pos: List[float], def_idx: int, att_idx: int, kb: float) -> None:
-    direction = 1.0 if pos[def_idx] >= pos[att_idx] else -1.0
-    pos[def_idx] = _clamp_position(pos[def_idx] + direction * kb)
-
-
-def _winner_index(fighters: List[FighterState], hp_max: Tuple[float, float]) -> int:
-    alive_a, alive_b = fighters[0].is_alive, fighters[1].is_alive
-    if alive_a and not alive_b:
-        return 0
-    if alive_b and not alive_a:
-        return 1
-    a_pct = fighters[0].hp / hp_max[0]
-    b_pct = fighters[1].hp / hp_max[1]
-    return 0 if a_pct >= b_pct else 1
-
-
-def _record_choice_phase(
-    fighters: List[FighterState],
-    pos: List[float],
-    distance: float,
-    stats: Tuple[FighterStats, FighterStats],
-) -> List[Optional[Action]]:
-    actions: List[Optional[Action]] = []
-    for i, f in enumerate(fighters):
-        if f.is_stunned:
-            stats[i].ticks_stunned += 1
-            actions.append(None)
-            continue
-        a = _choose_action(f, fighters[1 - i], distance, pos[i])
-        actions.append(a)
-        stats[i].action_counts[int(a)] += 1
-        if not f.attack_ready:
-            stats[i].ticks_in_cooldown += 1
-    return actions
-
-
-def _record_range_phase(
-    fighters: List[FighterState],
-    distance: float,
-    stats: Tuple[FighterStats, FighterStats],
-) -> None:
-    for i, f in enumerate(fighters):
-        in_range = distance <= f.character.range_
-        stats[i].ticks_in_range += int(in_range)
-        stats[i].ticks_out_of_range += int(not in_range)
-
-
-def _resolve_attacks_phase(
-    fighters: List[FighterState],
-    pos: List[float],
-    actions: List[Optional[Action]],
-    stats: Tuple[FighterStats, FighterStats],
-) -> None:
-    distance = abs(pos[1] - pos[0])
-    defending = [a == Action.DEFEND for a in actions]
-
-    for att_idx in range(2):
-        if actions[att_idx] != Action.ATTACK or not fighters[att_idx].attack_ready:
-            continue
-        def_idx = 1 - att_idx
-        dmg, stun, kb = _resolve_attack(
-            attacker=fighters[att_idx].character,
-            defender_state=fighters[def_idx],
-            defender_is_defending=defending[def_idx],
-            distance=distance,
-        )
-        if dmg <= 0:
-            continue
-
-        fighters[def_idx].hp = max(0.0, fighters[def_idx].hp - dmg)
-        stats[att_idx].hits_landed += 1
-        stats[att_idx].damage_dealt += dmg
-
-        if stun > fighters[def_idx].stun_remaining:
-            fighters[def_idx].stun_remaining = stun
-            stats[att_idx].stun_applied += 1
-            stats[att_idx].stun_ticks_applied += stun
-
-        if kb > 0:
-            _apply_knockback(pos, def_idx, att_idx, kb)
-            stats[def_idx].knockback_taken += 1
-
-        fighters[att_idx].cooldown_remaining = round(
-            fighters[att_idx].character.attack_cooldown * TICK_SCALE
-        )
-
-
 def analyze_combat(char_a: Character, char_b: Character) -> MatchupResult:
-    fighters = [
-        FighterState(character=char_a, hp=char_a.hp),
-        FighterState(character=char_b, hp=char_b.hp),
-    ]
-    pos = _initial_positions()
-    stats: Tuple[FighterStats, FighterStats] = (
+    """Roda uma luta com rastreio JIT e deriva FighterStats do trace."""
+    trace = simulate_combat_traced(char_a, char_b)
+    chars = (char_a, char_b)
+    stats = (
         FighterStats(name=char_a.archetype.name, hp_start=char_a.hp),
         FighterStats(name=char_b.archetype.name, hp_start=char_b.hp),
     )
-    distances: List[float] = []
-    end_tick = MAX_TICKS
 
-    for tick in range(MAX_TICKS):
-        distance = abs(pos[1] - pos[0])
-        distances.append(distance)
+    pos_a = trace.pos[:, 0]
+    pos_b = trace.pos[:, 1]
+    distances = np.abs(pos_b - pos_a).tolist()
 
-        if not fighters[0].is_alive or not fighters[1].is_alive:
-            end_tick = tick
-            break
+    for i in (0, 1):
+        actions = trace.action[:, i]
+        stats[i].hp_end = float(trace.hp[-1, i]) if trace.end_tick > 0 else char_a.hp
+        stats[i].ticks_stunned = float((actions == -1).sum())
+        for act in ACTION_KEYS:
+            stats[i].action_counts[int(act)] = float((actions == int(act)).sum())
 
-        actions = _record_choice_phase(fighters, pos, distance, stats)
-        _record_range_phase(fighters, distance, stats)
+        active = actions != -1
+        in_range = np.abs(pos_b - pos_a) <= chars[i].range_
+        stats[i].ticks_in_range = float((active & in_range).sum())
+        stats[i].ticks_out_of_range = float((active & ~in_range).sum())
 
-        for i in range(2):
-            if actions[i] in (Action.ADVANCE, Action.RETREAT):
-                _apply_movement(pos, i, actions[i], fighters[i].character.speed / TICK_SCALE)
+        cooldown_active = trace.cooldown[:, i] > 0
+        stats[i].ticks_in_cooldown = float((active & cooldown_active).sum())
 
-        snapshots = [TimerSnapshot.of(f) for f in fighters]
-        _resolve_attacks_phase(fighters, pos, actions, stats)
-        for f, snap in zip(fighters, snapshots):
-            _decrement_stale_timers(f, snap)
+        dmg_dealt = trace.damage_dealt[:, i]
+        stats[i].hits_landed = float((dmg_dealt > 0).sum())
+        stats[i].damage_dealt = float(dmg_dealt.sum())
 
-    stats[0].hp_end = max(0.0, fighters[0].hp)
-    stats[1].hp_end = max(0.0, fighters[1].hp)
+        stun_applied = trace.stun_applied[:, i]
+        stats[i].stun_applied = float((stun_applied > 0).sum())
+        stats[i].stun_ticks_applied = float(stun_applied.sum())
 
-    winner = _winner_index(fighters, (char_a.hp, char_b.hp))
-    ko = not (fighters[0].is_alive and fighters[1].is_alive)
+        opp = 1 - i
+        kb_taken = trace.knockback_dealt[:, opp]
+        stats[i].knockback_taken = float((kb_taken > 0).sum())
+
     return MatchupResult(
         name_a=char_a.archetype.name,
         name_b=char_b.archetype.name,
-        winner=winner,
-        ticks=end_tick,
-        ko=ko,
+        winner=trace.winner,
+        ticks=trace.end_tick,
+        ko=trace.ko,
         stats=stats,
         distances=distances,
     )
