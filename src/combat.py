@@ -25,8 +25,8 @@ from typing import Dict, Optional, Tuple
 import numpy as np
 from numba import njit
 
-from character import Character
-from config import (
+from .character import Character
+from .config import (
     ACTION_PERSISTENCE_SUBTICKS,
     DEFEND_DAMAGE_REDUCTION,
     FIELD_SIZE,

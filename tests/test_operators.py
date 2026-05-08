@@ -1,18 +1,14 @@
 """
 Smoke test dos operadores genéticos.
-Rode com: python test_operators.py
+Rode com: py -m tests.test_operators
 """
-
-import sys
-import os
-sys.path.insert(0, os.path.dirname(__file__))
 
 import random
 random.seed(42)
 
-from individual import Individual
-from operators import tournament_selection, crossover, mutate, next_generation
-from config import ATTRIBUTE_BOUNDS, ELITE_SIZE, POPULATION_SIZE, WEIGHT_BOUNDS
+from src.individual import Individual
+from src.operators import tournament_selection, crossover, mutate, next_generation
+from src.config import ATTRIBUTE_BOUNDS, ELITE_SIZE, POPULATION_SIZE, WEIGHT_BOUNDS
 
 
 def separator(title: str) -> None:

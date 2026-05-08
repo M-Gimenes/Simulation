@@ -1,15 +1,11 @@
 """
 Smoke test do módulo de combate.
-Rode com: py test_combat.py
+Rode com: py -m tests.test_combat
 """
 
-import sys
-import os
-sys.path.insert(0, os.path.dirname(__file__))
-
-from archetypes import ARCHETYPES, ArchetypeID
-from character import Character
-from combat import simulate_combat, CombatResult
+from src.archetypes import ARCHETYPES, ArchetypeID
+from src.character import Character
+from src.combat import simulate_combat, CombatResult
 
 
 def separator(title: str) -> None:

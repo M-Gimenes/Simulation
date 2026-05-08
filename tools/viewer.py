@@ -28,18 +28,17 @@ from dataclasses import dataclass
 from itertools import combinations
 from typing import List, Optional, Tuple
 
-sys.path.insert(0, os.path.dirname(__file__))
-
 if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 if sys.stderr.encoding and sys.stderr.encoding.lower() != "utf-8":
     sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
-from archetypes import ARCHETYPES, ArchetypeID, ARCHETYPE_ORDER, ARCHETYPE_ALIASES
-from character import Character
-from individual import Individual
-from combat import FighterState, Action, _choose_action, _resolve_attack
-from config import FIELD_SIZE, INITIAL_DISTANCE, MAX_TICKS
+from src.archetypes import ARCHETYPES, ArchetypeID, ARCHETYPE_ORDER, ARCHETYPE_ALIASES
+from src.character import Character
+from src.individual import Individual
+from src.combat import FighterState, Action, _choose_action, _resolve_attack
+from src.config import FIELD_SIZE, INITIAL_DISTANCE, MAX_TICKS
+from src.paths import GA_RESULTS_PATH
 
 
 # ─── ANSI ────────────────────────────────────────────────────────────────────
@@ -551,7 +550,7 @@ def main() -> None:
                         help="Usa personagens do último AG (results.json)")
     parser.add_argument("--nsga2", metavar="REP", nargs="?", const="knee_point",
                         help="Usa representante do NSGA-II (knee_point|best_balance|best_matchup|best_drift). Default: knee_point")
-    parser.add_argument("--results", default="results/results.json",
+    parser.add_argument("--results", default=str(GA_RESULTS_PATH),
                         help="Caminho para o arquivo de resultados do AG")
     parser.add_argument("--no-vs",   action="store_true",
                         help="Pula a tela de apresentação (VS screen)")

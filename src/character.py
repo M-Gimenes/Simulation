@@ -10,8 +10,8 @@ import random
 from dataclasses import dataclass, field
 from typing import List, Tuple
 
-from archetypes import ArchetypeDefinition, ArchetypeID
-from config import ATTRIBUTE_BOUNDS, INTEGER_ATTRIBUTES, WEIGHT_BOUNDS
+from .archetypes import ArchetypeDefinition, ArchetypeID
+from .config import ATTRIBUTE_BOUNDS, INTEGER_ATTRIBUTES, WEIGHT_BOUNDS
 
 
 # ─────────────────────────────────────────────────────────────────────────────

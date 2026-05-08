@@ -17,30 +17,56 @@ The canonical archetype values are *not* hardcoded constraints — they serve as
 
 ## Dependencies
 
-```bash
-pip install matplotlib numpy numba
+Versões pinadas em `requirements.txt`. Para subir o ambiente:
+
+```powershell
+.\setup.ps1                 # cria .venv e instala tudo
+.\setup.ps1 -Recreate       # apaga .venv existente e refaz do zero
 ```
 
-`numba` é usado para JIT-compilar o loop de combate (`combat._simulate_combat_jit`) — speedup de ~150× sobre Python puro. Primeira chamada compila (~2.5s); depois fica em cache. Sem numba, o sistema não roda — `simulate_combat()` chama o JIT direto.
+Ou manualmente:
 
-## File Map
+```bash
+py -m venv .venv
+.\.venv\Scripts\Activate.ps1   # Windows
+pip install -r requirements.txt
+```
 
-| File | Role |
-|---|---|
-| `config.py` | All hyperparameters — single source of truth |
-| `combat.py` | Tick-based simulation engine |
-| `archetypes.py` | Canonical archetype definitions (frozen) |
-| `character.py` / `individual.py` | Gene representation |
-| `fitness.py` | Round-robin evaluation + fitness formula |
-| `operators.py` | Selection, crossover, mutation, NSGA-II tournament |
-| `ga.py` | GA main loop |
-| `nsga2.py` / `nsga2_plots.py` | NSGA-II algorithm + Pareto plots |
-| `map_elites.py` | Maps balance×drift trade-off space, suggests LAMBDA values |
-| `analyze_matchups.py` | Averaged matchup diagnostics (N sims, mean stats) |
-| `archetype_validator.py` | 20 structural assertions on archetype identity |
-| `web_viewer.py` / `viewer.py` | Browser and terminal combat visualizers |
+`numba` é usado para JIT-compilar o loop de combate (`src.combat._simulate_combat_jit`) — speedup de ~150× sobre Python puro. Primeira chamada compila (~2.5s); depois fica em cache. Sem numba, o sistema não roda — `simulate_combat()` chama o JIT direto.
+
+## Layout
+
+```
+.
+├── main.py                # entry point (GA / NSGA-II)
+├── src/                   # motor (importável como pacote `src`)
+│   ├── paths.py           # PROJECT_ROOT + paths derivados — single source
+│   ├── config.py          # All hyperparameters
+│   ├── archetypes.py      # canonical definitions (frozen)
+│   ├── character.py       # gene representation
+│   ├── individual.py      # 5 chars per individual
+│   ├── combat.py          # tick-based simulation
+│   ├── fitness.py         # round-robin evaluation
+│   ├── operators.py       # selection / crossover / mutation
+│   ├── ga.py              # scalar GA loop
+│   └── nsga2.py           # NSGA-II loop
+├── tools/                 # ferramentas que consomem o motor
+│   ├── analyze_matchups.py
+│   ├── archetype_validator.py
+│   ├── sensitivity_analysis.py
+│   ├── viewer.py          # ASCII viewer
+│   ├── web_viewer.py      # browser viewer
+│   └── nsga2_plots.py     # Pareto plots
+├── tests/                 # smoke tests
+└── results/               # outputs (gitignored content é o que importa)
+```
+
+> **Convenção de imports**: dentro de `src/` use relativos (`from .combat import ...`); fora de `src/` (em `main.py`, `tools/`, `tests/`) use absolutos (`from src.combat import ...`).
+> **Convenção de paths**: nunca hardcode strings. Importe os constants de `src.paths` (`PROJECT_ROOT`, `RESULTS_DIR`, `GA_RESULTS_PATH`, `NSGA2_RESULTS_PATH`, `NSGA2_PLOTS_DIR`). Eles são derivados de `Path(__file__).parent.parent` — funcionam independente do cwd.
 
 ## Running
+
+Tudo roda a partir da raiz do projeto. Scripts em `tools/` e `tests/` são executados como módulo (`-m`) para que `src` esteja no path.
 
 ```bash
 # Full GA run
@@ -48,25 +74,25 @@ py main.py
 py main.py --algorithm nsga2 --seed 42 --quiet
 
 # Analysis tools
-py analyze_matchups.py                    # all matchups, canonical, 30 sims each
-py analyze_matchups.py rushdown zoner     # specific matchup
-py analyze_matchups.py --evolved --n 50  # evolved individual, 50 sims
-py archetype_validator.py                 # structural identity checks
+py -m tools.analyze_matchups                    # all matchups, canonical, 30 sims each
+py -m tools.analyze_matchups rushdown zoner     # specific matchup
+py -m tools.analyze_matchups --evolved --n 50  # evolved individual, 50 sims
+py -m tools.archetype_validator                 # structural identity checks
+py -m tools.sensitivity_analysis                # ±σ Δ-WR per gene
 
 # Web viewer (opens browser at localhost:8080)
-py web_viewer.py
+py -m tools.web_viewer
 
 # Smoke tests (run individually — no test runner configured)
-py test_base.py
-py test_combat.py
-py test_fitness.py
-py test_operators.py
-py test_nsga2.py
-py test_archetype_validator.py
-py test_map_elites.py
+py -m tests.test_base
+py -m tests.test_combat
+py -m tests.test_fitness
+py -m tests.test_operators
+py -m tests.test_nsga2
+py -m tests.test_archetype_validator
 ```
 
-> **Windows note:** Use `py` not `python` or `python3`. Scripts output Unicode (box-drawing chars); if running through bash pipe use `PYTHONIOENCODING=utf-8` or pass `--quiet`.
+> **Windows note:** Use `py` não `python`/`python3`. Scripts output Unicode (box-drawing); via bash pipe use `PYTHONIOENCODING=utf-8` ou passe `--quiet`.
 
 ## Output Files
 
@@ -82,13 +108,13 @@ All GA/NSGA-II outputs go to `results/` (created automatically on first run):
 
 The system has two independent layers that the GA orchestrates:
 
-**Simulation layer** (`combat.py`):  
+**Simulation layer** (`src/combat.py`):  
 Tick-based 1v1 combat. Each tick: choose action via priority system → apply movement → resolve attacks simultaneously → decrement timers. Actions: ATTACK / ADVANCE / RETREAT / DEFEND. Key mechanics: `attack_cooldown` is deterministic, stun is computed as `round(attacker.stun × TICK_SCALE) − defender.recovery` (recovery is an integer in sub-ticks, subtractive — see Key Design Decisions), then capped at `STUN_CAP_MULTIPLIER × attacker_cooldown` (0.6 by default — stun é estritamente menor que o cooldown do atacante, garantindo uma janela livre entre hits para o defensor agir). Defending reduces incoming damage by `1 - DEFEND_DAMAGE_REDUCTION` (60% reduction at 0.4). Damage is deterministic: `damage × (1 − defense)`; no per-hit variance. Timers are decremented **after** attacks — values freshly set by an attack are not decremented until the following tick, making `cooldown=1` and `stun=1` meaningful minimums. Single source of stochasticity: **soft-policy threat response** — when the enemy can hit the character (distance ≤ enemy range, enemy ready, not stunned), the action is sampled from `{ADVANCE, RETREAT, DEFEND}` with probabilities proportional to `(w_aggressiveness, w_retreat, w_defend)`. All other priority branches are deterministic.
 
-**GA layer** (`ga.py`, `fitness.py`, `operators.py`):  
+**GA layer** (`src/ga.py`, `src/fitness.py`, `src/operators.py`):  
 Each individual = 5 characters (one per archetype) = 60 genes total (9 attrs + 3 weights per character). Fitness is evaluated via full round-robin (C(5,2)=10 matchups × `SIMS_PER_MATCHUP` simulations). Fitness formula (scalar GA): `fitness = -(LAMBDA_SPECIALIZATION × specialization_penalty + LAMBDA_DRIFT × drift_penalty + LAMBDA_DOMINANCE × dominance_penalty)`. The `specialization_penalty` uses a *specialization* metric (max−min of normalized attributes) — rewards archetype differentiation and prevents homogenization. `dominance_penalty` uses `sqrt(mean(excess_ij²))` (RMS) over the 10 pairs computed on **HP-weighted scores** rather than binary WR — KO matches contribute 1.0/0.0 like a WR, but timeout matches contribute the loser's HP-share fraction (a 55%/45% timeout enters as score≈0.55, not 1.0). The square gives extreme matchups (100/0) ~16× the weight of moderate ones (70/30). **NSGA-II** ignores all `LAMBDA_*` constants — `evaluate_objectives` returns `(dominance_penalty, drift_penalty)` raw; the Pareto front is computed in those two unweighted dimensions.
 
-**Data model** (`archetypes.py` → `character.py` → `individual.py`):  
+**Data model** (`src/archetypes.py` → `src/character.py` → `src/individual.py`):  
 `ArchetypeDefinition` (frozen, canonical values) → `Character` (mutable genes, 9 attrs + 3 weights) → `Individual` (list of 5 Characters + fitness cache). `Individual.from_canonical()` creates the canonical seed; `Individual.random()` creates a random individual.
 
 ## Canonical Advantage Cycle
@@ -108,7 +134,7 @@ Each individual = 5 characters (one per archetype) = 60 genes total (9 attrs + 3
 
 ## Key Design Decisions
 
-**Priority-based action selection** (see `_choose_action` in `combat.py`). Priorities (highest to lowest):
+**Priority-based action selection** (see `_choose_action` in `src/combat.py`). Priorities (highest to lowest):
 1. **ATTACK** — if in own range and `attack_ready`.
 2. **THREAT RESPONSE** — if the enemy can hit the character now (`distance ≤ enemy.range_` AND `enemy.attack_ready` AND not stunned), choose ADVANCE/RETREAT/DEFEND probabilistically via `_threat_response` — `random.choices` weighted by `(w_aggressiveness, w_retreat, w_defend)`. This is the **soft-policy** branch: weights act continuously (a Δ in any weight produces a proportional Δ in action probability), giving the GA a continuous gradient on these genes. The previous hard-comparison form (`w_aggressiveness > w_retreat and w_aggressiveness > w_defend`) was replaced because it made weights *categorical* — only the order mattered, magnitudes were invisible to selection.
 3. **ADVANCE** — if out of own range or cornered against a wall.
@@ -152,14 +178,14 @@ Each individual = 5 characters (one per archetype) = 60 genes total (9 attrs + 3
 ## Quick Matchup Check
 
 ```bash
-py analyze_matchups.py              # all 10 matchups, canonical, 30 sims
-py analyze_matchups.py --evolved    # evolved individual
-py analyze_matchups.py rushdown zoner --n 100   # specific pair, high precision
+py -m tools.analyze_matchups              # all 10 matchups, canonical, 30 sims
+py -m tools.analyze_matchups --evolved    # evolved individual
+py -m tools.analyze_matchups rushdown zoner --n 100   # specific pair, high precision
 ```
 
 ## All Hyperparameters
 
-Located in `config.py`. Commonly adjusted:
+Located in `src/config.py`. Commonly adjusted:
 
 | Parameter | Value | Effect |
 |---|---|---|

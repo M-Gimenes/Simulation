@@ -16,9 +16,9 @@ import random
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 
-from archetypes import ARCHETYPE_ALIASES, ARCHETYPE_ORDER, ARCHETYPES, ArchetypeID
-from character import Character
-from combat import (
+from src.archetypes import ARCHETYPE_ALIASES, ARCHETYPE_ORDER, ARCHETYPES, ArchetypeID
+from src.character import Character
+from src.combat import (
     Action,
     FighterState,
     TimerSnapshot,
@@ -26,8 +26,8 @@ from combat import (
     _decrement_stale_timers,
     _resolve_attack,
 )
-from config import FIELD_SIZE, INITIAL_DISTANCE, MAX_TICKS, TICK_SCALE
-from individual import Individual
+from src.config import FIELD_SIZE, INITIAL_DISTANCE, MAX_TICKS, TICK_SCALE
+from src.individual import Individual
 
 
 ANALYZE_SIMS = 500

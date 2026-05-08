@@ -15,13 +15,11 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import List, Optional
 from urllib.parse import parse_qs, urlparse
 
-sys.path.insert(0, os.path.dirname(__file__))
-
-from archetypes import ARCHETYPES, ARCHETYPE_ORDER, ArchetypeID, ARCHETYPE_ALIASES
-from character import Character
-from combat import Action, FighterState, _choose_action, _resolve_attack
-from config import FIELD_SIZE, INITIAL_DISTANCE, MAX_TICKS, TICK_SCALE
-from individual import Individual
+from src.archetypes import ARCHETYPES, ARCHETYPE_ORDER, ArchetypeID, ARCHETYPE_ALIASES
+from src.character import Character
+from src.combat import Action, FighterState, _choose_action, _resolve_attack
+from src.config import FIELD_SIZE, INITIAL_DISTANCE, MAX_TICKS, TICK_SCALE
+from src.individual import Individual
 
 
 # ─────────────────────────────────────────────────────────────────────────────

@@ -12,9 +12,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Dict, List, Tuple
 
-from archetypes import ARCHETYPE_ORDER, ArchetypeID
-from config import ATTRIBUTE_BOUNDS
-from individual import Individual
+from src.archetypes import ARCHETYPE_ORDER, ArchetypeID
+from src.config import ATTRIBUTE_BOUNDS
+from src.individual import Individual
 
 
 # ─────────────────────────────────────────────────────────────────────────────

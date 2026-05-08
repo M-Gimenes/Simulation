@@ -16,8 +16,8 @@ from dataclasses import dataclass, field
 from itertools import combinations
 from typing import Dict, List, Tuple
 
-from combat import simulate_combat
-from config import (
+from .combat import simulate_combat
+from .config import (
     ATTRIBUTE_BOUNDS,
     LAMBDA_DOMINANCE,
     LAMBDA_DRIFT,
@@ -26,7 +26,7 @@ from config import (
     N_WORKERS,
     SIMS_PER_MATCHUP,
 )
-from individual import Individual
+from .individual import Individual
 
 _ATTR_MAXES: List[float] = [hi for _, hi in ATTRIBUTE_BOUNDS]
 

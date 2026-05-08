@@ -7,7 +7,7 @@ Todos os hiperparâmetros do AG e da simulação de combate estão aqui.
 
 POPULATION_SIZE = 300
 ELITE_SIZE = int(POPULATION_SIZE * 0.1)  # indivíduos preservados por elitismo por geração
-MAX_GENERATIONS = 100  # limite de gerações
+MAX_GENERATIONS = 150  # limite de gerações
 STAGNATION_LIMIT = 30  # gerações sem melhoria > 0.001 antes de parar
 MATCHUP_CONVERGENCE_THRESHOLD = 0.10  # desvio máximo de WR por matchup
 

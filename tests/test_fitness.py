@@ -1,15 +1,11 @@
 """
 Smoke test da função de fitness.
-Rode com: python test_fitness.py
+Rode com: py -m tests.test_fitness
 """
 
-import sys
-import os
-sys.path.insert(0, os.path.dirname(__file__))
-
-from individual import Individual
-from fitness import evaluate, evaluate_detail, evaluate_population
-from archetypes import ARCHETYPE_ORDER, ARCHETYPES
+from src.individual import Individual
+from src.fitness import evaluate, evaluate_detail, evaluate_population
+from src.archetypes import ARCHETYPE_ORDER, ARCHETYPES
 
 
 def separator(title: str) -> None:

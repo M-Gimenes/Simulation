@@ -8,13 +8,14 @@ from __future__ import annotations
 
 import copy
 import json
-import os
 import random
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import List, Optional, Tuple
 
-from archetypes import ARCHETYPE_ORDER, ArchetypeID, ARCHETYPES
-from character import Character
+from .archetypes import ARCHETYPE_ORDER, ArchetypeID, ARCHETYPES
+from .character import Character
+from .paths import GA_RESULTS_PATH, NSGA2_RESULTS_PATH
 
 
 @dataclass
@@ -54,10 +55,11 @@ class Individual:
     @classmethod
     def from_nsga2(
         cls,
-        path: str = "results/nsga2_results.json",
+        path: Path = NSGA2_RESULTS_PATH,
         representative: str = "knee_point",
     ) -> "Individual":
-        if not os.path.exists(path):
+        path = Path(path)
+        if not path.exists():
             raise FileNotFoundError(f"'{path}' não encontrado — rode main.py --algorithm nsga2 primeiro.")
         with open(path) as fh:
             data = json.load(fh)
@@ -73,8 +75,9 @@ class Individual:
         return ind
 
     @classmethod
-    def from_results(cls, path: str = "results/results.json") -> "Individual":
-        if not os.path.exists(path):
+    def from_results(cls, path: Path = GA_RESULTS_PATH) -> "Individual":
+        path = Path(path)
+        if not path.exists():
             raise FileNotFoundError(f"'{path}' não encontrado — rode main.py primeiro.")
         with open(path) as fh:
             data = json.load(fh)

@@ -19,10 +19,10 @@ import random
 from concurrent.futures import ProcessPoolExecutor
 from typing import List, Tuple
 
-from archetypes import ARCHETYPE_ORDER, ARCHETYPES
-from config import ATTRIBUTE_BOUNDS, ATTRIBUTE_MUTATION_SIGMA, ATTRIBUTE_NAMES
-from fitness import evaluate_detail_n
-from individual import Individual
+from src.archetypes import ARCHETYPE_ORDER, ARCHETYPES
+from src.config import ATTRIBUTE_BOUNDS, ATTRIBUTE_MUTATION_SIGMA, ATTRIBUTE_NAMES
+from src.fitness import evaluate_detail_n
+from src.individual import Individual
 
 
 Task = Tuple[int, int, float, int, int]

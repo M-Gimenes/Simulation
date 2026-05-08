@@ -1,15 +1,11 @@
 """
 Smoke test da estrutura base.
-Rode com: python test_base.py
+Rode com: py -m tests.test_base
 """
 
-import sys
-import os
-sys.path.insert(0, os.path.dirname(__file__))
-
-from archetypes import ARCHETYPES, ARCHETYPE_ORDER, ArchetypeID
-from character import Character, Attr, WIdx
-from individual import Individual
+from src.archetypes import ARCHETYPES, ARCHETYPE_ORDER, ArchetypeID
+from src.character import Character, Attr, WIdx
+from src.individual import Individual
 
 
 def separator(title: str) -> None:
@@ -41,7 +37,7 @@ print(f"  Genes totais: {len(g.genes())} ({'OK' if len(g.genes()) == 12 else 'ER
 separator("Personagem aleatório (Rushdown)")
 r = Character.random(ARCHETYPES[ArchetypeID.RUSHDOWN])
 print(f"  {r}")
-from config import ATTRIBUTE_BOUNDS, WEIGHT_BOUNDS
+from src.config import ATTRIBUTE_BOUNDS, WEIGHT_BOUNDS
 assert all(lo <= v <= hi for v, (lo, hi) in zip(r.attributes, ATTRIBUTE_BOUNDS)), "Atributo fora do bound!"
 assert all(lo <= v <= hi for v, (lo, hi) in zip(r.weights,    WEIGHT_BOUNDS)),    "Peso fora do bound!"
 print("  ✓ Todos os genes dentro dos bounds")

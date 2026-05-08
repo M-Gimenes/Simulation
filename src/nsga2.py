@@ -13,15 +13,17 @@ import os
 import random
 import time
 from concurrent.futures import ProcessPoolExecutor
+from pathlib import Path
 
 import numpy as np
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
-from config import N_WORKERS, NSGA2_GENERATIONS, NSGA2_POP_SIZE
-from fitness import evaluate_objectives
-from individual import Individual
-from operators import crossover, mutate, nsga2_binary_tournament
+from .config import N_WORKERS, NSGA2_GENERATIONS, NSGA2_POP_SIZE
+from .fitness import evaluate_objectives
+from .individual import Individual
+from .operators import crossover, mutate, nsga2_binary_tournament
+from .paths import NSGA2_RESULTS_PATH
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -320,7 +322,7 @@ def _individual_to_dict(ind: Individual) -> dict:
     }
 
 
-def save_results(result: NSGAResult, path: str = "results/nsga2_results.json") -> None:
+def save_results(result: NSGAResult, path: Path = NSGA2_RESULTS_PATH) -> None:
     data = {
         "algorithm":       "nsga2",
         "seed":            result.seed,

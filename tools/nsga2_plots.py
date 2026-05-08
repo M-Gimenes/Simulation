@@ -3,13 +3,13 @@ Plot 2D da fronteira de Pareto do NSGA-II (dominance × drift) com 4 representan
 """
 from __future__ import annotations
 
-import os
+from pathlib import Path
 
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-from nsga2 import NSGAResult
+from src.nsga2 import NSGAResult
 
 _AXIS_LABEL = {0: "dominance_penalty", 1: "drift_penalty"}
 
@@ -21,8 +21,9 @@ _REP_STYLE = {
 }
 
 
-def save_plots(result: NSGAResult, outdir: str, plot_3d: bool = False) -> None:
-    os.makedirs(outdir, exist_ok=True)
+def save_plots(result: NSGAResult, outdir: Path, plot_3d: bool = False) -> None:
+    outdir = Path(outdir)
+    outdir.mkdir(parents=True, exist_ok=True)
     fig, ax = plt.subplots(figsize=(7, 6))
 
     xs = [ind.objectives[0] for ind in result.pareto_front]
@@ -43,5 +44,5 @@ def save_plots(result: NSGAResult, outdir: str, plot_3d: bool = False) -> None:
     ax.legend(loc="best", fontsize=8)
     ax.grid(alpha=0.3)
     fig.tight_layout()
-    fig.savefig(os.path.join(outdir, "pareto_front.png"), dpi=120)
+    fig.savefig(outdir / "pareto_front.png", dpi=120)
     plt.close(fig)

@@ -5,7 +5,7 @@ from __future__ import annotations
 import random
 from typing import List
 
-from config import (
+from .config import (
     ATTRIBUTE_BOUNDS,
     ATTRIBUTE_MUTATION_SIGMA,
     ELITE_SIZE,
@@ -14,7 +14,7 @@ from config import (
     WEIGHT_BOUNDS,
     WEIGHT_MUTATION_SIGMA,
 )
-from individual import Individual
+from .individual import Individual
 
 
 # ─────────────────────────────────────────────────────────────────────────────

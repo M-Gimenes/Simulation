@@ -14,7 +14,7 @@ from typing import List, Optional
 
 import numpy as np
 
-from config import (
+from .config import (
     ELITE_SIZE,
     MATCHUP_CONVERGENCE_THRESHOLD,
     MAX_GENERATIONS,
@@ -22,10 +22,10 @@ from config import (
     SIMS_CONVERGENCE_CHECK,
     STAGNATION_LIMIT,
 )
-from archetypes import ARCHETYPE_ORDER, ARCHETYPES
-from fitness import FitnessDetail, evaluate, evaluate_detail, evaluate_population, evaluate_detail_n
-from individual import Individual
-from operators import next_generation
+from .archetypes import ARCHETYPE_ORDER, ARCHETYPES
+from .fitness import FitnessDetail, evaluate, evaluate_detail, evaluate_population, evaluate_detail_n
+from .individual import Individual
+from .operators import next_generation
 
 
 # ─────────────────────────────────────────────────────────────────────────────

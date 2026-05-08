@@ -1,17 +1,15 @@
 """
 Smoke tests do NSGA-II.
-Rode com: py test_nsga2.py
+Rode com: py -m tests.test_nsga2
 """
-import sys, os
-sys.path.insert(0, os.path.dirname(__file__))
-
 import math
+import os
 import random
 
-from individual import Individual
-from config import NSGA2_POP_SIZE, NSGA2_GENERATIONS, NSGA2_OBJECTIVES
-from fitness import evaluate_objectives
-from nsga2 import _dominates, fast_non_dominated_sort, crowding_distance_assignment
+from src.individual import Individual
+from src.config import NSGA2_POP_SIZE, NSGA2_GENERATIONS, NSGA2_OBJECTIVES
+from src.fitness import evaluate_objectives
+from src.nsga2 import _dominates, fast_non_dominated_sort, crowding_distance_assignment
 
 
 def test_individual_has_nsga2_fields():
@@ -35,7 +33,7 @@ def test_individual_clone_copies_nsga2_fields():
 
 
 def test_config_constants_exist():
-    from config import POPULATION_SIZE, MAX_GENERATIONS
+    from src.config import POPULATION_SIZE, MAX_GENERATIONS
     assert NSGA2_POP_SIZE == POPULATION_SIZE
     assert NSGA2_GENERATIONS == MAX_GENERATIONS
     assert NSGA2_OBJECTIVES == ["dominance_penalty", "drift_penalty"]
@@ -166,8 +164,8 @@ def test_crowding_middle_has_finite_value():
     assert front[1].crowding > 0
 
 
-from operators import nsga2_binary_tournament
-from nsga2 import select_representatives
+from src.operators import nsga2_binary_tournament
+from src.nsga2 import select_representatives
 
 
 def test_tournament_picks_lower_rank():
@@ -233,7 +231,7 @@ def test_representatives_all_four_keys():
     assert set(reps.keys()) == {"best_dominance", "best_drift", "knee_point", "ideal_point"}
 
 
-from nsga2 import run
+from src.nsga2 import run
 
 
 def test_run_smoke_small_config():
@@ -247,7 +245,7 @@ def test_run_smoke_small_config():
 
 import json
 import tempfile
-from nsga2 import save_results
+from src.nsga2 import save_results
 
 
 def test_save_results_produces_valid_json():
@@ -283,7 +281,7 @@ def test_save_results_roundtrip_genes():
     os.unlink(path)
 
 
-from nsga2_plots import save_plots
+from tools.nsga2_plots import save_plots
 
 
 def test_save_plots_creates_pareto_png():

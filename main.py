@@ -4,14 +4,12 @@ Rode com: py main.py [--algorithm ga|nsga2] [--seed N] [--quiet] [--log-every N]
 """
 
 import argparse
-import json
-import sys
-import os
 import datetime
-sys.path.insert(0, os.path.dirname(__file__))
+import json
 
-from ga import run as run_ga, log_matchup_matrix
-from archetypes import ARCHETYPE_ORDER, ARCHETYPES
+from src.archetypes import ARCHETYPE_ORDER, ARCHETYPES
+from src.ga import run as run_ga, log_matchup_matrix
+from src.paths import GA_RESULTS_PATH, NSGA2_PLOTS_DIR, NSGA2_RESULTS_PATH, PROJECT_ROOT, RESULTS_DIR
 
 
 def parse_args():
@@ -54,27 +52,27 @@ def _main_ga(args):
     print(f"Dominance penalty:      {result.best_detail.dominance_penalty:.4f}")
     print(f"Specialization penalty: {result.best_detail.specialization_penalty:.4f}")
 
-    os.makedirs("results", exist_ok=True)
+    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     out = {"best_individual": [c.genes() for c in result.best.characters]}
-    with open("results/results.json", "w") as fh:
+    with open(GA_RESULTS_PATH, "w") as fh:
         json.dump(out, fh)
-    print("\nIndivíduo salvo em results/results.json")
+    print(f"\nIndivíduo salvo em {GA_RESULTS_PATH.relative_to(PROJECT_ROOT)}")
 
 
 def _main_nsga2(args):
-    from nsga2 import run as run_nsga2, save_results
-    from nsga2_plots import save_plots
+    from src.nsga2 import run as run_nsga2, save_results
+    from tools.nsga2_plots import save_plots
 
     result = run_nsga2(seed=args.seed, verbose=not args.quiet)
 
-    os.makedirs("results", exist_ok=True)
-    save_results(result, "results/nsga2_results.json")
-    print(f"\nFronteira salva em results/nsga2_results.json  ({len(result.pareto_front)} indivíduos)")
+    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    save_results(result, NSGA2_RESULTS_PATH)
+    print(f"\nFronteira salva em {NSGA2_RESULTS_PATH.relative_to(PROJECT_ROOT)}  ({len(result.pareto_front)} indivíduos)")
 
     timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    outdir = os.path.join("results", "plots", "nsga2", timestamp)
+    outdir = NSGA2_PLOTS_DIR / timestamp
     save_plots(result, outdir, plot_3d=args.plot_3d)
-    print(f"Plots salvos em {outdir}")
+    print(f"Plots salvos em {outdir.relative_to(PROJECT_ROOT)}")
 
     print("\n=== Representantes da fronteira ===\n")
     for name, ind in result.representatives.items():

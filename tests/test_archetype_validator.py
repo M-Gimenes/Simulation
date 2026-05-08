@@ -1,11 +1,13 @@
-import sys, os
-sys.path.insert(0, os.getcwd())
+"""
+Smoke tests do archetype_validator.
+Rode com: py -m tests.test_archetype_validator
+"""
 
 # ── Task 1 ────────────────────────────────────────────────────────────────────
 
 def test_action_log_structure():
-    from combat import simulate_combat_detailed, Action
-    from individual import Individual
+    from src.combat import simulate_combat_detailed, Action
+    from src.individual import Individual
 
     canon = Individual.from_canonical()
     chars = canon.characters
@@ -43,8 +45,8 @@ print("OK")
 # ── Task 2 ────────────────────────────────────────────────────────────────────
 
 def test_datastructures():
-    from archetype_validator import ArchetypeCheck, ArchetypeValidationReport
-    from archetypes import ArchetypeID
+    from tools.archetype_validator import ArchetypeCheck, ArchetypeValidationReport
+    from src.archetypes import ArchetypeID
 
     check = ArchetypeCheck(
         archetype=ArchetypeID.RUSHDOWN,
@@ -67,9 +69,9 @@ print("OK")
 # ── Task 3 ────────────────────────────────────────────────────────────────────
 
 def test_structural_inter_canonical():
-    from archetype_validator import _check_structural_inter
-    from archetypes import ArchetypeID
-    from individual import Individual
+    from tools.archetype_validator import _check_structural_inter
+    from src.archetypes import ArchetypeID
+    from src.individual import Individual
 
     canon = Individual.from_canonical()
     checks = _check_structural_inter(canon.characters)
@@ -88,8 +90,8 @@ print("OK")
 # ── Task 4 ────────────────────────────────────────────────────────────────────
 
 def test_structural_intra_canonical():
-    from archetype_validator import _check_structural_intra
-    from individual import Individual
+    from tools.archetype_validator import _check_structural_intra
+    from src.individual import Individual
 
     canon = Individual.from_canonical()
     checks = _check_structural_intra(canon.characters)
@@ -108,8 +110,8 @@ print("OK")
 # ── Task 5 ────────────────────────────────────────────────────────────────────
 
 def test_run_validation_canonical():
-    from archetype_validator import run_validation
-    from individual import Individual
+    from tools.archetype_validator import run_validation
+    from src.individual import Individual
 
     canon  = Individual.from_canonical()
     report = run_validation(canon)
