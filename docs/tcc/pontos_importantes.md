@@ -33,6 +33,47 @@
 - Por quê: codificar o ciclo no fitness tornaria a pergunta de pesquisa
   circular ("o AG preserva identidade quando eu pago ele pra preservar").
 
+**Status epistemológico do ciclo canônico:**
+
+- O ciclo (Rushdown > Zoner > Grappler > … > Rushdown) é uma
+  **construção do autor**, derivada da convenção FGC, usada como
+  hipótese de estrutura preservável — não como lei de física do sistema.
+- Como construção, ele pode falhar parcial ou totalmente sem que isso
+  comprometa o experimento. O sistema não tem obrigação de "entregar
+  o ciclo"; tem obrigação de equilibrar e preservar identidade.
+- Quebra do ciclo é interpretada como achado: revela que a estrutura
+  FGC não é implícita às mecânicas determinísticas escolhidas, e
+  depende de elementos estocásticos (combo chaining, variância) que
+  foram conscientemente removidos do modelo.
+- Linha de base empírica: o canônico, jogado contra si mesmo no motor
+  atual, já preserva apenas ~4/10 dos matchups esperados — 10/10 está
+  fora de alcance mesmo do seed ideal. Cobrar 10/10 de qualquer
+  indivíduo evoluído com `drift_penalty` puxando pro canônico seria
+  cobrar o impossível.
+
+**O ciclo poderia ser outro — e isso não é problema:**
+
+- A atribuição específica das arestas (quem vence quem) é uma
+  **operacionalização entre várias defensáveis**. Existe consenso
+  comunitário FGC para a maioria das relações (Rushdown × Zoner,
+  Grappler × Turtle, Turtle × Rushdown), mas algumas admitem leituras
+  alternativas dependendo do jogo, era ou meta de referência.
+- Isso é diferente de arbitrário. **Cada aresta tem justificativa de
+  domínio documentada** (em `design_decisions.md`, na descrição de
+  cada arquétipo); trocar uma exigiria nova justificativa, não sortear
+  novo valor. O ciclo é estipulativo, não livre.
+- **A tese não depende do ciclo específico ser "o ciclo correto".** Se
+  fosse construído um cycle alternativo defensível, os canônicos seriam
+  outros, mas o experimento sobre o trade-off equilíbrio × identidade
+  produziria achado da mesma natureza. O ciclo é palco, não objeto de
+  teste.
+- Defesa pra banca, se questionado: "operacionalização baseada em
+  convenção FGC, com justificativa por aresta documentada; a
+  metodologia generaliza para outras operacionalizações defensáveis."
+- Análoga útil: ninguém questiona "por que 5 arquétipos e não 4 ou 7?"
+  como falha metodológica — é operacionalização. "Por que esse ciclo
+  e não outro?" é da mesma natureza.
+
 **Em aberto**: até onde o AG pode se afastar do canônico antes de perder
 identidade reconhecível? Esse é parte do que o experimento deve responder.
 
@@ -118,10 +159,14 @@ estratégias" (soft)? Optamos pela soft porque (a) dá gradiente ao AG,
 
 ### Stun cap (combo chaining)
 
-- `STUN_CAP_MULTIPLIER = 1.0`. Stun nunca excede o cooldown do atacante.
+- `STUN_CAP_MULTIPLIER = 0.6`. Stun é estritamente menor que o cooldown do
+  atacante — sempre há uma janela livre antes do próximo hit.
 - Antes era 2.0 (permitia 1 hit extra durante o stun = combo chaining).
-- O AG explorava 2.0 como estratégia degenerada: cooldown alto + stun alto
+  O AG explorava como estratégia degenerada: cooldown alto + stun alto
   gerava perma-lockdown — vencia matchups por lockdown, não por dano.
+- Reduzir para 1.0 não foi suficiente: stun ≈ cooldown produzia
+  soft-perma-lock — o defensor reentrava no stun assim que saía. `< 1.0`
+  garante a janela livre.
 
 ### Defesa
 
@@ -131,7 +176,7 @@ estratégias" (soft)? Optamos pela soft porque (a) dá gradiente ao AG,
 
 ### Recovery como inteiro subtrativo
 
-- Recovery é um **inteiro em sub-ticks**, bounds `[0, 15]`.
+- Recovery é um **inteiro em sub-ticks**, bounds `[0, 10]`.
 - Cada unidade subtrai 1 sub-tick do stun recebido:
   `effective_stun = max(0, raw_stun - defender.recovery)`.
 - Antes era multiplicativa (`stun × (1 - recovery_float)`). Pequenas mutações
@@ -139,14 +184,26 @@ estratégias" (soft)? Optamos pela soft porque (a) dá gradiente ao AG,
 - A representação interna continua float (mutação gaussiana é contínua),
   mas `clip()` arredonda o valor armazenado para int. Configurado via
   `INTEGER_ATTRIBUTES = {8}` em `config.py`.
+- O teto de 10 (era 15) evita "stun-immunity" via recovery extrema —
+  com `STUN_CAP_MULTIPLIER = 0.6`, cap interno de stun para `attack_cooldown=5`
+  é `0.6 × 5 × 5 = 15` sub-ticks; recovery=10 ainda permite 5 sub-ticks
+  de stun residual.
 
 ### Outros parâmetros relevantes
 
 - `TICK_SCALE = 5`: resolução sub-tick para cooldown e stun (21–25 valores
   discretos por gene, eliminando platôs).
 - `MAX_TICKS = 500 × TICK_SCALE = 2500`: limite por combate.
+- `ACTION_PERSISTENCE_SUBTICKS = 10`: ações soft-policy são mantidas por
+  10 sub-ticks antes de re-sortear. Sem isso, o personagem rolaria o dado
+  5× por tick lógico, gerando flip-flopping patológico. Quebra-se quando
+  uma prioridade superior dispara (ATTACK ou ADVANCE forçado).
 - `DEFEND_DAMAGE_REDUCTION` e `STUN_CAP_MULTIPLIER` foram calibrados juntos —
   trocar um sem o outro pode reintroduzir modos degenerados.
+- **Bounds apertados** vs. versões antigas: HP `[300, 400]` (era 500),
+  defense `[0, 0.30]` (era 0.5), knockback `[0, 3]` (era 5), recovery
+  `[0, 10]` int (era 0.7 float). Cada aperto fechou um exploit que o AG
+  estava usando.
 
 ---
 
@@ -255,15 +312,16 @@ HP-weighted scores, então stalemates entram como ~0.5 (sinal correto).
 
 **Vai em**: Metodologia (parâmetros experimentais).
 
-| Parâmetro                   | Valor           | Justificativa                              |
-| ---------------------------- | --------------- | ------------------------------------------ |
-| `POPULATION_SIZE`          | 300             | —                                         |
-| `MAX_GENERATIONS`          | 100             | —                                         |
-| `STAGNATION_LIMIT`         | 50              | Para se não houver melhoria               |
-| `SIMS_PER_MATCHUP`         | 100             | Erro padrão binomial ≈ 5% em WR=50%      |
-| `MUTATION_RATE`            | 0.1             | Por gene                                   |
-| `ATTRIBUTE_MUTATION_SIGMA` | 0.1 (× range)  | Exploração ampla                         |
-| `WEIGHT_MUTATION_SIGMA`    | 0.02 (× range) | Inércia evolutiva — preserva estratégia |
+| Parâmetro                   | Valor            | Justificativa                                          |
+| --------------------------- | ---------------- | ------------------------------------------------------ |
+| `POPULATION_SIZE`           | 300              | —                                                      |
+| `MAX_GENERATIONS`           | 150              | Limite superior; convergência ocorre antes em geral    |
+| `STAGNATION_LIMIT`          | 30               | Para se não houver melhoria > 0.001                    |
+| `SIMS_PER_MATCHUP`          | 150              | Erro padrão binomial ≈ 4% em WR=50%                    |
+| `SIMS_CONVERGENCE_CHECK`    | 200              | Sims extras para confirmar convergência por matchup    |
+| `MUTATION_RATE`             | 0.05             | Probabilidade por gene                                 |
+| `ATTRIBUTE_MUTATION_SIGMA`  | 0.10 (× range)   | Exploração ampla                                       |
+| `WEIGHT_MUTATION_SIGMA`     | 0.025 (× range)  | Inércia evolutiva — preserva estratégia (4× menor)     |
 
 **A diferença de σ entre atributos e pesos é deliberada**: pesos definem
 comportamento de alto nível (estratégia); atributos definem capacidade.
