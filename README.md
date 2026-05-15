@@ -12,23 +12,61 @@ The system evolves a set of 5 characters (one per archetype) through a GA, evalu
 
 ## How it works
 
-- **Simulation layer** — tick-based 1v1 combat with softmax action selection (Attack / Advance / Retreat / Defend)
-- **GA layer** — each individual encodes 5 characters (70 genes total); fitness balances win-rate parity, attribute cost, and optional archetype drift penalty
+- **Simulation layer** — tick-based 1v1 combat with soft-policy action selection (Attack / Advance / Retreat / Defend)
+- **GA layer** — each individual encodes 5 characters (60 genes total); fitness balances specialization, archetype drift, and per-matchup dominance. NSGA-II variant optimizes drift and dominance as Pareto objectives.
+
+## Setup
+
+Use the helper script to create the venv and install pinned dependencies:
+
+```powershell
+.\setup.ps1                 # cria .venv e instala requirements.txt
+.\setup.ps1 -Recreate       # apaga .venv existente e refaz do zero
+```
+
+Ative o ambiente antes de rodar qualquer comando (necessário em cada nova sessão do terminal):
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
+.\.venv\Scripts\Activate.ps1
+```
+
+Alternativamente, invoque o Python do venv diretamente sem ativar:
+
+```powershell
+.\.venv\Scripts\python.exe main.py
+```
+
+> Requer Python 3. No Windows use `py` (não `python`/`python3`). `numba` JIT-compila o loop de combate na primeira chamada (~2.5s) — sem ele o sistema não roda.
 
 ## Running
 
-```bash
-py main.py
-py main.py --seed 42 --quiet --log-every 5
+Com o venv ativo, rode tudo a partir da raiz do projeto:
+
+```powershell
+py main.py                                      # GA escalar
+py main.py --algorithm nsga2 --seed 42 --quiet  # NSGA-II
 ```
 
-> Requires Python 3. Use `py` on Windows.
+### Analysis tools
+
+```powershell
+py -m tools.analyze_matchups                    # all matchups, canonical, 30 sims
+py -m tools.analyze_matchups --evolved --n 50   # evolved individual, 50 sims
+py -m tools.archetype_validator                 # structural identity checks
+py -m tools.sensitivity_analysis                # +/-sigma delta-WR per gene
+py -m tools.web_viewer                          # browser viewer em localhost:8080
+```
 
 ## Tests
 
-```bash
-py test_base.py
-py test_combat.py
-py test_fitness.py
-py test_operators.py
+Smoke tests rodam como módulo a partir da raiz:
+
+```powershell
+py -m tests.test_base
+py -m tests.test_combat
+py -m tests.test_fitness
+py -m tests.test_operators
+py -m tests.test_nsga2
+py -m tests.test_archetype_validator
 ```
