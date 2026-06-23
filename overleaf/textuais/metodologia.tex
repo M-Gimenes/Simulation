@@ -1,0 +1,528 @@
+\chapter[Metodologia]{Metodologia}
+\label{chap: metodologia}
+
+Este capítulo descreve a metodologia adotada para investigar a hipótese formulada na Introdução. A exposição parte da arquitetura geral do sistema (\autoref{sec: arquitetura}), descreve a modelagem dos arquétipos como vetores numéricos (\autoref{sec: modelagem}), especifica o modelo de simulação de combate (\autoref{sec: simulacao}), formaliza a função de aptidão multi-componente (\autoref{sec: aptidao}), apresenta os dois algoritmos evolutivos aplicados (\autoref{sec: ag_escalar} e \autoref{sec: nsga2_metodo}), define os critérios de parada (\autoref{sec: parada}), descreve as técnicas de validação (\autoref{sec: validacao}) e consolida os hiperparâmetros adotados (\autoref{sec: hiperparametros}).
+
+\section{Visão geral da arquitetura}
+\label{sec: arquitetura}
+
+O sistema desenvolvido neste trabalho é organizado em duas camadas funcionalmente independentes, articuladas pelo processo evolutivo. A camada de \textbf{simulação de combate} implementa o modelo formal de confronto entre dois personagens, descrito na \autoref{sec: simulacao}, e é a única responsável por produzir o resultado de cada partida. A camada de \textbf{otimização evolutiva} implementa o ciclo do Algoritmo Genético --- inicialização da população, seleção, cruzamento, mutação e elitismo --- e utiliza a simulação como caixa-preta para avaliar a aptidão de cada indivíduo.
+
+A separação entre as duas camadas é estrita: a simulação não tem acesso ao processo evolutivo nem aos objetivos da função de aptidão, e o algoritmo evolutivo opera apenas sobre os resultados agregados das simulações. Essa separação garante que o modelo de combate permaneça neutro em relação aos objetivos da otimização --- nenhuma das decisões de \textit{design} do combate é tomada para favorecer um resultado particular do AG.
+
+A avaliação da aptidão de cada indivíduo é conduzida por \textbf{round-robin completo} --- no sentido empregado em teoria de torneios, isto é, todos os personagens enfrentam todos os demais ao menos uma vez ---: cada um dos $\binom{5}{2} = 10$ pares de personagens distintos é simulado um número fixo de vezes, e os resultados agregados desses dez confrontos compõem as componentes da função de aptidão. A escolha do round-robin completo --- em vez de amostragens parciais --- é justificada pela natureza interdependente do problema: a taxa de vitória de qualquer personagem depende simultaneamente dos demais quatro, e o desempenho contra todos os adversários é parte indissociável da aptidão do elenco.
+
+\section{Modelagem dos arquétipos}
+\label{sec: modelagem}
+
+Esta seção apresenta a operacionalização numérica dos cinco arquétipos descritos conceitualmente na \autoref{sec: arquetipos}. A operacionalização converte descrições funcionais em vetores de atributos físicos e pesos comportamentais que, em conjunto, definem completamente o comportamento de cada personagem no modelo de combate.
+
+\subsection{Atributos físicos}
+\label{sub: atributos}
+
+Cada personagem é descrito por nove atributos numéricos, listados a seguir com a respectiva semântica.
+
+\begin{itemize}
+    \item \textbf{HP} (\textit{Hit Points}) --- pontos de vida iniciais.
+    \item \textbf{Damage} --- dano-base por golpe acertado, em unidades de HP.
+    \item \textbf{Attack Cooldown} --- tempo de espera entre ataques, em \textit{ticks} lógicos.
+    \item \textbf{Range} --- alcance máximo do golpe, em unidades de campo.
+    \item \textbf{Speed} --- velocidade de deslocamento, em unidades de campo por \textit{tick} lógico.
+    \item \textbf{Defense} --- fração de redução do dano recebido (faixa $[0, 1]$).
+    \item \textbf{Stun} --- duração da imobilização causada ao adversário após acerto, em \textit{ticks} lógicos.
+    \item \textbf{Knockback} --- distância que o adversário é empurrado a cada acerto, em unidades de campo.
+    \item \textbf{Recovery} --- redução do \textit{stun} recebido, em sub-\textit{ticks} (atributo inteiro).
+\end{itemize}
+
+Os bounds adotados para cada atributo, listados na \autoref{tab: bounds}, foram calibrados conjuntamente com as demais decisões metodológicas do combate para garantir que o espaço de busca admita variedade estratégica sem comportar configurações degeneradas. Em particular, o teto de \textit{range} (20 unidades) é mantido sempre inferior à distância inicial entre lutadores (50 unidades), garantindo que nenhum personagem possa atacar antes de movimentar-se; o teto de \textit{defense} (0,30) preserva uma janela mínima de dano efetivo mesmo na máxima defesa admissível; e \textit{recovery} é representado como inteiro subtrativo, com teto compatível com a regra de cap de \textit{stun} descrita na \autoref{sub: stun_efetivo}.
+
+\begin{table}[ht]
+    \caption{Faixa de variação (\textit{bounds}) admitida para cada atributo no espaço de busca do Algoritmo Genético.}
+    \label{tab: bounds}
+    \centering
+
+    \begin{tabular}{lcc}
+        \hline
+        \bfseries Atributo & \bfseries Mínimo & \bfseries Máximo \\
+        \hline
+        HP              & 300 & 400 \\
+        Damage          & 10  & 20  \\
+        Attack Cooldown & 1   & 5   \\
+        Range           & 5   & 20  \\
+        Speed           & 1   & 5   \\
+        Defense         & 0   & 0{,}30 \\
+        Stun            & 0   & 5   \\
+        Knockback       & 0   & 3   \\
+        Recovery        & 0   & 10  \\
+        \hline
+    \end{tabular}
+
+    \source
+\end{table}
+
+\subsection{Pesos comportamentais}
+\label{sub: pesos}
+
+Além dos nove atributos físicos, cada personagem é descrito por três pesos comportamentais, todos no intervalo $[0, 1]$, que parametrizam a sua política de decisão sob ameaça:
+
+\begin{itemize}
+    \item \textbf{$w_{retreat}$} --- propensão a recuar.
+    \item \textbf{$w_{defend}$} --- propensão a defender-se em posição.
+    \item \textbf{$w_{aggressiveness}$} --- propensão a avançar contra o oponente.
+\end{itemize}
+
+A política de uso desses pesos é descrita na \autoref{sub: decisao}, e é construída de forma a tornar os três pesos contínuos --- isto é, variações arbitrariamente pequenas nos pesos produzem variações proporcionais no comportamento ---, dando ao Algoritmo Genético gradiente diferenciável em todo o seu domínio.
+
+\subsection{Valores canônicos}
+\label{sub: canonicos}
+
+Os valores canônicos dos atributos e dos pesos comportamentais para os cinco arquétipos são apresentados na \autoref{tab: canonicos}. Esses valores cumprem dois papéis no método: constituem a \textbf{semente inicial} da população evolutiva e fornecem a \textbf{linha de base} contra a qual o desvio dos personagens evoluídos é medido pela componente \textit{drift} da função de aptidão (\autoref{sub: drift}).
+
+\begin{table}[ht]
+    \caption{Valores canônicos dos atributos físicos e dos pesos comportamentais para os cinco arquétipos.}
+    \label{tab: canonicos}
+    \centering
+
+    \scriptsize
+    \begin{tabular}{l rrrrrrrrr rrr}
+        \hline
+        \bfseries Arquétipo & \bfseries HP & \bfseries Dmg & \bfseries CD & \bfseries Rng & \bfseries Spd & \bfseries Def & \bfseries Stn & \bfseries KB & \bfseries Rec & \bfseries $w_R$ & \bfseries $w_D$ & \bfseries $w_A$ \\
+        \hline
+        Zoner        & 300 & 12 & 4 & 18 & 2{,}5 & 0{,}05 & 1{,}0 & 2{,}0 & 2 & 0{,}60 & 0{,}20 & 0{,}30 \\
+        Rushdown     & 320 & 11 & 1 & 10 & 5{,}0 & 0{,}10 & 1{,}0 & 1{,}0 & 3 & 0{,}05 & 0{,}10 & 0{,}90 \\
+        Combo Master & 350 & 13 & 3 & 10 & 3{,}0 & 0{,}15 & 3{,}5 & 0{,}5 & 3 & 0{,}05 & 0{,}20 & 0{,}70 \\
+        Grappler     & 380 & 20 & 4 &  8 & 2{,}0 & 0{,}20 & 2{,}5 & 0{,}5 & 4 & 0{,}10 & 0{,}40 & 0{,}70 \\
+        Turtle       & 400 & 10 & 5 & 13 & 1{,}5 & 0{,}25 & 2{,}0 & 1{,}0 & 7 & 0{,}40 & 0{,}70 & 0{,}20 \\
+        \hline
+    \end{tabular}
+
+    {\footnotesize\raggedright
+    \textit{Abreviações:} Dmg --- \textit{Damage}; CD --- \textit{Attack Cooldown}; Rng --- \textit{Range}; Spd --- \textit{Speed}; Def --- \textit{Defense}; Stn --- \textit{Stun}; KB --- \textit{Knockback}; Rec --- \textit{Recovery}; $w_R$, $w_D$, $w_A$ --- pesos de \textit{retreat}, \textit{defend} e \textit{aggressiveness}.\par}
+
+    \source
+\end{table}
+
+É importante reiterar que os valores canônicos não são restrições rígidas: o Algoritmo Genético opera livremente sobre o espaço de busca delimitado pelos bounds, e o ciclo de vantagens entre arquétipos (\autoref{quad: ciclo_canonico}) não é codificado em nenhum termo da função de aptidão. Seu papel se restringe a definir um ponto de partida (a semente inicial) e uma referência de medição (a linha de base para o \textit{drift}). Conforme já discutido na \autoref{sec: arquetipos}, o ciclo canônico tem caráter estipulativo --- é uma operacionalização entre várias defensáveis ---, e sua eventual preservação ou ruptura após a evolução é tratada como resultado a ser observado, não como objetivo a ser perseguido.
+
+\subsection{Estrutura do indivíduo no Algoritmo Genético}
+\label{sub: individuo}
+
+A unidade evolutiva manipulada pelo Algoritmo Genético é o \textbf{elenco completo dos cinco arquétipos}, não cada personagem isoladamente. Essa escolha é justificada pela natureza interdependente do problema: o desempenho de qualquer personagem depende simultaneamente dos outros quatro com os quais ele compete, e a aptidão de um único personagem em isolamento não tem definição operacional. Cada indivíduo da população é, portanto, um vetor de $5 \times 12 = 60$ genes, organizado em cinco blocos --- um por arquétipo ---, cada bloco contendo os nove atributos físicos seguidos dos três pesos comportamentais. O bloco do indivíduo é interpretado como um cromossomo composto, e os operadores de cruzamento descritos na \autoref{sub: operadores} respeitam essa estrutura.
+
+\section{Simulação de combate}
+\label{sec: simulacao}
+
+Esta seção especifica o modelo formal de simulação de combate empregado para avaliar cada indivíduo. O modelo é determinístico no cômputo de dano e em toda a resolução mecânica do combate; a única fonte de estocasticidade é a política comportamental dos agentes sob ameaça, descrita na \autoref{sub: decisao}.
+
+\subsection{Campo de combate}
+\label{sub: campo}
+
+O combate ocorre em um campo unidimensional de 100 unidades. Os dois personagens iniciam separados por uma distância de 50 unidades, posicionados em pontos opostos do campo. As posições admissíveis estão restritas ao intervalo $[0, 100]$. Considera-se um personagem \textbf{encurralado} quando sua posição está a menos de 10 unidades de uma das extremidades do campo --- condição que altera a sua política de movimento, conforme descrito na \autoref{sub: decisao}.
+
+\subsection{Resolução sub-tick}
+\label{sub: tickscale}
+
+O combate é simulado em \textit{ticks} discretos. A discretização pura em \textit{ticks} lógicos, todavia, geraria platôs no espaço de busca para os atributos relacionados ao tempo: como \textit{Attack Cooldown}, \textit{Stun} e \textit{Speed} variam em faixas relativamente estreitas, suas operacionalizações como inteiros produziriam apenas poucos valores discretos distintos --- uma resolução insuficiente para que o processo evolutivo enxergue pequenas variações genéticas.
+
+Para mitigar esse problema, todos os \textit{timers} internos da simulação operam em uma escala \textbf{sub-\textit{tick}} obtida pela multiplicação por um fator inteiro $\text{TICK\_SCALE} = 5$. Atributos temporais com bound máximo igual a 5 passam a operar internamente em até 25 sub-\textit{ticks}, multiplicando por cinco a resolução efetiva do espaço de busca. O deslocamento por sub-\textit{tick} é dado pela \autoref{eq: movimento}:
+
+\begin{equation}
+    \label{eq: movimento}
+    \Delta x_{sub} = \frac{\text{Speed}}{\text{TICK\_SCALE}}
+\end{equation}
+
+\subsection{Ações disponíveis}
+\label{sub: acoes}
+
+A cada sub-\textit{tick}, cada personagem ativo executa exatamente uma das quatro ações a seguir, conforme determinado pelo sistema de decisão descrito na \autoref{sub: decisao}.
+
+\begin{itemize}
+    \item \textbf{ATTACK} --- emite um golpe na direção do adversário; gera dano se o oponente estiver dentro do alcance e o \textit{cooldown} estiver pronto.
+    \item \textbf{ADVANCE} --- desloca-se na direção do adversário, à velocidade definida pela \autoref{eq: movimento}.
+    \item \textbf{RETREAT} --- desloca-se na direção oposta à do adversário, à mesma velocidade.
+    \item \textbf{DEFEND} --- mantém a posição, reduzindo o dano recebido na fração definida pela \autoref{sub: dano}.
+\end{itemize}
+
+Um personagem \textit{stunado} perde o turno: sua ação é nula no sub-\textit{tick} corrente, mas o \textit{stun} é decrementado normalmente.
+
+\subsection{Sistema de decisão por prioridade}
+\label{sub: decisao}
+
+A escolha da ação em cada sub-\textit{tick} é determinada por um sistema de prioridade decrescente. As regras superiores são determinísticas; apenas as inferiores envolvem componente probabilística. A ordem das prioridades é a seguinte:
+
+\begin{enumerate}
+    \item \textbf{ATTACK} --- se o adversário está dentro do alcance \textit{e} o \textit{cooldown} do personagem está pronto, a ação é \textit{ATTACK}. Qualquer compromisso pendente de política suave é desfeito.
+    \item \textbf{ADVANCE forçado} --- se o adversário está fora do alcance, ou se o personagem está encurralado contra uma das paredes do campo, a ação é \textit{ADVANCE}. Qualquer compromisso pendente é desfeito.
+    \item \textbf{Compromisso pendente} --- se uma ação foi previamente sorteada por política suave e ainda está dentro de sua janela de persistência, ela é repetida e o contador de persistência é decrementado.
+    \item \textbf{Novo sorteio por política suave} --- caso nenhuma das condições anteriores se aplique, sorteia-se uma ação entre $\{\text{ADVANCE}, \text{RETREAT}, \text{DEFEND}\}$ com probabilidades proporcionais a $(w_{aggressiveness}, w_{retreat}, w_{defend})$; o sorteio fixa a ação por $\text{ACTION\_PERSISTENCE\_SUBTICKS}$ sub-\textit{ticks} subsequentes.
+\end{enumerate}
+
+A escolha por uma política suave probabilística --- e não por comparação direta entre os pesos --- é deliberada. Sob comparação direta, os pesos atuariam como variáveis categóricas: apenas a sua ordem importaria, e variações de magnitude seriam invisíveis ao processo evolutivo. Sob a política suave, cada peso afeta proporcionalmente a probabilidade da ação correspondente, e variações arbitrariamente pequenas produzem variações proporcionais no comportamento esperado. Isso garante que o AG tenha gradiente contínuo em todo o domínio dos pesos.
+
+A introdução da persistência de ação (item 3) responde a uma patologia que emergiria sob sorteios independentes a cada sub-\textit{tick}: o personagem oscilaria continuamente entre as três ações disponíveis, em padrões sem relação com o comportamento estratégico observável em jogadores reais. A persistência simula o compromisso temporal de uma decisão tática: optar por recuar não é uma escolha instantânea, mas uma intenção que dura uma fração de \textit{tick} lógico antes de ser reavaliada. O compromisso é, contudo, interrompido sempre que uma prioridade superior dispara --- garantindo que oportunidades de ataque ou necessidades de avanço forçado nunca sejam preteridas em favor de uma decisão anterior.
+
+\subsection{Resolução de dano}
+\label{sub: dano}
+
+O dano causado por um acerto é determinístico, calculado pela \autoref{eq: dano_base}:
+
+\begin{equation}
+    \label{eq: dano_base}
+    D_{eff} = \text{Damage}_{atacante} \cdot (1 - \text{Defense}_{defensor})
+\end{equation}
+
+Quando o defensor está em ação \textit{DEFEND} no momento do acerto, o dano é adicionalmente reduzido por um fator constante:
+
+\begin{equation}
+    \label{eq: dano_defendendo}
+    D_{eff}^{defend} = D_{eff} \cdot \text{DEFEND\_DAMAGE\_REDUCTION}
+\end{equation}
+
+com $\text{DEFEND\_DAMAGE\_REDUCTION} = 0{,}4$, ou seja, redução total de 60\% sobre o dano que passaria pela defesa passiva.
+
+A ausência de variância por golpe é uma escolha metodológica: ruído estocástico aditivo no dano reduz o sinal das pequenas mutações genéticas abaixo do piso de erro binomial gerado pelas próprias políticas comportamentais, sem trazer realismo proporcional ao domínio modelado. A estocasticidade é mantida apenas onde modela incerteza estratégica relevante --- na decisão entre alternativas de movimento e defesa.
+
+\subsection{Stun efetivo}
+\label{sub: stun_efetivo}
+
+Ao acertar um golpe, o atacante impõe sobre o defensor um \textit{stun} cuja duração depende simultaneamente da característica ofensiva do atacante e da capacidade de recuperação do defensor. O cálculo é decomposto em duas quantidades intermediárias --- o \textit{stun} bruto $S_{raw}$ e o \textit{cap} de \textit{stun} $S_{cap}$ ---, combinadas pelo mínimo para produzir o \textit{stun} efetivo $S_{eff}$, conforme a \autoref{eq: stun_efetivo}:
+
+\begin{equation}
+    \label{eq: stun_efetivo}
+    \begin{aligned}
+        S_{raw} &= \max\!\left(0,\; \left\lfloor \text{Stun}_{atacante} \cdot \text{TICK\_SCALE} \right\rceil - \text{Recovery}_{defensor} \right) \\
+        S_{cap} &= \text{STUN\_CAP\_MULTIPLIER} \cdot \text{CD}_{atacante} \cdot \text{TICK\_SCALE} \\
+        S_{eff} &= \min(S_{raw},\; S_{cap})
+    \end{aligned}
+\end{equation}
+
+A representação de \textit{Recovery} como inteiro subtrativo --- e não como fator multiplicativo, na forma $\text{Stun} \cdot (1 - \text{Recovery})$ com \textit{Recovery} contínua --- é uma decisão metodológica deliberada. A forma multiplicativa contínua gera platôs por arredondamento, em que pequenas mutações em \textit{Recovery} produzem valores idênticos após truncamento e tornam-se invisíveis ao processo evolutivo. A forma subtrativa inteira faz com que cada unidade de \textit{Recovery} subtraia exatamente um sub-\textit{tick} do \textit{stun} recebido, preservando o gradiente.
+
+O \textit{cap} $S_{cap}$ na \autoref{eq: stun_efetivo} mantém o \textit{stun} efetivo estritamente menor que o \textit{cooldown} do atacante, garantindo ao defensor uma janela de ação livre antes do próximo golpe possível. O valor $\text{STUN\_CAP\_MULTIPLIER} = 0{,}6$ foi escolhido de modo a quebrar o regime degenerado em que $\text{STUN} \approx \text{CD}$ permitiria que o defensor reentrasse em \textit{stun} imediatamente ao sair do anterior, gerando \textit{lock-down} permanente até o KO.
+
+\subsection{\textit{Knockback} e atualização de posição}
+\label{sub: knockback}
+
+A cada acerto, o defensor é deslocado em $\text{Knockback}_{atacante}$ unidades na direção oposta à do atacante. As posições resultantes são confinadas ao intervalo $[0, \text{FIELD\_SIZE}]$. O \textit{knockback} é o único mecanismo de criação de distância que não depende da escolha consciente de movimento por uma das partes.
+
+\subsection{Cooldown apenas em acerto}
+\label{sub: cooldown}
+
+O \textit{cooldown} do atacante somente é resetado quando o golpe efetivamente produz dano --- isto é, quando o oponente está dentro do alcance no momento da resolução do ataque. Ataques emitidos em condições válidas no momento da decisão, mas que perdem a validade após o deslocamento simultâneo dos dois personagens dentro do mesmo sub-\textit{tick}, não consomem \textit{cooldown}. Essa regra evita um falso custo: o personagem não é punido por intenções de ataque que se tornam ineficazes por fatores fora do seu controle direto.
+
+\subsection{Condição de vitória}
+\label{sub: vitoria}
+
+O combate termina sob uma de duas condições. Em caso de \textbf{KO}, o personagem cujo HP atinge zero perde imediatamente o combate. Em caso de \textbf{esgotamento do tempo} --- quando a duração total da simulação atinge $\text{MAX\_TICKS} = 500 \cdot \text{TICK\_SCALE} = 2500$ sub-\textit{ticks} ---, o vencedor é aquele com maior HP percentual, calculado como $\text{HP}_{atual} / \text{HP}_{máximo}$, atributo que serve simultaneamente para definir o vencedor e para alimentar a métrica HP-ponderada descrita na \autoref{sub: dominance}.
+
+\section{Função de aptidão}
+\label{sec: aptidao}
+
+A função de aptidão é o único elo formal entre o processo evolutivo e os objetivos do trabalho. Esta seção descreve as três componentes individuais que a compõem e a forma como elas são agregadas no Algoritmo Genético escalar e no NSGA-II.
+
+\subsection{\textit{Score} HP-ponderado}
+\label{sub: score}
+
+A unidade básica de avaliação dos confrontos é o \textit{score} de cada combate, em $[0, 1]$, calculado de forma distinta conforme a condição de término. Para combates encerrados por KO, o \textit{score} do vencedor é $1{,}0$ e o do perdedor é $0{,}0$. Para combates encerrados por esgotamento de tempo, o \textit{score} do personagem $i$ em relação ao adversário $j$ é dado pela \autoref{eq: score_hp}:
+
+\begin{equation}
+    \label{eq: score_hp}
+    \text{score}_{ij} = \frac{\text{hp\_pct}_i}{\text{hp\_pct}_i + \text{hp\_pct}_j}
+\end{equation}
+
+onde $\text{hp\_pct}$ denota o HP percentual do personagem ao fim da simulação. Sob essa formulação, um combate por esgotamento de tempo que termine em $55\%$ contra $45\%$ produz $\text{score} \approx 0{,}55$, e não $1{,}0$ como faria uma codificação binária pela diferença mínima de HP. A motivação é metodológica: combates entre personagens lentos com alta resistência tendem a esgotar o tempo com diferenças muito pequenas de HP, e a codificação binária transformaria essa configuração em um sinal de coin-flip, contaminando a função de aptidão com ruído sem informação. A formulação contínua preserva o sinal proporcional à intensidade da vantagem.
+
+\subsection{\textit{Specialization penalty}}
+\label{sub: spec}
+
+A primeira componente da função de aptidão penaliza personagens cujos atributos sejam internamente homogêneos --- configurações em que nenhum atributo se destaca acentuadamente sobre os demais, caracterizando \textit{builds} genéricos sem identidade funcional clara. Para cada personagem $i$, define-se primeiramente a sua \textit{specialization} como a amplitude entre seu maior e seu menor atributo normalizado pela respectiva faixa de variação:
+
+\begin{equation}
+    \label{eq: specialization_i}
+    \text{specialization}_i = \max_k(\hat{a}_{ik}) - \min_k(\hat{a}_{ik})
+\end{equation}
+
+onde $\hat{a}_{ik}$ é o $k$-ésimo atributo do personagem $i$ normalizado para o intervalo $[0, 1]$ pelos respectivos bounds. A penalização agregada sobre os $N=5$ personagens é o complemento da média da \textit{specialization}:
+
+\begin{equation}
+    \label{eq: spec_penalty}
+    P_{spec} = 1 - \frac{1}{N} \sum_{i=1}^{N} \text{specialization}_i
+\end{equation}
+
+Personagens com perfis polarizados --- alta especialização em alguns atributos e baixa em outros --- são premiados; personagens com perfis uniformes são penalizados. A penalização atua como mecanismo contínuo de pressão em favor da diferenciação interna de cada personagem.
+
+\subsection{\textit{Drift penalty}}
+\label{sub: drift}
+
+A segunda componente penaliza o desvio dos personagens evoluídos em relação aos seus respectivos perfis canônicos. O termo \textit{drift} --- em tradução livre, ``deriva'' --- é empregado aqui no sentido figurado de afastamento progressivo de uma configuração de referência ao longo da evolução, similar ao uso consolidado em estatística e em computação evolutiva (\textit{genetic drift}). Para cada personagem $i$, define-se o desvio $\delta_i$ como a raiz da média dos quadrados das diferenças entre os atributos normalizados e os pesos comportamentais do personagem evoluído e os respectivos valores canônicos:
+
+\begin{equation}
+    \label{eq: drift_i}
+    \delta_i = \sqrt{ \frac{1}{|\mathcal{F}|} \sum_{f \in \mathcal{F}} \left( f_i - f_i^{canon} \right)^2 }
+\end{equation}
+
+onde $\mathcal{F}$ designa o conjunto de \textit{features} relevantes (os atributos físicos normalizados e os pesos comportamentais), e $f_i^{canon}$ é o valor canônico da \textit{feature} $f$ para o personagem $i$. A penalização agregada é a média dos desvios:
+
+\begin{equation}
+    \label{eq: drift_penalty}
+    P_{drift} = \frac{1}{N} \sum_{i=1}^{N} \delta_i
+\end{equation}
+
+Esta componente é o vetor formal pelo qual a preservação de identidade arquetípica entra na função de aptidão --- não como restrição rígida, mas como pressão contínua mensurável.
+
+\subsection{\textit{Dominance penalty}}
+\label{sub: dominance}
+
+A terceira componente penaliza desbalanceamentos competitivos entre pares de personagens. A formulação adotada utiliza o \textit{score} HP-ponderado da \autoref{sub: score} para cada par $(i, j)$ de personagens distintos, agregado sobre todas as $\text{SIMS\_PER\_MATCHUP}$ simulações daquele matchup. O excesso de cada par sobre o limiar de dominância é dado pela \autoref{eq: excess}:
+
+\begin{equation}
+    \label{eq: excess}
+    \text{excess}_{ij} = \frac{\max\!\left(0,\; |\overline{\text{score}}_{ij} - 0{,}5| - \text{MATCHUP\_THRESHOLD}\right)}{0{,}5 - \text{MATCHUP\_THRESHOLD}}
+\end{equation}
+
+onde $\overline{\text{score}}_{ij}$ é o \textit{score} médio do personagem $i$ contra o personagem $j$ ao longo das simulações daquele matchup, e $\text{MATCHUP\_THRESHOLD} = 0{,}10$ define a banda de tolerância em torno de $0{,}5$ na qual nenhum desbalanceamento é penalizado (matchups com \textit{score} entre $40\%$ e $60\%$ comparecem com $\text{excess} = 0$). A penalização agregada sobre todos os $|\mathcal{P}| = \binom{5}{2} = 10$ pares é a raiz da média dos quadrados dos excessos:
+
+\begin{equation}
+    \label{eq: dominance_penalty}
+    P_{dom} = \sqrt{ \frac{1}{|\mathcal{P}|} \sum_{(i,j) \in \mathcal{P}} \text{excess}_{ij}^2 }
+\end{equation}
+
+Três decisões metodológicas merecem destaque nesta formulação.
+
+Em primeiro lugar, a penalização é \textbf{direcionalmente cega}: utiliza $|\overline{\text{score}} - 0{,}5|$, e não codifica qual personagem \textit{deveria} vencer cada matchup. Codificar o ciclo canônico nessa componente equivaleria a forçar a estrutura cíclica como restrição, tornando a investigação circular: o sistema preservaria o ciclo porque foi pago para preservá-lo. A direção do desbalanceamento é registrada \textit{a posteriori}, como dado observado, mas não atua sobre a pressão seletiva.
+
+Em segundo lugar, a agregação utiliza a \textbf{raiz da média dos quadrados} (RMS, do inglês \textit{Root Mean Square}) dos excessos, e não a média simples. A RMS atribui peso aproximadamente quadrático aos desbalanceamentos extremos: um matchup que apresenta dominância máxima (100\% contra 0\%) contribui aproximadamente 16 vezes mais para a penalização que um matchup moderado (70\% contra 30\%). Essa propriedade impede que o processo evolutivo "esconda" um matchup catastroficamente desbalanceado atrás de uma média confortável obtida com matchups bem ajustados.
+
+Em terceiro lugar, a operação se dá sobre \textbf{\textit{scores} HP-ponderados}, e não sobre taxas de vitória binárias. A motivação foi discutida na \autoref{sub: score}: a codificação binária introduz ruído indistinguível de sinal em matchups que tendem ao esgotamento de tempo.
+
+\subsection{Função de aptidão escalar}
+\label{sub: fitness_escalar}
+
+A função de aptidão utilizada pelo Algoritmo Genético escalar combina as três componentes acima por soma ponderada negativa:
+
+\begin{equation}
+    \label{eq: fitness}
+    \text{fitness} = -\left( \lambda_{spec} \cdot P_{spec} + \lambda_{drift} \cdot P_{drift} + \lambda_{dom} \cdot P_{dom} \right)
+\end{equation}
+
+com os coeficientes adotados sendo $\lambda_{spec} = 0{,}2$, $\lambda_{drift} = 6{,}0$ e $\lambda_{dom} = 1{,}0$. O sinal negativo torna o problema, por convenção, de maximização da \textit{fitness}. O coeficiente $\lambda_{drift}$ elevado reflete a centralidade da preservação de identidade arquetípica para a hipótese do trabalho: pequenos desvios em relação ao perfil canônico recebem pressão de retorno substancialmente maior que pequenos desbalanceamentos competitivos, configurando uma calibração deliberadamente conservadora em favor da preservação.
+
+\subsection{Função de aptidão multi-objetivo}
+\label{sub: fitness_nsga2}
+
+Para o NSGA-II, a função de aptidão é redefinida como um vetor bidimensional contendo apenas as componentes diretamente associadas à hipótese do trabalho:
+
+\begin{equation}
+    \label{eq: fitness_nsga2}
+    \mathbf{f}(x) = \left( P_{dom}(x),\; P_{drift}(x) \right)
+\end{equation}
+
+A componente $P_{spec}$ é omitida; nenhuma ponderação $\lambda$ é aplicada. O Pareto front é calculado nas duas dimensões em escala bruta, e a fronteira resultante expressa diretamente o trade-off entre equilíbrio competitivo e preservação de identidade arquetípica.
+
+\section{Algoritmo Genético escalar}
+\label{sec: ag_escalar}
+
+Esta seção descreve o Algoritmo Genético escalar empregado neste trabalho. A apresentação cobre a inicialização da população, os três operadores evolutivos e a forma agregada do ciclo evolutivo.
+
+\subsection{Inicialização}
+\label{sub: inicializacao}
+
+A população inicial, de tamanho $\text{POPULATION\_SIZE} = 300$ indivíduos, é gerada por amostragem em torno dos valores canônicos. Cada indivíduo da população inicial é uma perturbação aleatória das cinco fichas canônicas, com perturbações independentes por gene amostradas a partir de uma distribuição gaussiana centrada no valor canônico e desvio-padrão proporcional à amplitude do gene. Essa inicialização garante diversidade desde a primeira geração sem afastar excessivamente a população do ponto de referência arquetípico.
+
+\subsection{Operadores evolutivos}
+\label{sub: operadores}
+
+\textbf{Seleção.} A seleção dos indivíduos que servirão de pais é feita por torneio com tamanho $\text{TOURNAMENT\_SIZE} = 3$: três indivíduos são amostrados aleatoriamente da população, e o de maior \textit{fitness} é selecionado. O torneio é repetido tantas vezes quanto necessário para preencher o conjunto de pais da geração seguinte.
+
+\textbf{Cruzamento.} O cruzamento opera por bloco de personagem: cada um dos cinco personagens do indivíduo filho é clonado, em sua totalidade, de um dos dois pais com probabilidade uniforme. Atributos e pesos comportamentais de um mesmo arquétipo são, portanto, sempre transmitidos em conjunto. Essa escolha preserva a coerência interna de cada personagem evoluído: um operador de cruzamento por gene poderia, em tese, combinar atributos físicos de um arquétipo com pesos comportamentais de outro, produzindo configurações sem correspondência funcional coerente.
+
+\textbf{Mutação.} A mutação é gaussiana, aplicada gene a gene com probabilidade $\text{MUTATION\_RATE} = 0{,}05$. O desvio-padrão da perturbação é dado como fração da amplitude admissível do gene, com valores distintos para atributos físicos e pesos comportamentais:
+
+\begin{itemize}
+    \item Atributos físicos: $\sigma = 0{,}10 \cdot (\text{max} - \text{min})$;
+    \item Pesos comportamentais: $\sigma = 0{,}025 \cdot (\text{max} - \text{min})$.
+\end{itemize}
+
+A diferença de magnitude entre os dois desvios é intencional. Atributos físicos definem a \textbf{capacidade} do personagem; pesos comportamentais definem a sua \textbf{estratégia}. A pressão evolutiva é direcionada com mais intensidade à exploração do espaço de capacidades do que à reformulação de estratégias --- escolha justificada pelo fato de que mudanças bruscas de estratégia tendem a produzir descontinuidades comportamentais incompatíveis com a noção de \textbf{drift gradual} que ancora a métrica de preservação de identidade. Após cada mutação, o valor resultante é confinado aos bounds do gene; atributos representados como inteiros (no presente caso, apenas \textit{Recovery}) são arredondados após o confinamento.
+
+\textbf{Elitismo.} A cada geração, os $\text{ELITE\_SIZE} = 30$ melhores indivíduos (10\% da população) são transmitidos sem alterações para a geração seguinte. Os demais slots são preenchidos pelos filhos gerados a partir da seleção, do cruzamento e da mutação. O elitismo impede que soluções de alta qualidade já encontradas sejam perdidas por efeito dos operadores estocásticos.
+
+\subsection{Ciclo evolutivo}
+\label{sub: ciclo_ag}
+
+A estrutura agregada do AG escalar é dada pelo \autoref{alg: ag_escalar}. A condição de parada é detalhada na \autoref{sec: parada}.
+
+\begin{lstlisting}[language=Python, caption=Algoritmo Genético escalar., label=alg: ag_escalar, columns=fullflexible, keepspaces=true, basicstyle=\ttfamily\small]
+def ag_escalar():
+    populacao = inicializar_populacao(POPULATION_SIZE)
+    avaliar_fitness(populacao)  # round-robin completo
+
+    for geracao in range(MAX_GENERATIONS):
+        elite = top_k(populacao, ELITE_SIZE)
+
+        filhos = []
+        while len(filhos) < POPULATION_SIZE - ELITE_SIZE:
+            pai_1 = selecao_por_torneio(populacao, TOURNAMENT_SIZE)
+            pai_2 = selecao_por_torneio(populacao, TOURNAMENT_SIZE)
+            filho = cruzamento_por_bloco(pai_1, pai_2)
+            mutacao(filho, MUTATION_RATE)
+            filhos.append(filho)
+
+        avaliar_fitness(filhos)
+        populacao = elite + filhos
+
+        if criterios_de_parada(populacao):
+            break
+
+    return melhor(populacao)
+\end{lstlisting}
+
+\section{NSGA-II}
+\label{sec: nsga2_metodo}
+
+O NSGA-II compartilha com o AG escalar a estrutura do indivíduo, os operadores de cruzamento e mutação, e a inicialização da população. Difere essencialmente em três aspectos: a função de aptidão é vetorial (\autoref{eq: fitness_nsga2}); a seleção utiliza torneio binário com critérios de dominância e densidade da Pareto; e a transição entre gerações utiliza ordenação não-dominada acompanhada por preservação de diversidade.
+
+\subsection{Mecanismos}
+\label{sub: mecanismos_nsga2}
+
+A ordenação não-dominada rápida (\textit{fast non-dominated sorting}) particiona a população em \textbf{frentes} sucessivas de não-dominância: a primeira frente contém os indivíduos não dominados por nenhum outro; a segunda contém aqueles dominados apenas por indivíduos da primeira; e assim por diante. A distância de aglomeração (\textit{crowding distance}) é uma estimativa local da densidade da fronteira de Pareto no espaço de objetivos, calculada para cada indivíduo dentro de sua frente como a soma normalizada das distâncias entre os vizinhos imediatos em cada objetivo. Valores elevados indicam regiões esparsas da fronteira; valores baixos indicam regiões super-povoadas.
+
+A seleção dos pais utiliza torneio binário com critério lexicográfico: dado um par de candidatos, prefere-se o de menor frente; em caso de empate na frente, prefere-se o de maior distância de aglomeração. O critério combinado promove simultaneamente a convergência para a fronteira de Pareto (via dominância) e a diversidade ao longo da fronteira (via densidade).
+
+A transição entre gerações opera sobre a população unida $R = P \cup Q$, formada pelos pais $P$ e pelos filhos $Q$ da iteração corrente. As frentes de $R$ são calculadas e a próxima geração $P'$ é formada agregando frentes inteiras enquanto há espaço, e completando a última frente parcialmente admitida por ordem decrescente de distância de aglomeração.
+
+A estrutura agregada do algoritmo é dada pelo \autoref{alg: nsga2}.
+
+\begin{lstlisting}[language=Python, caption=NSGA-II., label=alg: nsga2, columns=fullflexible, keepspaces=true, basicstyle=\ttfamily\small]
+def nsga2():
+    populacao = inicializar_populacao(NSGA2_POP_SIZE)
+    avaliar_objetivos(populacao)  # (P_dom, P_drift), brutos
+
+    for geracao in range(NSGA2_GENERATIONS):
+        # Produção dos filhos via torneio binário
+        filhos = []
+        while len(filhos) < NSGA2_POP_SIZE:
+            pai_1 = torneio_binario(populacao)
+            pai_2 = torneio_binario(populacao)
+            filho = cruzamento_por_bloco(pai_1, pai_2)
+            mutacao(filho, MUTATION_RATE)
+            filhos.append(filho)
+        avaliar_objetivos(filhos)
+
+        # Combinar e particionar por frentes de não-dominância
+        combinada = populacao + filhos
+        frentes = fast_non_dominated_sorting(combinada)
+
+        # Compor a próxima geração frente a frente
+        proxima = []
+        for frente in frentes:
+            calcular_crowding_distance(frente)
+            if len(proxima) + len(frente) <= NSGA2_POP_SIZE:
+                proxima.extend(frente)
+            else:
+                frente.sort(key=lambda ind: -ind.crowding_distance)
+                resta = NSGA2_POP_SIZE - len(proxima)
+                proxima.extend(frente[:resta])
+                break
+
+        populacao = proxima
+
+    return extrair_representantes_pareto(populacao)
+\end{lstlisting}
+
+\subsection{Representantes extraídos da fronteira de Pareto}
+\label{sub: representantes}
+
+Ao término da execução, a primeira frente da população final --- composta pelos indivíduos não dominados --- é interpretada como aproximação à fronteira de Pareto do problema. Para fins de análise e comparação posterior, quatro representantes são extraídos da fronteira segundo critérios complementares:
+
+\begin{itemize}
+    \item \textbf{\textit{best\_dominance}} --- o indivíduo de menor $P_{dom}$, isto é, o elenco mais equilibrado competitivamente, sem regulação pelo \textit{drift};
+    \item \textbf{\textit{best\_drift}} --- o indivíduo de menor $P_{drift}$, isto é, o elenco mais próximo do perfil canônico, sem regulação pela dominância;
+    \item \textbf{\textit{knee\_point}} --- o indivíduo cujo ponto na fronteira maximiza a distância à reta que conecta os dois extremos $\textit{best\_dominance}$ e $\textit{best\_drift}$; corresponde ao ponto de máxima curvatura da fronteira, em que pequenos ganhos em uma dimensão exigiriam grandes perdas na outra;
+    \item \textbf{\textit{ideal\_point}} --- o indivíduo da fronteira que minimiza a distância euclidiana ao ponto utópico $(0, 0)$.
+\end{itemize}
+
+Os quatro representantes oferecem quatro pontos de vista distintos sobre o mesmo conjunto de soluções não dominadas, e juntos caracterizam a forma do trade-off entre as duas componentes da aptidão de modo mais informativo do que qualquer escalarização pré-fixada poderia oferecer.
+
+\section{Critérios de parada}
+\label{sec: parada}
+
+A execução de cada algoritmo evolutivo é encerrada pela primeira das três condições a seguir que se verificar.
+
+\begin{enumerate}
+    \item \textbf{Número máximo de gerações.} A execução é encerrada quando o contador de gerações atinge $\text{MAX\_GENERATIONS} = 150$. Este limite atua como salvaguarda contra execuções patologicamente longas; nas configurações típicas observadas, a convergência ocorre antes deste número.
+    \item \textbf{Estagnação da melhor aptidão.} A execução é encerrada quando a melhor aptidão da população não melhora por mais de $0{,}001$ ao longo de $\text{STAGNATION\_LIMIT} = 30$ gerações consecutivas. A condição evita execução improdutiva quando o processo evolutivo já convergiu para uma região estável do espaço de busca.
+    \item \textbf{Convergência por matchup.} A execução é encerrada quando, simultaneamente, a $P_{dom}$ do melhor indivíduo é aproximadamente nula e cada um dos dez matchups apresenta \textit{score} médio dentro de uma banda de tolerância de $0{,}10$ em torno de $0{,}5$, condição verificada com simulações adicionais (\autoref{tab: hiperparametros}).
+\end{enumerate}
+
+A terceira condição é específica ao AG escalar; o NSGA-II não a utiliza diretamente, pois sua dinâmica é organizada em torno da exploração contínua da fronteira de Pareto, e não em torno da convergência para um único indivíduo ótimo.
+
+\section{Técnicas de validação}
+\label{sec: validacao}
+
+A formulação da função de aptidão captura preservação de identidade por meio de uma métrica contínua --- a $P_{drift}$. Para complementar essa métrica com uma avaliação estrutural \textbf{ortogonal} ao processo de otimização, este trabalho emprega duas técnicas adicionais aplicadas \textit{a posteriori} aos indivíduos evoluídos.
+
+\subsection{Asserções estruturais sobre a identidade arquetípica}
+\label{sub: asserciones}
+
+A primeira técnica de validação consiste em um conjunto de \textbf{20 asserções ordinais} sobre os atributos dos personagens evoluídos, organizadas em duas camadas. A \textbf{Camada 1 --- inter-personagem}, com 14 asserções, verifica relações de ordem entre personagens distintos: por exemplo, que o personagem evoluído correspondente ao arquétipo \textit{Rushdown} apresente o maior valor de \textit{Speed} entre os cinco, ou que o personagem correspondente ao \textit{Turtle} apresente os maiores valores de \textit{HP}, \textit{Defense} e \textit{Recovery}. A \textbf{Camada 2 --- intra-personagem}, com 6 asserções, verifica relações entre atributos normalizados de um mesmo personagem: por exemplo, que o \textit{Zoner} mantenha $\hat{a}_{range} > \hat{a}_{speed}$, ou que o \textit{Rushdown} mantenha $\hat{a}_{speed} > \hat{a}_{range}$.
+
+A escolha por verificações \textbf{ordinais} (e não por magnitudes absolutas) é deliberada: o objetivo das asserções é validar que a estrutura qualitativa das identidades arquetípicas sobreviveu ao processo evolutivo, não que valores específicos foram mantidos. Permite-se que o $\textit{Speed}$ do \textit{Rushdown} se ajuste durante a evolução, contanto que permaneça o maior dos cinco. A técnica oferece uma validação adicional à $P_{drift}$, capaz de capturar deformações funcionais ainda quando a métrica contínua acuse desvios pequenos. Tais asserções, todavia, não detectam por si só configurações de \textbf{homogeneização funcional} --- situações em que a estrutura ordinal é preservada por margens infinitesimais. O controle contra esse risco é mantido pela própria $P_{drift}$ presente na função de aptidão.
+
+\subsection{Análise de sensibilidade dos atributos}
+\label{sub: sensibilidade}
+
+A segunda técnica de validação verifica se cada um dos nove atributos físicos exerce influência mensurável sobre o resultado dos combates. Para cada par (arquétipo, atributo), o valor do atributo é perturbado em $\pm \sigma$ em relação ao valor evoluído, e a variação resultante na taxa de vitória média daquele personagem é medida em conjunto sobre todos os matchups. Atributos cuja perturbação produz variação inferior a um limiar estabelecido pelo piso de erro binomial das simulações são considerados \textbf{neutros}: variam livremente por \textit{drift} aleatório, sem pressão seletiva associada.
+
+A análise é metodologicamente importante por duas razões. Em primeiro lugar, valida que a operacionalização dos atributos é \textbf{informativa} --- que cada gene do cromossomo carrega significado mensurável para o resultado. Em segundo lugar, fornece um diagnóstico das decisões de \textit{design} do combate: a presença de atributos neutros após o processo evolutivo sugere que alguma decisão mecânica do modelo --- bounds, regras de resolução, escala temporal --- reduziu o impacto efetivo daquele atributo abaixo da resolução estatística do método de avaliação.
+
+\section{Hiperparâmetros}
+\label{sec: hiperparametros}
+
+A \autoref{tab: hiperparametros} consolida todos os hiperparâmetros relevantes ao método. Os parâmetros estão agrupados conforme o domínio em que atuam: parâmetros do Algoritmo Genético, parâmetros da função de aptidão, parâmetros da simulação de combate e parâmetros de avaliação.
+
+\begin{table}[ht]
+    \caption{Hiperparâmetros consolidados.}
+    \label{tab: hiperparametros}
+    \centering
+
+    \small
+    \begin{tabularx}{\textwidth}{l l X}
+        \hline
+        \bfseries Parâmetro & \bfseries Valor & \bfseries Domínio \\
+        \hline
+        \multicolumn{3}{l}{\textit{Algoritmo Genético}} \\
+        $\text{POPULATION\_SIZE}$            & 300        & Tamanho da população \\
+        $\text{ELITE\_SIZE}$                 & 30         & Indivíduos preservados por elitismo \\
+        $\text{TOURNAMENT\_SIZE}$            & 3          & Candidatos por torneio (AG escalar) \\
+        $\text{MUTATION\_RATE}$              & 0{,}05     & Probabilidade de mutação por gene \\
+        $\sigma$ atributos                   & 0{,}10     & Desvio-padrão da mutação como fração da amplitude \\
+        $\sigma$ pesos                       & 0{,}025    & Desvio-padrão da mutação como fração da amplitude \\
+        \hline
+        \multicolumn{3}{l}{\textit{Função de aptidão}} \\
+        $\lambda_{spec}$                     & 0{,}2      & Peso de $P_{spec}$ no AG escalar \\
+        $\lambda_{drift}$                    & 6{,}0      & Peso de $P_{drift}$ no AG escalar \\
+        $\lambda_{dom}$                      & 1{,}0      & Peso de $P_{dom}$ no AG escalar \\
+        $\text{MATCHUP\_THRESHOLD}$          & 0{,}10     & Banda de tolerância em $P_{dom}$ \\
+        \hline
+        \multicolumn{3}{l}{\textit{Simulação de combate}} \\
+        $\text{FIELD\_SIZE}$                 & 100        & Tamanho do campo \\
+        $\text{INITIAL\_DISTANCE}$           & 50         & Distância inicial entre lutadores \\
+        $\text{WALL\_CORNER\_THRESHOLD}$     & 10         & Distância da parede que caracteriza ``encurralado'' \\
+        $\text{TICK\_SCALE}$                 & 5          & Multiplicador de resolução sub-\textit{tick} \\
+        $\text{MAX\_TICKS}$                  & 2500       & Duração máxima de uma luta em sub-\textit{ticks} \\
+        $\text{ACTION\_PERSISTENCE\_SUBTICKS}$ & 10       & Persistência da ação por política suave \\
+        $\text{STUN\_CAP\_MULTIPLIER}$       & 0{,}6      & Cap de \textit{stun} sobre \textit{cooldown} do atacante \\
+        $\text{DEFEND\_DAMAGE\_REDUCTION}$   & 0{,}4      & Fator de dano recebido durante \textit{DEFEND} \\
+        \hline
+        \multicolumn{3}{l}{\textit{Avaliação e parada}} \\
+        $\text{SIMS\_PER\_MATCHUP}$          & 150        & Simulações por matchup no round-robin \\
+        $\text{SIMS\_CONVERGENCE\_CHECK}$    & 200        & Simulações extras para confirmar convergência \\
+        $\text{MAX\_GENERATIONS}$            & 150        & Limite superior de gerações \\
+        $\text{STAGNATION\_LIMIT}$           & 30         & Gerações sem melhoria $> 0{,}001$ \\
+        $\text{MATCHUP\_CONVERGENCE\_THRESHOLD}$ & 0{,}10 & Desvio máximo de \textit{score} por matchup \\
+        \hline
+    \end{tabularx}
+
+    \source
+\end{table}
