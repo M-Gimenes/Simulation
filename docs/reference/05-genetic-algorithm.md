@@ -115,8 +115,8 @@ escala bruta. Mudar qualquer `LAMBDA_*` não afeta o NSGA-II.
 O AG escalar para por **convergência** quando ambos valem, confirmados com
 `SIMS_CONVERGENCE_CHECK = 200` simulações extras:
 
-1. `dominance_penalty ≈ 0` no melhor indivíduo (nenhum matchup acima de 60% em
-   score HP-weighted);
+1. `dominance_penalty ≈ 0` no melhor indivíduo — com a fórmula atual exige WR de
+   todos os matchups em ~50% **e** decisividade dentro da banda em todos;
 2. cada matchup direto: `|wr_ij − 0.5| ≤ MATCHUP_CONVERGENCE_THRESHOLD (0.10)`.
 
 Outras paradas: `STAGNATION_LIMIT = 30` gerações sem melhoria > 0.001, ou

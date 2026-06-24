@@ -20,6 +20,7 @@ apenas se referencia.
 | [05-validacao-metodologica.md](05-validacao-metodologica.md) | Reprodutibilidade e análise de sensibilidade | Metodologia (validação) |
 | [06-resultados-a-apresentar.md](06-resultados-a-apresentar.md) | Quais saídas mostrar (dossiê, histórico do AG, fronteira NSGA-II…) e o que cada uma evidencia | Resultados |
 | [07-achados-e-limitacoes.md](07-achados-e-limitacoes.md) | Achados, limitações e o que ainda falta investigar | Resultados / Discussão / Limitações |
+| [08-metodologias-da-literatura.md](08-metodologias-da-literatura.md) | Metodologias dos papers do `.bib` que valem incorporar (N execuções, hipervolume, coevolução, QD…), priorizadas | Metodologia / Discussão / Trabalhos Futuros |
 
 ## Convenção
 

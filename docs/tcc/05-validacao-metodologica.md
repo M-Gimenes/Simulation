@@ -10,10 +10,12 @@ Dois pilares de validação que sustentam a credibilidade dos experimentos.
   do `np.random` de nível Python e **só semeável de dentro de um `@njit`**. Por isso a
   reprodutibilidade não é trivial — e era um ponto silenciosamente quebrado (ver a
   trajetória em [04-caminhos-e-decisoes.md](04-caminhos-e-decisoes.md)).
-- **Como é garantida hoje:** semeadura **determinística por-indivíduo**
-  (`crc32(genes) XOR seed_base`), propagada aos workers do paralelismo — a fitness vira
-  **função determinística dos genes**, reprodutível independente de qual worker a
-  avalia. Detalhe técnico em [`../09-reproducibility.md`](../reference/09-reproducibility.md).
+- **Como é garantida hoje:** **reset ao seed-base (Common Random Numbers)** — toda
+  avaliação reseta o RNG do combate ao mesmo seed-base, propagado aos workers do
+  paralelismo. Reprodutível independente de qual worker avalia, e todo indivíduo é
+  avaliado sob o mesmo stream de RNG (a diferença de fitness reflete genes, não sorteio
+  → seleção menos enganada). Detalhe técnico em
+  [`../09-reproducibility.md`](../reference/09-reproducibility.md).
 - **Ponto para a tese:** experimentos com `--seed` são **replicáveis** (afirmação que
   uma tese de método precisa poder fazer), e foi **verificado empiricamente**.
 

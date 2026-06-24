@@ -50,9 +50,13 @@ Cada item: **problema → mudança → resultado.**
 - **Problema:** o combate sorteia com `np.random` **dentro do JIT (Numba)**, cujo RNG é
   independente do `np.random` do Python — então semear no Python (como se fazia) **não
   reproduzia** nada, e o pareamento de seeds da análise de sensibilidade estava
-  silenciosamente quebrado. Mudança: `seed_combat()` (`@njit`) + semeadura
-  **determinística por-indivíduo**. Resultado: experimentos com `--seed` reprodutíveis.
-  Detalhe em [05](05-validacao-metodologica.md) e [`../09`](../reference/09-reproducibility.md).
+  silenciosamente quebrado. Mudança: `seed_combat()` (`@njit`) + **reset ao seed-base
+  (Common Random Numbers)** — toda avaliação reseta o RNG do combate ao mesmo seed-base.
+  Resultado: experimentos com `--seed` reprodutíveis, e todo indivíduo avaliado sob o
+  mesmo stream → a diferença de fitness reflete genes, não sorteio (paisagem mais lisa).
+  *(Uma versão intermediária semeava por hash-dos-genes — reprodutível, mas dava a cada
+  indivíduo um stream diferente, anulando o CRN; substituída.)* Detalhe em
+  [05](05-validacao-metodologica.md) e [`../09`](../reference/09-reproducibility.md).
 
 ## A reformulação do objetivo (a decisão maior)
 
@@ -68,6 +72,15 @@ Cada item: **problema → mudança → resultado.**
   flipa desfechos porque as lutas são blowouts; quando o **A** aproxima as lutas, o
   ruído **passa** a flipar → WR graduado emerge. Então A é a alavanca; B é
   complemento/realismo. Interpretação completa em [03](03-formulacao-do-fitness.md).
+- **Correção (A sozinho não bastou — hipótese falsificada):** medindo o `best_dominance`
+  do NSGA-II com o objetivo só-decisividade, ele dava `dominance_penalty = 0` e 10/10
+  lutas na banda, mas **0/10 matchups equilibrados** (Grappler 92%, Turtle 8%). A
+  decisividade é **cega à frequência de vitória** — um lado pode vencer sempre por
+  margem fina. A hipótese "luta apertada ⟹ WR ~50%" foi **falsificada**. Mudança: a WR
+  voltou como termo **primário** do `dominance_penalty` (`|WR−0.5|/0.5` contínuo), com a
+  decisividade rebaixada a regularizador **secundário** (guarda contra blowout-coinflip).
+  Resultado: `best_dominance` passou a ~8/10 matchups em 40-60% de WR. A objeção original
+  ao WR (bimodal) deixou de valer: soft-policy + hesitação o tornam graduado.
 
 ## Pesos do fitness
 

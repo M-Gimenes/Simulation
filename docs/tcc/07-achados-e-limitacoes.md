@@ -37,9 +37,13 @@
 
 Backlog técnico detalhado em [`../10-known-issues.md`](../reference/10-known-issues.md). Em
 termos de tese, falta:
-- **Gerar a base**: rodar o AG (λ=1.0) e o **NSGA-II completo**, e demonstrar com a
-  fronteira + dossiês que a reformulação do objetivo produz lutas apertadas / WR
-  graduado (eventualmente uma *sweep* de `LAMBDA_DRIFT` no escalar).
+- **Gerar a base**: rodar o AG (λ=1.0) e o **NSGA-II completo** (eventualmente uma
+  *sweep* de `LAMBDA_DRIFT` no escalar). A demonstração inicial já **falsificou** a
+  hipótese "luta apertada ⟹ WR ~50%": o objetivo só-decisividade dava lutas apertadas
+  mas WR desequilibrada (`best_dominance` 0/10 matchups em 40-60% WR). Por isso a WR
+  voltou como termo primário do `dominance_penalty` (ver [04](04-caminhos-e-decisoes.md));
+  com isso `best_dominance` subiu para ~8/10. Falta consolidar a base final com esse
+  objetivo.
 - **Calibrar a hesitação** (ε) à luz da base.
 - (Os instrumentos de leitura — `report`, `drift_table` com diferenciação,
   `fingerprint`, validador — já estão prontos.)
