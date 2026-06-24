@@ -2,11 +2,15 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-> **Instrução permanente**: sempre que qualquer decisão de design do sistema for alterada — comportamento do combate, semântica dos parâmetros, lógica do GA, ciclo de vantagens — atualize a seção **Key Design Decisions** neste arquivo antes de encerrar a tarefa. A seção deve refletir o estado atual do código, não o estado histórico.
+> **Instrução permanente (docs)**: a referência técnica detalhada vive em `docs/reference/` (índice em `docs/reference/README.md`) — um arquivo por tema (combate, AG, NSGA-II, config, tools, reprodutibilidade, known-issues, revisão do combate). O material de redação da tese fica em `docs/tcc/`. **Sempre que o código mudar, atualize o(s) `docs/reference/*.md` do tema afetado antes de encerrar a tarefa**, mantendo-os fiéis ao estado atual. Este CLAUDE.md é o guia operacional + resumo de decisões; o detalhe completo é dos docs.
+
+> **Convenção de idioma**: nomes de arquivos e pastas em **inglês**; o **texto** dos `.md` e dos comentários pode ser em português (incl. `docs/reference/` e `docs/tcc/`).
+
+> **Instrução permanente**: sempre que qualquer decisão de design do sistema for alterada — comportamento do combate, semântica dos parâmetros, lógica do GA, ciclo de vantagens — atualize a seção **Key Design Decisions** neste arquivo E o `docs/*.md` correspondente antes de encerrar a tarefa. Devem refletir o estado atual do código, não o histórico.
 
 > **Padrão de qualidade**: este é um TCC a ser apresentado para banca. O código deve ser o mais limpo possível — sem variáveis mortas, sem campos diagnósticos desnecessários, sem rastros de decisões anteriores. Prefira nomes explícitos que se auto-documentem. Quando algo for removido, remova completamente — não deixe comentários explicando que foi removido.
 
-> **Foco no sistema, não na narrativa pra banca**: enquanto estamos refinando mecânicas, o objetivo é deixar o sistema o mais redondo possível. **Não** antecipar inline em respostas como o usuário deveria justificar X ou Y resultado para a banca — isso é prematuro enquanto há pontos a refinar. Pontos relevantes para a redação da tese vão para `docs/tcc/pontos_importantes.md`, não para discussão inline. Discutir "defensibilidade na banca" só quando o usuário pedir explicitamente.
+> **Foco no sistema, não na narrativa pra banca**: enquanto estamos refinando mecânicas, o objetivo é deixar o sistema o mais redondo possível. **Não** antecipar inline em respostas como o usuário deveria justificar X ou Y resultado para a banca — isso é prematuro enquanto há pontos a refinar. Pontos relevantes para a redação da tese vão para `docs/tcc/` (destrinchado por tema — ver `docs/tcc/README.md`), não para discussão inline. Discutir "defensibilidade na banca" só quando o usuário pedir explicitamente.
 
 ## Project Context
 
@@ -32,41 +36,45 @@ py -m venv .venv
 pip install -r requirements.txt
 ```
 
-`numba` é usado para JIT-compilar o loop de combate (`src.combat._simulate_combat_jit`) — speedup de ~150× sobre Python puro. Primeira chamada compila (~2.5s); depois fica em cache. Sem numba, o sistema não roda — `simulate_combat()` chama o JIT direto.
+`numba` é usado para JIT-compilar o loop de combate (`src.engine.combat._simulate_combat_jit`) — speedup de ~150× sobre Python puro. Primeira chamada compila (~2.5s); depois fica em cache. Sem numba, o sistema não roda — `simulate_combat()` chama o JIT direto.
 
 ## Layout
 
 ```
 .
-├── main.py                # entry point (GA / NSGA-II)
-├── src/                   # motor (importável como pacote `src`)
-│   ├── paths.py           # PROJECT_ROOT + paths derivados — single source
-│   ├── config.py          # All hyperparameters
-│   ├── archetypes.py      # canonical definitions (frozen)
-│   ├── character.py       # gene representation
-│   ├── individual.py      # 5 chars per individual
-│   ├── combat.py          # tick-based simulation
-│   ├── fitness.py         # round-robin evaluation
-│   ├── operators.py       # selection / crossover / mutation
-│   ├── ga.py              # scalar GA loop
-│   └── nsga2.py           # NSGA-II loop
-├── tools/                 # ferramentas que consomem o motor
-│   ├── analyze_matchups.py
-│   ├── archetype_validator.py
-│   ├── sensitivity_analysis.py
-│   ├── viewer.py          # ASCII viewer
-│   ├── web_viewer.py      # browser viewer
-│   └── nsga2_plots.py     # Pareto plots
-├── tests/                 # smoke tests
-└── results/               # outputs (gitignored content é o que importa)
+├── main.py                    # entry point (GA / NSGA-II)
+├── src/                       # pacote raiz (importável como `src`)
+│   ├── engine/                # motor (importável como pacote `src.engine`)
+│   │   ├── paths.py           # PROJECT_ROOT + paths derivados — single source
+│   │   ├── config.py          # All hyperparameters
+│   │   ├── archetypes.py      # canonical definitions (frozen)
+│   │   ├── character.py       # gene representation
+│   │   ├── individual.py      # 5 chars per individual
+│   │   ├── combat.py          # tick-based simulation
+│   │   ├── fitness.py         # round-robin evaluation
+│   │   ├── operators.py       # selection / crossover / mutation
+│   │   ├── ga.py              # scalar GA loop
+│   │   └── nsga2.py           # NSGA-II loop
+│   ├── tools/                 # ferramentas que consomem o motor
+│   │   ├── report.py          # dossiê do indivíduo (compõe os tools abaixo)
+│   │   ├── analyze_matchups.py
+│   │   ├── drift_table.py     # drift por gene + diferenciação
+│   │   ├── fingerprint.py     # assinatura comportamental por personagem
+│   │   ├── archetype_validator.py
+│   │   ├── sensitivity_analysis.py
+│   │   ├── viewer.py          # ASCII viewer
+│   │   ├── web_viewer.py      # browser viewer
+│   │   └── nsga2_plots.py     # Pareto plots
+│   └── tests/                 # smoke tests
+└── results/                   # outputs (gitignored content é o que importa)
 ```
 
-> **Convenção de imports**: dentro de `src/` use relativos (`from .combat import ...`); fora de `src/` (em `main.py`, `tools/`, `tests/`) use absolutos (`from src.combat import ...`).
-> **Convenção de paths**: nunca hardcode strings. Importe os constants de `src.paths` (`PROJECT_ROOT`, `RESULTS_DIR`, `GA_RESULTS_PATH`, `NSGA2_RESULTS_PATH`, `NSGA2_PLOTS_DIR`). Eles são derivados de `Path(__file__).parent.parent` — funcionam independente do cwd.
+> **Convenção de imports**: dentro de `src/engine/` use relativos (`from .combat import ...`); fora dele (em `main.py`, `src/tools/`, `src/tests/`) use absolutos a partir do motor (`from src.engine.combat import ...`). Tools/tests referenciam umas às outras também por caminho absoluto (`from src.tools.archetype_validator import ...`).
+> **Convenção de paths**: nunca hardcode strings. Importe os constants de `src.engine.paths` (`PROJECT_ROOT`, `RESULTS_DIR`, `GA_RESULTS_PATH`, `NSGA2_RESULTS_PATH`, `NSGA2_PLOTS_DIR`). Eles são derivados de `Path(__file__).parent.parent.parent` — funcionam independente do cwd.
 
 ## Running
 
-Tudo roda a partir da raiz do projeto. Scripts em `tools/` e `tests/` são executados como módulo (`-m`) para que `src` esteja no path.
+Tudo roda a partir da raiz do projeto. Scripts em `src/tools/` e `src/tests/` são executados como módulo (`-m`) para que `src` esteja no path.
 
 ```bash
 # Full GA run
@@ -74,22 +82,24 @@ py main.py
 py main.py --algorithm nsga2 --seed 42 --quiet
 
 # Analysis tools
-py -m tools.analyze_matchups                    # all matchups, canonical, 30 sims each
-py -m tools.analyze_matchups rushdown zoner     # specific matchup
-py -m tools.analyze_matchups --evolved --n 50  # evolved individual, 50 sims
-py -m tools.archetype_validator                 # structural identity checks
-py -m tools.sensitivity_analysis                # ±σ Δ-WR per gene
+py -m src.tools.report --evolved                 # dossiê completo do indivíduo (porta de entrada)
+py -m src.tools.analyze_matchups                 # all matchups, canonical (default 1000 sims)
+py -m src.tools.analyze_matchups rushdown zoner  # specific matchup
+py -m src.tools.drift_table --evolved            # drift por gene + diferenciação
+py -m src.tools.fingerprint --evolved            # assinatura comportamental
+py -m src.tools.archetype_validator              # structural identity checks
+py -m src.tools.sensitivity_analysis             # ±σ Δ-WR per gene
 
 # Web viewer (opens browser at localhost:8080)
-py -m tools.web_viewer
+py -m src.tools.web_viewer
 
 # Smoke tests (run individually — no test runner configured)
-py -m tests.test_base
-py -m tests.test_combat
-py -m tests.test_fitness
-py -m tests.test_operators
-py -m tests.test_nsga2
-py -m tests.test_archetype_validator
+py -m src.tests.test_base
+py -m src.tests.test_combat
+py -m src.tests.test_fitness
+py -m src.tests.test_operators
+py -m src.tests.test_nsga2
+py -m src.tests.test_archetype_validator
 ```
 
 > **Windows note:** Use `py` não `python`/`python3`. Scripts output Unicode (box-drawing); via bash pipe use `PYTHONIOENCODING=utf-8` ou passe `--quiet`.
@@ -108,13 +118,13 @@ All GA/NSGA-II outputs go to `results/` (created automatically on first run):
 
 The system has two independent layers that the GA orchestrates:
 
-**Simulation layer** (`src/combat.py`):  
-Tick-based 1v1 combat. Each tick: choose action via priority system → apply movement → resolve attacks simultaneously → decrement timers. Actions: ATTACK / ADVANCE / RETREAT / DEFEND. Key mechanics: `attack_cooldown` is deterministic, stun is computed as `round(attacker.stun × TICK_SCALE) − defender.recovery` (recovery is an integer in sub-ticks, subtractive — see Key Design Decisions), then capped at `STUN_CAP_MULTIPLIER × attacker_cooldown` (0.6 by default — stun é estritamente menor que o cooldown do atacante, garantindo uma janela livre entre hits para o defensor agir). Defending reduces incoming damage by `1 - DEFEND_DAMAGE_REDUCTION` (60% reduction at 0.4). Damage is deterministic: `damage × (1 − defense)`; no per-hit variance. Timers are decremented **after** attacks — values freshly set by an attack are not decremented until the following tick, making `cooldown=1` and `stun=1` meaningful minimums. Single source of stochasticity: **soft-policy commitment** — when the character is within its own range but the cooldown is not ready, the action is sampled from `{ADVANCE, RETREAT, DEFEND}` with probabilities proportional to `(w_aggressiveness, w_retreat, w_defend)` and **held for `ACTION_PERSISTENCE_SUBTICKS` sub-ticks** before re-rolling. This simulates commitment/momentum: a decision to retreat or defend persists for a beat instead of flipping every sub-tick. All other priority branches are deterministic.
+**Simulation layer** (`src/engine/combat.py`):  
+Tick-based 1v1 combat. Each tick: choose action via priority system → apply movement → resolve attacks simultaneously → decrement timers. Actions: ATTACK / ADVANCE / RETREAT / DEFEND. Key mechanics: `attack_cooldown` is deterministic, stun is computed as `round(attacker.stun × TICK_SCALE) − defender.recovery` (recovery is an integer in sub-ticks, subtractive — see Key Design Decisions), then capped at `STUN_CAP_MULTIPLIER × attacker_cooldown` (0.6 by default — stun é estritamente menor que o cooldown do atacante, garantindo uma janela livre entre hits para o defensor agir). Defending reduces incoming damage by `1 - DEFEND_DAMAGE_REDUCTION` (60% reduction at 0.4). Damage is deterministic: `damage × (1 − defense)`; no per-hit variance. Timers are decremented **after** attacks — values freshly set by an attack are not decremented until the following tick, making `cooldown=1` and `stun=1` meaningful minimums. Stochasticity has two sources: (1) **soft-policy commitment** — when the character is within its own range but the cooldown is not ready, the action is sampled from `{ADVANCE, RETREAT, DEFEND}` with probabilities proportional to `(w_aggressiveness, w_retreat, w_defend)` and **held for `ACTION_PERSISTENCE_SUBTICKS` sub-ticks** before re-rolling (commitment/momentum). (2) **hesitation** (`HESITATION_RATE`) — each tick, with that probability, even a deterministic ATTACK/ADVANCE branch instead samples the same weighted distribution, modeling player execution variance (weighted, not uniform, so it respects archetype identity). `HESITATION_RATE=0` reproduces the no-hesitation combat. Reproducibility: combat RNG is Numba-internal; seed it only via `seed_combat()` (`np.random.seed` from Python does nothing).
 
-**GA layer** (`src/ga.py`, `src/fitness.py`, `src/operators.py`):  
-Each individual = 5 characters (one per archetype) = 60 genes total (9 attrs + 3 weights per character). Fitness is evaluated via full round-robin (C(5,2)=10 matchups × `SIMS_PER_MATCHUP` simulations). Fitness formula (scalar GA): `fitness = -(LAMBDA_SPECIALIZATION × specialization_penalty + LAMBDA_DRIFT × drift_penalty + LAMBDA_DOMINANCE × dominance_penalty)`. The `specialization_penalty` uses a *specialization* metric (max−min of normalized attributes) — rewards archetype differentiation and prevents homogenization. `dominance_penalty` uses `sqrt(mean(excess_ij²))` (RMS) over the 10 pairs computed on **HP-weighted scores** rather than binary WR — KO matches contribute 1.0/0.0 like a WR, but timeout matches contribute the loser's HP-share fraction (a 55%/45% timeout enters as score≈0.55, not 1.0). The square gives extreme matchups (100/0) ~16× the weight of moderate ones (70/30). **NSGA-II** ignores all `LAMBDA_*` constants — `evaluate_objectives` returns `(dominance_penalty, drift_penalty)` raw; the Pareto front is computed in those two unweighted dimensions.
+**GA layer** (`src/engine/ga.py`, `src/engine/fitness.py`, `src/engine/operators.py`):  
+Each individual = 5 characters (one per archetype) = 60 genes total (9 attrs + 3 weights per character). Fitness is evaluated via full round-robin (C(5,2)=10 matchups × `SIMS_PER_MATCHUP` simulations). Fitness formula (scalar GA): `fitness = -(LAMBDA_DRIFT × drift_penalty + LAMBDA_DOMINANCE × dominance_penalty)` — the **same two terms the NSGA-II optimizes**, here as a weighted sum (scalar GA = one point of the trade-off NSGA-II maps). `drift_penalty` is the mean per-character normalized euclidean distance to the canonical profile (identity preservation, and the real anti-homogenization mechanism). `dominance_penalty` is the RMS over the 10 pairs of each matchup's **per-fight decisiveness** `D = mean(|score − 0.5|)` outside the healthy band `[MATCHUP_FLOOR, MATCHUP_THRESHOLD]` = [0.05, 0.10] (winner closes with ~10-20% HP). Per-fight score is continuous: a KO contributes `0.5 + 0.5·(winner HP-frac)` (crush → ~1.0, hairline win → ~0.5), a timeout the HP-share. It penalizes both blowout (too decisive) and hairline coin-flip (too thin), and being per-fight (not deviation-of-the-mean) it catches a blowout-coinflip (55% A-crush / 45% B-crush, mean WR ~50% but every fight a blowout). **NSGA-II** ignores all `LAMBDA_*` constants — `evaluate_objectives` returns `(dominance_penalty, drift_penalty)` raw; the Pareto front is computed in those two unweighted dimensions.
 
-**Data model** (`src/archetypes.py` → `src/character.py` → `src/individual.py`):  
+**Data model** (`src/engine/archetypes.py` → `src/engine/character.py` → `src/engine/individual.py`):  
 `ArchetypeDefinition` (frozen, canonical values) → `Character` (mutable genes, 9 attrs + 3 weights) → `Individual` (list of 5 Characters + fitness cache). `Individual.from_canonical()` creates the canonical seed; `Individual.random()` creates a random individual.
 
 ## Canonical Advantage Cycle
@@ -153,10 +163,9 @@ The soft-policy branch (3 + 4) is the only stochastic node in the loop. Weights 
 
 Toda a lógica de combate vive **exclusivamente** dentro do JIT (`_simulate_combat_jit` para o fitness, `_simulate_combat_traced_jit` para tools). Não há reimplementação Python do loop — tools que precisam instrumentar consomem `CombatTrace` em vez de redobrar a lógica.
 
-**Three orthogonal fitness terms** (scalar GA — NSGA-II uses only the latter two, unweighted):
-- `specialization_penalty` (via `LAMBDA_SPECIALIZATION=0.2`) penalizes homogeneous builds
-- `drift_penalty` (via `LAMBDA_DRIFT=6.0`) penalizes deviation from canonical values — the central trade-off of the thesis. High weight to keep evolved characters near canonical baselines without hard-constraining them
-- `dominance_penalty` (via `LAMBDA_DOMINANCE=1.0`) penalizes per-matchup score excess beyond `MATCHUP_THRESHOLD=0.10` (60%) using **RMS** (root mean square): `sqrt(mean(excess²))`. The square gives extreme matchups (100/0) ~16× the weight of moderate ones (70/30), preventing the GA from "hiding" a single destroyed matchup behind a balanced average. Computed over HP-weighted scores, not binary WR — stalemate timeout matches contribute their HP-share fraction so the AG sees a soft signal instead of binary noise
+**Two fitness terms** = the thesis's two axes: identity (`drift_penalty`) and balance (`dominance_penalty`). Scalar GA = weighted sum; NSGA-II = same two as unweighted Pareto objectives — the scalar GA is one point of the trade-off NSGA-II maps. (Homogenization — "are the 5 still distinct?" — is a post-hoc metric, not a fitness term, by the same non-circularity logic as the cycle.)
+- `drift_penalty` (via `LAMBDA_DRIFT=1.0`, equal to dominance) penalizes deviation from canonical values — the central trade-off of the thesis, and the real anti-homogenization mechanism. (Was 6.0, which pinned the GA to canonical and prevented balancing — see `docs/reference/10-known-issues.md` V1.)
+- `dominance_penalty` (via `LAMBDA_DOMINANCE=1.0`) is the **RMS** over the 10 pairs of each matchup's **per-fight decisiveness** `D = mean(|score − 0.5|)` outside the band `[MATCHUP_FLOOR, MATCHUP_THRESHOLD] = [0.05, 0.10]` (winner closes ~10-20% HP). Per-fight score is continuous (KO: `0.5 + 0.5·winner_HP_frac`; timeout: HP-share), so it gives the GA a gradient even in deterministic combat and penalizes both blowout and hairline coin-flip. **Per-fight, not deviation-of-the-mean** — catches a blowout-coinflip (55%/45% crush each way, WR ~50% but every fight a blowout). Why a margin band: a deterministic game can't reach 50% WR, but it can have *close* fights; once fights are close, the existing soft-policy/hesitation noise produces graded WR (see `docs/reference/11-combat-review.md`)
 
 **Direction-blind dominance is intentional**: the penalty uses `|score − 0.5|` — it does not encode which archetype "should" win each matchup. Encoding the canonical advantage cycle into the fitness would force the GA to preserve identity, making the central research question circular. The cycle is tracked as a post-hoc evaluation metric only.
 
@@ -182,27 +191,18 @@ Toda a lógica de combate vive **exclusivamente** dentro do JIT (`_simulate_comb
 ## Quick Matchup Check
 
 ```bash
-py -m tools.analyze_matchups              # all 10 matchups, canonical, 30 sims
-py -m tools.analyze_matchups --evolved    # evolved individual
-py -m tools.analyze_matchups rushdown zoner --n 100   # specific pair, high precision
+py -m src.tools.report --evolved              # dossiê completo do indivíduo (porta de entrada)
+py -m src.tools.analyze_matchups --evolved    # só os matchups
+py -m src.tools.drift_table --evolved         # só o drift por gene + diferenciação
+py -m src.tools.fingerprint --evolved         # só o comportamento
+py -m src.tools.analyze_matchups rushdown zoner --n 100   # par específico
 ```
 
-## All Hyperparameters
+## Hyperparameters
 
-Located in `src/config.py`. Commonly adjusted:
-
-| Parameter | Value | Effect |
-|---|---|---|
-| `LAMBDA_SPECIALIZATION` | 0.2 | Weight of specialization penalty (scalar GA only) |
-| `LAMBDA_DRIFT` | 6.0 | Weight of archetype deviation penalty (scalar GA only — NSGA-II uses raw value) |
-| `LAMBDA_DOMINANCE` | 1.0 | Weight of dominance penalty (scalar GA only) |
-| `MATCHUP_THRESHOLD` | 0.10 | Score excess above 50% that starts penalizing (60% = trigger) |
-| `MATCHUP_CONVERGENCE_THRESHOLD` | 0.10 | Max WR deviation per matchup to declare convergence |
-| `SIMS_PER_MATCHUP` | 150 | Simulations per matchup (more = stable WR, slower; ~4% binomial std at 50% WR) |
-| `SIMS_CONVERGENCE_CHECK` | 200 | Extra sims used only for convergence confirmation (high enough that ±10% per-matchup band is statistically reachable across all 10 pairs) |
-| `MAX_GENERATIONS` | 150 | GA termination limit |
-| `STAGNATION_LIMIT` | 30 | Generations without improvement before stopping |
-| `TICK_SCALE` | 5 | Sub-tick resolution multiplier for cooldown/stun/movement |
-| `ACTION_PERSISTENCE_SUBTICKS` | 10 | Sub-ticks a soft-policy action is held before re-rolling (commitment/momentum) |
-| `STUN_CAP_MULTIPLIER` | 0.6 | Max stun = multiplier × attacker cooldown (<1.0 garante janela livre entre hits, quebrando soft-perma-lock) |
-| `DEFEND_DAMAGE_REDUCTION` | 0.4 | Multiplier on incoming damage when defending (40% taken = 60% reduction) |
+Todos em `src/engine/config.py`. **Tabela completa e comentada em
+[`docs/reference/07-configuration.md`](docs/reference/07-configuration.md)** — manter lá, não duplicar
+aqui. Os mais ajustados ao refinar: `LAMBDA_DRIFT` / `LAMBDA_DOMINANCE` (trade-off
+do escalar — hoje 1.0 / 1.0), `MATCHUP_THRESHOLD` / `MATCHUP_FLOOR` (banda de
+decisividade), `HESITATION_RATE` (variância de player — provisória, a calibrar),
+`SIMS_PER_MATCHUP`, `MAX_GENERATIONS` / `STAGNATION_LIMIT`.

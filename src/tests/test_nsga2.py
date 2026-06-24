@@ -1,0 +1,322 @@
+"""
+Smoke tests do NSGA-II.
+Rode com: py -m src.tests.test_nsga2
+"""
+import math
+import os
+import random
+
+from src.engine.individual import Individual
+from src.engine.config import NSGA2_POP_SIZE, NSGA2_GENERATIONS, NSGA2_OBJECTIVES
+from src.engine.fitness import evaluate_objectives
+from src.engine.nsga2 import _dominates, fast_non_dominated_sort, crowding_distance_assignment
+
+
+def test_individual_has_nsga2_fields():
+    ind = Individual.from_canonical()
+    assert ind.objectives is None, "objectives deve iniciar como None"
+    assert ind.rank is None,       "rank deve iniciar como None"
+    assert ind.crowding is None,   "crowding deve iniciar como None"
+
+
+def test_individual_clone_copies_nsga2_fields():
+    ind = Individual.from_canonical()
+    ind.objectives = (0.1, 0.2)
+    ind.rank = 2
+    ind.crowding = 1.5
+    clone = ind.clone()
+    assert clone.objectives == (0.1, 0.2)
+    assert clone.rank == 2
+    assert clone.crowding == 1.5
+    clone.rank = 99
+    assert ind.rank == 2
+
+
+def test_config_constants_exist():
+    from src.engine.config import POPULATION_SIZE, MAX_GENERATIONS
+    assert NSGA2_POP_SIZE == POPULATION_SIZE
+    assert NSGA2_GENERATIONS == MAX_GENERATIONS
+    assert NSGA2_OBJECTIVES == ["dominance_penalty", "drift_penalty"]
+
+
+def test_evaluate_objectives_returns_2tuple():
+    random.seed(0)
+    ind = Individual.from_canonical()
+    objs = evaluate_objectives(ind)
+    assert isinstance(objs, tuple), "deve retornar tupla"
+    assert len(objs) == 2,          "deve ter 2 objetivos"
+    for o in objs:
+        assert isinstance(o, float), f"objetivo deve ser float, recebeu {type(o)}"
+        assert 0.0 <= o <= 1.0,       f"objetivo fora de [0,1]: {o}"
+
+
+def test_evaluate_objectives_caches_on_individual():
+    random.seed(0)
+    ind = Individual.from_canonical()
+    assert ind.objectives is None
+    objs = evaluate_objectives(ind)
+    assert ind.objectives == objs, "objectives deve ser cacheado no indivíduo"
+    # Segunda chamada retorna o cacheado sem reavaliar
+    second = evaluate_objectives(ind)
+    assert second is ind.objectives
+
+
+
+def _ind_with_obj(objs):
+    """Helper: cria indivíduo canônico com objectives injetados (sem avaliar)."""
+    ind = Individual.from_canonical()
+    ind.objectives = tuple(objs)
+    return ind
+
+
+def test_dominates_strict():
+    a = _ind_with_obj([0.1, 0.1])
+    b = _ind_with_obj([0.2, 0.2])
+    assert _dominates(a, b)
+    assert not _dominates(b, a)
+
+
+def test_dominates_requires_strict_in_at_least_one():
+    a = _ind_with_obj([0.1, 0.1])
+    b = _ind_with_obj([0.1, 0.1])
+    assert not _dominates(a, b)
+    assert not _dominates(b, a)
+
+
+def test_dominates_fails_if_any_worse():
+    a = _ind_with_obj([0.1, 0.3])
+    b = _ind_with_obj([0.2, 0.2])
+    assert not _dominates(a, b)
+    assert not _dominates(b, a)
+
+
+def test_sort_single_pareto_layer():
+    pop = [
+        _ind_with_obj([0.1, 0.9]),
+        _ind_with_obj([0.5, 0.5]),
+        _ind_with_obj([0.9, 0.1]),
+    ]
+    fronts = fast_non_dominated_sort(pop)
+    assert len(fronts) == 1
+    assert all(ind.rank == 0 for ind in pop)
+
+
+def test_sort_multiple_layers():
+    pop = [
+        _ind_with_obj([0.1, 0.9]),
+        _ind_with_obj([0.9, 0.1]),
+        _ind_with_obj([0.95, 0.95]),
+    ]
+    fronts = fast_non_dominated_sort(pop)
+    assert len(fronts) == 2
+    assert len(fronts[0]) == 2
+    assert len(fronts[1]) == 1
+    assert pop[2].rank == 1
+
+
+def test_sort_divergent_dominated_sets():
+    pop = [
+        _ind_with_obj([0.1, 0.9]),
+        _ind_with_obj([0.9, 0.1]),
+        _ind_with_obj([0.5, 0.5]),
+        _ind_with_obj([0.2, 0.95]),
+        _ind_with_obj([0.95, 0.2]),
+    ]
+    fronts = fast_non_dominated_sort(pop)
+    assert len(fronts) == 2
+    assert len(fronts[0]) == 3
+    assert len(fronts[1]) == 2
+    assert pop[3].rank == 1
+    assert pop[4].rank == 1
+
+
+def test_crowding_assigns_inf_to_extremes():
+    front = [
+        _ind_with_obj([0.1, 0.9]),
+        _ind_with_obj([0.5, 0.5]),
+        _ind_with_obj([0.9, 0.1]),
+    ]
+    crowding_distance_assignment(front)
+    inf_count = sum(1 for ind in front if math.isinf(ind.crowding))
+    assert inf_count >= 2, "extremos em cada objetivo recebem +inf"
+
+
+def test_crowding_small_front_all_inf():
+    front = [
+        _ind_with_obj([0.1, 0.1]),
+        _ind_with_obj([0.9, 0.9]),
+    ]
+    crowding_distance_assignment(front)
+    assert math.isinf(front[0].crowding)
+    assert math.isinf(front[1].crowding)
+
+
+def test_crowding_middle_has_finite_value():
+    front = [
+        _ind_with_obj([0.0, 0.5]),
+        _ind_with_obj([0.5, 0.5]),
+        _ind_with_obj([1.0, 0.5]),
+    ]
+    crowding_distance_assignment(front)
+    assert math.isinf(front[0].crowding)
+    assert math.isinf(front[2].crowding)
+    assert not math.isinf(front[1].crowding)
+    assert front[1].crowding > 0
+
+
+from src.engine.operators import nsga2_binary_tournament
+from src.engine.nsga2 import select_representatives
+
+
+def test_tournament_picks_lower_rank():
+    a = _ind_with_obj([0.1, 0.1]); a.rank = 0; a.crowding = 1.0
+    b = _ind_with_obj([0.5, 0.5]); b.rank = 2; b.crowding = 10.0
+    random.seed(0)
+    assert nsga2_binary_tournament([a, b]) is a
+
+
+def test_tournament_breaks_tie_by_crowding():
+    a = _ind_with_obj([0.1, 0.1]); a.rank = 1; a.crowding = 5.0
+    b = _ind_with_obj([0.2, 0.2]); b.rank = 1; b.crowding = 1.0
+    random.seed(0)
+    assert nsga2_binary_tournament([a, b]) is a
+
+
+def test_tournament_stochastic_on_full_tie():
+    a = _ind_with_obj([0.1, 0.1]); a.rank = 1; a.crowding = 5.0
+    b = _ind_with_obj([0.2, 0.2]); b.rank = 1; b.crowding = 5.0
+    wins_a = 0
+    for s in range(200):
+        random.seed(s)
+        winner = nsga2_binary_tournament([a, b])
+        if winner is a:
+            wins_a += 1
+    assert 60 < wins_a < 140, f"empate total não está aleatório o suficiente: {wins_a}/200"
+
+
+def test_representatives_identifies_extremes():
+    front = [
+        _ind_with_obj([0.05, 0.90]),
+        _ind_with_obj([0.90, 0.05]),
+        _ind_with_obj([0.50, 0.50]),
+    ]
+    reps = select_representatives(front)
+    assert reps["best_dominance"] is front[0]
+    assert reps["best_drift"]     is front[1]
+
+
+def test_representatives_ideal_closest_to_origin():
+    front = [
+        _ind_with_obj([0.05, 0.90]),
+        _ind_with_obj([0.20, 0.20]),
+        _ind_with_obj([0.90, 0.05]),
+    ]
+    reps = select_representatives(front)
+    assert reps["ideal_point"] is front[1]
+
+
+def test_representatives_knee_is_interior():
+    front = [
+        _ind_with_obj([0.05, 0.95]),
+        _ind_with_obj([0.15, 0.15]),
+        _ind_with_obj([0.95, 0.05]),
+    ]
+    reps = select_representatives(front)
+    assert reps["knee_point"] is front[1]
+
+
+def test_representatives_all_four_keys():
+    front = [_ind_with_obj([0.1 * i, 0.9 - 0.1 * i]) for i in range(5)]
+    reps = select_representatives(front)
+    assert set(reps.keys()) == {"best_dominance", "best_drift", "knee_point", "ideal_point"}
+
+
+from src.engine.nsga2 import run
+
+
+def test_run_smoke_small_config():
+    result = run(seed=42, pop_size=20, n_generations=3, verbose=False)
+    assert len(result.pareto_front) > 0
+    assert all(ind.rank == 0 for ind in result.pareto_front)
+    assert all(ind.objectives is not None for ind in result.pareto_front)
+    assert set(result.representatives.keys()) == {"best_dominance", "best_drift", "knee_point", "ideal_point"}
+    assert len(result.history) == 3
+
+
+import json
+import tempfile
+from src.engine.nsga2 import save_results
+
+
+def test_save_results_produces_valid_json():
+    result = run(seed=42, pop_size=10, n_generations=2, verbose=False)
+    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as fh:
+        path = fh.name
+    save_results(result, path)
+    with open(path) as fh:
+        data = json.load(fh)
+    assert data["algorithm"] == "nsga2"
+    assert data["seed"] == 42
+    assert data["generations_run"] == 2
+    assert len(data["pareto_front"]) == len(result.pareto_front)
+    first = data["pareto_front"][0]
+    assert "genes" in first and "objectives" in first
+    assert len(first["genes"]) == 5
+    assert len(first["objectives"]) == 2
+    for key in ("best_dominance", "best_drift", "knee_point", "ideal_point"):
+        assert key in data["representatives"]
+    os.unlink(path)
+
+
+def test_save_results_roundtrip_genes():
+    result = run(seed=42, pop_size=10, n_generations=2, verbose=False)
+    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as fh:
+        path = fh.name
+    save_results(result, path)
+    with open(path) as fh:
+        data = json.load(fh)
+    original_genes_c0 = result.pareto_front[0].characters[0].genes()
+    loaded_genes_c0   = data["pareto_front"][0]["genes"][0]
+    assert original_genes_c0 == loaded_genes_c0
+    os.unlink(path)
+
+
+from src.tools.nsga2_plots import save_plots
+
+
+def test_save_plots_creates_pareto_png():
+    result = run(seed=42, pop_size=10, n_generations=2, verbose=False)
+    with tempfile.TemporaryDirectory() as outdir:
+        save_plots(result, outdir)
+        path = os.path.join(outdir, "pareto_front.png")
+        assert os.path.exists(path), "pareto_front.png não existe"
+        assert os.path.getsize(path) > 1000, "pareto_front.png parece vazio"
+
+
+if __name__ == "__main__":
+    test_individual_has_nsga2_fields()
+    test_individual_clone_copies_nsga2_fields()
+    test_config_constants_exist()
+    test_evaluate_objectives_returns_2tuple()
+    test_evaluate_objectives_caches_on_individual()
+    test_dominates_strict()
+    test_dominates_requires_strict_in_at_least_one()
+    test_dominates_fails_if_any_worse()
+    test_sort_single_pareto_layer()
+    test_sort_multiple_layers()
+    test_sort_divergent_dominated_sets()
+    test_crowding_assigns_inf_to_extremes()
+    test_crowding_small_front_all_inf()
+    test_crowding_middle_has_finite_value()
+    test_tournament_picks_lower_rank()
+    test_tournament_breaks_tie_by_crowding()
+    test_tournament_stochastic_on_full_tie()
+    test_representatives_identifies_extremes()
+    test_representatives_ideal_closest_to_origin()
+    test_representatives_knee_is_interior()
+    test_representatives_all_four_keys()
+    test_run_smoke_small_config()
+    test_save_results_produces_valid_json()
+    test_save_results_roundtrip_genes()
+    test_save_plots_creates_pareto_png()
+    print("Todos os testes NSGA-II passaram ✓")

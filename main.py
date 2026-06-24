@@ -7,9 +7,9 @@ import argparse
 import datetime
 import json
 
-from src.archetypes import ARCHETYPE_ORDER, ARCHETYPES
-from src.ga import run as run_ga, log_matchup_matrix
-from src.paths import GA_RESULTS_PATH, NSGA2_PLOTS_DIR, NSGA2_RESULTS_PATH, PROJECT_ROOT, RESULTS_DIR
+from src.engine.archetypes import ARCHETYPE_ORDER, ARCHETYPES
+from src.engine.ga import run as run_ga, log_matchup_matrix
+from src.engine.paths import GA_RESULTS_PATH, NSGA2_PLOTS_DIR, NSGA2_RESULTS_PATH, PROJECT_ROOT, RESULTS_DIR
 
 
 def parse_args():
@@ -19,7 +19,6 @@ def parse_args():
     parser.add_argument("--seed",      type=int, default=None, help="Semente aleatória")
     parser.add_argument("--quiet",     action="store_true",    help="Suprime log por geração")
     parser.add_argument("--log-every", type=int, default=1,    help="Loga a cada N gerações (só AG)")
-    parser.add_argument("--plot-3d",   action="store_true",    help="Gera plot 3D adicional (só NSGA-II)")
     return parser.parse_args()
 
 
@@ -50,7 +49,7 @@ def _main_ga(args):
     print(f"Geração: {result.generation}")
     print(f"Fitness: {result.best.fitness:+.4f}")
     print(f"Dominance penalty:      {result.best_detail.dominance_penalty:.4f}")
-    print(f"Specialization penalty: {result.best_detail.specialization_penalty:.4f}")
+    print(f"Drift penalty:          {result.best_detail.drift_penalty:.4f}")
 
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     out = {"best_individual": [c.genes() for c in result.best.characters]}
@@ -60,8 +59,8 @@ def _main_ga(args):
 
 
 def _main_nsga2(args):
-    from src.nsga2 import run as run_nsga2, save_results
-    from tools.nsga2_plots import save_plots
+    from src.engine.nsga2 import run as run_nsga2, save_results
+    from src.tools.nsga2_plots import save_plots
 
     result = run_nsga2(seed=args.seed, verbose=not args.quiet)
 
@@ -71,13 +70,13 @@ def _main_nsga2(args):
 
     timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     outdir = NSGA2_PLOTS_DIR / timestamp
-    save_plots(result, outdir, plot_3d=args.plot_3d)
+    save_plots(result, outdir)
     print(f"Plots salvos em {outdir.relative_to(PROJECT_ROOT)}")
 
     print("\n=== Representantes da fronteira ===\n")
     for name, ind in result.representatives.items():
-        dom, cost = ind.objectives
-        print(f"  {name:15s}  dom={dom:.4f}  cost={cost:.4f}")
+        dom, drift = ind.objectives
+        print(f"  {name:15s}  dom={dom:.4f}  drift={drift:.4f}")
 
 
 def main():
