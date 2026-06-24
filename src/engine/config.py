@@ -40,6 +40,14 @@ LAMBDA_DOMINANCE = (
 MATCHUP_THRESHOLD = 0.10  # ⟺ vencedor fecha com ~20% de HP
 MATCHUP_FLOOR = 0.05      # ⟺ vencedor fecha com ~10% de HP
 
+# Pesos dos dois componentes do dominance_penalty (ver docs/reference/05-genetic-
+# algorithm.md). WR é o objetivo PRIMÁRIO de balanceamento (|WR − 0.5| contínuo,
+# sem banda morta); a decisividade é regularizador SECUNDÁRIO de qualidade de luta
+# (guarda contra blowout-coinflip: 50% A esmaga / 50% B esmaga → WR ~50% mas toda
+# luta um massacre).
+DOMINANCE_WR_WEIGHT = 1.0
+DOMINANCE_DECIS_WEIGHT = 0.5
+
 # ── Paralelismo ──────────────────────────────────────────────────────────────
 
 N_WORKERS = None  # None = todos os núcleos da CPU; 1 = desativa paralelismo

@@ -67,6 +67,27 @@ stun **não muda quem ganha** → sem pressão seletiva → drifta pro piso. Pod
 a importar quando as lutas ficarem apertadas (A). **Recheco com
 `sensitivity_analysis` (agora confiável) após o A.**
 
+## Atualização (2026-06-24) — hipótese "luta apertada ⟹ WR ~50%" FALSIFICADA
+
+O achado 3 apostava que empurrar as lutas para apertadas (margem por-luta na banda)
+faria a WR equilibrada **emergir sozinha**. Empiricamente, **não emergiu**:
+
+- `report --nsga2 best_dominance` (desenho só-decisividade) dava
+  `dominance_penalty = 0.0000`, 10/10 lutas "sadias" (margem na banda), mas **0/10
+  matchups equilibrados** — Grappler 92%, Turtle 8%. Um personagem pode vencer
+  **consistentemente por margem fina**: luta apertada em HP, vencedor determinístico.
+- A métrica de decisividade é **cega à frequência de vitória**: 100% de vitórias
+  fechando com ~15% HP dá `D ≈ 0.075` (dentro da banda) → penalidade zero.
+
+Conclusão: a margem por-luta (A) é necessária (qualidade de luta) mas **não
+suficiente** para balancear. A WR voltou ao `dominance_penalty` como termo
+**primário**, com a decisividade rebaixada a regularizador secundário (ver
+[05-genetic-algorithm.md](05-genetic-algorithm.md)). Com isso, `best_dominance`
+passou a 8/10 matchups dentro de 40-60% de WR. A justificativa histórica para
+abandonar a WR ("jogo determinístico não chega a 50%") segue válida para o WR
+*exato*, mas soft-policy + `HESITATION_RATE` tornam a WR **graduada** o bastante
+para servir de gradiente.
+
 ## Bugs de combate
 Nenhum além do já corrigido (contabilização de `stun_applied`, ver
 [10-known-issues.md](10-known-issues.md) B1). As mecânicas se comportam de forma

@@ -52,6 +52,8 @@ knockback 0–5, recovery 0–0.7 float). Cada aperto fechou um exploit do AG:
 | `LAMBDA_DOMINANCE` | 1.0 | peso da dominance_penalty (só AG escalar) |
 | `MATCHUP_THRESHOLD` | 0.10 | teto da banda de decisividade (vencedor fecha ~20% HP — acima = blowout) |
 | `MATCHUP_FLOOR` | 0.05 | piso da banda de decisividade (vencedor fecha ~10% HP — abaixo = fino demais) |
+| `DOMINANCE_WR_WEIGHT` | 1.0 | peso do termo primário (WR) do dominance_penalty — `\|WR−0.5\|/0.5` contínuo |
+| `DOMINANCE_DECIS_WEIGHT` | 0.5 | peso do termo secundário (decisividade) do dominance_penalty — guarda contra blowout-coinflip |
 | `HESITATION_RATE` | 0.10 | prob./tick de hesitar (sortear ação ponderada num ramo determinístico). **Provisório — calibrar** |
 | `N_WORKERS` | None | núcleos para avaliação paralela (None = todos; 1 = serial) |
 | `FIELD_SIZE` | 100 | tamanho do campo |

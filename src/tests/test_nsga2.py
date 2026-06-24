@@ -7,7 +7,13 @@ import os
 import random
 
 from src.engine.individual import Individual
-from src.engine.config import NSGA2_POP_SIZE, NSGA2_GENERATIONS, NSGA2_OBJECTIVES
+from src.engine.config import (
+    NSGA2_POP_SIZE,
+    NSGA2_GENERATIONS,
+    NSGA2_OBJECTIVES,
+    DOMINANCE_WR_WEIGHT,
+    DOMINANCE_DECIS_WEIGHT,
+)
 from src.engine.fitness import evaluate_objectives
 from src.engine.nsga2 import _dominates, fast_non_dominated_sort, crowding_distance_assignment
 
@@ -45,9 +51,13 @@ def test_evaluate_objectives_returns_2tuple():
     objs = evaluate_objectives(ind)
     assert isinstance(objs, tuple), "deve retornar tupla"
     assert len(objs) == 2,          "deve ter 2 objetivos"
-    for o in objs:
-        assert isinstance(o, float), f"objetivo deve ser float, recebeu {type(o)}"
-        assert 0.0 <= o <= 1.0,       f"objetivo fora de [0,1]: {o}"
+    dominance, drift = objs
+    # dominance ∈ [0, DOMINANCE_WR_WEIGHT + DOMINANCE_DECIS_WEIGHT]; drift ∈ [0, 1]
+    dom_max = DOMINANCE_WR_WEIGHT + DOMINANCE_DECIS_WEIGHT
+    assert isinstance(dominance, float), f"dominance deve ser float, recebeu {type(dominance)}"
+    assert isinstance(drift, float),     f"drift deve ser float, recebeu {type(drift)}"
+    assert 0.0 <= dominance <= dom_max,  f"dominance fora de [0,{dom_max}]: {dominance}"
+    assert 0.0 <= drift <= 1.0,          f"drift fora de [0,1]: {drift}"
 
 
 def test_evaluate_objectives_caches_on_individual():

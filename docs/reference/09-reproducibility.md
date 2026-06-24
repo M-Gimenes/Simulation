@@ -41,12 +41,21 @@ combate.
 
 Como funciona:
 
-- **Semeadura determinística por-indivíduo** (`fitness.set_seed_base`): quando há
-  seed, cada avaliação semeia o combate a partir de `crc32(genes) XOR seed_base`.
-  A fitness vira função determinística dos genes — reprodutível independente de
-  qual worker a avalia ou do agendamento do `ProcessPoolExecutor` (o seed-base é
-  propagado aos workers via `initializer`). Bônus: a reavaliação do mesmo
-  indivíduo não tem ruído.
+- **Semeadura reset-ao-base / Common Random Numbers** (`fitness.set_seed_base`):
+  quando há seed, **toda** avaliação reseta o RNG do combate ao mesmo `seed_base`
+  antes do round-robin. Todo indivíduo é avaliado sob o mesmo stream de RNG → a
+  diferença de fitness reflete **genes, não sorteio** (CRN), tornando a seleção
+  menos enganada e a paisagem mais lisa. Reprodutível independente de qual worker
+  a avalia ou do agendamento do `ProcessPoolExecutor` (o seed-base é propagado aos
+  workers via `initializer`).
+  - *Antes:* `crc32(genes) XOR seed_base` (hash-por-genes). Era reprodutível, mas
+    congelava o ruído MC numa função descontínua dos genes — cada indivíduo via um
+    stream diferente, anulando a redução de variância do CRN.
+  - *Caveat conhecido (aceito, não corrigido):* o alinhamento CRN é perfeito só até
+    o 1º matchup; como cada luta consome um nº variável de sorteios, a posição do
+    stream diverge entre indivíduos nos matchups seguintes. Ainda assim é muito
+    melhor que seeds independentes por indivíduo. Alinhamento perfeito exigiria
+    semear por `(base, matchup_idx, sim_idx)` — fora de escopo.
 - **`ga.run`/`nsga2.run`** semeiam `random`, `np.random` e `seed_combat` no início
   e definem o seed-base. Sem seed → entropia (não reprodutível, por escolha).
 - **`sensitivity_analysis`** usa `seed_combat(seed)` no pareamento +σ/−σ → os dois

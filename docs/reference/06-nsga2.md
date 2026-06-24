@@ -10,7 +10,7 @@ Otimiza **2 objetivos** simultaneamente, ambos minimizados, sem ponderação:
 
 | Objetivo | Significado |
 |---|---|
-| `dominance_penalty` | dominância de matchups (RMS sobre HP-weighted scores) |
+| `dominance_penalty` | desbalanço de matchups: WR (primário) + decisividade fora da banda (secundário), RMS — ver [05](05-genetic-algorithm.md) |
 | `drift_penalty` | preservação de arquétipo (distância euclidiana ao canônico) |
 
 `evaluate_objectives` retorna `(dominance_penalty, drift_penalty)` em escala

@@ -16,16 +16,17 @@ fitness = -(LAMBDA_DRIFT     × drift_penalty
           + LAMBDA_DOMINANCE × dominance_penalty)
 ```
 
-Dois termos, ambos em `[0, 1]` e minimizados (o fitness é negativo; maior =
-melhor). São **os mesmos dois objetivos do NSGA-II** — lá sem ponderação, aqui
-como soma ponderada; o escalar é um ponto do trade-off que o NSGA-II mapeia.
-Avaliação por **round-robin completo**: C(5,2) = 10 matchups ×
+Dois termos minimizados (o fitness é negativo; maior = melhor). `drift_penalty ∈
+[0, 1]`; `dominance_penalty ∈ [0, DOMINANCE_WR_WEIGHT + DOMINANCE_DECIS_WEIGHT]`
+(hoje `[0, 1.5]`). São **os mesmos dois objetivos do NSGA-II** — lá sem
+ponderação, aqui como soma ponderada; o escalar é um ponto do trade-off que o
+NSGA-II mapeia. Avaliação por **round-robin completo**: C(5,2) = 10 matchups ×
 `SIMS_PER_MATCHUP = 150` simulações.
 
 | Termo | Peso | Penaliza |
 |---|---|---|
 | `drift_penalty` | 1.0 | distância ao perfil canônico — preservação de identidade |
-| `dominance_penalty` | 1.0 | decisividade por-luta fora da banda saudável (RMS) |
+| `dominance_penalty` | 1.0 | desbalanço de WR (primário) + decisividade fora da banda (secundário), RMS |
 
 ### `drift_penalty`
 
@@ -43,35 +44,46 @@ e preservação de identidade na mesma escala, reflexo do trade-off central da t
 O AG escalar dá **um** ponto desse trade-off; o mapa completo vem do NSGA-II. (Era
 6.0, que prendia o AG no canônico — ver [10-known-issues.md](10-known-issues.md) V1.)
 
-### `dominance_penalty` — decisividade por-luta numa banda
+### `dominance_penalty` — WR primária + decisividade secundária
 
-O sinal é a **decisividade**: a margem média **por luta**, não o desvio da WR
-média. Score por-luta contínuo (`_fight_score`): em KO, `score = 0.5 + 0.5 ·
-(HP_frac do vencedor)` — esmaga → ~1.0, ganha no fio → ~0.5; em timeout, a fração
-de HP%. A decisividade de um matchup é `D = média(|score_luta − 0.5|) ∈ [0, 0.5]`.
+Combina **dois sinais por matchup**: o desbalanço de win rate (objetivo primário
+de balanceamento) e a decisividade por-luta fora de uma banda (regularizador
+secundário de qualidade de luta).
+
+- **WR (primário):** `wr_excess = |WR_ij − 0.5| / 0.5 ∈ [0, 1]`, contínuo, **sem
+  banda morta** — gradiente liso até 50%.
+- **Decisividade (secundário):** score por-luta contínuo (`_fight_score`): em KO,
+  `score = 0.5 + 0.5·(HP_frac do vencedor)` — esmaga → ~1.0, ganha no fio → ~0.5;
+  em timeout, a fração de HP%. `D = média(|score_luta − 0.5|) ∈ [0, 0.5]`, com
+  excesso fora da **banda** `[MATCHUP_FLOOR, MATCHUP_THRESHOLD]`.
 
 ```
-excess_ij = max(0, D_ij − MATCHUP_THRESHOLD)/(0.5 − MATCHUP_THRESHOLD)   # blowout
-          + max(0, MATCHUP_FLOOR − D_ij)/MATCHUP_FLOOR                    # fino demais
-dominance_penalty = sqrt( mean_ij( excess_ij² ) )
+wr_excess    = |WR_ij − 0.5| / 0.5
+decis_excess = max(0, D_ij − MATCHUP_THRESHOLD)/(0.5 − MATCHUP_THRESHOLD)   # blowout
+             + max(0, MATCHUP_FLOOR − D_ij)/MATCHUP_FLOOR                    # fino demais
+e_ij = DOMINANCE_WR_WEIGHT · wr_excess + DOMINANCE_DECIS_WEIGHT · decis_excess
+dominance_penalty = sqrt( mean_ij( e_ij² ) )
 ```
 
-- **Banda saudável `[MATCHUP_FLOOR, MATCHUP_THRESHOLD]` = [0.05, 0.10]:** o
-  vencedor fecha com ~10-20% de HP de folga. Penaliza os dois lados: blowout
-  (decisiva demais) **e** quase-empate decidido no fio (fina demais — instável,
-  parece coin-flip).
-- **Por-luta, não da média:** `média(|score−0.5|)`, não `|média(score)−0.5|`. A
-  diferença é crucial — a média da WR zera quando blowouts se cancelam (55%
-  A-esmaga / 45% B-esmaga ⇒ WR ~50% mas toda luta é blowout). A média **por-luta**
-  pega isso (todo blowout dá margem ~0.5 → penalidade alta).
-- **Dá gradiente em combate determinístico:** mesmo sem variância, a margem do KO
-  varia continuamente — o AG tem uma rampa para aproximar as lutas, não só um
-  penhasco 0/1. Quando as lutas ficam apertadas, o ruído da soft-policy/hesitação
-  passa a flipar desfechos → WR graduado emerge. Ver
+Com `DOMINANCE_WR_WEIGHT = 1.0`, `DOMINANCE_DECIS_WEIGHT = 0.5`.
+
+- **Por que a WR voltou a ser primária:** o desenho anterior usava só a
+  decisividade. Ele é **cego à frequência de vitória** — um matchup em que um lado
+  vence 100% das vezes fechando sempre com ~15% de HP dá `D ≈ 0.075` (dentro da
+  banda) → penalidade **zero**, apesar de WR 100%. A hipótese "luta apertada em HP
+  ⟹ WR ~50%" foi **falsificada** (evidência empírica em
+  [11-combat-review.md](11-combat-review.md)). A WR contínua corrige isso.
+- **Por que manter a decisividade:** guarda contra **blowout-coinflip** — 55%
+  A-esmaga / 45% B-esmaga ⇒ WR ~50% (`wr_excess` baixo) mas toda luta é um
+  massacre; a decisividade por-luta pega isso (todo blowout dá margem ~0.5).
+  Banda saudável `[0.05, 0.10]`: vencedor fecha com ~10-20% de HP de folga.
+- **Gradiente em combate determinístico:** a margem do KO varia continuamente, e
+  quando as lutas ficam apertadas o ruído da soft-policy/hesitação flipa desfechos
+  → WR graduado emerge (logo `wr_excess` também tem gradiente). Ver
   [11-combat-review.md](11-combat-review.md).
-- **Direcionalmente cego:** usa `|score − 0.5|`, não codifica quem deveria vencer.
-  O ciclo continua métrica post-hoc.
-- **RMS, não média:** extremos pesam ~16× mais que moderados, impedindo o AG de
+- **Direcionalmente cego:** usa `|WR − 0.5|` e `|score − 0.5|` — não codifica quem
+  deveria vencer. O ciclo continua métrica post-hoc.
+- **RMS, não média:** extremos pesam mais que moderados, impedindo o AG de
   esconder um matchup destruído atrás de uma média balanceada.
 
 ### NSGA-II ignora os λ

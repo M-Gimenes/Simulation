@@ -15,11 +15,13 @@ ganha em dominância — o AG prefere ficar canônico e desbalanceado. **A
 reformulação do objetivo (A) está correta, mas o peso do drift impede o AG
 escalar de usá-la.**
 
-**Encaminhado:** `LAMBDA_DRIFT` baixado para **1.0** (igual ao dominance) — solta o
-AG escalar para usar o objetivo. **Pendente: demonstrar** — rodar o AG (λ=1.0) e o
-**NSGA-II completo** (representante `best_dominance` = extremo equilibrado) para
-confirmar que o A produz lutas apertadas / WR graduado. Opcional: sweep de
-`LAMBDA_DRIFT` para mapear o trade-off no escalar.
+**Encaminhado e demonstrado (2026-06-24):** `LAMBDA_DRIFT` baixado para **1.0**
+(igual ao dominance) — soltou o AG escalar. A demonstração, porém, **revelou que o
+objetivo só-decisividade não balanceava** (ver D1 abaixo): produzia lutas apertadas
+mas WR desequilibrada. Resolvido reintroduzindo a WR como termo primário do
+`dominance_penalty`. Após isso, AG escalar e `best_dominance` ficam ~8/10 matchups
+em 40-60% de WR. Opcional remanescente: sweep de `LAMBDA_DRIFT` para mapear o
+trade-off no escalar.
 
 ### Calibração de `HESITATION_RATE` — pendente
 A hesitação (variância de player) entrou com ε provisório **0.10**. Falta a
@@ -28,6 +30,28 @@ calibração formal (varredura): maior ε que mantém todo gene acima do piso bi
 [revisão do combate](11-combat-review.md) sugere que a hesitação é menos crítica
 do que se pensava — a alavanca real é o objetivo por-luta. **Decisão a revisitar:**
 medir o efeito marginal da hesitação após o objetivo e talvez reduzir/zerar ε.
+
+## ✅ Corrigido em 2026-06-24
+
+### D1 — `dominance_penalty` só-decisividade era cego à WR
+A versão que media apenas **decisividade por-luta numa banda** [0.05, 0.10] tinha um
+furo: é **cega à frequência de vitória**. Um matchup 100%×0% fechando sempre com
+~15% HP dá `D ≈ 0.075` (dentro da banda) → penalidade **zero**. Empírico:
+`best_dominance` dava `dominance_penalty = 0.0000`, 10/10 lutas "sadias", mas **0/10
+matchups equilibrados** (Grappler 92%, Turtle 8%). A hipótese "luta apertada ⟹ WR
+~50%" foi **falsificada** — ver [11-combat-review.md](11-combat-review.md).
+**Corrigido:** WR voltou como termo **primário** (`|WR−0.5|/0.5` contínuo,
+`DOMINANCE_WR_WEIGHT=1.0`); decisividade rebaixada a regularizador secundário
+(`DOMINANCE_DECIS_WEIGHT=0.5`, guarda contra blowout-coinflip). `best_dominance`
+passou a 8/10 matchups em 40-60% WR. Ver [05](05-genetic-algorithm.md).
+
+### D2 — semeadura hash-por-genes anulava o CRN
+A semeadura `crc32(genes) XOR base` era reprodutível mas dava a cada indivíduo um
+stream de RNG diferente — congelava o ruído MC numa função descontínua dos genes,
+anulando a redução de variância dos Common Random Numbers. **Corrigido:** toda
+avaliação reseta ao mesmo `_SEED_BASE` (CRN) — mesma reprodutibilidade, paisagem
+mais lisa. Caveat de alinhamento documentado em
+[09-reproducibility.md](09-reproducibility.md).
 
 ## ✅ Corrigido nesta rodada
 

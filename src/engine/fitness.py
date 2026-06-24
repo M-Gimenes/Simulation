@@ -11,7 +11,6 @@ aqui como soma ponderada. O escalar é um ponto do trade-off que o NSGA-II mapei
 from __future__ import annotations
 
 import math
-import zlib
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass, field
 from itertools import combinations
@@ -20,6 +19,8 @@ from typing import Dict, List, Optional, Tuple
 from .combat import seed_combat, simulate_combat
 from .config import (
     ATTRIBUTE_BOUNDS,
+    DOMINANCE_DECIS_WEIGHT,
+    DOMINANCE_WR_WEIGHT,
     LAMBDA_DOMINANCE,
     LAMBDA_DRIFT,
     MATCHUP_FLOOR,
@@ -33,12 +34,13 @@ _ATTR_MAXES: List[float] = [hi for _, hi in ATTRIBUTE_BOUNDS]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Reprodutibilidade — semeadura determinística por indivíduo
+# Reprodutibilidade — Common Random Numbers (reset ao seed-base)
 # ─────────────────────────────────────────────────────────────────────────────
-# Quando um seed-base é definido (via set_seed_base), cada avaliação semeia o RNG
-# do combate a partir de um hash dos genes do indivíduo XOR o seed-base. Assim a
-# fitness vira função determinística dos genes — reprodutível independente de qual
-# worker/agendamento a avalia, e sem ruído na reavaliação do mesmo indivíduo.
+# Quando um seed-base é definido (via set_seed_base), toda avaliação reseta o RNG
+# do combate ao MESMO _SEED_BASE antes do round-robin. Assim todo indivíduo é
+# avaliado sob o mesmo stream de RNG (Common Random Numbers): a diferença de
+# fitness reflete genes, não sorteio → seleção menos enganada e paisagem mais lisa.
+# Reprodutível independente de qual worker/agendamento avalia.
 
 _SEED_BASE: Optional[int] = None
 
@@ -51,14 +53,6 @@ def set_seed_base(seed: Optional[int]) -> None:
 
 def get_seed_base() -> Optional[int]:
     return _SEED_BASE
-
-
-def _seed_for(individual: Individual) -> int:
-    raw = bytes()
-    for c in individual.characters:
-        for g in c.genes():
-            raw += repr(round(g, 6)).encode()
-    return (zlib.crc32(raw) ^ (_SEED_BASE & 0xFFFFFFFF)) & 0x7FFFFFFF
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -110,16 +104,30 @@ def _fight_score(result, hp_max_i: float, hp_max_j: float) -> float:
     return hp_pct_i / total_pct if total_pct > 0 else 0.5
 
 
-def _dominance_penalty(matchup_decisiveness: Dict[Tuple[int, int], float]) -> float:
-    """RMS dos excessos da decisividade fora da banda [MATCHUP_FLOOR, MATCHUP_THRESHOLD].
-    Penaliza tanto blowout (decisiva demais) quanto quase-empate (fina demais).
-    Cega à direção — a decisividade é |score − 0.5|, não codifica quem vence."""
+def _dominance_penalty(
+    matchup_winrates: Dict[Tuple[int, int], float],
+    matchup_decisiveness: Dict[Tuple[int, int], float],
+) -> float:
+    """RMS sobre os 10 pares do excesso `e = WR_w·wr_excess + DECIS_w·decis_excess`.
+
+    Termo PRIMÁRIO (`wr_excess = |WR − 0.5| / 0.5`, contínuo, sem banda morta):
+    balanço de win rate — gradiente liso até 50%. Termo SECUNDÁRIO (`decis_excess`,
+    excesso da decisividade fora da banda [MATCHUP_FLOOR, MATCHUP_THRESHOLD]):
+    qualidade de luta, guarda contra blowout-coinflip (WR ~50% mas toda luta um
+    massacre). Cego à direção — não codifica quem deveria vencer cada matchup."""
     over_scale = 0.5 - MATCHUP_THRESHOLD
     excesses = []
-    for d in matchup_decisiveness.values():
-        over = max(0.0, d - MATCHUP_THRESHOLD) / over_scale
-        under = max(0.0, MATCHUP_FLOOR - d) / MATCHUP_FLOOR
-        excesses.append(over + under)
+    for key in matchup_decisiveness:
+        wr = matchup_winrates[key]
+        d = matchup_decisiveness[key]
+        wr_excess = abs(wr - 0.5) / 0.5
+        decis_over = max(0.0, d - MATCHUP_THRESHOLD) / over_scale
+        decis_under = max(0.0, MATCHUP_FLOOR - d) / MATCHUP_FLOOR
+        e = (
+            DOMINANCE_WR_WEIGHT * wr_excess
+            + DOMINANCE_DECIS_WEIGHT * (decis_over + decis_under)
+        )
+        excesses.append(e)
     return math.sqrt(sum(e * e for e in excesses) / len(excesses))
 
 
@@ -175,7 +183,7 @@ def _run_round_robin(
 
 def evaluate_detail_n(individual: Individual, sims: int) -> FitnessDetail:
     if _SEED_BASE is not None:
-        seed_combat(_seed_for(individual))
+        seed_combat(_SEED_BASE)
 
     chars = individual.characters
     n     = len(chars)
@@ -189,7 +197,7 @@ def evaluate_detail_n(individual: Individual, sims: int) -> FitnessDetail:
 
     archetype_deviations = [_archetype_deviation(c) for c in chars]
     drift_penalty        = sum(archetype_deviations) / n
-    dominance_pen        = _dominance_penalty(matchup_decisiveness)
+    dominance_pen        = _dominance_penalty(matchup_winrates, matchup_decisiveness)
 
     fitness = -(
         LAMBDA_DRIFT     * drift_penalty
