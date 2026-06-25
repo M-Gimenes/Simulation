@@ -113,6 +113,71 @@ py -m src.tools.sensitivity_analysis --sims 500 --workers 1
 > Ver [09-reproducibility.md](09-reproducibility.md) e
 > [10-known-issues.md](10-known-issues.md).
 
+## `multi_run` — N execuções independentes + estatística agregada
+
+Item 1.1 da metodologia (Eiben & Smith 2015; Deb 2001): um EA é estocástico, então
+uma seed é uma **amostra**, não um resultado. Roda o algoritmo escolhido sobre N
+sementes consecutivas (`MULTI_RUN_SEED_START..+N-1`), reavalia o melhor indivíduo de
+cada execução sob uma **semente de validação fixa** (`MULTI_RUN_VALIDATION_SEED`) —
+independente do treino e comum a todas as execuções (Common Random Numbers) — e agrega.
+
+```bash
+py -m src.tools.multi_run                    # ambos os algoritmos, defaults do config
+py -m src.tools.multi_run --algorithm nsga2  # só NSGA-II (best_dominance por seed)
+py -m src.tools.multi_run --algorithm ga     # só AG escalar (best por seed)
+py -m src.tools.multi_run --n-seeds 30       # escala o experimento
+```
+
+Representante por execução: AG escalar → `best`; NSGA-II → `best_dominance` da
+fronteira. Saídas agregadas (impressas + salvas em `results/multi_run/multi_run_<algo>.json`):
+
+- **média ± desvio** de `dominance_penalty` e `drift_penalty`;
+- **WR média ± desvio por personagem** através das sementes;
+- **success rate por matchup** = fração de sementes que o equilibram dentro de
+  `±MATCHUP_CONVERGENCE_THRESHOLD` (10%) de 50%;
+- **fração de sementes que equilibram TODOS os 10 matchups** — a frase-tese
+  (*"em N execuções, X% equilibraram todos os 10 matchups"*);
+- **(só NSGA-II)** hipervolume e spacing da fronteira por seed, média ± desvio
+  (item 1.2 — ver [06-nsga2.md](06-nsga2.md)).
+
+Parametrizado em `config.py` (`MULTI_RUN_*`) para escalar N facilmente. Mata a
+fragilidade de amostra única: um matchup travado (ex.: Combo×Rush) numa seed pode ser
+azar ou estrutural, e só N execuções respondem.
+
+## `external_validation` — validação externa ao fitness (estilo Ludi)
+
+Item 3.2 da metodologia (Browne & Maire 2010): não confiar num único número de
+fitness — validar o artefato evoluído **fora do laço de otimização**, sob condições
+que o AG nunca otimizou. Fixa UM indivíduo (canônico / `--evolved` / `--nsga2 [rep]`)
+e o reavalia sob K sementes de avaliação **totalmente novas** (`EXTERNAL_VALIDATION_*`,
+a partir de 10000 — fora do range de treino 42.. e da seed do `multi_run` 9999), cada
+uma com mais sims (`EXTERNAL_VALIDATION_SIMS=500`) para CI apertado.
+
+```bash
+py -m src.tools.external_validation                    # canônico
+py -m src.tools.external_validation --evolved          # melhor do AG
+py -m src.tools.external_validation --nsga2 best_dominance
+py -m src.tools.external_validation --n-seeds 30 --sims 1000
+```
+
+Reporta, salvando em `results/external_validation/external_validation_<label>.json`:
+
+- `dominance_penalty` / `drift_penalty` média ± desvio através das condições;
+- WR média ± desvio por personagem;
+- por matchup: WR média ± desvio + flag **robusto** (equilibrado dentro de ±10% em
+  TODAS as K condições);
+- **veredito do roster**: ROBUSTO (todos os 10 robustos) vs FRÁGIL (algum matchup só
+  equilibra sob certas sementes → overfitting ao fitness).
+
+**Diferença vs `multi_run` (1.1):** lá varia-se a *execução evolutiva* (muitos
+indivíduos, uma seed de validação); aqui fixa-se UM indivíduo e varia-se a *avaliação*
+(ruído fora do laço). Complementar: `multi_run` mede a fragilidade de amostra única do
+processo; `external_validation` mede a robustez do artefato escolhido. A bateria de
+**identidade** post-hoc (ciclo, drift, fingerprint, validador) é determinística nos
+genes e já vive no `report`; este tool cobre o eixo **estocástico** (equilíbrio), onde
+o overfitting ao fitness se esconde. A parte "contra política diferente" do método
+liga-se ao item 2.1 (coevolução), fora do escopo deste tool.
+
 ## `viewer` / `web_viewer`
 
 Visualizadores de uma luta, consumindo `CombatTrace`:

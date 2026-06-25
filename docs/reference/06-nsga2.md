@@ -50,10 +50,26 @@ Roda `NSGA2_GENERATIONS = 150` gerações fixas (fronteiras de Pareto não
   reta que liga os dois extremos. O "melhor compromisso".
 - **`ideal_point`** — mais próximo da utopia `(0, 0)` em distância euclidiana.
 
+## Métricas de qualidade da fronteira (item 1.2 da metodologia)
+
+Comparar fronteiras "no olho" não escala (Deb 2001/2002). Em `src/engine/pareto_metrics.py`:
+
+- **`hypervolume_2d(front, ref)`** — área da região dominada pela fronteira em
+  relação ao ponto de referência `HYPERVOLUME_REFERENCE = (1.5, 1.0)` (piores valores
+  possíveis de `(dominance, drift)`). Captura convergência *e* espalhamento num único
+  número; **maior é melhor**. Decomposição em faixas verticais sobre a escada
+  não-dominada: `Σ (x_{i+1} − x_i)·(r1 − y_i)`, com `x_{n+1} = r0`.
+- **`spacing(front)`** — desvio-padrão (Schott) da distância Manhattan de cada ponto
+  ao vizinho mais próximo. Mede a **uniformidade** da distribuição; **menor é melhor**.
+
+O ponto de referência é fixo para que o HV seja comparável entre execuções e
+configurações. `main.py` imprime ambos ao fim do run; `nsga2_plots` os anota no plot;
+`multi_run` os calcula por seed e reporta média ± desvio (ver [08-tools.md](08-tools.md)).
+
 ## Saída
 
 `save_results` grava `results/nsga2_results.json` (fronteira completa, os 4
 representantes com genes e objetivos, e histórico por geração). Plots em
 `results/plots/nsga2/<timestamp>/` via `nsga2_plots.save_plots` (ver
-[08-tools.md](08-tools.md)). Representantes consumidos por tools via
-`Individual.from_nsga2(representative=...)`.
+[08-tools.md](08-tools.md)) — anotados com hipervolume e spacing. Representantes
+consumidos por tools via `Individual.from_nsga2(representative=...)`.

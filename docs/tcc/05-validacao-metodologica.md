@@ -2,7 +2,12 @@
 
 **Entra em**: Metodologia (validação) e/ou Resultados.
 
-Dois pilares de validação que sustentam a credibilidade dos experimentos.
+Pilares de validação que sustentam a credibilidade dos experimentos. Os dois
+primeiros (reprodutibilidade, sensibilidade) validam o **método**; os três últimos
+(N execuções, qualidade da fronteira, validação externa) constituem o **protocolo
+experimental** incorporado da literatura — ver o status em
+[08-metodologias-da-literatura.md](08-metodologias-da-literatura.md). O "como" de cada
+ferramenta está em [`../reference/08-tools.md`](../reference/08-tools.md).
 
 ## Reprodutibilidade
 
@@ -32,3 +37,43 @@ Dois pilares de validação que sustentam a credibilidade dos experimentos.
   cromossomo (ou identifica explicitamente quais genes são inertes — ex.: o `recovery`,
   ver [07-achados-e-limitacoes.md](07-achados-e-limitacoes.md)). Não avalia um
   indivíduo; valida o **método**.
+
+## Múltiplas execuções independentes + estatística agregada (item 1.1)
+
+- **Pergunta:** um AG é estocástico — um resultado de **uma seed** é representativo, ou
+  é azar/sorte daquela amostra?
+- **Como** (`multi_run`): rodar AG e NSGA-II sobre N sementes (10+), reavaliar o melhor
+  indivíduo de cada uma sob uma seed de validação comum, e reportar **média ± desvio**
+  de dominance/drift, **success rate por matchup** e a **fração de sementes que
+  equilibram todos os 10**. Fontes: Eiben & Smith 2015; Deb 2001.
+- **Para que serve na tese:** é o **piso metodológico** — substitui "numa execução, deu
+  X" por *"em N execuções, X% equilibraram todos os 10 matchups; WR média 50±k%"*.
+  Resolve diretamente a fragilidade de seed única (ex.: o Combo×Rush travado em uma
+  seed — [07](07-achados-e-limitacoes.md) — vira pergunta respondível: azar ou
+  estrutural?).
+
+## Qualidade da fronteira de Pareto: hipervolume + spacing (item 1.2)
+
+- **Pergunta:** comparar fronteiras "no olho" não escala — como quantificar se uma
+  fronteira é melhor (mais próxima da utopia e mais espalhada) que outra?
+- **Como** (`pareto_metrics`): **hipervolume** (área dominada vs ponto de referência
+  fixo `(1.5, 1.0)` = piores valores; maior = melhor) e **spacing** de Schott
+  (uniformidade; menor = melhor). Fontes: Deb 2001/2002.
+- **Para que serve na tese:** comparação **objetiva** entre seeds e entre configurações
+  (efeito de `HESITATION_RATE`, `SIMS_PER_MATCHUP`, etc.) sem inspeção visual. Métrica
+  madura e esperada num trabalho com NSGA-II.
+
+## Validação externa ao fitness (item 3.2)
+
+- **Pergunta:** o equilíbrio de um indivíduo evoluído é **robusto**, ou é overfit às
+  condições exatas (seed/sims) em que foi treinado?
+- **Como** (`external_validation`): fixar UM indivíduo e reavaliá-lo sob K sementes de
+  avaliação **totalmente novas** (≥10000, fora do treino), com mais sims; marcar cada
+  matchup como **robusto** (equilibrado em TODAS as K condições) ou frágil, e dar um
+  **veredito do roster**. Fonte: Browne & Maire 2010 (Ludi).
+- **Para que serve na tese:** blinda contra *overfitting ao fitness* — valida o
+  artefato **fora do laço de otimização**, sobre condições que o AG nunca otimizou. A
+  bateria de **identidade** (drift, fingerprint, validador) é determinística nos genes
+  e cobre o eixo de identidade; esta valida o eixo **estocástico** (equilíbrio), onde o
+  overfitting se esconde. A versão "contra política diferente" liga ao item 2.1
+  (coevolução, trabalho futuro — [08](08-metodologias-da-literatura.md)).

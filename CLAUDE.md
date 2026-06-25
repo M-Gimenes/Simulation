@@ -54,7 +54,8 @@ pip install -r requirements.txt
 │   │   ├── fitness.py         # round-robin evaluation
 │   │   ├── operators.py       # selection / crossover / mutation
 │   │   ├── ga.py              # scalar GA loop
-│   │   └── nsga2.py           # NSGA-II loop
+│   │   ├── nsga2.py           # NSGA-II loop
+│   │   └── pareto_metrics.py  # hipervolume + spacing da fronteira (metodologia 1.2)
 │   ├── tools/                 # ferramentas que consomem o motor
 │   │   ├── report.py          # dossiê do indivíduo (compõe os tools abaixo)
 │   │   ├── analyze_matchups.py
@@ -62,6 +63,8 @@ pip install -r requirements.txt
 │   │   ├── fingerprint.py     # assinatura comportamental por personagem
 │   │   ├── archetype_validator.py
 │   │   ├── sensitivity_analysis.py
+│   │   ├── multi_run.py       # N execuções + estatística agregada (metodologia 1.1)
+│   │   ├── external_validation.py  # robustez do equilíbrio fora do laço (metodologia 3.2)
 │   │   ├── viewer.py          # ASCII viewer
 │   │   ├── web_viewer.py      # browser viewer
 │   │   └── nsga2_plots.py     # Pareto plots
@@ -89,6 +92,8 @@ py -m src.tools.drift_table --evolved            # drift por gene + diferenciaç
 py -m src.tools.fingerprint --evolved            # assinatura comportamental
 py -m src.tools.archetype_validator              # structural identity checks
 py -m src.tools.sensitivity_analysis             # ±σ Δ-WR per gene
+py -m src.tools.multi_run --algorithm nsga2      # N execuções + estatística agregada (metodologia 1.1)
+py -m src.tools.external_validation --nsga2 best_dominance  # robustez do equilíbrio fora do laço (metodologia 3.2)
 
 # Web viewer (opens browser at localhost:8080)
 py -m src.tools.web_viewer
@@ -113,6 +118,8 @@ All GA/NSGA-II outputs go to `results/` (created automatically on first run):
 | `results/results.json` | `py main.py` (GA) |
 | `results/nsga2_results.json` | `py main.py --algorithm nsga2` |
 | `results/plots/nsga2/<timestamp>/` | NSGA-II projection plots |
+| `results/multi_run/multi_run_<algo>.json` | `py -m src.tools.multi_run` (estatística agregada de N execuções) |
+| `results/external_validation/external_validation_<label>.json` | `py -m src.tools.external_validation` (robustez do equilíbrio fora do laço) |
 
 ## Architecture
 

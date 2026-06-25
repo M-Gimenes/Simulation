@@ -8,13 +8,18 @@
 > mapeia no nosso sistema → o que ganha → custo/prioridade**. Não é revisão
 > bibliográfica genérica; é um backlog metodológico priorizado.
 
-O sistema hoje roda **uma execução** (uma seed) e lê o resultado por inspeção
-(dossiê, `drift_table`, `fingerprint`, validador). Isso é suficiente pra mostrar
-*que funciona*, mas a literatura de computação evolutiva e de balanceamento por
+Originalmente o sistema lia o resultado de **uma execução** (uma seed) por inspeção
+(dossiê, `drift_table`, `fingerprint`, validador) — suficiente pra mostrar *que
+funciona*, mas frágil. A literatura de computação evolutiva e de balanceamento por
 busca dá um **protocolo experimental** que torna o resultado defensável e mais
-robusto. Os achados recentes (ex.: o matchup Combo×Rush travado em uma única seed —
-ver [07](07-achados-e-limitacoes.md)) são exatamente o tipo de coisa que esse
-protocolo pega.
+robusto. Os itens de **Tier 1** desse protocolo (mais o 3.2) **já foram incorporados**
+ao sistema — ver a seção de status ao final; os achados de seed única (ex.: o matchup
+Combo×Rush travado — [07](07-achados-e-limitacoes.md)) são exatamente o que ele pega.
+
+> **Nota:** os itens abaixo descrevem cada metodologia da literatura. O **estado de
+> adoção** de cada uma (implementado / citar / futuro) e o racional de escopo estão
+> na seção **[Status de implementação e decisão de escopo](#status-de-implementação-e-decisão-de-escopo-2026-06-24)**
+> ao final — leia-a primeiro para saber o que já é parte do sistema.
 
 ---
 
@@ -193,24 +198,64 @@ no `ga.py`/`nsga2.py`). Se a população colapsa cedo, justifica mexer em
 
 ## Resumo priorizado
 
-| # | Metodologia | Fonte | Esforço | Prioridade |
+| # | Metodologia | Fonte | Esforço | Status |
 |---|---|---|---|---|
-| 1.1 | N execuções + estatística agregada | Eiben&Smith 2015; Deb 2001 | Baixo | 🟢 **Alta** |
-| 1.2 | Hipervolume + spread da fronteira | Deb 2001/2002 | Baixo | 🟢 **Alta** |
-| 3.2 | Bateria + validação externa ao fitness | Browne 2010 | Baixo | 🟢 Média-alta |
-| 2.1 | Coevolução p/ stress-test do equilíbrio | Chen 2014; Livingstone 2006 | Médio-alto | 🟡 Média-alta |
-| 2.2 | Restricted play / handicap de mecânicas | Hom 2007; Jaffe 2012 | Médio | 🟡 Média |
-| 3.1 | MAP-Elites / Novelty (fingerprint = descritor) | Mouret 2015; Lehman 2011 | Alto | 🟡 Média (futuro) |
-| 4.1 | Penalidade adaptativa de drift | Michalewicz 1996 | Baixo-médio | 🟡 Baixa (exp.) / 🟢 Alta (cite) |
-| 4.2 | Diagnóstico de diversidade | Eiben 1998; Whitley 1994 | Baixo | 🟡 Baixa |
-
-**Se for fazer só uma coisa:** 1.1 (N execuções agregadas) — é o piso metodológico,
-resolve a fragilidade de seed única e é o que a banca vai cobrar primeiro. **Se for
-fazer duas:** 1.1 + 1.2 (hipervolume), que juntas dão o protocolo experimental
-completo do lado evolutivo. As de maior valor *científico* (não só de rigor) são 2.1
-(coevolução) e 3.1 (QD) — fortes como trabalho futuro mesmo que não entrem agora.
+| 1.1 | N execuções + estatística agregada | Eiben&Smith 2015; Deb 2001 | Baixo | ✅ **Implementado** (`multi_run.py`) |
+| 1.2 | Hipervolume + spacing da fronteira | Deb 2001/2002 | Baixo | ✅ **Implementado** (`pareto_metrics.py`) |
+| 3.2 | Bateria + validação externa ao fitness | Browne 2010 | Baixo | ✅ **Implementado** (`external_validation.py`) |
+| 2.1 | Coevolução p/ stress-test do equilíbrio | Chen 2014; Livingstone 2006 | Médio-alto | 🔭 Trabalho futuro (citar) |
+| 2.2 | Restricted play / handicap de mecânicas | Hom 2007; Jaffe 2012 | Médio | 🔭 Futuro / opcional |
+| 3.1 | MAP-Elites / Novelty (fingerprint = descritor) | Mouret 2015; Lehman 2011 | Alto | 🔭 Trabalho futuro (citar gancho teórico) |
+| 4.1 | Penalidade adaptativa de drift | Michalewicz 1996 | Baixo-médio | 📚 Citar (justifica penalidade soft) |
+| 4.2 | Diagnóstico de diversidade | Eiben 1998; Whitley 1994 | Baixo | ⚪ Opcional (figura de apoio) |
 
 > **Nota de fonte:** as metodologias de Hom 2007, Chen 2014, Browne 2010 foram
 > conferidas no resumo dos artigos; Preuss et al. 2012 (CEC) não foi localizado com
 > precisão na busca — **verificar o escopo exato na fonte** antes de afirmar sua
 > contribuição metodológica na tese.
+
+---
+
+## Status de implementação e decisão de escopo (2026-06-24)
+
+Revisão de escopo para um **TCC de graduação**: o objetivo é um sistema
+metodologicamente sólido **sem over-scoping**. O aparato de medição já está acima da
+régua de graduação; o risco a partir daqui não é falta de método, é o oposto — uma
+tese rica em maquinário e pobre em achados. **O valor seguinte está em rodar os
+experimentos reais (`multi_run` com 10+ seeds) e interpretar os números, não em
+construir mais ferramentas.** Decisão tomada:
+
+### ✅ Implementado — entra como Metodologia + Resultados
+- **1.1 — N execuções + estatística agregada** (`src/tools/multi_run.py`): roda AG
+  escalar e NSGA-II sobre N sementes (parametrizado em `config.py`, `MULTI_RUN_*`);
+  agrega dominance/drift média±σ, success rate por matchup e a fração de sementes que
+  equilibram os 10. Reavalia cada melhor indivíduo sob uma seed de validação comum
+  (Common Random Numbers). → Metodologia (protocolo experimental) + Resultados (a
+  frase-tese *"em N execuções, X% equilibraram todos os 10 matchups"*).
+- **1.2 — Hipervolume + spacing** (`src/engine/pareto_metrics.py`): qualidade da
+  fronteira `(dominance, drift)` num número (ref `HYPERVOLUME_REFERENCE=(1.5,1.0)`).
+  Impresso no run, anotado no plot, agregado por seed no `multi_run`. → Metodologia +
+  Resultados (qualidade/comparação de fronteiras sem inspeção visual).
+- **3.2 — Validação externa ao fitness** (`src/tools/external_validation.py`): fixa
+  UM indivíduo e o reavalia sob K sementes de avaliação **novas** (≥10000), com
+  veredito robusto/frágil por matchup. → Metodologia (validação estilo Ludi; blinda
+  contra overfitting ao fitness).
+
+Detalhe técnico de cada um na referência: [`../reference/08-tools.md`](../reference/08-tools.md),
+[`../reference/06-nsga2.md`](../reference/06-nsga2.md), [`../reference/07-configuration.md`](../reference/07-configuration.md).
+
+### 📚 Não implementar — citar (custo zero, fecha o capítulo)
+- **4.1 — Penalidade adaptativa** (Michalewicz & Schoenauer 1996): citar para
+  **justificar a penalidade soft já adotada** (`LAMBDA_DRIFT` fixo, deviação penalizada
+  e não restringida) em vez de restrição rígida. Implementar o *schedule* é experimento
+  opcional sem retorno claro num TCC.
+
+### 🔭 Trabalho futuro — citar como direção, não implementar
+- **2.1 — Coevolução** (Chen 2014; Livingstone 2006) e **3.1 — MAP-Elites / Novelty**
+  (Mouret 2015; Lehman 2011): contribuições de pesquisa próprias; implementá-las
+  viraria outro projeto. Valem como **Trabalhos Futuros**, e o gancho teórico
+  **Lehman ↔ não-circularidade** (não codificar o objetivo ↔ não codificar o ciclo)
+  é forte na Discussão.
+- **2.2 — Restricted play** (Hom 2007; Jaffe 2012) e **4.2 — Diagnóstico de
+  diversidade** (Eiben 1998; Whitley 1994): baixo/médio custo e úteis, mas **não são
+  requisitos**. Ficam como "se sobrar tempo" / trabalho futuro.

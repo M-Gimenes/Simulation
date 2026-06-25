@@ -37,13 +37,17 @@
 
 Backlog técnico detalhado em [`../10-known-issues.md`](../reference/10-known-issues.md). Em
 termos de tese, falta:
-- **Gerar a base**: rodar o AG (λ=1.0) e o **NSGA-II completo** (eventualmente uma
-  *sweep* de `LAMBDA_DRIFT` no escalar). A demonstração inicial já **falsificou** a
+- **Rodar os experimentos reais (passo de maior retorno)**: a infraestrutura de
+  agregação está pronta (item 1.1) — falta **executar** o `multi_run` com 10+ seeds (AG
+  + NSGA-II) e **interpretar** os números. A demonstração inicial já **falsificou** a
   hipótese "luta apertada ⟹ WR ~50%": o objetivo só-decisividade dava lutas apertadas
   mas WR desequilibrada (`best_dominance` 0/10 matchups em 40-60% WR). Por isso a WR
   voltou como termo primário do `dominance_penalty` (ver [04](04-caminhos-e-decisoes.md));
-  com isso `best_dominance` subiu para ~8/10. Falta consolidar a base final com esse
-  objetivo.
-- **Calibrar a hesitação** (ε) à luz da base.
-- (Os instrumentos de leitura — `report`, `drift_table` com diferenciação,
-  `fingerprint`, validador — já estão prontos.)
+  com isso `best_dominance` subiu para ~8/10. Falta consolidar a base final agregada.
+- **Calibrar a hesitação** (ε) à luz da base — agora mensurável pelo efeito no
+  hipervolume/success-rate agregado (item 1.2).
+- **Os instrumentos já estão prontos:** leitura por indivíduo (`report`, `drift_table`
+  com diferenciação, `fingerprint`, validador), agregação estatística (`multi_run`,
+  item 1.1), qualidade de fronteira (`pareto_metrics`, item 1.2) e robustez fora do
+  laço (`external_validation`, item 3.2). Ver o status completo em
+  [08-metodologias-da-literatura.md](08-metodologias-da-literatura.md).

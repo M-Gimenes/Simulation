@@ -97,6 +97,25 @@ mais lisa. Caveat de alinhamento documentado em
   um personagem depende 100% da mutação. Legítimo, mas limita exploração — vale
   citar como decisão na metodologia.
 
+## Protocolo metodológico da literatura — incorporado ✅ (2026-06-24)
+
+Os itens de **Tier 1** do backlog metodológico (ver
+[`../tcc/08-metodologias-da-literatura.md`](../tcc/08-metodologias-da-literatura.md))
+saíram do backlog e são parte do sistema:
+
+- **1.1 — N execuções + estatística agregada** (`src/tools/multi_run.py`): AG + NSGA-II
+  sobre N seeds, agrega dominance/drift média±σ, success rate por matchup e fração que
+  equilibra os 10. Config `MULTI_RUN_*`.
+- **1.2 — Hipervolume + spacing** (`src/engine/pareto_metrics.py`): qualidade da
+  fronteira; impresso no run, anotado no plot, agregado no `multi_run`. Config
+  `HYPERVOLUME_REFERENCE`.
+- **3.2 — Validação externa ao fitness** (`src/tools/external_validation.py`):
+  robustez de um indivíduo fixo sob K seeds de avaliação novas. Config
+  `EXTERNAL_VALIDATION_*`.
+
+Decisão de escopo (não implementar 2.1/2.2/3.1/4.1 — citar/futuro) registrada em
+tcc/08. **Pendente de execução, não de código:** rodar o `multi_run` real (10+ seeds).
+
 ## Dossiê de resultado por indivíduo — FEITO ✅
 
 Três ângulos de identidade, todos implementados (além das matrizes de matchup que

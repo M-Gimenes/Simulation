@@ -9,7 +9,9 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
+from src.engine.config import HYPERVOLUME_REFERENCE
 from src.engine.nsga2 import NSGAResult
+from src.engine.pareto_metrics import hypervolume_2d, spacing
 
 _AXIS_LABEL = {0: "dominance_penalty", 1: "drift_penalty"}
 
@@ -26,9 +28,20 @@ def save_plots(result: NSGAResult, outdir: Path) -> None:
     outdir.mkdir(parents=True, exist_ok=True)
     fig, ax = plt.subplots(figsize=(7, 6))
 
-    xs = [ind.objectives[0] for ind in result.pareto_front]
-    ys = [ind.objectives[1] for ind in result.pareto_front]
+    objs = [ind.objectives for ind in result.pareto_front]
+    hv = hypervolume_2d(objs, HYPERVOLUME_REFERENCE)
+    sp = spacing(objs)
+
+    xs = [o[0] for o in objs]
+    ys = [o[1] for o in objs]
     ax.scatter(xs, ys, alpha=0.4, s=30, color="tab:blue", label="Fronteira de Pareto")
+
+    ax.text(
+        0.97, 0.97,
+        f"hipervolume = {hv:.4f}\nspacing = {sp:.4f}\nref = {HYPERVOLUME_REFERENCE}",
+        transform=ax.transAxes, ha="right", va="top", fontsize=8,
+        bbox=dict(boxstyle="round", facecolor="white", alpha=0.7, edgecolor="gray"),
+    )
 
     for name, ind in result.representatives.items():
         style = _REP_STYLE[name]

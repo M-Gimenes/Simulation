@@ -134,3 +134,34 @@ WEIGHT_NAMES = ["w_retreat", "w_defend", "w_aggressiveness"]
 NSGA2_POP_SIZE = POPULATION_SIZE
 NSGA2_GENERATIONS = MAX_GENERATIONS
 NSGA2_OBJECTIVES = ["dominance_penalty", "drift_penalty"]
+# Ponto de referência do hipervolume (item 1.2 da metodologia): canto dos PIORES
+# valores possíveis de (dominance_penalty, drift_penalty). dominance_penalty ≤ ~1.5
+# (RMS de excessos: WR_w·1 + DECIS_w·1 = 1.0 + 0.5); drift_penalty ≤ ~1.0 (distância
+# euclidiana normalizada média). Fixo entre execuções para que o HV seja comparável.
+HYPERVOLUME_REFERENCE = (1.5, 1.0)
+
+# ── Multi-run — N execuções independentes + estatística agregada ─────────────
+# Item 1.1 da metodologia (Eiben & Smith 2015; Deb 2001): um EA é estocástico, então
+# uma seed é uma amostra, não um resultado. A agregação roda o algoritmo sobre
+# MULTI_RUN_N_SEEDS sementes consecutivas a partir de MULTI_RUN_SEED_START e reporta
+# média ± desvio das penalidades, success rate por matchup e WR por personagem.
+# Para escalar o experimento, basta aumentar MULTI_RUN_N_SEEDS.
+
+MULTI_RUN_SEED_START = 42  # primeira semente; as execuções usam 42, 43, ..., 42+N-1
+MULTI_RUN_N_SEEDS = 10     # número de execuções independentes a agregar
+# Semente de validação independente do treino: o melhor indivíduo de cada execução é
+# reavaliado sob ESTE mesmo stream de RNG (Common Random Numbers entre execuções), o
+# que desacopla a métrica reportada da semente em que o indivíduo foi treinado.
+MULTI_RUN_VALIDATION_SEED = 9999
+MULTI_RUN_SIMS = SIMS_CONVERGENCE_CHECK  # simulações por matchup na reavaliação independente
+
+# ── Validação externa ao fitness (estilo Ludi — Browne & Maire 2010) ─────────
+# Item 3.2 da metodologia: confirmar o equilíbrio de UM indivíduo fixo sob condições
+# que o AG nunca otimizou — K sementes de avaliação totalmente novas (fora do range
+# de treino 42.. e da seed de validação do multi_run 9999), cada uma com mais sims
+# para um intervalo de confiança apertado. Blinda contra overfitting ao fitness:
+# um equilíbrio robusto sobrevive ao ruído fora do laço; um frágil não.
+
+EXTERNAL_VALIDATION_SEED_START = 10000  # primeira semente de avaliação (independente do treino)
+EXTERNAL_VALIDATION_N_SEEDS = 10        # nº de condições de avaliação independentes
+EXTERNAL_VALIDATION_SIMS = 500          # sims/matchup por condição (> treino, p/ CI apertado)

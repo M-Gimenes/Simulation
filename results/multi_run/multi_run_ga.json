@@ -1,0 +1,112 @@
+{
+  "algorithm": "ga",
+  "n_seeds": 1,
+  "seeds": [
+    42
+  ],
+  "validation_seed": 9999,
+  "sims_per_matchup": 100,
+  "per_seed": [
+    {
+      "seed": 42,
+      "dominance_penalty": 0.14911849996720933,
+      "drift_penalty": 0.24702839590953904,
+      "winrates": {
+        "Zoner": 0.5525,
+        "Rushdown": 0.5175,
+        "Combo Master": 0.4775,
+        "Grappler": 0.4575,
+        "Turtle": 0.495
+      },
+      "matchups": {
+        "Zoner vs Rushdown": {
+          "wr": 0.54,
+          "balanced": true
+        },
+        "Zoner vs Combo Master": {
+          "wr": 0.53,
+          "balanced": true
+        },
+        "Zoner vs Grappler": {
+          "wr": 0.53,
+          "balanced": true
+        },
+        "Zoner vs Turtle": {
+          "wr": 0.61,
+          "balanced": false
+        },
+        "Rushdown vs Combo Master": {
+          "wr": 0.58,
+          "balanced": true
+        },
+        "Rushdown vs Grappler": {
+          "wr": 0.56,
+          "balanced": true
+        },
+        "Rushdown vs Turtle": {
+          "wr": 0.47,
+          "balanced": true
+        },
+        "Combo Master vs Grappler": {
+          "wr": 0.51,
+          "balanced": true
+        },
+        "Combo Master vs Turtle": {
+          "wr": 0.51,
+          "balanced": true
+        },
+        "Grappler vs Turtle": {
+          "wr": 0.43,
+          "balanced": true
+        }
+      },
+      "n_balanced": 9,
+      "all_balanced": false
+    }
+  ],
+  "aggregate": {
+    "dominance_penalty": {
+      "mean": 0.14911849996720933,
+      "std": 0.0
+    },
+    "drift_penalty": {
+      "mean": 0.24702839590953904,
+      "std": 0.0
+    },
+    "winrates": {
+      "Zoner": {
+        "mean": 0.5525,
+        "std": 0.0
+      },
+      "Rushdown": {
+        "mean": 0.5175,
+        "std": 0.0
+      },
+      "Combo Master": {
+        "mean": 0.4775,
+        "std": 0.0
+      },
+      "Grappler": {
+        "mean": 0.4575,
+        "std": 0.0
+      },
+      "Turtle": {
+        "mean": 0.495,
+        "std": 0.0
+      }
+    },
+    "matchup_success_rate": {
+      "Zoner vs Rushdown": 1.0,
+      "Zoner vs Combo Master": 1.0,
+      "Zoner vs Grappler": 1.0,
+      "Zoner vs Turtle": 0.0,
+      "Rushdown vs Combo Master": 1.0,
+      "Rushdown vs Grappler": 1.0,
+      "Rushdown vs Turtle": 1.0,
+      "Combo Master vs Grappler": 1.0,
+      "Combo Master vs Turtle": 1.0,
+      "Grappler vs Turtle": 1.0
+    },
+    "all_balanced_rate": 0.0
+  }
+}

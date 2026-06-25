@@ -41,14 +41,38 @@ trade-off explícito** e responde diretamente à pergunta de pesquisa:
 
 Mostrar a fronteira **e** os dossiês (`report --nsga2 best_dominance` vs
 `--nsga2 best_drift`) é o coração do capítulo: dá pra *ver* e *quantificar* o que se
-ganha e se perde em cada ponta.
+ganha e se perde em cada ponta. O plot é anotado com **hipervolume** e **spacing**
+(item 1.2) — o número que quantifica a qualidade da fronteira sem inspeção visual e
+permite comparar configurações.
 
 ## 4. Comparação canônico × evoluído
 
 A base de tudo: rodar o `report` no canônico estabelece o ponto de partida (drift 0,
 ciclo de referência, comportamento de referência) contra o qual todo evoluído é lido.
 
-## 5. Validação metodológica (sustentação)
+## 5. Estatística agregada de N execuções (`multi_run`)
+
+**O resultado central do lado evolutivo** (item 1.1). Em vez de um indivíduo de uma
+seed, a tabela agregada sobre 10+ seeds:
+
+| Saída | Evidencia |
+|---|---|
+| dominance/drift **média ± desvio** | onde o processo aterrissa *em média*, com dispersão |
+| **success rate por matchup** | quais matchups o sistema equilibra de forma consistente vs por acaso |
+| **fração de seeds que equilibram os 10** | a frase-tese — *"em N execuções, X% equilibraram todos os 10 matchups"* |
+| (NSGA-II) **hipervolume ± desvio** | qualidade média da fronteira através das seeds |
+
+É a peça que transforma "funciona numa seed" em afirmação estatística — e contextualiza
+achados de seed única (ex.: Combo×Rush) como estruturais ou amostrais.
+
+## 6. Robustez do equilíbrio fora do laço (`external_validation`)
+
+Item 3.2. Pega o indivíduo escolhido (tipicamente `best_dominance`) e mostra se o
+equilíbrio **sobrevive a condições de avaliação novas**: veredito **robusto/frágil**
+por matchup + do roster. Evidencia que o equilíbrio reportado não é overfit ao fitness.
+Apresentar junto do dossiê do indivíduo, como sua *sustentação de robustez*.
+
+## 7. Validação metodológica (sustentação)
 
 - **Tabela de sensibilidade** (`sensitivity_analysis`): mostra que o AG enxerga os
   genes (ou quais são neutros). Vai junto da metodologia, não dos resultados de um
@@ -59,12 +83,16 @@ ciclo de referência, comportamento de referência) contra o qual todo evoluído
 
 1. Estabelecer o **baseline** (canônico) e mostrar que o ciclo não é trivialmente
    preservado no modelo determinístico ([07](07-achados-e-limitacoes.md)).
-2. Mostrar a **fronteira de Pareto** — o trade-off equilíbrio × identidade.
+2. Mostrar a **fronteira de Pareto** (com hipervolume) — o trade-off equilíbrio ×
+   identidade.
 3. Detalhar **dossiês** de pontos-chave da fronteira (preserva vs equilibra), usando
    drift + diferenciação + fingerprint + validador para *quantificar* preservação vs
    homogeneização.
-4. Concluir sobre a **pergunta de pesquisa** a partir do que a fronteira e os dossiês
-   mostram.
+4. Subir de uma seed para a **estatística agregada de N execuções** (`multi_run`) — a
+   evidência estatística — e mostrar a **robustez** do indivíduo central
+   (`external_validation`).
+5. Concluir sobre a **pergunta de pesquisa** a partir do que a fronteira, os dossiês e
+   a agregação mostram.
 
 > O que **não** vai nos resultados (é sobre o AG/processo, não sobre um indivíduo):
 > detalhes de mecânica, e o "como" técnico — esses ficam na Metodologia, referenciando

@@ -67,6 +67,14 @@ knockback 0–5, recovery 0–0.7 float). Cada aperto fechou um exploit do AG:
 | `NSGA2_POP_SIZE` | 300 | alias de POPULATION_SIZE |
 | `NSGA2_GENERATIONS` | 150 | alias de MAX_GENERATIONS |
 | `NSGA2_OBJECTIVES` | (dominance, drift) | objetivos do NSGA-II |
+| `HYPERVOLUME_REFERENCE` | (1.5, 1.0) | ponto de referência do hipervolume (piores valores de dominance/drift) |
+| `MULTI_RUN_SEED_START` | 42 | primeira semente da agregação `multi_run` |
+| `MULTI_RUN_N_SEEDS` | 10 | nº de execuções independentes a agregar — aumentar para escalar |
+| `MULTI_RUN_VALIDATION_SEED` | 9999 | semente de validação (reavaliação independente do treino, comum a todas as execuções) |
+| `MULTI_RUN_SIMS` | 200 | sims/matchup na reavaliação independente (= `SIMS_CONVERGENCE_CHECK`) |
+| `EXTERNAL_VALIDATION_SEED_START` | 10000 | primeira semente de avaliação da validação externa (item 3.2) |
+| `EXTERNAL_VALIDATION_N_SEEDS` | 10 | nº de condições de avaliação independentes |
+| `EXTERNAL_VALIDATION_SIMS` | 500 | sims/matchup por condição (> treino, p/ CI apertado) |
 
 Os termos de fitness são detalhados em
 [05-genetic-algorithm.md](05-genetic-algorithm.md); as mecânicas de combate em

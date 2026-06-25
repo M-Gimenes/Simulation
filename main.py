@@ -59,7 +59,9 @@ def _main_ga(args):
 
 
 def _main_nsga2(args):
+    from src.engine.config import HYPERVOLUME_REFERENCE
     from src.engine.nsga2 import run as run_nsga2, save_results
+    from src.engine.pareto_metrics import hypervolume_2d, spacing
     from src.tools.nsga2_plots import save_plots
 
     result = run_nsga2(seed=args.seed, verbose=not args.quiet)
@@ -67,6 +69,11 @@ def _main_nsga2(args):
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     save_results(result, NSGA2_RESULTS_PATH)
     print(f"\nFronteira salva em {NSGA2_RESULTS_PATH.relative_to(PROJECT_ROOT)}  ({len(result.pareto_front)} indivíduos)")
+
+    objs = [ind.objectives for ind in result.pareto_front]
+    hv = hypervolume_2d(objs, HYPERVOLUME_REFERENCE)
+    sp = spacing(objs)
+    print(f"Hipervolume (ref={HYPERVOLUME_REFERENCE}): {hv:.4f}  |  spacing: {sp:.4f}")
 
     timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     outdir = NSGA2_PLOTS_DIR / timestamp
