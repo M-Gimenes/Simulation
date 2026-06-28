@@ -3,9 +3,11 @@ Smoke test do módulo de combate.
 Rode com: py -m src.tests.test_combat
 """
 
-from src.engine.archetypes import ARCHETYPES, ArchetypeID
+from src.engine.archetypes import ARCHETYPES, ARCHETYPE_ORDER, ArchetypeID
 from src.engine.character import Character
-from src.engine.combat import simulate_combat, simulate_combat_traced, seed_combat, CombatResult
+from src.engine.combat import simulate_combat, simulate_combat_detailed, simulate_combat_traced, seed_combat, CombatResult
+from src.engine.config import MAX_TICKS
+from src.engine.individual import Individual
 
 
 def separator(title: str) -> None:
@@ -24,7 +26,7 @@ print(f"  Vencedor: {'Grappler' if result.winner == 0 else 'Rushdown'}")
 print(f"  KO: {result.ko} | Ticks: {result.ticks}")
 print(f"  HP final: Grappler={result.hp_remaining[0]:.1f} | Rushdown={result.hp_remaining[1]:.1f}")
 assert result.winner in (0, 1)
-assert 1 <= result.ticks <= 500
+assert 1 <= result.ticks <= MAX_TICKS
 assert isinstance(result.ko, bool)
 print("  ✓ Estrutura do resultado válida")
 
@@ -97,6 +99,20 @@ seed_combat(123); a = [simulate_combat(cm, tu).hp_remaining[0] for _ in range(8)
 seed_combat(123); b = [simulate_combat(cm, tu).hp_remaining[0] for _ in range(8)]
 assert a == b, "seed_combat não reproduziu a sequência de lutas"
 print("  ✓ seed_combat reproduz o RNG do Numba")
+
+
+# ── 6. Rusher majoritariamente agressivo (intenção→execução) ────────────────
+
+separator("Rusher vs Zoner: majoritariamente FRENTE (atk+adv)")
+ind = Individual.from_canonical()
+rush = next(c for c in ind.characters if c.archetype_id == ArchetypeID.RUSHDOWN)
+zon  = next(c for c in ind.characters if c.archetype_id == ArchetypeID.ZONER)
+_, log = simulate_combat_detailed(rush, zon)
+atk = log.action_counts[0][0]; adv = log.action_counts[0][1]
+total = sum(log.action_counts[0].values())
+assert total > 0
+assert (atk + adv) / total > 0.5, f"Rusher deveria ser majoritariamente FRENTE (atk+adv), got {(atk+adv)/total:.2f}"
+print("  ✓ rusher majoritariamente FRENTE")
 
 
 separator("Todos os testes de combate passaram ✓")

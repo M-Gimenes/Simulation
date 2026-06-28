@@ -75,20 +75,11 @@ N_WORKERS = None  # None = todos os núcleos da CPU; 1 = desativa paralelismo
 
 FIELD_SIZE = 100  # tamanho do campo em unidades
 INITIAL_DISTANCE = 50  # distância inicial entre os lutadores
-WALL_CORNER_THRESHOLD = 10  # distância da parede para considerar o lutador encurralado
 
 # ── Simulação — Persistência de ação ─────────────────────────────────────────
 
-ACTION_PERSISTENCE_SUBTICKS = 10  # após escolher uma ação por soft policy, ela é mantida por este número de sub-ticks
+ACTION_PERSISTENCE_SUBTICKS = 10  # após escolher uma intenção por soft policy, ela é mantida por este número de sub-ticks
 # isso simula a inércia e o momentum do combate, dando mais peso à decisão
-
-HESITATION_RATE = 0.10  # prob. por tick de "hesitar": mesmo num ramo determinístico
-# (ATTACK / ADVANCE forçado), com esta prob. o personagem sorteia uma ação da
-# distribuição PONDERADA (w_agg, w_ret, w_def) em vez da ação ótima. Modela o
-# player não executar sempre o ótimo (variância de execução). 0.0 = combate
-# determinístico nos ramos (reproduz o comportamento sem hesitação).
-# PROVISÓRIO — calibrar (ver docs/10, Fase 4): maior ε que mantém todo gene acima
-# do piso binomial e tira o WR do bimodal.
 
 # ── Simulação — Resolução temporal ────────────────────────────────────────────
 

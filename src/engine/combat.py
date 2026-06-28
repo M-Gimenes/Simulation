@@ -36,12 +36,10 @@ from .config import (
     ACTION_PERSISTENCE_SUBTICKS,
     DEFEND_DAMAGE_REDUCTION,
     FIELD_SIZE,
-    HESITATION_RATE,
     INITIAL_DISTANCE,
     MAX_TICKS,
     STUN_CAP_MULTIPLIER,
     TICK_SCALE,
-    WALL_CORNER_THRESHOLD,
 )
 
 
@@ -116,9 +114,9 @@ class CombatTrace:
 @njit(cache=True)
 def _simulate_combat_jit(
     a_attrs, a_w, b_attrs, b_w,
-    field_size, initial_distance, wall_corner,
+    field_size, initial_distance,
     max_ticks, tick_scale, stun_cap_mult,
-    defend_red, persist, hesitation,
+    defend_red, persist,
 ):
     a_hp_max = a_attrs[0]; a_dmg = a_attrs[1]; a_cd = a_attrs[2]
     a_range = a_attrs[3]; a_speed = a_attrs[4]; a_def = a_attrs[5]
@@ -158,31 +156,32 @@ def _simulate_combat_jit(
             action_a = -1
         else:
             in_range = distance <= a_range
-            cornered = (pos_a < wall_corner) or (pos_a > field_size - wall_corner)
-            hesitate = hesitation > 0.0 and np.random.random() < hesitation
-            if in_range and cd_rem_a == 0 and not hesitate:
-                action_a = 0
+            if not in_range:
+                action_a = 1               # ADVANCE — neutral game (aproxima)
                 persist_a = 0
-            elif ((not in_range) or cornered) and not hesitate:
-                action_a = 1
-                persist_a = 0
-            elif persist_a > 0 and commit_a >= 0:
-                action_a = commit_a
-                persist_a -= 1
             else:
-                tot = a_wagg + a_wret + a_wdef
-                if tot <= 0.0:
-                    action_a = 3
-                else:
-                    r = np.random.random() * tot
-                    if r < a_wagg:
-                        action_a = 1
-                    elif r < a_wagg + a_wret:
-                        action_a = 2
+                if persist_a == 0:
+                    tot = a_wagg + a_wret + a_wdef
+                    if tot <= 0.0:
+                        commit_a = 2       # GUARDA (fallback)
                     else:
-                        action_a = 3
-                commit_a = action_a
-                persist_a = persist
+                        r = np.random.random() * tot
+                        if r < a_wagg:
+                            commit_a = 0   # FRENTE
+                        elif r < a_wagg + a_wret:
+                            commit_a = 1   # RECUAR
+                        else:
+                            commit_a = 2   # GUARDA
+                    persist_a = persist
+                persist_a -= 1
+                if commit_a == 0:                      # FRENTE
+                    action_a = 0 if cd_rem_a == 0 else 1   # ATTACK senão ADVANCE (pressão)
+                elif commit_a == 1:                    # RECUAR
+                    step = a_speed / tick_scale
+                    can_back = (pos_a - step >= 0.0) if pos_a < pos_b else (pos_a + step <= field_size)
+                    action_a = 2 if can_back else 3        # RETREAT senão DEFEND (encurralado)
+                else:                                  # GUARDA
+                    action_a = 3
             active_ticks[0] += 1
             action_counts[0, action_a] += 1
 
@@ -190,31 +189,32 @@ def _simulate_combat_jit(
             action_b = -1
         else:
             in_range = distance <= b_range
-            cornered = (pos_b < wall_corner) or (pos_b > field_size - wall_corner)
-            hesitate = hesitation > 0.0 and np.random.random() < hesitation
-            if in_range and cd_rem_b == 0 and not hesitate:
-                action_b = 0
-                persist_b = 0
-            elif ((not in_range) or cornered) and not hesitate:
+            if not in_range:
                 action_b = 1
                 persist_b = 0
-            elif persist_b > 0 and commit_b >= 0:
-                action_b = commit_b
-                persist_b -= 1
             else:
-                tot = b_wagg + b_wret + b_wdef
-                if tot <= 0.0:
-                    action_b = 3
-                else:
-                    r = np.random.random() * tot
-                    if r < b_wagg:
-                        action_b = 1
-                    elif r < b_wagg + b_wret:
-                        action_b = 2
+                if persist_b == 0:
+                    tot = b_wagg + b_wret + b_wdef
+                    if tot <= 0.0:
+                        commit_b = 2
                     else:
-                        action_b = 3
-                commit_b = action_b
-                persist_b = persist
+                        r = np.random.random() * tot
+                        if r < b_wagg:
+                            commit_b = 0
+                        elif r < b_wagg + b_wret:
+                            commit_b = 1
+                        else:
+                            commit_b = 2
+                    persist_b = persist
+                persist_b -= 1
+                if commit_b == 0:
+                    action_b = 0 if cd_rem_b == 0 else 1
+                elif commit_b == 1:
+                    step = b_speed / tick_scale
+                    can_back = (pos_b - step >= 0.0) if pos_b < pos_a else (pos_b + step <= field_size)
+                    action_b = 2 if can_back else 3
+                else:
+                    action_b = 3
             active_ticks[1] += 1
             action_counts[1, action_b] += 1
 
@@ -342,9 +342,9 @@ def _simulate_combat_jit(
 @njit(cache=True)
 def _simulate_combat_traced_jit(
     a_attrs, a_w, b_attrs, b_w,
-    field_size, initial_distance, wall_corner,
+    field_size, initial_distance,
     max_ticks, tick_scale, stun_cap_mult,
-    defend_red, persist, hesitation,
+    defend_red, persist,
 ):
     a_hp_max = a_attrs[0]; a_dmg = a_attrs[1]; a_cd = a_attrs[2]
     a_range = a_attrs[3]; a_speed = a_attrs[4]; a_def = a_attrs[5]
@@ -389,61 +389,63 @@ def _simulate_combat_traced_jit(
             action_a = -1
         else:
             in_range = distance <= a_range
-            cornered = (pos_a < wall_corner) or (pos_a > field_size - wall_corner)
-            hesitate = hesitation > 0.0 and np.random.random() < hesitation
-            if in_range and cd_rem_a == 0 and not hesitate:
-                action_a = 0
+            if not in_range:
+                action_a = 1               # ADVANCE — neutral game (aproxima)
                 persist_a = 0
-            elif ((not in_range) or cornered) and not hesitate:
-                action_a = 1
-                persist_a = 0
-            elif persist_a > 0 and commit_a >= 0:
-                action_a = commit_a
-                persist_a -= 1
             else:
-                tot = a_wagg + a_wret + a_wdef
-                if tot <= 0.0:
-                    action_a = 3
-                else:
-                    r = np.random.random() * tot
-                    if r < a_wagg:
-                        action_a = 1
-                    elif r < a_wagg + a_wret:
-                        action_a = 2
+                if persist_a == 0:
+                    tot = a_wagg + a_wret + a_wdef
+                    if tot <= 0.0:
+                        commit_a = 2       # GUARDA (fallback)
                     else:
-                        action_a = 3
-                commit_a = action_a
-                persist_a = persist
+                        r = np.random.random() * tot
+                        if r < a_wagg:
+                            commit_a = 0   # FRENTE
+                        elif r < a_wagg + a_wret:
+                            commit_a = 1   # RECUAR
+                        else:
+                            commit_a = 2   # GUARDA
+                    persist_a = persist
+                persist_a -= 1
+                if commit_a == 0:                      # FRENTE
+                    action_a = 0 if cd_rem_a == 0 else 1   # ATTACK senão ADVANCE (pressão)
+                elif commit_a == 1:                    # RECUAR
+                    step = a_speed / tick_scale
+                    can_back = (pos_a - step >= 0.0) if pos_a < pos_b else (pos_a + step <= field_size)
+                    action_a = 2 if can_back else 3        # RETREAT senão DEFEND (encurralado)
+                else:                                  # GUARDA
+                    action_a = 3
 
         if stun_rem_b > 0:
             action_b = -1
         else:
             in_range = distance <= b_range
-            cornered = (pos_b < wall_corner) or (pos_b > field_size - wall_corner)
-            hesitate = hesitation > 0.0 and np.random.random() < hesitation
-            if in_range and cd_rem_b == 0 and not hesitate:
-                action_b = 0
-                persist_b = 0
-            elif ((not in_range) or cornered) and not hesitate:
+            if not in_range:
                 action_b = 1
                 persist_b = 0
-            elif persist_b > 0 and commit_b >= 0:
-                action_b = commit_b
-                persist_b -= 1
             else:
-                tot = b_wagg + b_wret + b_wdef
-                if tot <= 0.0:
-                    action_b = 3
-                else:
-                    r = np.random.random() * tot
-                    if r < b_wagg:
-                        action_b = 1
-                    elif r < b_wagg + b_wret:
-                        action_b = 2
+                if persist_b == 0:
+                    tot = b_wagg + b_wret + b_wdef
+                    if tot <= 0.0:
+                        commit_b = 2
                     else:
-                        action_b = 3
-                commit_b = action_b
-                persist_b = persist
+                        r = np.random.random() * tot
+                        if r < b_wagg:
+                            commit_b = 0
+                        elif r < b_wagg + b_wret:
+                            commit_b = 1
+                        else:
+                            commit_b = 2
+                    persist_b = persist
+                persist_b -= 1
+                if commit_b == 0:
+                    action_b = 0 if cd_rem_b == 0 else 1
+                elif commit_b == 1:
+                    step = b_speed / tick_scale
+                    can_back = (pos_b - step >= 0.0) if pos_b < pos_a else (pos_b + step <= field_size)
+                    action_b = 2 if can_back else 3
+                else:
+                    action_b = 3
 
         # ── Movimento ────────────────────────────────────────────────────────
         if action_a == 1 or action_a == 2:
@@ -598,10 +600,9 @@ def _run_jit(char_a: Character, char_b: Character):
         np.asarray(char_a.weights, dtype=np.float64),
         np.asarray(char_b.attributes, dtype=np.float64),
         np.asarray(char_b.weights, dtype=np.float64),
-        float(FIELD_SIZE), float(INITIAL_DISTANCE), float(WALL_CORNER_THRESHOLD),
+        float(FIELD_SIZE), float(INITIAL_DISTANCE),
         int(MAX_TICKS), float(TICK_SCALE), float(STUN_CAP_MULTIPLIER),
         float(DEFEND_DAMAGE_REDUCTION), int(ACTION_PERSISTENCE_SUBTICKS),
-        float(HESITATION_RATE),
     )
 
 
@@ -629,10 +630,9 @@ def simulate_combat_traced(char_a: Character, char_b: Character) -> CombatTrace:
             np.asarray(char_a.weights,    dtype=np.float64),
             np.asarray(char_b.attributes, dtype=np.float64),
             np.asarray(char_b.weights,    dtype=np.float64),
-            float(FIELD_SIZE), float(INITIAL_DISTANCE), float(WALL_CORNER_THRESHOLD),
+            float(FIELD_SIZE), float(INITIAL_DISTANCE),
             int(MAX_TICKS), float(TICK_SCALE), float(STUN_CAP_MULTIPLIER),
             float(DEFEND_DAMAGE_REDUCTION), int(ACTION_PERSISTENCE_SUBTICKS),
-            float(HESITATION_RATE),
         )
     )
     return CombatTrace(
