@@ -76,10 +76,10 @@ def test_structural_inter_canonical():
     canon = Individual.from_canonical()
     checks = _check_structural_inter(canon.characters)
 
-    assert len(checks) == 14
+    assert len(checks) == 12
     assert all(c.layer == "structural_inter" for c in checks)
 
-    # All 14 pass on current canonical values
+    # All 12 pass on current canonical values
     failed = [c for c in checks if not c.passed]
     assert failed == [], f"Unexpected failures: {[(c.archetype, c.description) for c in failed]}"
 
@@ -96,10 +96,10 @@ def test_structural_intra_canonical():
     canon = Individual.from_canonical()
     checks = _check_structural_intra(canon.characters)
 
-    assert len(checks) == 6
+    assert len(checks) == 5
     assert all(c.layer == "structural_intra" for c in checks)
 
-    # All 6 pass on canonical values (verified analytically in design spec)
+    # All 5 pass on canonical values (verified analytically in design spec)
     failed = [c for c in checks if not c.passed]
     assert failed == [], f"Unexpected failures: {[c.description for c in failed]}"
 
@@ -116,8 +116,8 @@ def test_run_validation_canonical():
     canon  = Individual.from_canonical()
     report = run_validation(canon)
 
-    assert report.total == 20
-    assert report.passed == 20  # todas as asserções estruturais passam no canônico
+    assert report.total == 17
+    assert report.passed == 17  # todas as asserções estruturais passam no canônico
     assert 0.0 <= report.score <= 1.0
     assert len(report.failures()) == report.total - report.passed
 

@@ -115,4 +115,17 @@ assert (atk + adv) / total > 0.5, f"Rusher deveria ser majoritariamente FRENTE (
 print("  ✓ rusher majoritariamente FRENTE")
 
 
+# ── 7. Invariante: sem stun-lock ─────────────────────────────────────────────
+
+separator("Invariante: stun aplicado nunca >= cooldown_subticks do atacante")
+import numpy as np
+ind = Individual.from_canonical()
+rush = next(c for c in ind.characters if c.archetype_id == ArchetypeID.RUSHDOWN)
+zon  = next(c for c in ind.characters if c.archetype_id == ArchetypeID.ZONER)
+tr = simulate_combat_traced(rush, zon)
+max_cd_subticks = round(max(rush.attack_cooldown, zon.attack_cooldown) * 5)
+assert int(tr.stun.max()) < max_cd_subticks, "stun não pode atingir o cooldown (lock)"
+print("  ✓ sem stun-lock")
+
+
 separator("Todos os testes de combate passaram ✓")

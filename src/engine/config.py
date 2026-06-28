@@ -87,13 +87,6 @@ TICK_SCALE = 5  # resolução sub-tick para cooldown e stun
 # cooldown e stun são multiplicados por este fator antes de round()
 # → 5× mais valores discretos possíveis, eliminando platôs do GA
 
-STUN_CAP_MULTIPLIER = 0.6  # cap de stun = multiplier × cooldown do atacante
-# < 1.0 garante que o defensor sai do stun ANTES do atacante poder bater
-# de novo, abrindo uma janela livre para agir (atacar/recuar/defender).
-# Isso quebra o soft-perma-lock que existia em 1.0, em que stun ≈ cooldown
-# fazia o defensor reentrar no stun assim que saía. Mantém stun relevante
-# (60% do CD ainda é alto), mas não chaina indefinidamente.
-
 # ── Simulação — Decisão ──────────────────────────────────────────────────────
 
 MAX_TICKS = 500 * TICK_SCALE  # duração máxima ajustada à resolução
@@ -102,23 +95,14 @@ DEFEND_DAMAGE_REDUCTION = 0.4  # multiplicador de dano recebido ao defender (40%
 # ── Bounds dos genes ─────────────────────────────────────────────────────────
 
 ATTRIBUTE_BOUNDS = [
-    (300.0, 400.0),  # hp
-    (10.0, 20.0),  # damage
-    (1.0, 5.0),  # attack_cooldown
-    (5.0, 20.0),  # range
-    (1.0, 5.0),  # speed
-    (0.0, 0.30),  # defense
-    (0.0, 5.0),  # stun
-    (0.0, 3.0),  # knockback
-    (0, 10),  # recovery (sub-ticks subtraídos do stun recebido)
+    (250.0, 450.0),  # hp
+    (10.0, 20.0),    # damage
+    (1.0, 5.0),      # attack_cooldown
+    (5.0, 20.0),     # range
+    (1.0, 5.0),      # speed
+    (0.0, 0.6),      # stun (fração do cooldown; bound < 1 garante stun < cooldown_subticks)
+    (0.0, 3.0),      # knockback
 ]
-
-# Atributos cujo gene representa unidades inteiras. Mutações continuam gaussianas
-# em escala contínua (preservando gradiente do AG ao longo de gerações), mas o
-# valor armazenado é arredondado em clip() para o int mais próximo. Isso
-# elimina o platô multiplicativo de recovery — cada unidade subtrai 1 sub-tick
-# de stun, então a função fitness vê um efeito visível por unidade.
-INTEGER_ATTRIBUTES = {8}  # índice de RECOVERY
 
 WEIGHT_BOUNDS = [
     (0.0, 1.0),
@@ -126,17 +110,7 @@ WEIGHT_BOUNDS = [
     (0.0, 1.0),
 ]
 
-ATTRIBUTE_NAMES = [
-    "hp",
-    "damage",
-    "attack_cooldown",
-    "range",
-    "speed",
-    "defense",
-    "stun",
-    "knockback",
-    "recovery",
-]
+ATTRIBUTE_NAMES = ["hp", "damage", "attack_cooldown", "range", "speed", "stun", "knockback"]
 WEIGHT_NAMES = ["w_retreat", "w_defend", "w_aggressiveness"]
 
 # ── NSGA-II ─────────────────────────────────────────────────────────────────

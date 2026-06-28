@@ -27,9 +27,9 @@ for aid in ARCHETYPE_ORDER:
 
 separator("Personagem canônico (Grappler)")
 g = Character.from_archetype(ARCHETYPES[ArchetypeID.GRAPPLER])
-print(f"  HP={g.hp} | Damage={g.damage} | Speed={g.speed} | Defense={g.defense}")
+print(f"  HP={g.hp} | Damage={g.damage} | Speed={g.speed} | Stun={g.stun}")
 print(f"  Weights: ret={g.w_retreat} | def={g.w_defend} | agg={g.w_aggressiveness}")
-print(f"  Genes totais: {len(g.genes())} ({'OK' if len(g.genes()) == 12 else 'ERRO'})")
+print(f"  Genes totais: {len(g.genes())} ({'OK' if len(g.genes()) == 10 else 'ERRO'})")
 
 
 # ── 3. Personagem aleatório ───────────────────────────────────────────────────
@@ -61,10 +61,11 @@ print("  ✓ Clone isolado + clip funcionando")
 separator("Indivíduo canônico (5 personagens)")
 ind = Individual.from_canonical()
 assert len(ind) == 5
+assert len(ind.characters[0].genes()) == 10, "char deve ter 10 genes"
 total_genes = sum(len(c.genes()) for c in ind.characters)
-assert total_genes == 60, f"Esperado 60 genes, got {total_genes}"
+assert total_genes == 50, f"Esperado 50 genes, got {total_genes}"
 print(f"  Personagens: {[c.name for c in ind.characters]}")
-print(f"  Total de genes: {total_genes} ({'OK' if total_genes == 60 else 'ERRO'})")
+print(f"  Total de genes: {total_genes} ({'OK' if total_genes == 50 else 'ERRO'})")
 
 
 # ── 6. Indivíduo aleatório ───────────────────────────────────────────────────
@@ -81,9 +82,9 @@ print(f"  {rand_ind.summary()}")
 separator("Acesso por ArchetypeID")
 turtle      = ind.get(ArchetypeID.TURTLE)
 turtle_arch = ARCHETYPES[ArchetypeID.TURTLE]
-print(f"  Turtle HP={turtle.hp} | Defense={turtle.defense}")
-assert turtle.hp      == turtle_arch.initial_attributes.hp
-assert turtle.defense == turtle_arch.initial_attributes.defense
+print(f"  Turtle HP={turtle.hp} | Stun={turtle.stun}")
+assert turtle.hp   == turtle_arch.initial_attributes.hp
+assert turtle.stun == turtle_arch.initial_attributes.stun
 print("  ✓ Acesso por ID correto")
 
 

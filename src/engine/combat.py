@@ -38,7 +38,6 @@ from .config import (
     FIELD_SIZE,
     INITIAL_DISTANCE,
     MAX_TICKS,
-    STUN_CAP_MULTIPLIER,
     TICK_SCALE,
 )
 
@@ -115,17 +114,15 @@ class CombatTrace:
 def _simulate_combat_jit(
     a_attrs, a_w, b_attrs, b_w,
     field_size, initial_distance,
-    max_ticks, tick_scale, stun_cap_mult,
+    max_ticks, tick_scale,
     defend_red, persist,
 ):
     a_hp_max = a_attrs[0]; a_dmg = a_attrs[1]; a_cd = a_attrs[2]
-    a_range = a_attrs[3]; a_speed = a_attrs[4]; a_def = a_attrs[5]
-    a_stun = a_attrs[6]; a_kb = a_attrs[7]; a_rec = a_attrs[8]
+    a_range = a_attrs[3]; a_speed = a_attrs[4]; a_stun = a_attrs[5]; a_kb = a_attrs[6]
     a_wret = a_w[0]; a_wdef = a_w[1]; a_wagg = a_w[2]
 
     b_hp_max = b_attrs[0]; b_dmg = b_attrs[1]; b_cd = b_attrs[2]
-    b_range = b_attrs[3]; b_speed = b_attrs[4]; b_def = b_attrs[5]
-    b_stun = b_attrs[6]; b_kb = b_attrs[7]; b_rec = b_attrs[8]
+    b_range = b_attrs[3]; b_speed = b_attrs[4]; b_stun = b_attrs[5]; b_kb = b_attrs[6]
     b_wret = b_w[0]; b_wdef = b_w[1]; b_wagg = b_w[2]
 
     hp_a = a_hp_max
@@ -250,16 +247,11 @@ def _simulate_combat_jit(
 
         # A → B
         if action_a == 0 and cd_rem_a == 0 and distance <= a_range:
-            dmg = a_dmg * (1.0 - b_def)
+            dmg = a_dmg
             if action_b == 3:
                 dmg *= defend_red
             if dmg > 0.0:
-                stun_t = round(a_stun * tick_scale) - int(b_rec)
-                if stun_t < 0:
-                    stun_t = 0
-                cap = round(stun_cap_mult * a_cd * tick_scale)
-                if stun_t > cap:
-                    stun_t = cap
+                stun_t = round(a_stun * round(a_cd * tick_scale))  # fração × cooldown_subticks; < cooldown por bound
 
                 hp_b = hp_b - dmg
                 if hp_b < 0.0:
@@ -278,16 +270,11 @@ def _simulate_combat_jit(
 
         # B → A
         if action_b == 0 and cd_rem_b == 0 and distance <= b_range:
-            dmg = b_dmg * (1.0 - a_def)
+            dmg = b_dmg
             if action_a == 3:
                 dmg *= defend_red
             if dmg > 0.0:
-                stun_t = round(b_stun * tick_scale) - int(a_rec)
-                if stun_t < 0:
-                    stun_t = 0
-                cap = round(stun_cap_mult * b_cd * tick_scale)
-                if stun_t > cap:
-                    stun_t = cap
+                stun_t = round(b_stun * round(b_cd * tick_scale))  # fração × cooldown_subticks; < cooldown por bound
 
                 hp_a = hp_a - dmg
                 if hp_a < 0.0:
@@ -343,17 +330,15 @@ def _simulate_combat_jit(
 def _simulate_combat_traced_jit(
     a_attrs, a_w, b_attrs, b_w,
     field_size, initial_distance,
-    max_ticks, tick_scale, stun_cap_mult,
+    max_ticks, tick_scale,
     defend_red, persist,
 ):
     a_hp_max = a_attrs[0]; a_dmg = a_attrs[1]; a_cd = a_attrs[2]
-    a_range = a_attrs[3]; a_speed = a_attrs[4]; a_def = a_attrs[5]
-    a_stun = a_attrs[6]; a_kb = a_attrs[7]; a_rec = a_attrs[8]
+    a_range = a_attrs[3]; a_speed = a_attrs[4]; a_stun = a_attrs[5]; a_kb = a_attrs[6]
     a_wret = a_w[0]; a_wdef = a_w[1]; a_wagg = a_w[2]
 
     b_hp_max = b_attrs[0]; b_dmg = b_attrs[1]; b_cd = b_attrs[2]
-    b_range = b_attrs[3]; b_speed = b_attrs[4]; b_def = b_attrs[5]
-    b_stun = b_attrs[6]; b_kb = b_attrs[7]; b_rec = b_attrs[8]
+    b_range = b_attrs[3]; b_speed = b_attrs[4]; b_stun = b_attrs[5]; b_kb = b_attrs[6]
     b_wret = b_w[0]; b_wdef = b_w[1]; b_wagg = b_w[2]
 
     hp_a = a_hp_max
@@ -478,16 +463,11 @@ def _simulate_combat_traced_jit(
         distance = abs(pos_b - pos_a)
 
         if action_a == 0 and cd_rem_a == 0 and distance <= a_range:
-            dmg = a_dmg * (1.0 - b_def)
+            dmg = a_dmg
             if action_b == 3:
                 dmg *= defend_red
             if dmg > 0.0:
-                stun_t = round(a_stun * tick_scale) - int(b_rec)
-                if stun_t < 0:
-                    stun_t = 0
-                cap = round(stun_cap_mult * a_cd * tick_scale)
-                if stun_t > cap:
-                    stun_t = cap
+                stun_t = round(a_stun * round(a_cd * tick_scale))  # fração × cooldown_subticks; < cooldown por bound
 
                 hp_b = hp_b - dmg
                 if hp_b < 0.0:
@@ -510,16 +490,11 @@ def _simulate_combat_traced_jit(
                 kb_dealt[tick, 0]   = a_kb
 
         if action_b == 0 and cd_rem_b == 0 and distance <= b_range:
-            dmg = b_dmg * (1.0 - a_def)
+            dmg = b_dmg
             if action_a == 3:
                 dmg *= defend_red
             if dmg > 0.0:
-                stun_t = round(b_stun * tick_scale) - int(a_rec)
-                if stun_t < 0:
-                    stun_t = 0
-                cap = round(stun_cap_mult * b_cd * tick_scale)
-                if stun_t > cap:
-                    stun_t = cap
+                stun_t = round(b_stun * round(b_cd * tick_scale))  # fração × cooldown_subticks; < cooldown por bound
 
                 hp_a = hp_a - dmg
                 if hp_a < 0.0:
@@ -601,7 +576,7 @@ def _run_jit(char_a: Character, char_b: Character):
         np.asarray(char_b.attributes, dtype=np.float64),
         np.asarray(char_b.weights, dtype=np.float64),
         float(FIELD_SIZE), float(INITIAL_DISTANCE),
-        int(MAX_TICKS), float(TICK_SCALE), float(STUN_CAP_MULTIPLIER),
+        int(MAX_TICKS), float(TICK_SCALE),
         float(DEFEND_DAMAGE_REDUCTION), int(ACTION_PERSISTENCE_SUBTICKS),
     )
 
@@ -631,7 +606,7 @@ def simulate_combat_traced(char_a: Character, char_b: Character) -> CombatTrace:
             np.asarray(char_b.attributes, dtype=np.float64),
             np.asarray(char_b.weights,    dtype=np.float64),
             float(FIELD_SIZE), float(INITIAL_DISTANCE),
-            int(MAX_TICKS), float(TICK_SCALE), float(STUN_CAP_MULTIPLIER),
+            int(MAX_TICKS), float(TICK_SCALE),
             float(DEFEND_DAMAGE_REDUCTION), int(ACTION_PERSISTENCE_SUBTICKS),
         )
     )

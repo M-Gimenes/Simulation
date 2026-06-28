@@ -71,11 +71,9 @@ _INTER_ASSERTIONS: List[Tuple] = [
     (ArchetypeID.ZONER,        "w_retreat",         1, "w_retreat = highest (kites when threatened)"),
     (ArchetypeID.COMBO_MASTER, "stun",              1, "stun = highest (lockdown — chains combos)"),
     (ArchetypeID.GRAPPLER,     "damage",            1, "damage = highest (burst punish at close range)"),
-    (ArchetypeID.TURTLE,       "recovery",          1, "recovery = highest (most resistant to stun)"),
     (ArchetypeID.TURTLE,       "speed",             5, "speed = lowest (slowest — compensates with durability)"),
     (ArchetypeID.TURTLE,       "attack_cooldown",   1, "attack_cooldown = highest (patient, punishes mistakes)"),
     (ArchetypeID.TURTLE,       "hp",                1, "hp = highest (living wall)"),
-    (ArchetypeID.TURTLE,       "defense",           1, "defense = highest (absorbs maximum damage)"),
     (ArchetypeID.TURTLE,       "w_defend",          1, "w_defend = highest (absorbs instead of retreating)"),
 ]
 
@@ -104,7 +102,7 @@ def _check_structural_inter(chars) -> List[ArchetypeCheck]:
 # ─────────────────────────────────────────────────────────────────────────────
 
 _ATTR_BOUNDS: Dict[str, Tuple[float, float]] = dict(zip(
-    ["hp", "damage", "attack_cooldown", "range_", "speed", "defense", "stun", "knockback", "recovery"],
+    ["hp", "damage", "attack_cooldown", "range_", "speed", "stun", "knockback"],
     ATTRIBUTE_BOUNDS,
 ))
 
@@ -120,7 +118,6 @@ _INTRA_ASSERTIONS: List[Tuple] = [
     (ArchetypeID.ZONER,        "range_",  "speed",    "norm(range) > norm(speed) — space control over mobility"),
     (ArchetypeID.RUSHDOWN,     "speed",   "range_",   "norm(speed) > norm(range) — closes gap, not ranged"),
     (ArchetypeID.GRAPPLER,     "hp",      "speed",    "norm(hp) > norm(speed) — durability over mobility"),
-    (ArchetypeID.TURTLE,       "defense", "damage",   "norm(defense) > norm(damage) — punishes errors, not pressures"),
     (ArchetypeID.COMBO_MASTER, "stun",    "knockback","norm(stun) > norm(knockback) — holds, doesn't push"),
     (ArchetypeID.COMBO_MASTER, "speed",   "range_",   "norm(speed) > norm(range) — closes distance for combos"),
 ]
