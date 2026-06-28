@@ -18,23 +18,28 @@ from __future__ import annotations
 
 import argparse
 import random
-from typing import Dict, Tuple
+from typing import Tuple
 
-from src.engine.archetypes import ARCHETYPE_ORDER, ARCHETYPES, ArchetypeID
-from src.engine.combat import Action, seed_combat
+from src.engine.archetypes import ARCHETYPE_ORDER, ARCHETYPES
+from src.engine.combat import seed_combat
 from src.engine.individual import Individual
-from src.tools.analyze_matchups import analyze_combat_multi
+from src.tools.analyze_matchups import behavioral_profile
 
 FINGERPRINT_SIMS = 200
 
-# Métricas do fingerprint: (chave, rótulo). Frações em [0, 1].
-_METRICS: Tuple[Tuple[str, str], ...] = (
-    ("atk", "ATK"),
-    ("adv", "ADV"),
-    ("ret", "RET"),
-    ("def", "DEF"),
-    ("oor", "% fora range"),
-    ("stun", "% stunado"),
+# Métricas do fingerprint: (chave, rótulo, tipo). "pct" = fração em [0,1];
+# "count" = contagem por luta / distância média (formatada como valor absoluto).
+# DEF vem dividido em guarda (escolhido) e parede (forçado por encurralamento).
+_METRICS: Tuple[Tuple[str, str, str], ...] = (
+    ("atk_landed",     "ATK conectado/luta", "count"),
+    ("adv",            "ADV",                "pct"),
+    ("ret",            "RET",                "pct"),
+    ("def_chosen",     "DEF (guarda)",       "pct"),
+    ("def_forced",     "DEF (parede)",       "pct"),
+    ("oor",            "% fora range",       "pct"),
+    ("stunned",        "% stunado",          "pct"),
+    ("mean_dist",      "dist. média",        "count"),
+    ("stun_inflicted", "stun aplic./luta",   "count"),
 )
 
 
@@ -44,35 +49,6 @@ def _load_individual(args: argparse.Namespace) -> Tuple[Individual, str]:
     if args.evolved:
         return Individual.from_results(), "EVOLUÍDO"
     return Individual.from_canonical(), "CANÔNICO"
-
-
-def _fingerprint(ind: Individual, n: int) -> Dict[ArchetypeID, Dict[str, float]]:
-    """Métricas comportamentais médias por personagem (sobre seus 4 matchups)."""
-    chars = {c.archetype.id: c for c in ind.characters}
-    ids = ARCHETYPE_ORDER
-    agg = {aid: {k: 0.0 for k, _ in _METRICS} | {"_n": 0} for aid in ids}
-
-    for a in range(len(ids)):
-        for b in range(a + 1, len(ids)):
-            r = analyze_combat_multi(chars[ids[a]], chars[ids[b]], n=n)
-            total = max(r.avg_ticks, 1.0)
-            for idx, aid in ((0, ids[a]), (1, ids[b])):
-                s = r.stats[idx]
-                act = sum(s.action_counts.values()) or 1.0
-                m = agg[aid]
-                m["atk"] += s.action_counts[int(Action.ATTACK)] / act
-                m["adv"] += s.action_counts[int(Action.ADVANCE)] / act
-                m["ret"] += s.action_counts[int(Action.RETREAT)] / act
-                m["def"] += s.action_counts[int(Action.DEFEND)] / act
-                m["oor"] += s.ticks_out_of_range / total
-                m["stun"] += s.ticks_stunned / total
-                m["_n"] += 1
-
-    for aid in ids:
-        n_m = agg[aid].pop("_n") or 1
-        for k, _ in _METRICS:
-            agg[aid][k] /= n_m
-    return agg
 
 
 def main() -> None:
@@ -94,11 +70,11 @@ def print_fingerprint_report(
     ind: Individual, label: str, is_canon: bool, n: int = FINGERPRINT_SIMS, seed: int = 42
 ) -> None:
     seed_combat(seed); random.seed(seed)
-    fp = _fingerprint(ind, n)
+    fp = behavioral_profile(ind, n)
     base = fp
     if not is_canon:
         seed_combat(seed); random.seed(seed)
-        base = _fingerprint(Individual.from_canonical(), n)
+        base = behavioral_profile(Individual.from_canonical(), n)
 
     print("\n" + "═" * 60)
     title = f"{label} vs CANÔNICO" if not is_canon else "CANÔNICO (baseline)"
@@ -107,12 +83,15 @@ def print_fingerprint_report(
 
     for aid in ARCHETYPE_ORDER:
         print(f"\n  {ARCHETYPES[aid].name}")
-        print(f"    {'métrica':14}{'canônico':>10}{'evoluído':>10}{'Δ':>8}")
-        print(f"    {'─' * 42}")
-        for k, lbl in _METRICS:
-            c = base[aid][k]
-            e = fp[aid][k]
-            print(f"    {lbl:14}{c:>9.0%}{'':1}{e:>9.0%}{'':1}{(e - c) * 100:>+7.0f}pp")
+        print(f"    {'métrica':20}{'canônico':>10}{'evoluído':>10}{'Δ':>9}")
+        print(f"    {'─' * 49}")
+        for key, lbl, kind in _METRICS:
+            c = base[aid][key]
+            e = fp[aid][key]
+            if kind == "pct":
+                print(f"    {lbl:20}{c:>9.0%}{'':1}{e:>9.0%}{'':1}{(e - c) * 100:>+7.0f}pp")
+            else:
+                print(f"    {lbl:20}{c:>10.1f}{e:>10.1f}{e - c:>+9.1f}")
 
 
 if __name__ == "__main__":

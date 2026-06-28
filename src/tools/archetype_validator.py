@@ -9,12 +9,15 @@ Uso:
 
 from __future__ import annotations
 
+import random
 from dataclasses import dataclass
 from typing import Dict, List, Tuple
 
 from src.engine.archetypes import ARCHETYPE_ORDER, ArchetypeID
+from src.engine.combat import seed_combat
 from src.engine.config import ATTRIBUTE_BOUNDS
 from src.engine.individual import Individual
+from src.tools.analyze_matchups import behavioral_profile
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -142,15 +145,66 @@ def _check_structural_intra(chars) -> List[ArchetypeCheck]:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Layer 3 — Behavioral (identidade funcional: como o personagem joga)
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# Asserções rank-entre-os-5 sobre o perfil comportamental médio (behavioral_profile),
+# espelhando a Layer 1. Diferente das estruturais, exige rodar combate (estocástico):
+# é opt-in via run_validation(behavioral_n>0).
+
+_BEHAVIORAL_ASSERTIONS: List[Tuple] = [
+    (ArchetypeID.ZONER,        "mean_dist",      1, "mean_dist = highest (luta da maior distância)"),
+    (ArchetypeID.RUSHDOWN,     "atk_landed",     1, "atk_landed = highest (mais ataques conectados/luta)"),
+    (ArchetypeID.TURTLE,       "def_chosen",     1, "def_chosen = highest (absorve por opção, não encurralado)"),
+    (ArchetypeID.COMBO_MASTER, "stun_inflicted", 1, "stun_inflicted = highest (lockdown do oponente)"),
+]
+
+# Sem asserção comportamental: o combate não modela grab/throw, então a identidade do
+# Grappler não tem expressão comportamental distinta (sobrepõe ao corpo-a-corpo do
+# Rushdown). Registrado no relatório, fora do denominador da Layer 3.
+_BEHAVIORAL_NO_ASSERTION: Dict[ArchetypeID, str] = {
+    ArchetypeID.GRAPPLER: "sem assinatura comportamental — mecânica de grab ausente",
+}
+
+
+def _check_behavioral(profile: Dict[ArchetypeID, Dict[str, float]]) -> List[ArchetypeCheck]:
+    ids = ARCHETYPE_ORDER
+    checks = []
+    for arch_id, metric, expected_rank, description in _BEHAVIORAL_ASSERTIONS:
+        values = [profile[aid][metric] for aid in ids]
+        ranks  = _rank_desc(values)
+        actual = ranks[ids.index(arch_id)]
+        checks.append(ArchetypeCheck(
+            archetype=arch_id,
+            layer="behavioral",
+            description=description,
+            passed=(actual == expected_rank),
+            actual_rank=actual,
+            expected_rank=expected_rank,
+        ))
+    return checks
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Orquestração
 # ─────────────────────────────────────────────────────────────────────────────
 
-def run_validation(individual: Individual) -> ArchetypeValidationReport:
+def run_validation(
+    individual: Individual, behavioral_n: int = 0, seed: int = 42
+) -> ArchetypeValidationReport:
+    """Valida identidade estrutural (Layers 1-2, sempre) e — se `behavioral_n>0` —
+    funcional (Layer 3, rodando `behavioral_n` sims/matchup sob `seed`)."""
     chars  = individual.characters
     checks: List[ArchetypeCheck] = []
 
     checks.extend(_check_structural_inter(chars))
     checks.extend(_check_structural_intra(chars))
+
+    if behavioral_n > 0:
+        seed_combat(seed)
+        random.seed(seed)
+        profile = behavioral_profile(individual, behavioral_n)
+        checks.extend(_check_behavioral(profile))
 
     passed = sum(1 for c in checks if c.passed)
     return ArchetypeValidationReport(checks=checks, passed=passed, total=len(checks))
@@ -163,6 +217,7 @@ def run_validation(individual: Individual) -> ArchetypeValidationReport:
 _LAYER_LABELS = {
     "structural_inter": "LAYER 1 — Structural (inter-character)",
     "structural_intra": "LAYER 2 — Structural (intra-character, normalized)",
+    "behavioral":       "LAYER 3 — Behavioral (functional identity)",
 }
 _ARCH_NAMES = {a: a.name.replace("_", " ").title() for a in ArchetypeID}
 _LINE = "═" * 66
@@ -190,6 +245,11 @@ def print_report(report: ArchetypeValidationReport) -> None:
             rank_str = f" (actual rank {check.actual_rank})"
 
         print(f"{prefix} {symbol} {check.description}{rank_str}")
+
+    # Arquétipos sem asserção comportamental (ex.: Grappler) — fora do denominador.
+    if any(c.layer == "behavioral" for c in report.checks):
+        for arch_id, note in _BEHAVIORAL_NO_ASSERTION.items():
+            print(f"  {_ARCH_NAMES[arch_id]:<14} • {note}")
 
     print()
     failures  = report.failures()
@@ -220,6 +280,9 @@ if __name__ == "__main__":
                         help="Usa o melhor indivíduo salvo em results.json (default: canônico)")
     parser.add_argument("--nsga2", metavar="REP", nargs="?", const="knee_point",
                         help="Usa representante do NSGA-II (knee_point|best_dominance|best_drift|ideal_point)")
+    parser.add_argument("--n", type=int, default=200,
+                        help="Sims/matchup da Layer 3 comportamental (0 = só estrutural)")
+    parser.add_argument("--seed", type=int, default=42, help="Semente do combate da Layer 3")
     args = parser.parse_args()
 
     if args.nsga2:
@@ -232,5 +295,5 @@ if __name__ == "__main__":
         ind = Individual.from_canonical()
         print("Validando indivíduo canônico...\n")
 
-    report = run_validation(ind)
+    report = run_validation(ind, behavioral_n=args.n, seed=args.seed)
     print_report(report)

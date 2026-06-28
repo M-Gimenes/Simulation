@@ -49,6 +49,7 @@ NUMERIC_FIELDS: Tuple[str, ...] = (
     "ticks_out_of_range",
     "ticks_in_range",
     "knockback_taken",
+    "defend_forced",
 )
 
 
@@ -71,9 +72,16 @@ class FighterStats:
     ticks_out_of_range: float = 0.0
     ticks_in_range: float = 0.0
     knockback_taken: float = 0.0
+    defend_forced: float = 0.0   # DEFEND por encurralamento (RECUAR sem espaço)
     action_counts: Dict[int, float] = field(
         default_factory=lambda: {int(a): 0.0 for a in ACTION_KEYS}
     )
+
+    @property
+    def defend_chosen(self) -> float:
+        """DEFEND vindo de GUARDA (intenção de absorver), separado do forçado por
+        encurralamento. É a métrica de identidade defensiva real (Turtle)."""
+        return self.action_counts[int(Action.DEFEND)] - self.defend_forced
 
     @property
     def hp_lost(self) -> float:
@@ -158,6 +166,8 @@ def analyze_combat(char_a: Character, char_b: Character) -> MatchupResult:
         stun_applied = trace.stun_applied[:, i]
         stats[i].stun_applied = float((stun_applied > 0).sum())
         stats[i].stun_ticks_applied = float(stun_applied.sum())
+
+        stats[i].defend_forced = float(trace.forced_defend[:, i].sum())
 
         opp = 1 - i
         kb_taken = trace.knockback_dealt[:, opp]
@@ -255,6 +265,60 @@ def analyze_combat_multi(
         n_sims=n,
         decisiveness=decis_sum / n,
     )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Perfil comportamental por personagem (fonte única: fingerprint + validator)
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Métricas do perfil comportamental médio por personagem (sobre seus 4 matchups).
+# Frações em [0,1] (mix de ações / ticks); contagens são por luta / distância.
+BEHAVIORAL_KEYS: Tuple[str, ...] = (
+    "adv", "ret", "def_chosen", "def_forced",      # mix de ações (fração de ações)
+    "oor", "stunned",                              # fração de ticks
+    "atk_landed", "mean_dist", "stun_inflicted",   # por luta / distância média
+)
+
+
+def behavioral_profile(
+    ind: Individual, n: int = ANALYZE_SIMS
+) -> Dict[ArchetypeID, Dict[str, float]]:
+    """Perfil comportamental médio por personagem, agregado sobre seus 4 matchups.
+
+    Fonte ÚNICA consumida pelo `fingerprint` (retrato descritivo) e pela Layer 3
+    do `archetype_validator` (asserções de identidade) — evita reimplementar a
+    agregação em dois lugares. O DEFEND vem dividido em escolhido (GUARDA, via
+    `FighterStats.defend_chosen`) e forçado (encurralamento, `defend_forced`),
+    para que a identidade defensiva real não seja contaminada pela geometria.
+    """
+    chars = {c.archetype.id: c for c in ind.characters}
+    ids = ARCHETYPE_ORDER
+    agg = {aid: {k: 0.0 for k in BEHAVIORAL_KEYS} | {"_n": 0} for aid in ids}
+
+    for a in range(len(ids)):
+        for b in range(a + 1, len(ids)):
+            r = analyze_combat_multi(chars[ids[a]], chars[ids[b]], n=n)
+            ticks = max(r.avg_ticks, 1.0)
+            for idx, aid in ((0, ids[a]), (1, ids[b])):
+                s = r.stats[idx]
+                act = sum(s.action_counts.values()) or 1.0
+                m = agg[aid]
+                m["adv"]            += s.action_counts[int(Action.ADVANCE)] / act
+                m["ret"]            += s.action_counts[int(Action.RETREAT)] / act
+                m["def_chosen"]     += s.defend_chosen / act
+                m["def_forced"]     += s.defend_forced / act
+                m["oor"]            += s.ticks_out_of_range / ticks
+                m["stunned"]        += s.ticks_stunned / ticks
+                m["atk_landed"]     += s.hits_landed
+                m["mean_dist"]      += r.avg_distance
+                m["stun_inflicted"] += s.stun_ticks_applied
+                m["_n"]             += 1
+
+    for aid in ids:
+        cnt = agg[aid].pop("_n") or 1
+        for k in BEHAVIORAL_KEYS:
+            agg[aid][k] /= cnt
+    return agg
 
 
 # ─────────────────────────────────────────────────────────────────────────────

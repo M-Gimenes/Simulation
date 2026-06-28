@@ -1,9 +1,12 @@
 # 04 — Modelo de combate
 
-Simulação tick a tick 1v1, em `src/engine/combat.py`. Toda a lógica vive em duas
-funções `@njit` idênticas em regras (`_simulate_combat_jit` para o fitness,
-`_simulate_combat_traced_jit` para instrumentação). API pública:
-`simulate_combat`, `simulate_combat_traced`, `simulate_combat_detailed`.
+Simulação tick a tick 1v1, em `src/engine/combat.py`. O loop vive em duas funções
+`@njit` (`_simulate_combat_jit` para o fitness, `_simulate_combat_traced_jit` para
+instrumentação) que **compartilham a decisão de ação** via o helper `@njit`
+`_decide_action` — fonte única, chamada para A e B nas duas variantes, garantindo
+que ambas simulem exatamente o mesmo combate (mesmo consumo de RNG; coberto por um
+teste de paridade em `test_combat`). API pública: `simulate_combat`,
+`simulate_combat_traced`, `simulate_combat_detailed`.
 
 ## Campo
 
@@ -13,7 +16,10 @@ funções `@njit` idênticas em regras (`_simulate_combat_jit` para o fitness,
 
 Não há conceito de "encurralamento" (cornering): RETREAT simplesmente recua até a
 borda (0 ou `FIELD_SIZE`) e, quando não há mais espaço para recuar, o personagem
-cai para DEFEND (ver execução abaixo).
+cai para DEFEND (ver execução abaixo). Esse DEFEND **forçado** (RECUAR sem espaço)
+é distinguido do DEFEND **escolhido** (GUARDA) no `CombatTrace.forced_defend` — a
+geometria não deve contaminar a métrica de identidade defensiva (ver `08-tools.md`,
+fingerprint e Layer 3 do validador).
 
 ## Resolução sub-tick (`TICK_SCALE = 5`)
 

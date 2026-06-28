@@ -71,11 +71,18 @@ canônico, como `ratio`): `ratio ~1` = os 5 seguem distintos; `< 1` = homogeneiz
 
 ## `fingerprint`
 
-Retrato de **como cada personagem joga**, agregado sobre seus 4 matchups: mix de
-ações (ATK/ADV/RET/DEF), % do tempo fora de range (espaçamento) e % stunado.
-Mostra canônico vs evoluído + Δ (em pontos percentuais) por personagem. Mede
+Retrato de **como cada personagem joga**, agregado sobre seus 4 matchups: ataques
+conectados por luta (`atk_landed`), mix de ações (ADV/RET + **DEF dividido em
+guarda escolhido vs parede forçada**), % fora de range, % stunado, distância média
+e stun aplicado por luta. Mostra canônico vs evoluído + Δ por personagem. Mede
 identidade **comportamental** (o Zoner evoluído ainda kita?) — o terceiro ângulo,
-junto da estrutural (`archetype_validator`) e da de genes (`drift_table`).
+junto da estrutural (`archetype_validator`) e da de genes (`drift_table`). A
+agregação por personagem é o helper compartilhado `analyze_matchups.behavioral_profile`,
+também consumido pela Layer 3 do validador (fonte única). O DEFEND vem dividido para
+não contaminar a defesa real com o artefato de encurralamento (ver `04-combat-model.md`).
+O antigo "ATK" (fração de sub-ticks em estado ATTACK) foi substituído por
+`atk_landed` — ataque é evento instantâneo gated por cooldown, então a fração de
+sub-ticks era estruturalmente minúscula e enganosa.
 
 ```bash
 py -m src.tools.fingerprint              # canônico (baseline, Δ=0)
@@ -85,23 +92,33 @@ py -m src.tools.fingerprint --nsga2 knee_point
 
 ## `archetype_validator`
 
-17 asserções estruturais de identidade (sem rodar combate):
+Asserções de identidade em 3 camadas (rank ordinal entre os 5):
 
-- **Layer 1 — inter (12):** rankings entre os 5 personagens (Rushdown tem maior
-  speed e menor cooldown, Zoner tem maior range/knockback/w_retreat, Combo Master
-  tem maior stun, Grappler tem maior damage, Turtle tem maior hp e cooldown, menor
-  speed, maior w_defend).
-- **Layer 2 — intra (5):** comparações normalizadas dentro de um personagem
-  (`norm(range) > norm(speed)` no Zoner, etc.). Normalização = fração do máximo
-  `x/hi` (mesma convenção do `fitness`).
+- **Layer 1 — estrutural inter (12):** rankings de genes entre os 5 personagens
+  (Rushdown tem maior speed e menor cooldown, Zoner tem maior range/knockback/
+  w_retreat, Combo Master tem maior stun, Grappler tem maior damage, Turtle tem
+  maior hp e cooldown, menor speed, maior w_defend).
+- **Layer 2 — estrutural intra (5):** comparações normalizadas dentro de um
+  personagem (`norm(range) > norm(speed)` no Zoner, etc.). Normalização = fração do
+  máximo `x/hi` (mesma convenção do `fitness`).
+- **Layer 3 — comportamental (4):** identidade **funcional** (como o personagem
+  *joga*), sobre o `behavioral_profile` (roda combate, estocástico). Uma asserção
+  primária por arquétipo: Zoner = maior `mean_dist`; Rushdown = maior `atk_landed`;
+  Turtle = maior `def_chosen` (guarda escolhido, não encurralado); Combo Master =
+  maior `stun_inflicted`. **Grappler não recebe asserção** — o combate não modela
+  grab/throw, então sua identidade não tem expressão comportamental distinta
+  (fica fora do denominador, marcado no relatório). Achado honesto: 4 de 5
+  identidades se expressam funcionalmente.
 
-São verificações de **ranking ordinal**, não de magnitude. **Limitação:** não
-detectam homogeneização funcional — se todos convergirem para valores próximos
-mas o Zoner ainda tiver o maior range por uma fração, as asserções passam. O
-anti-homogeneização real é o `drift_penalty`.
+Layers 1-2 são **ranking ordinal** de genes; resolvem rápido, sem combate. Por que
+a Layer 3 importa: as estruturais não detectam quando os genes certos **não se
+traduzem em ação** (ex.: Zoner com `w_retreat` alto que, encurralado, vira DEFEND
+em vez de kitar). A Layer 3 fecha essa lacuna. É opt-in (`behavioral_n>0` em
+`run_validation`); o standalone e o `report` a rodam por default (`--n`, `--seed`).
 
 ```bash
-py -m src.tools.archetype_validator [--evolved | --nsga2 [rep]]
+py -m src.tools.archetype_validator [--evolved | --nsga2 [rep]] [--n 200] [--seed 42]
+py -m src.tools.archetype_validator --n 0    # só estrutural (Layers 1-2)
 ```
 
 ## `sensitivity_analysis`

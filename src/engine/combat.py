@@ -95,6 +95,7 @@ class CombatTrace:
     damage_dealt:    np.ndarray  # (T, 2) float — coluna i = dano de i no oponente
     stun_applied:    np.ndarray  # (T, 2) int   — sub-ticks de stun aplicados pelo atacante
     knockback_dealt: np.ndarray  # (T, 2) float — knockback aplicado pelo atacante
+    forced_defend:   np.ndarray  # (T, 2) int   — 1 = DEFEND por encurralamento (RECUAR sem espaço)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -108,6 +109,53 @@ class CombatTrace:
 #
 # Códigos de ação: -1=stunned, 0=ATTACK, 1=ADVANCE, 2=RETREAT, 3=DEFEND
 # Retorno: (winner, end_tick, ko, hp_a, hp_b, action_counts, active_ticks, stun_applied)
+
+
+@njit(cache=True)
+def _decide_action(
+    stun_rem, distance, reach, persist, commit,
+    wagg, wret, wdef, cd_rem, pos, opp_pos,
+    speed, tick_scale, field_size, persist_max,
+):
+    """Decide a ação de UM lutador num sub-tick (intenção→execução).
+
+    Fonte única consumida pelos dois JITs (fitness e traced) — garante que ambos
+    simulem exatamente o mesmo combate (mesmo consumo de RNG). É o único nó
+    estocástico do loop (`np.random.random` na amostragem de intenção).
+
+    Retorna `(action, persist, commit, forced_defend)`:
+      • action: -1 stunned / 0 ATTACK / 1 ADVANCE / 2 RETREAT / 3 DEFEND;
+      • persist, commit: estado de persistência da intenção, atualizado;
+      • forced_defend: 1 quando o DEFEND veio de RECUAR sem espaço de recuo
+        (encurralamento) — distinto do DEFEND escolhido (GUARDA), que retorna 0.
+    """
+    if stun_rem > 0:
+        return -1, persist, commit, 0
+    if distance > reach:
+        return 1, 0, commit, 0          # ADVANCE — neutral game; zera persistência
+    if persist == 0:
+        tot = wagg + wret + wdef
+        if tot <= 0.0:
+            commit = 2                  # GUARDA (fallback p/ pesos somando 0)
+        else:
+            r = np.random.random() * tot
+            if r < wagg:
+                commit = 0              # FRENTE
+            elif r < wagg + wret:
+                commit = 1              # RECUAR
+            else:
+                commit = 2              # GUARDA
+        persist = persist_max
+    persist -= 1
+    if commit == 0:                                     # FRENTE
+        return (0 if cd_rem == 0 else 1), persist, commit, 0   # ATTACK senão ADVANCE
+    if commit == 1:                                     # RECUAR
+        step = speed / tick_scale
+        can_back = (pos - step >= 0.0) if pos < opp_pos else (pos + step <= field_size)
+        if can_back:
+            return 2, persist, commit, 0
+        return 3, persist, commit, 1                    # DEFEND forçado (encurralado)
+    return 3, persist, commit, 0                        # GUARDA → DEFEND escolhido
 
 
 @njit(cache=True)
@@ -148,70 +196,22 @@ def _simulate_combat_jit(
 
         distance = abs(pos_b - pos_a)
 
-        # ── Escolha de ações ─────────────────────────────────────────────────
-        if stun_rem_a > 0:
-            action_a = -1
-        else:
-            in_range = distance <= a_range
-            if not in_range:
-                action_a = 1               # ADVANCE — neutral game (aproxima)
-                persist_a = 0
-            else:
-                if persist_a == 0:
-                    tot = a_wagg + a_wret + a_wdef
-                    if tot <= 0.0:
-                        commit_a = 2       # GUARDA (fallback)
-                    else:
-                        r = np.random.random() * tot
-                        if r < a_wagg:
-                            commit_a = 0   # FRENTE
-                        elif r < a_wagg + a_wret:
-                            commit_a = 1   # RECUAR
-                        else:
-                            commit_a = 2   # GUARDA
-                    persist_a = persist
-                persist_a -= 1
-                if commit_a == 0:                      # FRENTE
-                    action_a = 0 if cd_rem_a == 0 else 1   # ATTACK senão ADVANCE (pressão)
-                elif commit_a == 1:                    # RECUAR
-                    step = a_speed / tick_scale
-                    can_back = (pos_a - step >= 0.0) if pos_a < pos_b else (pos_a + step <= field_size)
-                    action_a = 2 if can_back else 3        # RETREAT senão DEFEND (encurralado)
-                else:                                  # GUARDA
-                    action_a = 3
+        # ── Escolha de ações (helper único — ver _decide_action) ─────────────
+        action_a, persist_a, commit_a, _ = _decide_action(
+            stun_rem_a, distance, a_range, persist_a, commit_a,
+            a_wagg, a_wret, a_wdef, cd_rem_a, pos_a, pos_b,
+            a_speed, tick_scale, field_size, persist,
+        )
+        if action_a >= 0:
             active_ticks[0] += 1
             action_counts[0, action_a] += 1
 
-        if stun_rem_b > 0:
-            action_b = -1
-        else:
-            in_range = distance <= b_range
-            if not in_range:
-                action_b = 1
-                persist_b = 0
-            else:
-                if persist_b == 0:
-                    tot = b_wagg + b_wret + b_wdef
-                    if tot <= 0.0:
-                        commit_b = 2
-                    else:
-                        r = np.random.random() * tot
-                        if r < b_wagg:
-                            commit_b = 0
-                        elif r < b_wagg + b_wret:
-                            commit_b = 1
-                        else:
-                            commit_b = 2
-                    persist_b = persist
-                persist_b -= 1
-                if commit_b == 0:
-                    action_b = 0 if cd_rem_b == 0 else 1
-                elif commit_b == 1:
-                    step = b_speed / tick_scale
-                    can_back = (pos_b - step >= 0.0) if pos_b < pos_a else (pos_b + step <= field_size)
-                    action_b = 2 if can_back else 3
-                else:
-                    action_b = 3
+        action_b, persist_b, commit_b, _ = _decide_action(
+            stun_rem_b, distance, b_range, persist_b, commit_b,
+            b_wagg, b_wret, b_wdef, cd_rem_b, pos_b, pos_a,
+            b_speed, tick_scale, field_size, persist,
+        )
+        if action_b >= 0:
             active_ticks[1] += 1
             action_counts[1, action_b] += 1
 
@@ -357,6 +357,7 @@ def _simulate_combat_traced_jit(
     dmg_dealt    = np.zeros((max_ticks, 2), dtype=np.float64)
     stun_dealt   = np.zeros((max_ticks, 2), dtype=np.int64)
     kb_dealt     = np.zeros((max_ticks, 2), dtype=np.float64)
+    forced_def   = np.zeros((max_ticks, 2), dtype=np.int64)  # 1 = DEFEND por encurralamento
 
     end_tick = max_ticks
 
@@ -367,68 +368,17 @@ def _simulate_combat_traced_jit(
 
         distance = abs(pos_b - pos_a)
 
-        # ── Escolha de ações ─────────────────────────────────────────────────
-        if stun_rem_a > 0:
-            action_a = -1
-        else:
-            in_range = distance <= a_range
-            if not in_range:
-                action_a = 1               # ADVANCE — neutral game (aproxima)
-                persist_a = 0
-            else:
-                if persist_a == 0:
-                    tot = a_wagg + a_wret + a_wdef
-                    if tot <= 0.0:
-                        commit_a = 2       # GUARDA (fallback)
-                    else:
-                        r = np.random.random() * tot
-                        if r < a_wagg:
-                            commit_a = 0   # FRENTE
-                        elif r < a_wagg + a_wret:
-                            commit_a = 1   # RECUAR
-                        else:
-                            commit_a = 2   # GUARDA
-                    persist_a = persist
-                persist_a -= 1
-                if commit_a == 0:                      # FRENTE
-                    action_a = 0 if cd_rem_a == 0 else 1   # ATTACK senão ADVANCE (pressão)
-                elif commit_a == 1:                    # RECUAR
-                    step = a_speed / tick_scale
-                    can_back = (pos_a - step >= 0.0) if pos_a < pos_b else (pos_a + step <= field_size)
-                    action_a = 2 if can_back else 3        # RETREAT senão DEFEND (encurralado)
-                else:                                  # GUARDA
-                    action_a = 3
-
-        if stun_rem_b > 0:
-            action_b = -1
-        else:
-            in_range = distance <= b_range
-            if not in_range:
-                action_b = 1
-                persist_b = 0
-            else:
-                if persist_b == 0:
-                    tot = b_wagg + b_wret + b_wdef
-                    if tot <= 0.0:
-                        commit_b = 2
-                    else:
-                        r = np.random.random() * tot
-                        if r < b_wagg:
-                            commit_b = 0
-                        elif r < b_wagg + b_wret:
-                            commit_b = 1
-                        else:
-                            commit_b = 2
-                    persist_b = persist
-                persist_b -= 1
-                if commit_b == 0:
-                    action_b = 0 if cd_rem_b == 0 else 1
-                elif commit_b == 1:
-                    step = b_speed / tick_scale
-                    can_back = (pos_b - step >= 0.0) if pos_b < pos_a else (pos_b + step <= field_size)
-                    action_b = 2 if can_back else 3
-                else:
-                    action_b = 3
+        # ── Escolha de ações (helper único — ver _decide_action) ─────────────
+        action_a, persist_a, commit_a, forced_a = _decide_action(
+            stun_rem_a, distance, a_range, persist_a, commit_a,
+            a_wagg, a_wret, a_wdef, cd_rem_a, pos_a, pos_b,
+            a_speed, tick_scale, field_size, persist,
+        )
+        action_b, persist_b, commit_b, forced_b = _decide_action(
+            stun_rem_b, distance, b_range, persist_b, commit_b,
+            b_wagg, b_wret, b_wdef, cd_rem_b, pos_b, pos_a,
+            b_speed, tick_scale, field_size, persist,
+        )
 
         # ── Movimento ────────────────────────────────────────────────────────
         if action_a == 1 or action_a == 2:
@@ -528,6 +478,7 @@ def _simulate_combat_traced_jit(
         action_arr[tick, 0] = action_a;  action_arr[tick, 1] = action_b
         cd_arr[tick, 0]   = cd_rem_a;    cd_arr[tick, 1]   = cd_rem_b
         stun_arr[tick, 0] = stun_rem_a;  stun_arr[tick, 1] = stun_rem_b
+        forced_def[tick, 0] = forced_a;  forced_def[tick, 1] = forced_b
 
     alive_a = hp_a > 0.0
     alive_b = hp_b > 0.0
@@ -551,6 +502,7 @@ def _simulate_combat_traced_jit(
         dmg_dealt[:end_tick],
         stun_dealt[:end_tick],
         kb_dealt[:end_tick],
+        forced_def[:end_tick],
     )
 
 
@@ -595,7 +547,7 @@ def simulate_combat(char_a: Character, char_b: Character) -> CombatResult:
 def simulate_combat_traced(char_a: Character, char_b: Character) -> CombatTrace:
     """Roda o combate registrando estado tick-a-tick. Mais lento que
     `simulate_combat` por causa das alocações de array — usar apenas em tools."""
-    winner, end_tick, ko, pos, hp, action, cd, stun, dmg, stun_d, kb = (
+    winner, end_tick, ko, pos, hp, action, cd, stun, dmg, stun_d, kb, forced = (
         _simulate_combat_traced_jit(
             np.asarray(char_a.attributes, dtype=np.float64),
             np.asarray(char_a.weights,    dtype=np.float64),
@@ -619,6 +571,7 @@ def simulate_combat_traced(char_a: Character, char_b: Character) -> CombatTrace:
         damage_dealt=dmg,
         stun_applied=stun_d,
         knockback_dealt=kb,
+        forced_defend=forced,
     )
 
 

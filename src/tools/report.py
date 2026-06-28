@@ -93,9 +93,9 @@ def main() -> None:
     # 3. Identidade — comportamento
     print_fingerprint_report(ind, label, is_canon, args.n, args.seed)
 
-    # 4. Identidade — estrutura
+    # 4. Identidade — estrutura + comportamento (Layers 1-3)
     print()
-    print_report(run_validation(ind))
+    print_report(run_validation(ind, behavioral_n=args.n, seed=args.seed))
 
 
 if __name__ == "__main__":

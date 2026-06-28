@@ -129,4 +129,39 @@ assert int(tr.stun.max()) < max_cd_subticks, "stun não pode atingir o cooldown 
 print("  ✓ sem stun-lock")
 
 
+# ── 8. Paridade: JIT de fitness vs JIT traced ────────────────────────────────
+
+separator("Paridade: _simulate_combat_jit vs _simulate_combat_traced_jit")
+# As duas variantes DEVEM simular exatamente o mesmo combate (mesmo consumo de RNG):
+# a credibilidade do fingerprint/validador comportamental depende disso. Este teste
+# blinda contra divergência entre as cópias da lógica de decisão.
+parity_pairs = [
+    (ArchetypeID.RUSHDOWN, ArchetypeID.ZONER),
+    (ArchetypeID.GRAPPLER, ArchetypeID.TURTLE),
+    (ArchetypeID.COMBO_MASTER, ArchetypeID.ZONER),
+]
+canon = Individual.from_canonical()
+def _canon_char(aid: ArchetypeID) -> Character:
+    return next(c for c in canon.characters if c.archetype_id == aid)
+
+mismatches = 0
+for aid_a, aid_b in parity_pairs:
+    ca, cb = _canon_char(aid_a), _canon_char(aid_b)
+    for s in range(20):
+        seed_combat(s); r = simulate_combat(ca, cb)
+        seed_combat(s); t = simulate_combat_traced(ca, cb)
+        hp_t = (float(t.hp[-1, 0]), float(t.hp[-1, 1])) if t.end_tick > 0 else r.hp_remaining
+        ok = (
+            r.winner == t.winner
+            and r.ticks == t.end_tick
+            and r.ko == t.ko
+            and abs(r.hp_remaining[0] - hp_t[0]) < 1e-9
+            and abs(r.hp_remaining[1] - hp_t[1]) < 1e-9
+        )
+        if not ok:
+            mismatches += 1
+assert mismatches == 0, f"{mismatches} divergências entre fitness-JIT e traced-JIT"
+print("  ✓ as duas variantes do JIT produzem desfecho idêntico")
+
+
 separator("Todos os testes de combate passaram ✓")

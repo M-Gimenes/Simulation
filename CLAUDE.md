@@ -90,7 +90,7 @@ py -m src.tools.analyze_matchups                 # all matchups, canonical (defa
 py -m src.tools.analyze_matchups rushdown zoner  # specific matchup
 py -m src.tools.drift_table --evolved            # drift por gene + diferenciação
 py -m src.tools.fingerprint --evolved            # assinatura comportamental
-py -m src.tools.archetype_validator              # structural identity checks
+py -m src.tools.archetype_validator              # identity checks: structural (L1-2) + behavioral (L3)
 py -m src.tools.sensitivity_analysis             # ±σ Δ-WR per gene
 py -m src.tools.multi_run --algorithm nsga2      # N execuções + estatística agregada (metodologia 1.1)
 py -m src.tools.external_validation --nsga2 best_dominance  # robustez do equilíbrio fora do laço (metodologia 3.2)
@@ -151,7 +151,7 @@ Each individual = 5 characters (one per archetype) = 50 genes total (7 attrs + 3
 
 ## Key Design Decisions
 
-**Intention → execution action selection** (definido inline em `_simulate_combat_jit` / `_simulate_combat_traced_jit`). A stunned character loses its action (`stun_rem > 0` → action = −1). Otherwise, two phases:
+**Intention → execution action selection** (no helper `@njit` único `_decide_action`, chamado para A e B pelas duas variantes do JIT — fonte única, garante combate idêntico entre fitness e traced; coberto por teste de paridade em `test_combat`). A stunned character loses its action (`stun_rem > 0` → action = −1). Otherwise, two phases:
 
 - **Phase 1 — Intention (only when in range).** If out of own range (`distance > range`), the intention is bypassed: unconditional **ADVANCE** (neutral game), and the persistence counter is zeroed. If in range and there is no active intention (`persist == 0`), **sample** one of `{FRENTE, RECUAR, GUARDA}` via `np.random.random()` weighted by `(w_aggressiveness, w_retreat, w_defend)`, and hold it for `ACTION_PERSISTENCE_SUBTICKS` sub-ticks. If the weights sum to 0, the intention is GUARDA (fallback).
 - **Phase 2 — Execution.** FRENTE → **ATTACK** if `cd_rem == 0` else **ADVANCE** (pressure without wasting cooldown); RECUAR → **RETREAT** if there is room to back off else **DEFEND** (no room left); GUARDA → **DEFEND**.
@@ -167,7 +167,7 @@ The intention sampling is the **only** stochastic node in the loop (there is no 
 - Cooldown on hit: `round(attack_cooldown * TICK_SCALE)`
 - Stun on hit: `round(stun * round(attack_cooldown * TICK_SCALE))` — `stun ∈ [0, 0.6]` is a fraction of the attacker's own cooldown in sub-ticks; the bound `< 1.0` guarantees applied stun < cooldown (no explicit cap constant).
 
-Toda a lógica de combate vive **exclusivamente** dentro do JIT (`_simulate_combat_jit` para o fitness, `_simulate_combat_traced_jit` para tools). Não há reimplementação Python do loop — tools que precisam instrumentar consomem `CombatTrace` em vez de redobrar a lógica.
+Toda a lógica de combate vive **exclusivamente** dentro do JIT (`_simulate_combat_jit` para o fitness, `_simulate_combat_traced_jit` para tools), com a **decisão de ação compartilhada** no helper `_decide_action` (chamado por A e B nas duas variantes — sem cópias divergentes). Não há reimplementação Python do loop — tools que precisam instrumentar consomem `CombatTrace` em vez de redobrar a lógica. O `CombatTrace` expõe `forced_defend` (1 = DEFEND por encurralamento, distinto do GUARDA escolhido) para a separação de identidade defensiva.
 
 **Two fitness terms** = the thesis's two axes: identity (`drift_penalty`) and balance (`dominance_penalty`). Scalar GA = weighted sum; NSGA-II = same two as unweighted Pareto objectives — the scalar GA is one point of the trade-off NSGA-II maps. (Homogenization — "are the 5 still distinct?" — is a post-hoc metric, not a fitness term, by the same non-circularity logic as the cycle.)
 - `drift_penalty` (via `LAMBDA_DRIFT=1.0`, equal to dominance) penalizes deviation from canonical values — the central trade-off of the thesis, and the real anti-homogenization mechanism. (Was 6.0, which pinned the GA to canonical and prevented balancing — see `docs/reference/10-known-issues.md` V1.)

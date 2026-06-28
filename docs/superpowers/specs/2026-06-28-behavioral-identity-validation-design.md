@@ -1,7 +1,7 @@
 # Validação de identidade comportamental (Layer 3) + limpeza de métrica
 
 **Data:** 2026-06-28
-**Status:** aprovado (brainstorming) — pronto para plano de implementação
+**Status:** implementado (2026-06-28). Validado 21/21 no canônico; parity test verde.
 
 ## 1. Contexto e problema
 
