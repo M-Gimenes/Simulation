@@ -4,6 +4,58 @@ Relatório da auditoria de **2026-06-23** (revisão completa do código após pe
 afastado). Severidade decrescente. Itens marcados ✅ já foram corrigidos nesta
 rodada; os demais ficam registrados para decisão.
 
+## 🔄 2026-06-27 — Reformulação C2 + simplificação do combate (no código; pendências abaixo)
+
+Duas mudanças grandes já **aplicadas ao código** (motor + testes passam):
+
+**(1) Equilíbrio C2 — global em vez de por-matchup.** O termo primário do
+`dominance_penalty` deixou de ser a WR **por-matchup** (ótimo = todo par a 50% =
+equilíbrio plano, incompatível com o ciclo por construção) e passou a ser a WR
+**global por personagem** (`|WR_global − 0.5|`, RMS sobre os 5), mais um **teto de
+hard-counter** (`MATCHUP_WR_CAP`) e a decisividade (inalterada). Equilíbrio agora =
+"ninguém domina o roster", não "cada par a 50%" — o ciclo passa a ser
+**expressável**, e sua emergência vira o achado. Detalhe em
+[05-genetic-algorithm.md](05-genetic-algorithm.md); enquadramento em
+[tcc/02-ciclo-canonico.md](../tcc/02-ciclo-canonico.md). Convergência do AG: WR
+global por boneco dentro de `GLOBAL_CONVERGENCE_THRESHOLD` + nenhum counter duro.
+
+**(2) Simplificação do combate.** O loop JIT virou **intenção → execução** (sem
+hesitação; única fonte estocástica = o sorteio de intenção). Removidos: `defense`
+(dano agora é flat), `recovery` (stun bruto aplicado direto), `HESITATION_RATE`,
+`WALL_CORNER_THRESHOLD` (cornering), `STUN_CAP_MULTIPLIER`, `INTEGER_ATTRIBUTES`.
+`stun` virou **fração** do cooldown do atacante (∈ [0, 0.6]). Genes: **10** por
+personagem (7 atributos + 3 pesos), 50 por indivíduo. Detalhe em
+[04-combat-model.md](04-combat-model.md).
+
+### ✅ Realinhamento do reporting ao headline C2 — FEITO (2026-06-28)
+
+Os dois predicados de equilíbrio C2 foram extraídos para **fonte única** em
+`fitness.py` — `character_balanced(wr)` (WR global em [0.40, 0.60]) e
+`is_hard_counter(wr)` (par fora de [0.30, 0.70]) — e consumidos por `ga.py` e pelas
+tools (sem banda hardcoded espalhada):
+
+- `analyze_matchups`: headline = WR **global** por personagem (`character_balanced`);
+  veredito por-par = counter duro (`is_hard_counter`), leitura secundária.
+- `multi_run`: headline = fração de sementes com cada boneco equilibrado +
+  hard-counters por execução + fração que equilibra o **roster** (5 bonecos em banda
+  e 0 counters). WR por-matchup vira leitura secundária.
+- `external_validation`: "robusto" = WR global por boneco em banda em todas as
+  condições **e** nenhum par vira counter duro.
+
+Também corrigidos: docstring do `archetype_validator` (era "20 asserções"; real
+**17** = 12 inter + 5 intra) e o flavor text de `archetypes.py` (Rushdown/Grappler/
+Turtle não citam mais defense/recovery).
+
+### ⚠️ Todas as rodadas anteriores estão invalidadas
+
+O motor de combate e o objetivo mudaram. Todos os `results/` existentes foram
+gerados com o modelo antigo e **não devem ser citados**. Re-rodar (`report`,
+`multi_run`, `external_validation`, fronteira/HV) **após calibrar**:
+- valores canônicos (semântica de `w_agg` mudou; Turtle virou tanky-ativo);
+- bound superior do `stun` (fração) e os stuns canônicos;
+- `MATCHUP_WR_CAP` (quão duras as arestas do ciclo podem ser);
+- `ACTION_PERSISTENCE_SUBTICKS`; `TICK_SCALE` (subir só se aparecer platô).
+
 ## 🔴 Metodologia — em aberto (peso de decisão)
 
 ### V1 — `LAMBDA_DRIFT=6.0` prende o AG escalar no canônico (achado da validação)
@@ -23,13 +75,11 @@ mas WR desequilibrada. Resolvido reintroduzindo a WR como termo primário do
 em 40-60% de WR. Opcional remanescente: sweep de `LAMBDA_DRIFT` para mapear o
 trade-off no escalar.
 
-### Calibração de `HESITATION_RATE` — pendente
-A hesitação (variância de player) entrou com ε provisório **0.10**. Falta a
-calibração formal (varredura): maior ε que mantém todo gene acima do piso binomial
-(via `sensitivity_analysis`, agora confiável) **e** tira o WR do bimodal. A
-[revisão do combate](11-combat-review.md) sugere que a hesitação é menos crítica
-do que se pensava — a alavanca real é o objetivo por-luta. **Decisão a revisitar:**
-medir o efeito marginal da hesitação após o objetivo e talvez reduzir/zerar ε.
+### Calibração de `HESITATION_RATE` — OBSOLETA (hesitação removida em 2026-06-27)
+A hesitação foi **removida** do modelo de combate (ver seção 2026-06-27 acima). A
+única fonte estocástica é o sorteio de intenção (ponderado pelos pesos), mantido
+por `ACTION_PERSISTENCE_SUBTICKS`. Não há mais ε a calibrar; o item de calibração
+que sobra dessa frente é o `ACTION_PERSISTENCE_SUBTICKS`.
 
 ## ✅ Corrigido em 2026-06-24
 
@@ -104,8 +154,8 @@ Os itens de **Tier 1** do backlog metodológico (ver
 saíram do backlog e são parte do sistema:
 
 - **1.1 — N execuções + estatística agregada** (`src/tools/multi_run.py`): AG + NSGA-II
-  sobre N seeds, agrega dominance/drift média±σ, success rate por matchup e fração que
-  equilibra os 10. Config `MULTI_RUN_*`.
+  sobre N seeds, agrega dominance/drift média±σ, WR global por boneco e fração que
+  equilibra o roster (headline C2). Config `MULTI_RUN_*`.
 - **1.2 — Hipervolume + spacing** (`src/engine/pareto_metrics.py`): qualidade da
   fronteira; impresso no run, anotado no plot, agregado no `multi_run`. Config
   `HYPERVOLUME_REFERENCE`.
@@ -129,7 +179,9 @@ cobrem o eixo *equilíbrio*):
 3. ✅ **Validador estrutural** (`src/tools/archetype_validator.py`): invariantes de
    ranking. Identidade *estrutural*.
 
-Calibração da hesitação (`HESITATION_RATE`) segue pendente (acima).
+(A calibração da hesitação saiu do backlog — a hesitação foi **removida** em
+2026-06-27; ver a seção do topo. As pendências atuais são calibração dos
+provisórios C2/combate e realinhamento das tools de reporting.)
 
 ## Notas de manutenção
 

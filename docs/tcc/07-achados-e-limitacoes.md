@@ -9,19 +9,23 @@
   on-concept — Rushdown rusha, Turtle muralha, Zoner kita; DEFEND/RETREAT e
   espaçamento são usados de forma significativa. **Achado positivo** — o modelo não é
   uma caixa-preta arbitrária; os pesos produzem identidade comportamental visível.
-- **O ciclo canônico não é trivialmente preservado em modo determinístico:** sem combo
-  chaining / variância, muitos matchups ficam binários (100/0) e o ciclo desestabiliza.
+- **O ciclo canônico não é trivialmente preservado em modo determinístico (baseline):**
+  sem combo chaining / variância, muitos matchups do canônico ficam binários (100/0).
   Interpretação (ver [02](02-ciclo-canonico.md)): a estrutura FGC depende parcialmente
-  de mecânicas estocásticas que foram removidas — é **achado, não falha**.
+  de mecânicas estocásticas que foram removidas — é **achado, não falha**. *Cuidado*:
+  distinguir esta quebra **do baseline** da quebra **pós-balanceamento** — esta última
+  era forçada pelo objetivo antigo (WR por-matchup) e deixou de ser sob a reformulação
+  **C2** (ver abaixo e [02](02-ciclo-canonico.md)).
 - **`LAMBDA_DRIFT` alto prende o AG no canônico** (V1): com 6.0, o melhor indivíduo
   ficava colado no canônico (drift ≈ 0) e desbalanceado, porque mover-se custava ~6× o
   ganho em equilíbrio. Daí a decisão de `LAMBDA_DRIFT = 1.0` e o foco no NSGA-II (ver
   [04](04-caminhos-e-decisoes.md)).
-- **Recovery evolutivamente neutro:** mecanicamente funciona (Turtle com recovery alta
-  resiste ao stun), mas drifta para o piso 0 — porque, em lutas que são blowouts,
-  resistir ao stun **não muda o desfecho**, então não há pressão seletiva. Hipótese a
-  testar: pode voltar a importar quando as lutas ficarem apertadas. Confirmar com
-  sensibilidade ([05](05-validacao-metodologica.md)).
+- **`recovery` era evolutivamente neutro → removido (2026-06-27):** o gene funcionava
+  mecanicamente (Turtle resistia a stun), mas drifava para o piso 0 — em lutas que são
+  blowouts, resistir ao stun **não muda o desfecho**, logo não havia pressão seletiva.
+  Foi um dos motivos para **removê-lo** do modelo (junto de `defense`) na simplificação
+  do combate. O achado vira ilustração ("um gene sem efeito no desfecho não é
+  otimizado"), não uma pendência.
 
 ## Limitações conhecidas
 
@@ -37,15 +41,18 @@
 
 Backlog técnico detalhado em [`../10-known-issues.md`](../reference/10-known-issues.md). Em
 termos de tese, falta:
-- **Rodar os experimentos reais (passo de maior retorno)**: a infraestrutura de
-  agregação está pronta (item 1.1) — falta **executar** o `multi_run` com 10+ seeds (AG
-  + NSGA-II) e **interpretar** os números. A demonstração inicial já **falsificou** a
-  hipótese "luta apertada ⟹ WR ~50%": o objetivo só-decisividade dava lutas apertadas
-  mas WR desequilibrada (`best_dominance` 0/10 matchups em 40-60% WR). Por isso a WR
-  voltou como termo primário do `dominance_penalty` (ver [04](04-caminhos-e-decisoes.md));
-  com isso `best_dominance` subiu para ~8/10. Falta consolidar a base final agregada.
-- **Calibrar a hesitação** (ε) à luz da base — agora mensurável pelo efeito no
-  hipervolume/success-rate agregado (item 1.2).
+- **Calibrar e re-rodar tudo (passo de maior retorno):** o motor de combate e o
+  objetivo mudaram (simplificação + reformulação **C2**), então **todas as rodadas
+  anteriores estão invalidadas** — os números históricos (ex.: "`best_dominance` 8/10
+  matchups") foram gerados sob o modelo antigo e **não devem ser citados**. Calibrar
+  os provisórios (`MATCHUP_WR_CAP`, bound/valores de `stun`-fração, canônicos
+  re-tunados, `ACTION_PERSISTENCE_SUBTICKS`) e então executar `multi_run` (10+ seeds),
+  `external_validation` e a fronteira/HV, e **interpretar**. A infraestrutura de
+  agregação (item 1.1) já está pronta.
+- (O reporting já foi **realinhado** ao headline C2 — `analyze_matchups`, `multi_run`
+  e `external_validation` reportam WR **global** por personagem + hard-counters; ver
+  [`../reference/10-known-issues.md`](../reference/10-known-issues.md). Falta só
+  **executar** com a calibração final.)
 - **Os instrumentos já estão prontos:** leitura por indivíduo (`report`, `drift_table`
   com diferenciação, `fingerprint`, validador), agregação estatística (`multi_run`,
   item 1.1), qualidade de fronteira (`pareto_metrics`, item 1.2) e robustez fora do

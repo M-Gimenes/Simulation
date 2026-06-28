@@ -22,6 +22,7 @@ from .config import (
     DOMINANCE_CAP_WEIGHT,
     DOMINANCE_DECIS_WEIGHT,
     DOMINANCE_GLOBAL_WEIGHT,
+    GLOBAL_CONVERGENCE_THRESHOLD,
     LAMBDA_DOMINANCE,
     LAMBDA_DRIFT,
     MATCHUP_FLOOR,
@@ -145,6 +146,25 @@ def _dominance_penalty(
         + DOMINANCE_CAP_WEIGHT   * cap_term
         + DOMINANCE_DECIS_WEIGHT * decis_term
     )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Predicados de equilíbrio (C2) — fonte única consumida por ga.py e pelas tools
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def character_balanced(global_wr: float) -> bool:
+    """Personagem globalmente equilibrado: WR global dentro de
+    GLOBAL_CONVERGENCE_THRESHOLD de 50% (i.e. em [0.40, 0.60]). É o headline de
+    equilíbrio sob C2 — nenhum boneco domina o roster."""
+    return abs(global_wr - 0.5) <= GLOBAL_CONVERGENCE_THRESHOLD
+
+
+def is_hard_counter(matchup_wr: float) -> bool:
+    """Par é counter duro quando |WR − 0.5| > MATCHUP_WR_CAP (fora de [0.30, 0.70]):
+    counter esmagador, não vantagem de ciclo. Dentro do teto, o par é uma aresta
+    de ciclo permitida."""
+    return abs(matchup_wr - 0.5) > MATCHUP_WR_CAP
 
 
 # ─────────────────────────────────────────────────────────────────────────────

@@ -35,14 +35,15 @@ rodadas atingiram o critério), *MBF* (mean best fitness) e, ao comparar duas
 configurações, um **teste estatístico** não-paramétrico (Mann–Whitney / Wilcoxon).
 
 **No nosso sistema:** rodar o NSGA-II (e o AG escalar) com seeds fixas `42..46`
-(≥ 5, idealmente 10–30), e agregar:
+(≥ 5, idealmente 10–30), e agregar (headline C2):
 - distribuição de `dominance_penalty` / `drift_penalty` do `best_dominance` por seed;
-- fração de seeds que equilibram cada matchup (ex.: Combo×Rush);
-- WR média ± desvio por personagem **através das seeds**.
+- fração de seeds em que cada boneco fica equilibrado (WR global em [40%, 60%]) e em
+  que aparece algum hard-counter (par fora de [30%, 70%]);
+- WR global média ± desvio por personagem **através das seeds**.
 
-**O que ganha:** mata a fragilidade de amostra única — o stun-lock Combo×Rush pode
-ser "azar de uma seed" ou estrutural, e só *N* rodadas respondem. Vira a frase de
-tese: *"em 30 execuções, X% equilibraram todos os 10 matchups; WR média 50±k%"*.
+**O que ganha:** mata a fragilidade de amostra única — um par travado pode ser "azar
+de uma seed" ou estrutural, e só *N* rodadas respondem. Vira a frase de tese:
+*"em 30 execuções, X% equilibraram o roster (5 bonecos em banda, 0 hard-counters); WR global média 50±k%"*.
 É **o exemplo que você citou** (rodar várias vezes e agregar), e é a base de tudo.
 
 **Custo/prioridade:** baixo (só tempo de CPU + um script de agregação). **🟢 Alta.**
@@ -56,12 +57,12 @@ ponto de referência — captura convergência *e* espalhamento num número só)
 **spread/spacing** (uniformidade da distribuição dos pontos na fronteira).
 
 **No nosso sistema:** calcular hipervolume da fronteira `(dominance, drift)` por
-seed (ponto de referência fixo, ex.: `(1.5, 1.0)` = piores valores possíveis) e
+seed (ponto de referência fixo, ex.: `(2.0, 1.0)` = piores valores possíveis) e
 reportar média ± desvio. Adiciona uma curva/coluna aos plots NSGA-II que já existem
 (`nsga2_plots`).
 
 **O que ganha:** comparação objetiva entre seeds e entre configurações (ex.: efeito
-de `HESITATION_RATE` ou de `SIMS_PER_MATCHUP` na qualidade da fronteira), sem
+de `MATCHUP_WR_CAP` ou de `SIMS_PER_MATCHUP` na qualidade da fronteira), sem
 depender de inspeção visual. Métrica madura e esperada por banca.
 
 **Custo/prioridade:** baixo (hipervolume 2D é trivial). **🟢 Alta.**
@@ -80,7 +81,7 @@ sobreviver a um oponente que *se adapta* — não a uma política congelada.
 
 **No nosso sistema:** hoje o comportamento é a *soft-policy* fixa (pesos `w_*`). Um
 risco real: o equilíbrio observado pode ser **artefato da política fixa**. Proposta —
-manter as builds (os 9 atributos) e **coevoluir uma "estratégia adversária"** (os 3
+manter as builds (os 7 atributos) e **coevoluir uma "estratégia adversária"** (os 3
 pesos, ou uma política mais rica) que tenta *quebrar* o equilíbrio. Se um exploit
 existe (como o stun-lock Combo×Rush), a coevolução o encontra.
 
@@ -228,12 +229,13 @@ construir mais ferramentas.** Decisão tomada:
 ### ✅ Implementado — entra como Metodologia + Resultados
 - **1.1 — N execuções + estatística agregada** (`src/tools/multi_run.py`): roda AG
   escalar e NSGA-II sobre N sementes (parametrizado em `config.py`, `MULTI_RUN_*`);
-  agrega dominance/drift média±σ, success rate por matchup e a fração de sementes que
-  equilibram os 10. Reavalia cada melhor indivíduo sob uma seed de validação comum
-  (Common Random Numbers). → Metodologia (protocolo experimental) + Resultados (a
-  frase-tese *"em N execuções, X% equilibraram todos os 10 matchups"*).
+  agrega dominance/drift média±σ, WR global por boneco + fração de sementes que o
+  equilibram, hard-counters por execução, e a fração de sementes que equilibram o
+  roster. Reavalia cada melhor indivíduo sob uma seed de validação comum (Common
+  Random Numbers). → Metodologia (protocolo experimental) + Resultados (a frase-tese
+  *"em N execuções, X% equilibraram o roster"*).
 - **1.2 — Hipervolume + spacing** (`src/engine/pareto_metrics.py`): qualidade da
-  fronteira `(dominance, drift)` num número (ref `HYPERVOLUME_REFERENCE=(1.5,1.0)`).
+  fronteira `(dominance, drift)` num número (ref `HYPERVOLUME_REFERENCE=(2.0,1.0)`).
   Impresso no run, anotado no plot, agregado por seed no `multi_run`. → Metodologia +
   Resultados (qualidade/comparação de fronteiras sem inspeção visual).
 - **3.2 — Validação externa ao fitness** (`src/tools/external_validation.py`): fixa

@@ -20,28 +20,42 @@ Cada item: **problema → mudança → resultado.**
   Resultado: cada peso ganhou efeito contínuo e mensurável.
 - **Princípio destilado:** estocasticidade só onde modela **incerteza estratégica**
   (a escolha do jogador), não ruído de execução.
-- **Hesitação reintroduzida (depois).** Problema: querer um "fator de player" sem
-  recair no ruído uniforme. Mudança: hesitação **ponderada pelos mesmos pesos**, com ε
-  pequeno. Resultado: variância de player que respeita a identidade. *Nuance da
-  revisão:* o combate já tinha bastante ruído (a soft-policy dispara muito); o
-  determinismo estava no **desfecho**, não na falta de ruído — então a hesitação é
-  menos crítica do que se pensava (ver [07](07-achados-e-limitacoes.md)).
+- **Hesitação reintroduzida e depois removida.** Foi reintroduzida (variância de
+  player ponderada pelos pesos, ε pequeno) e mais tarde (2026-06-27) **removida**:
+  a revisão mostrou que o combate já tinha ruído de sobra (a soft-policy dispara
+  muito) e que o determinismo estava no **desfecho**, não na falta de ruído. Manter
+  uma 2ª fonte estocástica só adicionava um hiperparâmetro a calibrar sem retorno
+  claro. **Estado atual:** a única fonte de estocasticidade é o **sorteio de
+  intenção** (mantido por `ACTION_PERSISTENCE_SUBTICKS`).
+- **Modelo de combate simplificado para intenção → execução (2026-06-27).**
+  Problema: o modelo tinha 4 prioridades hierárquicas + hesitação, e genes
+  (`defense`, `recovery`) cujo efeito era difícil de calibrar. Mudança: cada tick
+  vira **(1) sorteio de uma intenção** (`FRENTE/RECUAR/GUARDA`, ponderada pelos
+  pesos, quando em range) e **(2) execução** dela; `defense` e `recovery` removidos;
+  `stun` virou **fração** do cooldown do atacante. Resultado: menos parâmetros,
+  invariantes garantidas por bound (stun < cooldown) e identidade ainda expressa
+  pelos pesos. Estado atual em [`../reference/04-combat-model.md`](../reference/04-combat-model.md).
 
 ## Calibração das mecânicas (fechar exploits do AG)
 
 - **Bounds apertados.** Problema: o AG explorava o espaço para vencer de formas
-  degeneradas. Mudança: HP 500→400 (eliminou "tanque acima do Turtle"), defense
-  0.5→0.30 (defesa absurda), knockback 5→3 (zoning trivial por expulsão), recovery
-  float→inteiro `[0,10]` (stun-immunity). Resultado: cada aperto fechou um modo de
-  exploit específico.
-- **Stun cap < 1.0** (`STUN_CAP_MULTIPLIER = 0.6`). Problema: stun ≈ cooldown gerava
-  perma-lockdown (vencer por travar o oponente, não por dano). Mudança: stun
-  estritamente menor que o cooldown do atacante. Resultado: sempre há uma janela livre
-  entre hits — quebra o lock degenerado.
-- **Recovery: multiplicativo → inteiro subtrativo.** Problema: a forma `stun × (1 −
-  recovery)` criava platôs de arredondamento — mutações pequenas eram invisíveis ao
-  AG. Mudança: inteiro que subtrai sub-ticks diretamente. Resultado: efeito visível por
-  unidade de gene.
+  degeneradas. Mudança: HP reduzido (eliminou "tanque absurdo"), knockback 5→3
+  (zoning trivial por expulsão). Resultado: cada aperto fechou um modo de exploit.
+  *(Os bounds de `defense` e `recovery` deixaram de existir quando esses genes foram
+  removidos — abaixo.)*
+- **`defense` e `recovery` removidos (2026-06-27).** Problema: dois genes cujo efeito
+  era difícil de tornar visível à seleção sem platôs de arredondamento (recovery
+  drifou pro piso — era evolutivamente neutro), e que adicionavam dimensões ao
+  cromossomo sem ganho claro de identidade. Mudança: dano virou **flat** (só DEFEND
+  reduz) e o stun bruto é aplicado direto. Resultado: modelo mais enxuto (7
+  atributos), sem o gene neutro.
+- **Stun: cap explícito → fração do cooldown.** Problema: stun ≈ cooldown gerava
+  perma-lockdown (vencer por travar o oponente, não por dano). Solução inicial: um
+  `STUN_CAP_MULTIPLIER = 0.6` capando o stun. Mudança final (2026-06-27): representar
+  o `stun` **diretamente como fração** do cooldown do atacante (∈ [0, 0.6]) — a
+  invariante "stun < cooldown" passa a ser garantida pelo **bound do gene**, sem
+  constante de cap. Resultado: sempre há janela livre entre hits, com um parâmetro a
+  menos.
 - **`TICK_SCALE`.** Problema: timers discretos (cooldown ∈ {1..5}) criavam platôs no
   landscape de fitness. Mudança: resolução sub-tick. Resultado: landscape mais suave.
 
@@ -79,8 +93,22 @@ Cada item: **problema → mudança → resultado.**
   margem fina. A hipótese "luta apertada ⟹ WR ~50%" foi **falsificada**. Mudança: a WR
   voltou como termo **primário** do `dominance_penalty` (`|WR−0.5|/0.5` contínuo), com a
   decisividade rebaixada a regularizador **secundário** (guarda contra blowout-coinflip).
-  Resultado: `best_dominance` passou a ~8/10 matchups em 40-60% de WR. A objeção original
-  ao WR (bimodal) deixou de valer: soft-policy + hesitação o tornam graduado.
+  A objeção original ao WR (bimodal) deixou de valer: o sorteio de intenção o torna
+  graduado.
+- **Reformulação C2 — WR global em vez de por-matchup (2026-06-27, a correção mais
+  recente):** Problema: o primário "WR por-matchup" tem como ótimo *todo par a 50%* —
+  equilíbrio **plano**, que por construção é **incompatível com o ciclo de vantagens**
+  (um ciclo exige que pares tenham vencedor). O objetivo, portanto, **forçava** a
+  quebra do ciclo, e atribuí-la a "mecânicas omitidas" estaria errado para o indivíduo
+  balanceado. Observação que originou a correção: a WR sempre quis medir o **global do
+  boneco** (50% global é compatível com vencer 2 e perder 2). Mudança: o primário
+  virou a **WR global por personagem** (`|WR_global − 0.5|`, RMS sobre os 5), mais um
+  **teto de hard-counter** (`MATCHUP_WR_CAP`, mantém arestas como vantagens dentro de
+  `[0.30, 0.70]`) e a decisividade inalterada. Resultado: o ciclo passa a ser
+  **expressável**; "ele emerge das identidades preservadas?" vira o achado real, e C2
+  é robusto ao próprio fracasso (se o plano dominar mesmo com espaço, é achado honesto,
+  não artefato). Interpretação em [03](03-formulacao-do-fitness.md) e
+  [02](02-ciclo-canonico.md). **Pesos/cap provisórios — a calibrar.**
 
 ## Pesos do fitness
 

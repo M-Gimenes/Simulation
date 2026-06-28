@@ -3,12 +3,14 @@
 Um EA é estocástico, então uma seed é uma *amostra*, não um resultado (Eiben & Smith
 2015; Deb 2001). Este tool roda o algoritmo escolhido sobre N sementes consecutivas,
 reavalia o melhor indivíduo de cada execução sob um stream de RNG independente do
-treino (Common Random Numbers entre execuções) e agrega:
+treino (Common Random Numbers entre execuções) e agrega (headline C2):
 
   • média ± desvio de `dominance_penalty` / `drift_penalty`;
-  • WR média ± desvio por personagem através das sementes;
-  • success rate por matchup (fração de sementes que o equilibram dentro de ±10%);
-  • fração de sementes que equilibram TODOS os 10 matchups.
+  • WR global média ± desvio por personagem + fração de sementes em que cada boneco
+    fica equilibrado (WR global em [0.40, 0.60]);
+  • número de hard-counters (pares fora de [0.30, 0.70]) por execução;
+  • fração de sementes que equilibram o ROSTER (5 bonecos em banda E 0 hard-counters).
+  • (secundário) WR média por matchup.
 
 Uso:
     py -m src.tools.multi_run                       # ambos os algoritmos, defaults do config
@@ -27,13 +29,18 @@ from typing import Dict, List, Tuple
 from src.engine.archetypes import ARCHETYPE_ORDER, ARCHETYPES
 from src.engine.config import (
     HYPERVOLUME_REFERENCE,
-    MATCHUP_CONVERGENCE_THRESHOLD,
     MULTI_RUN_N_SEEDS,
     MULTI_RUN_SEED_START,
     MULTI_RUN_SIMS,
     MULTI_RUN_VALIDATION_SEED,
 )
-from src.engine.fitness import FitnessDetail, evaluate_detail_n, set_seed_base
+from src.engine.fitness import (
+    FitnessDetail,
+    character_balanced,
+    evaluate_detail_n,
+    is_hard_counter,
+    set_seed_base,
+)
 from src.engine.ga import run as run_ga
 from src.engine.nsga2 import run as run_nsga2
 from src.engine.pareto_metrics import hypervolume_2d, spacing
@@ -82,20 +89,30 @@ def _evaluate_independent(individual, sims: int) -> FitnessDetail:
 
 
 def _seed_record(detail: FitnessDetail, seed: int, front_objectives) -> dict:
+    characters: Dict[str, dict] = {}
+    n_chars_balanced = 0
+    for i, name in enumerate(CHAR_NAMES):
+        wr = detail.winrates[i]
+        balanced = character_balanced(wr)
+        n_chars_balanced += balanced
+        characters[name] = {"wr": wr, "balanced": balanced}
+
     matchups: Dict[str, dict] = {}
-    n_balanced = 0
+    n_hard_counters = 0
     for (i, j), wr in detail.matchup_winrates.items():
-        balanced = abs(wr - 0.5) <= MATCHUP_CONVERGENCE_THRESHOLD
-        n_balanced += balanced
-        matchups[matchup_label(i, j)] = {"wr": wr, "balanced": balanced}
+        hard_counter = is_hard_counter(wr)
+        n_hard_counters += hard_counter
+        matchups[matchup_label(i, j)] = {"wr": wr, "hard_counter": hard_counter}
+
     record = {
         "seed": seed,
         "dominance_penalty": detail.dominance_penalty,
         "drift_penalty": detail.drift_penalty,
-        "winrates": {CHAR_NAMES[i]: detail.winrates[i] for i in range(len(CHAR_NAMES))},
+        "characters": characters,
         "matchups": matchups,
-        "n_balanced": n_balanced,
-        "all_balanced": n_balanced == len(matchups),
+        "n_chars_balanced": n_chars_balanced,
+        "n_hard_counters": n_hard_counters,
+        "roster_balanced": n_chars_balanced == len(CHAR_NAMES) and n_hard_counters == 0,
     }
     if front_objectives is not None:
         record["front_size"] = len(front_objectives)
@@ -116,14 +133,23 @@ def _aggregate(records: List[dict]) -> dict:
     agg = {
         "dominance_penalty": mean_std([r["dominance_penalty"] for r in records]),
         "drift_penalty": mean_std([r["drift_penalty"] for r in records]),
-        "winrates": {
-            name: mean_std([r["winrates"][name] for r in records]) for name in CHAR_NAMES
+        "characters": {
+            name: {
+                **mean_std([r["characters"][name]["wr"] for r in records]),
+                "balanced_rate": sum(r["characters"][name]["balanced"] for r in records) / n,
+            }
+            for name in CHAR_NAMES
         },
-        "matchup_success_rate": {
-            label: sum(r["matchups"][label]["balanced"] for r in records) / n
+        "matchup_wr": {
+            label: mean_std([r["matchups"][label]["wr"] for r in records])
             for label in matchup_labels
         },
-        "all_balanced_rate": sum(r["all_balanced"] for r in records) / n,
+        "hard_counter_rate": {
+            label: sum(r["matchups"][label]["hard_counter"] for r in records) / n
+            for label in matchup_labels
+        },
+        "hard_counters_per_seed": mean_std([r["n_hard_counters"] for r in records]),
+        "roster_balanced_rate": sum(r["roster_balanced"] for r in records) / n,
     }
     if all("hypervolume" in r for r in records):
         agg["hypervolume"] = mean_std([r["hypervolume"] for r in records])
@@ -146,7 +172,8 @@ def aggregate_algorithm(algorithm: str, seeds: List[int], sims: int) -> dict:
         records.append(record)
         hv_part = f"  hv={record['hypervolume']:.4f}" if "hypervolume" in record else ""
         print(f"dom={record['dominance_penalty']:.4f}  drift={record['drift_penalty']:.4f}  "
-              f"matchups equilibrados={record['n_balanced']}/{len(record['matchups'])}{hv_part}")
+              f"bonecos eq={record['n_chars_balanced']}/{len(CHAR_NAMES)}  "
+              f"counters={record['n_hard_counters']}{hv_part}")
 
     return {
         "algorithm": algorithm,
@@ -180,19 +207,24 @@ def _print_summary(result: dict) -> None:
         print(f"    hipervolume:        {hv['mean']:.4f} ± {hv['std']:.4f}  (ref={HYPERVOLUME_REFERENCE}, maior=melhor)")
         print(f"    spacing:            {sp['mean']:.4f} ± {sp['std']:.4f}  (menor=mais uniforme)")
 
-    print(f"\n    WR média por personagem (alvo 50%):")
+    print(f"\n    WR global por personagem (alvo 50%; eq = WR global em [40%, 60%]):")
     for name in CHAR_NAMES:
-        wr = agg["winrates"][name]
-        print(f"      {name:<15s} {wr['mean']:.1%} ± {wr['std']:.1%}")
+        c = agg["characters"][name]
+        print(f"      {name:<15s} {c['mean']:.1%} ± {c['std']:.1%}   eq em {c['balanced_rate']:.0%} das sementes")
 
-    print(f"\n    Success rate por matchup (fração equilibrada dentro de ±{MATCHUP_CONVERGENCE_THRESHOLD:.0%}):")
-    for label, rate in agg["matchup_success_rate"].items():
-        bar = "█" * int(rate * 20) + "░" * (20 - int(rate * 20))
-        print(f"      {label:<28s} [{bar}] {rate:.0%}")
+    hc = agg["hard_counters_per_seed"]
+    print(f"\n    Hard-counters por execução (pares fora de [30%, 70%]): "
+          f"{hc['mean']:.1f} ± {hc['std']:.1f}")
 
-    rate = agg["all_balanced_rate"]
-    print(f"\n    Sementes que equilibram TODOS os 10 matchups: {rate:.0%}  "
-          f"({int(round(rate * n))}/{n})")
+    rate = agg["roster_balanced_rate"]
+    print(f"\n    Sementes que equilibram o ROSTER (5 bonecos em banda E 0 hard-counters): "
+          f"{rate:.0%}  ({int(round(rate * n))}/{n})")
+
+    print(f"\n    (secundário) Hard-counter rate por matchup (fração de sementes em que o par vira counter duro):")
+    for label, rate_hc in agg["hard_counter_rate"].items():
+        wr = agg["matchup_wr"][label]
+        flag = "  ⚠" if rate_hc > 0 else ""
+        print(f"      {label:<28s} WR {wr['mean']:.0%}±{wr['std']:.0%}   counter em {rate_hc:.0%}{flag}")
 
 
 def _save(result: dict, algorithm: str) -> None:

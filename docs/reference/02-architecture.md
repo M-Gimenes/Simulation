@@ -10,7 +10,7 @@
 │   │   ├── paths.py           # PROJECT_ROOT + paths derivados — single source
 │   │   ├── config.py          # todos os hiperparâmetros
 │   │   ├── archetypes.py      # definições canônicas (frozen) + ciclo de vantagens
-│   │   ├── character.py       # representação de genes (9 atributos + 3 pesos)
+│   │   ├── character.py       # representação de genes (7 atributos + 3 pesos)
 │   │   ├── individual.py      # 5 personagens por indivíduo
 │   │   ├── combat.py          # simulação tick a tick (JIT)
 │   │   ├── fitness.py         # avaliação round-robin
@@ -46,20 +46,20 @@ Três níveis, do imutável ao mutável (`archetypes.py` → `character.py` →
 ```
 ArchetypeDefinition (frozen)        Character (mutável)            Individual
   id, name, description               archetype: ArchetypeDefinition  characters: List[Character] (5)
-  initial_attributes (9, frozen)      attributes: List[float] (9)     fitness, objectives, rank, crowding
+  initial_attributes (7, frozen)      attributes: List[float] (7)     fitness, objectives, rank, crowding
   initial_weights    (3, frozen)      weights:    List[float] (3)
   beats: Tuple[ArchetypeID, ...]
 ```
 
 - **`ArchetypeDefinition`** — valores canônicos congelados; baseline de drift e
   semente. Ver [03-archetypes.md](03-archetypes.md).
-- **`Character`** — 12 genes mutáveis (9 atributos + 3 pesos). `clip()` aplica os
-  bounds e arredonda atributos inteiros (`INTEGER_ATTRIBUTES`).
+- **`Character`** — 10 genes mutáveis (7 atributos + 3 pesos), todos contínuos.
+  `clip()` aplica os bounds.
 - **`Individual`** — lista de 5 `Character` + caches de avaliação. Construtores:
   `from_canonical()` (semente), `random()`, `from_results()` (melhor do AG),
   `from_nsga2(representative=...)` (representante do Pareto).
 
-**Total: 60 genes por indivíduo** (5 personagens × 12 genes).
+**Total: 50 genes por indivíduo** (5 personagens × 10 genes).
 
 ## Orquestração das duas camadas
 

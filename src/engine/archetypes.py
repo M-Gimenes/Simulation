@@ -90,7 +90,7 @@ ARCHETYPES: Dict[ArchetypeID, ArchetypeDefinition] = {
         name="Rushdown",
         description=(
             "Fecha distância em segundos e sufoca com ataques rápidos. "
-            "Se ferra contra alta defesa e personagens que absorvem pressão."
+            "Se ferra contra quem absorve a pressão e pune no contra-ataque."
         ),
         initial_attributes=AttributeSet(
             hp=320.0, damage=11.0, attack_cooldown=1.0, range_=10.0,
@@ -123,7 +123,7 @@ ARCHETYPES: Dict[ArchetypeID, ArchetypeDefinition] = {
         name="Grappler",
         description=(
             "Tank que pune corpo a corpo com burst máximo. "
-            "Recuperação alta resiste aos combos adversários. "
+            "HP alto sustenta a troca até encostar. "
             "Sofre contra distância — range mínimo exige encosto total."
         ),
         initial_attributes=AttributeSet(
@@ -141,7 +141,7 @@ ARCHETYPES: Dict[ArchetypeID, ArchetypeDefinition] = {
         description=(
             "Muralha viva — absorve tudo e contra-ataca com paciência. "
             "Derrota agressivos pelo atrito de HP%. "
-            "Perde para quem quebra a defesa com stun."
+            "Perde para quem rompe o bloqueio com stun."
         ),
         initial_attributes=AttributeSet(
             hp=450.0, damage=10.0, attack_cooldown=5.0, range_=13.0,

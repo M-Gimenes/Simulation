@@ -1,5 +1,5 @@
 """
-Diagnóstico de identidade de arquétipo — 20 asserções estruturais (inter + intra).
+Diagnóstico de identidade de arquétipo — 17 asserções estruturais (12 inter + 5 intra).
 
 Uso:
     py archetype_validator.py

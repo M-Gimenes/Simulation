@@ -42,7 +42,8 @@ O sistema tem duas camadas independentes que o AG orquestra:
 
 1. **Simulação de combate** ([04-combat-model.md](04-combat-model.md)) —
    simulação tick a tick 1v1, determinística exceto por uma única fonte de
-   estocasticidade (soft policy). Vive inteiramente em funções JIT do Numba.
+   estocasticidade (o sorteio de intenção ponderado pelos pesos). Vive inteiramente
+   em funções JIT do Numba.
 2. **Algoritmo genético** ([05-genetic-algorithm.md](05-genetic-algorithm.md) e
    [06-nsga2.md](06-nsga2.md)) — orquestra round-robin entre os 5 personagens,
    produz fitness escalar (AG clássico) ou fronteira de Pareto (NSGA-II).

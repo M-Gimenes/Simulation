@@ -58,12 +58,18 @@ seed, a tabela agregada sobre 10+ seeds:
 | Saída | Evidencia |
 |---|---|
 | dominance/drift **média ± desvio** | onde o processo aterrissa *em média*, com dispersão |
-| **success rate por matchup** | quais matchups o sistema equilibra de forma consistente vs por acaso |
-| **fração de seeds que equilibram os 10** | a frase-tese — *"em N execuções, X% equilibraram todos os 10 matchups"* |
+| **WR global por personagem** (média ± desvio) | nenhum boneco domina o roster (o headline de equilíbrio sob C2) |
+| **contagem de hard-counters** | quantos pares saem de `[0.30, 0.70]` — counters esmagadores |
+| **fração de seeds que equilibram o roster** | a frase-tese — *"em N execuções, X% equilibraram o roster (5 bonecos em banda, 0 hard-counters)"* |
 | (NSGA-II) **hipervolume ± desvio** | qualidade média da fronteira através das seeds |
 
 É a peça que transforma "funciona numa seed" em afirmação estatística — e contextualiza
-achados de seed única (ex.: Combo×Rush) como estruturais ou amostrais.
+achados de seed única (ex.: um par travado) como estruturais ou amostrais.
+
+> **Nota (C2):** o headline de equilíbrio é a WR **global** por personagem + ausência
+> de hard-counter, **não** "cada par a 50%". O `multi_run` já reporta nesse formato
+> (fração de sementes que equilibram o roster); a banda por-matchup vira leitura
+> secundária.
 
 ## 6. Robustez do equilíbrio fora do laço (`external_validation`)
 

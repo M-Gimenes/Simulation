@@ -12,8 +12,8 @@ The system evolves a set of 5 characters (one per archetype) through a GA, evalu
 
 ## How it works
 
-- **Simulation layer** — tick-based 1v1 combat with soft-policy action selection (Attack / Advance / Retreat / Defend)
-- **GA layer** — each individual encodes 5 characters (60 genes total); fitness balances archetype drift and per-matchup dominance. NSGA-II variant optimizes the same two as Pareto objectives.
+- **Simulation layer** — tick-based 1v1 combat with intention→execution action selection (Attack / Advance / Retreat / Defend), the intention sampled from the character's behavioral weights
+- **GA layer** — each individual encodes 5 characters (50 genes total); fitness balances archetype drift against dominance (no single archetype dominates the roster, plus a hard-counter cap). NSGA-II variant optimizes the same two as Pareto objectives.
 
 ## Setup
 

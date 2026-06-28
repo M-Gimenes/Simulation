@@ -26,7 +26,7 @@ ferramenta está em [`../reference/08-tools.md`](../reference/08-tools.md).
 
 ## Análise de sensibilidade — o AG enxerga todos os genes?
 
-- **Pergunta:** algum dos 9 atributos é **neutro** — isto é, sem pressão seletiva, de
+- **Pergunta:** algum dos 7 atributos é **neutro** — isto é, sem pressão seletiva, de
   modo que ele só drifta por random walk e não é "otimizado"?
 - **Como medir** (`sensitivity_analysis`): para cada (arquétipo, atributo), perturbar o
   gene em ±σ e medir `|Δ WR|`. Atributos cujo Δ médio fica **abaixo do piso binomial**
@@ -34,9 +34,10 @@ ferramenta está em [`../reference/08-tools.md`](../reference/08-tools.md).
 - **Variância controlada:** usa pareamento de seeds (*common random numbers*) entre +σ
   e −σ — técnica que **só funciona após o fix de reprodutibilidade** (antes, ineficaz).
 - **Para que serve na tese:** sustenta a afirmação de que a seleção atua sobre todo o
-  cromossomo (ou identifica explicitamente quais genes são inertes — ex.: o `recovery`,
-  ver [07-achados-e-limitacoes.md](07-achados-e-limitacoes.md)). Não avalia um
-  indivíduo; valida o **método**.
+  cromossomo (ou identifica explicitamente quais genes são inertes — foi o caso do
+  antigo `recovery`, cuja neutralidade motivou sua remoção; ver
+  [07-achados-e-limitacoes.md](07-achados-e-limitacoes.md)). Não avalia um indivíduo;
+  valida o **método**.
 
 ## Múltiplas execuções independentes + estatística agregada (item 1.1)
 
@@ -44,10 +45,10 @@ ferramenta está em [`../reference/08-tools.md`](../reference/08-tools.md).
   é azar/sorte daquela amostra?
 - **Como** (`multi_run`): rodar AG e NSGA-II sobre N sementes (10+), reavaliar o melhor
   indivíduo de cada uma sob uma seed de validação comum, e reportar **média ± desvio**
-  de dominance/drift, **success rate por matchup** e a **fração de sementes que
-  equilibram todos os 10**. Fontes: Eiben & Smith 2015; Deb 2001.
+  de dominance/drift, **WR global por personagem** e a **fração de sementes que
+  equilibram o roster** (5 bonecos em banda, 0 hard-counters). Fontes: Eiben & Smith 2015; Deb 2001.
 - **Para que serve na tese:** é o **piso metodológico** — substitui "numa execução, deu
-  X" por *"em N execuções, X% equilibraram todos os 10 matchups; WR média 50±k%"*.
+  X" por *"em N execuções, X% equilibraram o roster; WR global média 50±k%"*.
   Resolve diretamente a fragilidade de seed única (ex.: o Combo×Rush travado em uma
   seed — [07](07-achados-e-limitacoes.md) — vira pergunta respondível: azar ou
   estrutural?).
@@ -57,10 +58,10 @@ ferramenta está em [`../reference/08-tools.md`](../reference/08-tools.md).
 - **Pergunta:** comparar fronteiras "no olho" não escala — como quantificar se uma
   fronteira é melhor (mais próxima da utopia e mais espalhada) que outra?
 - **Como** (`pareto_metrics`): **hipervolume** (área dominada vs ponto de referência
-  fixo `(1.5, 1.0)` = piores valores; maior = melhor) e **spacing** de Schott
+  fixo `(2.0, 1.0)` = piores valores; maior = melhor) e **spacing** de Schott
   (uniformidade; menor = melhor). Fontes: Deb 2001/2002.
 - **Para que serve na tese:** comparação **objetiva** entre seeds e entre configurações
-  (efeito de `HESITATION_RATE`, `SIMS_PER_MATCHUP`, etc.) sem inspeção visual. Métrica
+  (efeito de `MATCHUP_WR_CAP`, `SIMS_PER_MATCHUP`, etc.) sem inspeção visual. Métrica
   madura e esperada num trabalho com NSGA-II.
 
 ## Validação externa ao fitness (item 3.2)

@@ -10,7 +10,7 @@ Otimiza **2 objetivos** simultaneamente, ambos minimizados, sem ponderação:
 
 | Objetivo | Significado |
 |---|---|
-| `dominance_penalty` | desbalanço de matchups: WR (primário) + decisividade fora da banda (secundário), RMS — ver [05](05-genetic-algorithm.md) |
+| `dominance_penalty` | desbalanço: balanço global por personagem (primário) + teto de hard-counter + decisividade, RMS — ver [05](05-genetic-algorithm.md) |
 | `drift_penalty` | preservação de arquétipo (distância euclidiana ao canônico) |
 
 `evaluate_objectives` retorna `(dominance_penalty, drift_penalty)` em escala
@@ -55,10 +55,11 @@ Roda `NSGA2_GENERATIONS = 150` gerações fixas (fronteiras de Pareto não
 Comparar fronteiras "no olho" não escala (Deb 2001/2002). Em `src/engine/pareto_metrics.py`:
 
 - **`hypervolume_2d(front, ref)`** — área da região dominada pela fronteira em
-  relação ao ponto de referência `HYPERVOLUME_REFERENCE = (1.5, 1.0)` (piores valores
-  possíveis de `(dominance, drift)`). Captura convergência *e* espalhamento num único
-  número; **maior é melhor**. Decomposição em faixas verticais sobre a escada
-  não-dominada: `Σ (x_{i+1} − x_i)·(r1 − y_i)`, com `x_{n+1} = r0`.
+  relação ao ponto de referência `HYPERVOLUME_REFERENCE = (2.0, 1.0)` (piores valores
+  possíveis de `(dominance, drift)`; `dominance` vai a 2.0 sob C2 = `GLOBAL + CAP +
+  DECIS` no pior caso). Captura convergência *e* espalhamento num único número;
+  **maior é melhor**. Decomposição em faixas verticais sobre a escada não-dominada:
+  `Σ (x_{i+1} − x_i)·(r1 − y_i)`, com `x_{n+1} = r0`.
 - **`spacing(front)`** — desvio-padrão (Schott) da distância Manhattan de cada ponto
   ao vizinho mais próximo. Mede a **uniformidade** da distribuição; **menor é melhor**.
 

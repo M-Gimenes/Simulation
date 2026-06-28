@@ -17,15 +17,22 @@ import numpy as np
 from .combat import seed_combat
 from .config import (
     ELITE_SIZE,
-    GLOBAL_CONVERGENCE_THRESHOLD,
-    MATCHUP_WR_CAP,
     MAX_GENERATIONS,
     POPULATION_SIZE,
     SIMS_CONVERGENCE_CHECK,
     STAGNATION_LIMIT,
 )
 from .archetypes import ARCHETYPE_ORDER, ARCHETYPES
-from .fitness import FitnessDetail, evaluate, evaluate_detail, evaluate_population, evaluate_detail_n, set_seed_base
+from .fitness import (
+    FitnessDetail,
+    character_balanced,
+    evaluate,
+    evaluate_detail,
+    evaluate_detail_n,
+    evaluate_population,
+    is_hard_counter,
+    set_seed_base,
+)
 from .individual import Individual
 from .operators import next_generation
 
@@ -203,13 +210,9 @@ def run(
             confirmed = evaluate_detail_n(best_ind, SIMS_CONVERGENCE_CHECK)
             # Equilíbrio C2: nenhum boneco domina o roster (WR global ~50%) e nenhum
             # par é counter duro. NÃO exige cada par a 50% — arestas de ciclo são ok.
-            global_ok = all(
-                abs(wr - 0.5) <= GLOBAL_CONVERGENCE_THRESHOLD
-                for wr in confirmed.winrates
-            )
-            no_hard_counter = all(
-                abs(wr - 0.5) <= MATCHUP_WR_CAP
-                for wr in confirmed.matchup_winrates.values()
+            global_ok = all(character_balanced(wr) for wr in confirmed.winrates)
+            no_hard_counter = not any(
+                is_hard_counter(wr) for wr in confirmed.matchup_winrates.values()
             )
             if global_ok and no_hard_counter:
                 best_ind.fitness = confirmed.fitness

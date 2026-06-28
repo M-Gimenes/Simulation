@@ -21,19 +21,22 @@ import numpy as np
 from src.engine.archetypes import ARCHETYPE_ALIASES, ARCHETYPE_ORDER, ARCHETYPES, ArchetypeID
 from src.engine.character import Character
 from src.engine.combat import Action, seed_combat, simulate_combat_traced
-from src.engine.config import MATCHUP_FLOOR, MATCHUP_THRESHOLD
+from src.engine.config import MATCHUP_FLOOR, MATCHUP_THRESHOLD, MATCHUP_WR_CAP
+from src.engine.fitness import character_balanced, is_hard_counter
 from src.engine.individual import Individual
 
 
 ANALYZE_SIMS = 1000
 
-# Status de equilíbrio simétrico (cego à direção), espelhando MATCHUP_THRESHOLD:
-# um matchup é equilibrado quando |WR − 50%| ≤ MATCHUP_THRESHOLD — exatamente a
-# faixa [40%, 60%] que o próprio AG deixa de penalizar. O ciclo canônico (quem
-# "deveria" vencer) é reportado à parte como anotação descritiva, nunca pass/fail.
-DOMINANCE_THRESHOLD = 0.60          # teto da WR global agregada por personagem
-BAL_LO = 0.5 - MATCHUP_THRESHOLD    # 40%
-BAL_HI = 0.5 + MATCHUP_THRESHOLD    # 60%
+# Bandas de reporting (cegas à direção), espelhando os limiares do fitness C2:
+#   • WR GLOBAL por personagem (headline): equilibrado em [40%, 60%] via
+#     `character_balanced` (0.5 ± GLOBAL_CONVERGENCE_THRESHOLD) — ninguém domina o roster.
+#   • WR POR PAR (secundário): só marca ✗ quando o par é COUNTER DURO
+#     (`is_hard_counter`: |WR − 50%| > MATCHUP_WR_CAP, fora de [30%, 70%]); dentro do
+#     teto é aresta de ciclo permitida, não desbalanço.
+# O ciclo canônico (quem "deveria" vencer) é reportado à parte como anotação descritiva.
+BAL_LO = 0.5 - MATCHUP_WR_CAP    # piso do teto de counter (30%)
+BAL_HI = 0.5 + MATCHUP_WR_CAP    # teto do teto de counter (70%)
 
 ACTION_KEYS: Tuple[Action, ...] = (Action.ATTACK, Action.ADVANCE, Action.RETREAT, Action.DEFEND)
 NUMERIC_FIELDS: Tuple[str, ...] = (
@@ -280,20 +283,22 @@ def wilson_ci(wins: int, n: int, z: float = 1.96) -> Tuple[float, float]:
 
 
 def classify_balance(wr: float) -> Tuple[str, str]:
-    """Status simétrico do matchup, cego à direção: equilibrado quando a WR de
-    cada lado cai em [BAL_LO, BAL_HI] — a faixa que o AG não penaliza. Como é
-    simétrico em torno de 50%, `wr` e `1 − wr` recebem a mesma classificação."""
-    if BAL_LO <= wr <= BAL_HI:
-        return ("=", "equilibrado")
-    return ("✗", "desbalanceado")
+    """Veredito do par, cego à direção: ✗ só quando o par é COUNTER DURO
+    (`is_hard_counter`: |WR − 50%| > MATCHUP_WR_CAP, fora de [30%, 70%]); dentro do
+    teto é aresta de ciclo permitida, não desbalanço. Simétrico em torno de 50%, então
+    `wr` e `1 − wr` recebem a mesma classificação."""
+    if is_hard_counter(wr):
+        return ("✗", "counter duro")
+    return ("=", "dentro do teto")
 
 
 def classify_global_wr(wr: float) -> Tuple[str, str]:
-    """WR global de um personagem — alvo ~50% num ciclo balanceado (vence 2, perde 2)."""
-    if wr >= DOMINANCE_THRESHOLD:
-        return ("⬆", "Forte demais (≥60%)")
-    if wr >= 1.0 - DOMINANCE_THRESHOLD:
+    """WR global de um personagem — alvo ~50% num roster equilibrado (vence 2, perde 2).
+    Equilibrado em [40%, 60%] (via `character_balanced`); acima domina, abaixo é fraco."""
+    if character_balanced(wr):
         return ("=", "Equilibrado (40-60%)")
+    if wr > 0.5:
+        return ("⬆", "Forte demais (>60%)")
     return ("⬇", "Fraco (<40%)")
 
 
@@ -469,7 +474,7 @@ def print_matrix_view(records: List[MatchupRecord], ids: List[ArchetypeID]) -> N
     abbr = {aid: ARCHETYPES[aid].name[:4] for aid in ids}
 
     print("\n" + "═" * 78)
-    print("  MATRIZ DE MATCHUPS — WR(linha vs coluna)  |  ⬆ ≥60%   = 40-60%   ⬇ <40%")
+    print("  MATRIZ DE MATCHUPS — WR(linha vs coluna)  |  ⬆ >60%   = 40-60%   ⬇ <40%")
     print("═" * 78 + "\n")
 
     print(" " * 16 + "".join(f"  {abbr[aid]:^4s}  " for aid in ids) + "  | Global")
@@ -520,12 +525,13 @@ def print_matchup_summary(records: List[MatchupRecord], n_per_matchup: int) -> N
           f" 0.05 ≈ vencedor fecha com 10% HP)")
     print(f"  Luta (objetivo do AG): banda [{MATCHUP_FLOOR:.2f}, {MATCHUP_THRESHOLD:.2f}]"
           f" = sadia   ⬆ blowout (> {MATCHUP_THRESHOLD:.2f})   ⬇ fina demais (< {MATCHUP_FLOOR:.2f})")
-    print(f"  WR-bal (equilíbrio do WR, cego à direção): = dentro de {BAL_LO:.0%}-{BAL_HI:.0%}   ✗ fora")
+    print(f"  Counter (cego à direção): = dentro do teto [{BAL_LO:.0%}, {BAL_HI:.0%}]"
+          f"   ✗ counter duro (fora)")
     print(f"  Ciclo canônico (descritivo): → mantido   ↯ invertido")
     print("═" * 78)
     print(
         f"\n  {'Matchup':26s}  {'WR':>5s}  {'decis':>6s}  {'Luta':14s}"
-        f"  {'WR-bal':8s}  Ciclo"
+        f"  {'Counter':8s}  Ciclo"
     )
     print(f"  {'─' * 82}")
 
@@ -551,7 +557,7 @@ def print_matchup_summary(records: List[MatchupRecord], n_per_matchup: int) -> N
         f"   ⬆ {luta_counts['⬆']}/{total} blowout   ⬇ {luta_counts['⬇']}/{total} finas"
     )
     print(
-        f"  WR-bal: = {bal_counts['=']}/{total} equilibrados   ✗ {bal_counts['✗']}/{total} fora"
+        f"  Counter: = {bal_counts['=']}/{total} dentro do teto   ✗ {bal_counts['✗']}/{total} counters duros"
     )
     cyc_line = (
         f"  Ciclo:  → {cyc_counts['→']}/{total} mantidos   ↯ {cyc_counts['↯']}/{total} invertidos"

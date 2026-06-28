@@ -32,9 +32,14 @@ from src.engine.config import (
     EXTERNAL_VALIDATION_N_SEEDS,
     EXTERNAL_VALIDATION_SEED_START,
     EXTERNAL_VALIDATION_SIMS,
-    MATCHUP_CONVERGENCE_THRESHOLD,
 )
-from src.engine.fitness import FitnessDetail, evaluate_detail_n, set_seed_base
+from src.engine.fitness import (
+    FitnessDetail,
+    character_balanced,
+    evaluate_detail_n,
+    is_hard_counter,
+    set_seed_base,
+)
 from src.engine.individual import Individual
 from src.engine.paths import EXTERNAL_VALIDATION_DIR, PROJECT_ROOT
 from src.tools.multi_run import CHAR_NAMES, matchup_label, mean_std
@@ -54,45 +59,57 @@ def _load_individual(args: argparse.Namespace):
 
 
 def _condition_record(detail: FitnessDetail, seed: int) -> dict:
+    characters: Dict[str, dict] = {}
+    for i, name in enumerate(CHAR_NAMES):
+        wr = detail.winrates[i]
+        characters[name] = {"wr": wr, "balanced": character_balanced(wr)}
     matchups: Dict[str, dict] = {}
     for (i, j), wr in detail.matchup_winrates.items():
-        matchups[matchup_label(i, j)] = {
-            "wr": wr,
-            "balanced": abs(wr - 0.5) <= MATCHUP_CONVERGENCE_THRESHOLD,
-        }
+        matchups[matchup_label(i, j)] = {"wr": wr, "hard_counter": is_hard_counter(wr)}
     return {
         "seed": seed,
         "dominance_penalty": detail.dominance_penalty,
         "drift_penalty": detail.drift_penalty,
-        "winrates": {CHAR_NAMES[i]: detail.winrates[i] for i in range(len(CHAR_NAMES))},
+        "characters": characters,
         "matchups": matchups,
     }
 
 
 def _aggregate(records: List[dict]) -> dict:
-    n = len(records)
     labels = [matchup_label(i, j) for i, j in combinations(range(len(CHAR_NAMES)), 2)]
 
+    char_stats = {}
+    n_chars_robust = 0
+    for name in CHAR_NAMES:
+        wrs = [r["characters"][name]["wr"] for r in records]
+        robust = all(r["characters"][name]["balanced"] for r in records)
+        n_chars_robust += robust
+        stats = mean_std(wrs)
+        stats["robust"] = robust  # WR global em banda em TODAS as condições
+        char_stats[name] = stats
+
     matchup_stats = {}
-    n_robust = 0
+    n_hard_counter_matchups = 0
     for label in labels:
         wrs = [r["matchups"][label]["wr"] for r in records]
-        robust = all(r["matchups"][label]["balanced"] for r in records)
-        n_robust += robust
+        ever_hard_counter = any(r["matchups"][label]["hard_counter"] for r in records)
+        n_hard_counter_matchups += ever_hard_counter
         stats = mean_std(wrs)
-        stats["robust"] = robust  # equilibrado em TODAS as condições
+        stats["hard_counter"] = ever_hard_counter  # counter duro em ALGUMA condição
         matchup_stats[label] = stats
 
     return {
         "dominance_penalty": mean_std([r["dominance_penalty"] for r in records]),
         "drift_penalty": mean_std([r["drift_penalty"] for r in records]),
-        "winrates": {
-            name: mean_std([r["winrates"][name] for r in records]) for name in CHAR_NAMES
-        },
+        "characters": char_stats,
         "matchups": matchup_stats,
-        "n_robust": n_robust,
+        "n_chars_robust": n_chars_robust,
+        "n_chars": len(CHAR_NAMES),
+        "n_hard_counter_matchups": n_hard_counter_matchups,
         "n_matchups": len(labels),
-        "roster_robust": n_robust == len(labels),
+        # Roster robusto: todos os bonecos em banda em todas as condições E
+        # nenhum par vira counter duro em condição alguma.
+        "roster_robust": n_chars_robust == len(CHAR_NAMES) and n_hard_counter_matchups == 0,
     }
 
 
@@ -109,9 +126,10 @@ def validate(individual, seeds: List[int], sims: int) -> dict:
         detail = evaluate_detail_n(individual, sims)
         record = _condition_record(detail, seed)
         records.append(record)
-        n_bal = sum(m["balanced"] for m in record["matchups"].values())
+        n_bal = sum(c["balanced"] for c in record["characters"].values())
+        n_hc = sum(m["hard_counter"] for m in record["matchups"].values())
         print(f"dom={record['dominance_penalty']:.4f}  "
-              f"equilibrados={n_bal}/{len(record['matchups'])}")
+              f"bonecos eq={n_bal}/{len(record['characters'])}  counters={n_hc}")
 
     return {
         "seeds": seeds,
@@ -136,19 +154,22 @@ def _print_summary(result: dict, label: str) -> None:
     print(f"    dominance_penalty:  {dom['mean']:.4f} ± {dom['std']:.4f}")
     print(f"    drift_penalty:      {drift['mean']:.4f} ± {drift['std']:.4f}")
 
-    print(f"\n    WR média por personagem (alvo 50%):")
+    print(f"\n    WR global por personagem (alvo 50%; ✓ = em [40%, 60%] em TODAS as condições):")
     for name in CHAR_NAMES:
-        wr = agg["winrates"][name]
-        print(f"      {name:<15s} {wr['mean']:.1%} ± {wr['std']:.1%}")
+        stats = agg["characters"][name]
+        mark = "✓" if stats["robust"] else "✗"
+        print(f"      {mark} {name:<15s} {stats['mean']:.1%} ± {stats['std']:.1%}")
 
     print(f"\n    Matchups (WR média ± desvio através das condições; "
-          f"✓ = equilibrado em TODAS):")
+          f"⚠ = counter duro em ALGUMA condição):")
     for label_m, stats in agg["matchups"].items():
-        mark = "✓" if stats["robust"] else "✗"
+        mark = "⚠" if stats["hard_counter"] else " "
         print(f"      {mark} {label_m:<28s} {stats['mean']:.1%} ± {stats['std']:.1%}")
 
-    print(f"\n    Matchups robustos (equilibrados em todas as {n} condições): "
-          f"{agg['n_robust']}/{agg['n_matchups']}")
+    print(f"\n    Bonecos robustos (WR global em banda em todas as {n} condições): "
+          f"{agg['n_chars_robust']}/{agg['n_chars']}")
+    print(f"    Matchups que viram counter duro em alguma condição: "
+          f"{agg['n_hard_counter_matchups']}/{agg['n_matchups']}")
     verdict = "ROBUSTO" if agg["roster_robust"] else "FRÁGIL (sensível à condição de avaliação)"
     print(f"    Veredito do roster: {verdict}")
 

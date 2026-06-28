@@ -11,18 +11,22 @@ população inicial e baseline de medição de drift. O AG diverge livremente.
 | **Zoner** | Controla espaço com alcance máximo e knockback; ataca antes do inimigo chegar e o empurra para fora de range. |
 | **Rushdown** | Fecha distância em segundos e sufoca com ataques rápidos. |
 | **Combo Master** | Velocidade fecha distância, stun extremo encadeia combos; neutraliza tanques e zoners por lockdown. |
-| **Grappler** | Tank que pune corpo a corpo com burst máximo; recovery alta resiste a combos. |
+| **Grappler** | Tank que pune corpo a corpo com burst máximo de dano. |
 | **Turtle** | Muralha viva — absorve tudo e contra-ataca com paciência; vence agressivos por atrito de HP%. |
 
 ## Valores canônicos (semente inicial)
 
-| Classe | HP | Dmg | Cooldown | Range | Speed | Defense | Stun | Knockback | Recovery |
-|---|---|---|---|---|---|---|---|---|---|
-| Zoner | 300 | 12 | 4 | 18 | 2.5 | 0.05 | 1.0 | 2.0 | 2 |
-| Rushdown | 320 | 11 | 1 | 10 | 5.0 | 0.10 | 1.0 | 1.0 | 3 |
-| Combo Master | 350 | 13 | 3 | 10 | 3.0 | 0.15 | 3.5 | 0.5 | 3 |
-| Grappler | 380 | 20 | 4 | 8 | 2.0 | 0.20 | 2.5 | 0.5 | 4 |
-| Turtle | 400 | 10 | 5 | 13 | 1.5 | 0.25 | 2.0 | 1.0 | 7 |
+São **7 atributos** por personagem (`defense` e `recovery` foram removidos do
+modelo — ver [04-combat-model.md](04-combat-model.md)). `stun` é uma **fração do
+cooldown do atacante** (∈ [0, 0.6]), não mais um valor absoluto.
+
+| Classe | HP | Dmg | Cooldown | Range | Speed | Stun | Knockback |
+|---|---|---|---|---|---|---|---|
+| Zoner | 300 | 12 | 4 | 18 | 2.5 | 0.10 | 2.0 |
+| Rushdown | 320 | 11 | 1 | 10 | 5.0 | 0.10 | 1.0 |
+| Combo Master | 350 | 13 | 3 | 10 | 3.0 | 0.55 | 0.5 |
+| Grappler | 400 | 20 | 4 | 8 | 2.0 | 0.30 | 0.5 |
+| Turtle | 450 | 10 | 5 | 13 | 1.5 | 0.20 | 1.0 |
 
 ### Pesos comportamentais canônicos
 
@@ -34,9 +38,10 @@ população inicial e baseline de medição de drift. O AG diverge livremente.
 | Grappler | 0.10 | 0.40 | 0.70 |
 | Turtle | 0.40 | 0.70 | 0.20 |
 
-Os pesos definem a soft policy de combate (ver
-[04-combat-model.md](04-combat-model.md)): `w_aggressiveness` → ADVANCE,
-`w_retreat` → RETREAT, `w_defend` → DEFEND. Semântica esperada:
+Os pesos ponderam o sorteio de **intenção** quando o personagem está em range
+(ver [04-combat-model.md](04-combat-model.md)): `w_aggressiveness` → FRENTE
+(ATTACK ou, se em cooldown, ADVANCE), `w_retreat` → RECUAR (RETREAT ou, sem
+espaço, DEFEND), `w_defend` → GUARDA (DEFEND). Semântica esperada:
 `w_aggressiveness` alto = empurra através de ameaças (Rushdown, Grappler, Combo
 Master); `w_retreat > w_defend` = pipoca/kita (Zoner); `w_defend ≥ w_retreat` =
 absorve segurando posição (Turtle).

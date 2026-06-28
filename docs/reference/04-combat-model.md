@@ -9,9 +9,11 @@ funções `@njit` idênticas em regras (`_simulate_combat_jit` para o fitness,
 
 - Tamanho: `FIELD_SIZE = 100` unidades; posições clamped a `[0, 100]`.
 - Distância inicial: `INITIAL_DISTANCE = 50` (lutadores em 25 e 75).
-- `WALL_CORNER_THRESHOLD = 10`: dentro de 10 unidades de uma parede, o lutador é
-  considerado encurralado.
 - Todos os `range` ≤ 20 < 50 — nenhum personagem ataca no tick 1.
+
+Não há conceito de "encurralamento" (cornering): RETREAT simplesmente recua até a
+borda (0 ou `FIELD_SIZE`) e, quando não há mais espaço para recuar, o personagem
+cai para DEFEND (ver execução abaixo).
 
 ## Resolução sub-tick (`TICK_SCALE = 5`)
 
@@ -21,71 +23,63 @@ espaço de fitness. Internamente os timers operam de 5 a 25 sub-ticks.
 
 - Movimento por sub-tick: `speed / TICK_SCALE`
 - Cooldown no hit: `round(attack_cooldown × TICK_SCALE)`
-- Stun no hit: `round(attacker.stun × TICK_SCALE) − defender.recovery`, com cap
+- Stun no hit: `round(stun × round(attack_cooldown × TICK_SCALE))` — ver
+  [stun](#stun) abaixo.
 
 ## As 4 ações
 
 `ATTACK` · `ADVANCE` · `RETREAT` · `DEFEND`
 
-## Sistema de decisão (prioridade)
+## Sistema de decisão: intenção → execução
 
-Por sub-tick, do mais alto ao mais baixo. Um personagem stunado perde a ação
-(`stun_rem > 0` → ação = −1).
+A cada sub-tick, a ação de cada personagem é decidida em **duas fases**. Um
+personagem stunado perde a ação (`stun_rem > 0` → ação = −1, antes de qualquer
+fase).
 
-1. **ATTACK** — se está **no próprio range** (`distance ≤ range`) **e** o
-   cooldown está pronto (`cd_rem == 0`). Limpa qualquer commitment pendente.
-2. **ADVANCE** — se está **fora do próprio range** **ou** encurralado contra a
-   parede. Limpa commitment pendente.
-3. **HELD COMMITMENT** — se há uma escolha de soft policy ainda dentro da janela
-   de persistência (`persist > 0`), repete-a e decrementa o contador.
-4. **NEW SOFT POLICY** — sorteia uma de `{ADVANCE, RETREAT, DEFEND}` com
-   probabilidade proporcional a `(w_aggressiveness, w_retreat, w_defend)`, fixa a
-   escolha e reinicia o contador para `ACTION_PERSISTENCE_SUBTICKS`.
+### Fase 1 — Intenção (só quando em range)
 
-> **Gatilho da soft policy (importante).** Os ramos 3–4 só são alcançados quando
-> o personagem está **dentro do próprio range mas com o cooldown não pronto** (e
-> não encurralado e não stunado). É a decisão "estou em alcance mas não posso
-> bater agora — avanço, recuo ou defendo?". Não depende do range nem do estado do
-> *inimigo*.
+- **Fora do próprio range** (`distance > range`): a intenção é ignorada — o
+  personagem faz `ADVANCE` incondicional (neutral game, aproxima) e zera o
+  contador de persistência.
+- **Dentro do próprio range** (`distance ≤ range`): se não há intenção vigente
+  (`persist == 0`), **sorteia uma intenção** entre `{FRENTE, RECUAR, GUARDA}` com
+  probabilidade proporcional a `(w_aggressiveness, w_retreat, w_defend)` e a
+  **mantém por `ACTION_PERSISTENCE_SUBTICKS` sub-ticks** (commitment/momentum).
+  Se a soma dos pesos for 0, a intenção é `GUARDA` (fallback).
 
-A soft policy (ramos 3–4) é a fonte estocástica principal do loop.
-Implementação: `r = np.random.random() × (wagg + wret + wdef)`; `r < wagg` →
-ADVANCE, `r < wagg+wret` → RETREAT, senão DEFEND. Se a soma dos pesos for 0, a
-ação é DEFEND.
+### Fase 2 — Execução
 
-### Hesitação (`HESITATION_RATE`, variância de player)
+A intenção vigente determina a ação concreta do sub-tick:
 
-A cada tick, com probabilidade `HESITATION_RATE`, mesmo nos ramos
-**determinísticos** (ATTACK em range+pronto, ou ADVANCE forçado) o personagem
-**hesita**: em vez da ação ótima, cai na amostragem ponderada `(w_agg, w_ret,
-w_def)` (a mesma da soft policy). Modela "o player não executa sempre o ótimo" —
-variância de execução. Diferente do antigo `ACTION_EPSILON` (removido), a
-hesitação é **ponderada pelos pesos**, então respeita a identidade do personagem
-(um Rushdown que hesita tende a ADVANCE, um Turtle a DEFEND), em vez de uniforme.
+| Intenção | Ação concreta |
+|---|---|
+| **FRENTE** | `ATTACK` se o cooldown está pronto (`cd_rem == 0`), senão `ADVANCE` (pressão sem desperdiçar cooldown) |
+| **RECUAR** | `RETREAT` se ainda há espaço para recuar, senão `DEFEND` (sem mais recuo possível) |
+| **GUARDA** | `DEFEND` |
 
-`HESITATION_RATE = 0` reproduz exatamente o combate sem hesitação. O valor é
-**provisório e a calibrar** — ver [10-known-issues.md](10-known-issues.md). A
-[revisão do combate](11-combat-review.md) mostrou que a hesitação é menos crítica
-do que se pensava: a alavanca real é o objetivo por-luta, que aproxima as lutas e
-deixa o ruído já existente flipar desfechos.
+> **A intenção é a única fonte estocástica do loop.** O sorteio é
+> `r = np.random.random() × (wagg + wret + wdef)`; `r < wagg` → FRENTE,
+> `r < wagg + wret` → RECUAR, senão GUARDA. Uma vez sorteada, a intenção **não é
+> interrompida** até o contador de persistência zerar (não há flip-flop por
+> sub-tick) — exceto por sair do range, que força ADVANCE e reseta o contador, e
+> por ser stunado.
 
 Os pesos agem de forma **contínua**: um Δ em qualquer peso produz Δ proporcional
-na probabilidade da ação, dando ao AG gradiente contínuo nesses genes. A versão
-antiga (comparação dura `w_aggressiveness > w_retreat AND ...`) tornava os pesos
-*categóricos* — só a ordem importava, magnitudes eram invisíveis à seleção.
+na probabilidade da intenção, dando ao AG gradiente contínuo nesses genes. A
+versão antiga (comparação dura `w_aggressiveness > w_retreat AND ...`) tornava os
+pesos *categóricos* — só a ordem importava, magnitudes eram invisíveis à seleção.
 
-### Persistência de ação (`ACTION_PERSISTENCE_SUBTICKS = 10`)
+### Persistência de intenção (`ACTION_PERSISTENCE_SUBTICKS = 10`)
 
-Uma vez sorteada, a ação soft-policy é reusada pelos próximos 10 sub-ticks (≈ 2
-ticks lógicos) antes de re-sortear. Simula commitment/momentum e evita
-flip-flopping patológico (sem isso, o personagem re-rolaria RETREAT/DEFEND/ADVANCE
-5× por tick lógico). O commitment é **quebrado** quando uma prioridade superior
-dispara (ATTACK por estar em range + pronto, ou ADVANCE por estar fora de range /
-encurralado).
+Uma vez sorteada, a intenção é reusada pelos próximos 10 sub-ticks (≈ 2 ticks
+lógicos) antes de re-sortear. Simula commitment/momentum e evita flip-flopping
+patológico (sem isso, o personagem re-sortearia a intenção 5× por tick lógico). O
+contador é **zerado** ao sair do range (que força ADVANCE) e quando o personagem
+é stunado.
 
 ## Fluxo por sub-tick
 
-1. **Escolha de ação** (prioridade acima) para A e B.
+1. **Escolha de ação** (intenção → execução) para A e B.
 2. **Movimento** (ADVANCE/RETREAT) — passo `speed / TICK_SCALE`, clamped ao campo.
 3. **Snapshot dos timers** pré-ataque (para o decremento "decrement-stale").
 4. **Resolução simultânea** de ataques A→B e B→A.
@@ -93,32 +87,36 @@ encurralado).
 
 ## Regras de combate
 
-- **Dano determinístico:** `damage × (1 − defense)`. Sem variância por hit.
+- **Dano flat:** `damage`, sem variância por hit e sem redução passiva. O único
+  modificador é a ação `DEFEND` do alvo. (Não existe gene `defense`.)
 - **DEFEND:** multiplica o dano recebido por `DEFEND_DAMAGE_REDUCTION = 0.4`
   (recebe 40% = 60% de redução).
-- **Stun efetivo:** `max(0, round(attacker.stun × TICK_SCALE) − defender.recovery)`,
-  com cap em `STUN_CAP_MULTIPLIER × attacker.attack_cooldown × TICK_SCALE`.
-  - `STUN_CAP_MULTIPLIER = 0.6 < 1.0` garante que o stun é estritamente menor que
-    o cooldown do atacante — o defensor sempre ganha uma janela livre antes do
-    próximo hit. Quebra o soft-perma-lock que existia com valores ≥ 1.0.
+- <a name="stun"></a>**Stun:** `stun_t = round(stun × round(attack_cooldown × TICK_SCALE))`.
+  O gene `stun ∈ [0.0, 0.6]` é uma **fração do próprio cooldown do atacante** (em
+  sub-ticks), não um valor absoluto.
+  - Como `stun < 1.0` por bound, o stun aplicado é **estritamente menor que o
+    cooldown do atacante** — o defensor sempre ganha uma janela livre antes do
+    próximo hit. A invariante é garantida matematicamente pelo bound do gene (não
+    há mais `STUN_CAP_MULTIPLIER` explícito). A garantia depende do acoplamento
+    `stun_bound × TICK_SCALE`: com `cd_min = 1` e `TICK_SCALE = 5`, o cooldown em
+    sub-ticks é ≥ 5, e `round(0.6 × 5) = 3 < 5`. Ver
+    [07-configuration.md](07-configuration.md).
   - O stun só é aplicado se o novo valor exceder o stun residual atual
     (`stun_t > stun_rem`); não se acumula.
-- **Cooldown só em acerto:** o cooldown do atacante só é setado dentro do bloco
-  `if dmg > 0.0`. Um ATTACK que sai mas erra (a distância pode ter mudado após o
-  movimento) não desperdiça cooldown.
+- **Cooldown só em acerto:** o cooldown do atacante só é setado dentro do bloco de
+  resolução, que só executa quando o ATTACK está **em range no momento da
+  resolução** (`cd_rem == 0 and distance ≤ range`). Um ATTACK escolhido mas que
+  sai de range após o movimento daquele tick não entra no bloco — não desperdiça
+  cooldown.
 - **Knockback:** empurra o defensor `knockback` unidades para longe do atacante
   após cada hit, clamped ao campo.
-- **Recovery:** inteiro em sub-ticks, subtraído diretamente do stun recebido (cada
-  unidade tira 1 sub-tick). Ver a justificativa do formato inteiro em
-  [05-genetic-algorithm.md](05-genetic-algorithm.md) (mutação) e
-  [07-configuration.md](07-configuration.md).
 
 ### Decremento pós-ataque (decrement-stale)
 
 Decrementos acontecem no **fim** do tick, comparando o valor atual com o
 pré-ataque. Se um ataque setou o timer neste tick (`current > pre`), ele é
-preservado até o próximo. Garante que `stun = 1` e `cooldown = 1` (em ticks
-lógicos) sejam mínimos com efeito real.
+preservado até o próximo. Garante que `stun = 1` e `cooldown = 1` (em sub-ticks)
+sejam mínimos com efeito real.
 
 ## Condição de vitória
 
@@ -126,5 +124,5 @@ lógicos) sejam mínimos com efeito real.
 - **Timeout** (`MAX_TICKS = 500 × TICK_SCALE = 2500` sub-ticks): vence quem tem
   maior HP **percentual** (`hp_atual / hp_max`). Empate de percentual → vence A.
 
-O fitness distingue KO de timeout via *HP-weighted scoring* — ver
+O fitness distingue KO de timeout via *score por-luta contínuo* — ver
 [05-genetic-algorithm.md](05-genetic-algorithm.md).

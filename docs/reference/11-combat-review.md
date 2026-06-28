@@ -1,5 +1,21 @@
 # 11 — Revisão do modelo de combate (2026-06-23)
 
+> **Aviso (2026-06-27) — partes desta revisão foram superadas.** O modelo de
+> combate foi simplificado: **`recovery` e `defense` removidos**, **hesitação
+> removida** (única fonte estocástica = o sorteio de intenção), e **`stun` virou
+> fração** do cooldown. Em consequência:
+> - O **achado 5 (recovery evolutivamente neutro)** está **encerrado** — o gene não
+>   existe mais (não há o que calibrar). A leitura "resistir a stun não muda o
+>   desfecho em blowouts" continua válida como *raciocínio*, mas não como pendência.
+> - A **WR graduada** era creditada à hesitação; agora vem do sorteio de intenção +
+>   `ACTION_PERSISTENCE_SUBTICKS`. Onde se lê "soft-policy + `HESITATION_RATE`",
+>   leia apenas o sorteio de intenção.
+> - A **atualização de 2026-06-24** abaixo ("WR voltou como termo primário
+>   por-matchup") foi por sua vez **superada pela reformulação C2**: o primário
+>   agora é a WR **global por personagem**, não por-matchup. Ver
+>   [05-genetic-algorithm.md](05-genetic-algorithm.md) e
+>   [10-known-issues.md](10-known-issues.md).
+
 Auditoria de representação do combate: cada mecânica representa o que diz
 representar? Há dinâmicas mortas/degeneradas? O sistema é bom o suficiente?
 Feita instrumentando os 10 matchups canônicos (200 sims cada, seed fixo) e

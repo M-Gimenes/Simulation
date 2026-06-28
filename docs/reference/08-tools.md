@@ -34,11 +34,16 @@ py -m src.tools.analyze_matchups --seed 42             # ver ressalva de seed ab
 ```
 
 Saídas: estatísticas por luta (hits, dano, stun, ticks em/fora de range, mix de
-ações, KO-rate, duração, distância), **matriz 5×5** de WR e dois resumos:
+ações, KO-rate, duração, distância), **matriz 5×5** de WR e os resumos (alinhados ao
+headline **C2**):
 
-- **Equilíbrio** (cego à direção): um matchup é equilibrado quando
-  `|WR − 50%| ≤ MATCHUP_THRESHOLD`, i.e. dentro de `[40%, 60%]` — a mesma faixa
-  que o AG não penaliza. Consistente com o agregado global.
+- **WR global por personagem (headline):** alvo 50%; `= Equilibrado` em `[40%, 60%]`
+  (via `fitness.character_balanced`), `⬆` domina, `⬇` fraco. É o eixo principal de
+  equilíbrio — nenhum boneco domina o roster.
+- **Counter por par** (cego à direção): `✗ counter duro` só quando o par sai de
+  `[30%, 70%]` (`fitness.is_hard_counter`, `|WR − 50%| > MATCHUP_WR_CAP`); dentro do
+  teto é `=` (aresta de ciclo permitida, não desbalanço). Leitura secundária ao
+  headline global.
 - **Ciclo canônico** (descritivo, não pass/fail): o favorito observado bate com o
   vencedor esperado pelo ciclo? `→ mantido` / `↯ invertido`. O ciclo é métrica
   *post-hoc*, nunca alvo.
@@ -80,12 +85,13 @@ py -m src.tools.fingerprint --nsga2 knee_point
 
 ## `archetype_validator`
 
-20 asserções estruturais de identidade (sem rodar combate):
+17 asserções estruturais de identidade (sem rodar combate):
 
-- **Layer 1 — inter (14):** rankings entre os 5 personagens (Rushdown tem maior
-  speed e menor cooldown, Zoner tem maior range, Turtle tem maior hp/defense/
-  recovery, etc.).
-- **Layer 2 — intra (6):** comparações normalizadas dentro de um personagem
+- **Layer 1 — inter (12):** rankings entre os 5 personagens (Rushdown tem maior
+  speed e menor cooldown, Zoner tem maior range/knockback/w_retreat, Combo Master
+  tem maior stun, Grappler tem maior damage, Turtle tem maior hp e cooldown, menor
+  speed, maior w_defend).
+- **Layer 2 — intra (5):** comparações normalizadas dentro de um personagem
   (`norm(range) > norm(speed)` no Zoner, etc.). Normalização = fração do máximo
   `x/hi` (mesma convenção do `fitness`).
 
@@ -132,11 +138,13 @@ Representante por execução: AG escalar → `best`; NSGA-II → `best_dominance
 fronteira. Saídas agregadas (impressas + salvas em `results/multi_run/multi_run_<algo>.json`):
 
 - **média ± desvio** de `dominance_penalty` e `drift_penalty`;
-- **WR média ± desvio por personagem** através das sementes;
-- **success rate por matchup** = fração de sementes que o equilibram dentro de
-  `±MATCHUP_CONVERGENCE_THRESHOLD` (10%) de 50%;
-- **fração de sementes que equilibram TODOS os 10 matchups** — a frase-tese
-  (*"em N execuções, X% equilibraram todos os 10 matchups"*);
+- **WR global por personagem** (média ± desvio) + **fração de sementes em que cada
+  boneco fica equilibrado** (WR global em `[0.40, 0.60]`, via `character_balanced`);
+- **hard-counters por execução** (média ± desvio; pares fora de `[0.30, 0.70]`);
+- **fração de sementes que equilibram o ROSTER** (5 bonecos em banda **e** 0
+  hard-counters) — a frase-tese (*"em N execuções, X% equilibraram o roster"*);
+- **(secundário)** WR média por matchup + fração de sementes em que cada par vira
+  counter duro;
 - **(só NSGA-II)** hipervolume e spacing da fronteira por seed, média ± desvio
   (item 1.2 — ver [06-nsga2.md](06-nsga2.md)).
 
@@ -163,11 +171,15 @@ py -m src.tools.external_validation --n-seeds 30 --sims 1000
 Reporta, salvando em `results/external_validation/external_validation_<label>.json`:
 
 - `dominance_penalty` / `drift_penalty` média ± desvio através das condições;
-- WR média ± desvio por personagem;
-- por matchup: WR média ± desvio + flag **robusto** (equilibrado dentro de ±10% em
-  TODAS as K condições);
-- **veredito do roster**: ROBUSTO (todos os 10 robustos) vs FRÁGIL (algum matchup só
-  equilibra sob certas sementes → overfitting ao fitness).
+- por personagem: WR global média ± desvio + flag **robusto** (WR global em
+  `[0.40, 0.60]` em TODAS as K condições);
+- por matchup: WR média ± desvio + flag **⚠** (vira counter duro em ALGUMA condição);
+- **veredito do roster**: ROBUSTO (todos os bonecos robustos **e** nenhum par vira
+  counter duro) vs FRÁGIL (algum boneco/par sensível à semente → overfitting ao fitness).
+
+> **Nota:** o JSON de `external_validation` commitado no repo é **obsoleto** (gerado
+> pré-C2/pré-mudança de combate) — re-rodar após calibrar (ver
+> [10-known-issues.md](10-known-issues.md)).
 
 **Diferença vs `multi_run` (1.1):** lá varia-se a *execução evolutiva* (muitos
 indivíduos, uma seed de validação); aqui fixa-se UM indivíduo e varia-se a *avaliação*
