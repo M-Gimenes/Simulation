@@ -69,10 +69,10 @@ arquétipos de jogos de luta}
   pergunta de pesquisa circular. Equilíbrio e identidade são tratados como dois
   objetivos, otimizados tanto por um AG escalar quanto pelo NSGA-II. Agregados
   sobre \ph{N} execuções independentes, os resultados mostram que o roster
-  canônico é fortemente desequilibrado (\ph{eq-can} matchups equilibrados);
-  otimizar o equilíbrio diretamente alcança \ph{eq-ag} matchups equilibrados, mas
+  canônico é fortemente desequilibrado (\ph{eq-can} confrontos equilibrados);
+  otimizar o equilíbrio diretamente alcança \ph{eq-ag} confrontos equilibrados, mas
   homogeneíza o elenco, ao passo que uma solução da fronteira de Pareto atinge
-  \ph{eq-bd} matchups equilibrados \emph{aumentando} a diferenciação entre
+  \ph{eq-bd} confrontos equilibrados \emph{aumentando} a diferenciação entre
   arquétipos. A fronteira torna explícito e mensurável o compromisso entre
   equilíbrio e identidade.
 \end{resumo}
@@ -289,7 +289,7 @@ modelando a variância de execução do jogador.
 A resolução de dano é determinística: o dano efetivo é
 $\textit{dano}\times(1-\textit{defesa})$, e a ação DEFEND reduz o dano recebido em
 60\%. O \emph{stun} efetivo é $\max\!\big(0,\;\mathrm{round}(\textit{stun}\times
-\texttt{TICK\_SCALE}) - \textit{recovery}\big)$, limitado a um valor estritamente
+5) - \textit{recovery}\big)$, limitado a um valor estritamente
 inferior ao \emph{cooldown} do atacante, o que garante sempre uma janela livre
 entre golpes e evita o \emph{lockdown} degenerado. Uma luta termina por nocaute
 ou, ao atingir o limite de duração, pela maior fração de HP remanescente.
@@ -384,8 +384,8 @@ assim, cair dentro da banda saudável ($D\approx 0{,}075$), recebendo penalidade
 nula apesar do desequilíbrio total. Por isso a WR é o termo primário. A WR, por
 sua vez, exige um sinal de qualidade que a complemente, pois é cega ao formato da
 luta: a decisividade secundária protege contra o \emph{blowout-coinflip}~---
-situações em que cada lado massacra o outro em metade das partidas, produzindo WR
-próxima de 50\% embora toda luta seja um massacre. O ruído introduzido pela
+situações em que cada lado vence de forma esmagadora em metade das partidas,
+produzindo WR próxima de 50\% embora nenhuma luta seja de fato equilibrada. O ruído introduzido pela
 \emph{soft policy} torna a WR um gradiente utilizável: quando os confrontos se
 aproximam do equilíbrio, pequenas variações de genes deslocam continuamente as
 taxas de vitória.
@@ -456,11 +456,11 @@ com os conceitos~--- o \emph{rushdown} avança em \ph{fp-rush} dos ticks, o
 o que indica que os pesos produzem identidade comportamental visível, e não ruído
 arbitrário.
 
-A esse roster identitariamente íntegro corresponde, no entanto, um desequilíbrio
-acentuado. A validação externa atribui-lhe $\textit{dominance}=\ph{dom-can}$ e
+Apesar dessa integridade de identidade, o roster é marcadamente desequilibrado. A
+validação externa atribui-lhe $\textit{dominance}=\ph{dom-can-ext}$ e
 \textbf{\ph{eq-can}} confrontos equilibrados: o Grappler vence \ph{wr-grap} de suas
 lutas, enquanto o Zoner vence \ph{wr-zon}; \ph{blow-can} dos dez confrontos são
-massacres. Esse resultado é, em si, um achado: o ciclo de vantagens canônico não é
+unilaterais (\emph{blowouts}). Esse resultado é, em si, um achado: o ciclo de vantagens canônico não é
 trivialmente preservado em um modelo de combate determinístico~--- apenas
 \ph{cycle-can} dos dez pares do ciclo se sustentam~---, o que sugere que a
 estrutura não transitiva dos jogos de luta reais depende parcialmente de mecânicas
@@ -514,8 +514,8 @@ A Tabela~\ref{tab:tradeoff} resume três pontos do \emph{trade-off}, medidos pel
 quatro instrumentos de identidade. A comparação é o ponto central do trabalho. No
 extremo de identidade perfeita (canônico), o equilíbrio é nulo (\ph{eq-can}). No
 ponto do AG escalar, o equilíbrio é quase total (\ph{eq-ag}), mas a diferenciação
-cai (\ph{diff-ag}) e o validador estrutural acusa \ph{val-ag} asserções
-preservadas. O representante \texttt{best\_dominance} do NSGA-II ocupa a posição
+cai (\ph{diff-ag}) e o validador estrutural registra apenas \ph{val-ag} de 20
+asserções preservadas. O representante \texttt{best\_dominance} do NSGA-II ocupa a posição
 mais relevante: pagando um desvio modesto de \ph{drift-bd}, reduz o desbalanço de
 \ph{dom-can} para \ph{dom-bd} e atinge \textbf{\ph{eq-bd}} confrontos
 equilibrados~--- e, decisivamente, a diferenciação par a par \emph{aumenta} em
@@ -580,8 +580,8 @@ substancial (\ph{eq-bd}) é compatível com identidade preservada~--- e até
 reforçada, conforme a diferenciação~--- ao passo que o equilíbrio total
 (\ph{eq-ag}), nesta configuração, exige alguma homogeneização. Um achado
 secundário é que o gene de \emph{recovery} se mostrou evolutivamente neutro
-(tende ao piso): em lutas que são massacres, resistir ao \emph{stun} não altera o
-desfecho, de modo que não há pressão seletiva sobre ele~--- hipótese a confirmar
+(tende ao piso): em lutas amplamente desequilibradas, resistir ao \emph{stun} não
+altera o desfecho, de modo que não há pressão seletiva sobre ele~--- hipótese a confirmar
 quando os confrontos se tornarem mais apertados.
 
 \section{Limitações}
@@ -593,7 +593,7 @@ modelo de combate é uma simplificação dos jogos de luta reais: não modela
 sobrevive ao modelo determinístico é evidência de que essas mecânicas omitidas têm
 papel estrutural; por isso, o objeto de estudo não é a fidelidade a um jogo
 específico, mas o \emph{mecanismo do} \emph{trade-off} entre equilíbrio e
-identidade. Segunda, cinco arquétipos bastam para um ciclo fechado, mas jogos
+identidade. Segunda, o estudo emprega cinco arquétipos, enquanto jogos
 reais costumam ter dez ou mais. Terceira, o \emph{round-robin} pressupõe que todos
 os arquétipos sejam jogados em igual proporção, e não modela o \emph{matchmaking},
 em que jogadores escolhem confrontos favoráveis. Quarta, o \emph{trade-off} é
