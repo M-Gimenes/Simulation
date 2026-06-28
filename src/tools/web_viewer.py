@@ -102,10 +102,8 @@ def record_combat(char_a: Character, char_b: Character) -> dict:
             "attack_cooldown": round(char.attack_cooldown, 1),
             "range": round(char.range_, 1),
             "speed": round(char.speed, 1),
-            "defense": round(char.defense, 2),
-            "stun": round(char.stun, 1),
+            "stun": round(char.stun, 2),
             "knockback": round(char.knockback, 1),
-            "recovery": int(char.recovery),
         }
 
     return {
@@ -431,10 +429,8 @@ async function runCombat() {
     ['Cooldown (t)',   'attack_cooldown', v => v.toFixed(1)],
     ['Range',         'range',           v => v.toFixed(1)],
     ['Velocidade',    'speed',           v => v.toFixed(1)],
-    ['Defesa',        'defense',         v => (v*100).toFixed(0)+'%'],
-    ['Stun',          'stun',            v => v.toFixed(1)],
+    ['Stun (×cooldown)', 'stun',         v => v.toFixed(2)],
     ['Knockback',     'knockback',       v => v.toFixed(1)],
-    ['Recovery (sub-ticks)', 'recovery',  v => v.toString()],
   ];
   const tbody = document.getElementById('stats-tbody');
   tbody.innerHTML = '';

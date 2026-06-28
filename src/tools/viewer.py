@@ -305,8 +305,7 @@ def _render_vs(char_a: Character, char_b: Character, delay: float = 1.5) -> None
             f"HP    = {char.hp:.0f}",
             f"Dano  = {char.damage:.0f}   CD = {char.attack_cooldown:.0f}t",
             f"Vel   = {char.speed:.0f}   Alcance= {char.range_:.0f}",
-            f"Def   = {char.defense:.2f}   Stun   = {char.stun:.1f}",
-            f"Recup = {int(char.recovery)}",
+            f"Stun  = {char.stun:.2f} (×cd)   Knock = {char.knockback:.1f}",
         ]
 
     print(CL, end="")
