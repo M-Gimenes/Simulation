@@ -250,46 +250,44 @@ def _simulate_combat_jit(
             dmg = a_dmg
             if action_b == 3:
                 dmg *= defend_red
-            if dmg > 0.0:
-                stun_t = round(a_stun * round(a_cd * tick_scale))  # fração × cooldown_subticks; < cooldown por bound
+            stun_t = round(a_stun * round(a_cd * tick_scale))  # fração × cooldown_subticks; < cooldown por bound
 
-                hp_b = hp_b - dmg
-                if hp_b < 0.0:
-                    hp_b = 0.0
-                if stun_t > stun_rem_b:
-                    stun_rem_b = stun_t
-                    stun_applied[0] += stun_t
-                kb_dir = 1.0 if pos_b >= pos_a else -1.0
-                new_pos = pos_b + kb_dir * a_kb
-                if new_pos < 0.0:
-                    new_pos = 0.0
-                elif new_pos > field_size:
-                    new_pos = field_size
-                pos_b = new_pos
-                cd_rem_a = round(a_cd * tick_scale)
+            hp_b = hp_b - dmg
+            if hp_b < 0.0:
+                hp_b = 0.0
+            if stun_t > stun_rem_b:
+                stun_rem_b = stun_t
+                stun_applied[0] += stun_t
+            kb_dir = 1.0 if pos_b >= pos_a else -1.0
+            new_pos = pos_b + kb_dir * a_kb
+            if new_pos < 0.0:
+                new_pos = 0.0
+            elif new_pos > field_size:
+                new_pos = field_size
+            pos_b = new_pos
+            cd_rem_a = round(a_cd * tick_scale)
 
         # B → A
         if action_b == 0 and cd_rem_b == 0 and distance <= b_range:
             dmg = b_dmg
             if action_a == 3:
                 dmg *= defend_red
-            if dmg > 0.0:
-                stun_t = round(b_stun * round(b_cd * tick_scale))  # fração × cooldown_subticks; < cooldown por bound
+            stun_t = round(b_stun * round(b_cd * tick_scale))  # fração × cooldown_subticks; < cooldown por bound
 
-                hp_a = hp_a - dmg
-                if hp_a < 0.0:
-                    hp_a = 0.0
-                if stun_t > stun_rem_a:
-                    stun_rem_a = stun_t
-                    stun_applied[1] += stun_t
-                kb_dir = 1.0 if pos_a >= pos_b else -1.0
-                new_pos = pos_a + kb_dir * b_kb
-                if new_pos < 0.0:
-                    new_pos = 0.0
-                elif new_pos > field_size:
-                    new_pos = field_size
-                pos_a = new_pos
-                cd_rem_b = round(b_cd * tick_scale)
+            hp_a = hp_a - dmg
+            if hp_a < 0.0:
+                hp_a = 0.0
+            if stun_t > stun_rem_a:
+                stun_rem_a = stun_t
+                stun_applied[1] += stun_t
+            kb_dir = 1.0 if pos_a >= pos_b else -1.0
+            new_pos = pos_a + kb_dir * b_kb
+            if new_pos < 0.0:
+                new_pos = 0.0
+            elif new_pos > field_size:
+                new_pos = field_size
+            pos_a = new_pos
+            cd_rem_b = round(b_cd * tick_scale)
 
         # ── Decremento de timers stale ───────────────────────────────────────
         if stun_rem_a <= pre_stun_a:
@@ -466,55 +464,53 @@ def _simulate_combat_traced_jit(
             dmg = a_dmg
             if action_b == 3:
                 dmg *= defend_red
-            if dmg > 0.0:
-                stun_t = round(a_stun * round(a_cd * tick_scale))  # fração × cooldown_subticks; < cooldown por bound
+            stun_t = round(a_stun * round(a_cd * tick_scale))  # fração × cooldown_subticks; < cooldown por bound
 
-                hp_b = hp_b - dmg
-                if hp_b < 0.0:
-                    hp_b = 0.0
-                applied = 0
-                if stun_t > stun_rem_b:
-                    stun_rem_b = stun_t
-                    applied = stun_t
-                kb_dir = 1.0 if pos_b >= pos_a else -1.0
-                new_pos = pos_b + kb_dir * a_kb
-                if new_pos < 0.0:
-                    new_pos = 0.0
-                elif new_pos > field_size:
-                    new_pos = field_size
-                pos_b = new_pos
-                cd_rem_a = round(a_cd * tick_scale)
+            hp_b = hp_b - dmg
+            if hp_b < 0.0:
+                hp_b = 0.0
+            applied = 0
+            if stun_t > stun_rem_b:
+                stun_rem_b = stun_t
+                applied = stun_t
+            kb_dir = 1.0 if pos_b >= pos_a else -1.0
+            new_pos = pos_b + kb_dir * a_kb
+            if new_pos < 0.0:
+                new_pos = 0.0
+            elif new_pos > field_size:
+                new_pos = field_size
+            pos_b = new_pos
+            cd_rem_a = round(a_cd * tick_scale)
 
-                dmg_dealt[tick, 0]  = dmg
-                stun_dealt[tick, 0] = applied
-                kb_dealt[tick, 0]   = a_kb
+            dmg_dealt[tick, 0]  = dmg
+            stun_dealt[tick, 0] = applied
+            kb_dealt[tick, 0]   = a_kb
 
         if action_b == 0 and cd_rem_b == 0 and distance <= b_range:
             dmg = b_dmg
             if action_a == 3:
                 dmg *= defend_red
-            if dmg > 0.0:
-                stun_t = round(b_stun * round(b_cd * tick_scale))  # fração × cooldown_subticks; < cooldown por bound
+            stun_t = round(b_stun * round(b_cd * tick_scale))  # fração × cooldown_subticks; < cooldown por bound
 
-                hp_a = hp_a - dmg
-                if hp_a < 0.0:
-                    hp_a = 0.0
-                applied = 0
-                if stun_t > stun_rem_a:
-                    stun_rem_a = stun_t
-                    applied = stun_t
-                kb_dir = 1.0 if pos_a >= pos_b else -1.0
-                new_pos = pos_a + kb_dir * b_kb
-                if new_pos < 0.0:
-                    new_pos = 0.0
-                elif new_pos > field_size:
-                    new_pos = field_size
-                pos_a = new_pos
-                cd_rem_b = round(b_cd * tick_scale)
+            hp_a = hp_a - dmg
+            if hp_a < 0.0:
+                hp_a = 0.0
+            applied = 0
+            if stun_t > stun_rem_a:
+                stun_rem_a = stun_t
+                applied = stun_t
+            kb_dir = 1.0 if pos_a >= pos_b else -1.0
+            new_pos = pos_a + kb_dir * b_kb
+            if new_pos < 0.0:
+                new_pos = 0.0
+            elif new_pos > field_size:
+                new_pos = field_size
+            pos_a = new_pos
+            cd_rem_b = round(b_cd * tick_scale)
 
-                dmg_dealt[tick, 1]  = dmg
-                stun_dealt[tick, 1] = applied
-                kb_dealt[tick, 1]   = b_kb
+            dmg_dealt[tick, 1]  = dmg
+            stun_dealt[tick, 1] = applied
+            kb_dealt[tick, 1]   = b_kb
 
         # ── Decremento de timers stale ───────────────────────────────────────
         if stun_rem_a <= pre_stun_a:

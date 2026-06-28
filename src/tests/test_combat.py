@@ -3,6 +3,8 @@ Smoke test do módulo de combate.
 Rode com: py -m src.tests.test_combat
 """
 
+import numpy as np
+
 from src.engine.archetypes import ARCHETYPES, ARCHETYPE_ORDER, ArchetypeID
 from src.engine.character import Character
 from src.engine.combat import simulate_combat, simulate_combat_detailed, simulate_combat_traced, seed_combat, CombatResult
@@ -118,7 +120,6 @@ print("  ✓ rusher majoritariamente FRENTE")
 # ── 7. Invariante: sem stun-lock ─────────────────────────────────────────────
 
 separator("Invariante: stun aplicado nunca >= cooldown_subticks do atacante")
-import numpy as np
 ind = Individual.from_canonical()
 rush = next(c for c in ind.characters if c.archetype_id == ArchetypeID.RUSHDOWN)
 zon  = next(c for c in ind.characters if c.archetype_id == ArchetypeID.ZONER)
