@@ -41,8 +41,8 @@ DOMINANCE_GLOBAL_WEIGHT = 1.0
 DOMINANCE_CAP_WEIGHT = 0.5
 DOMINANCE_DECIS_WEIGHT = 0.5
 
-# Meia-banda do hard-counter: (X - 0.5) < WR < (X + 0.5)
-MATCHUP_WR_CAP = 0.20
+# Meia-banda do hard-counter: (|X - 0.5|) < WR < (|X + 0.5|)
+MATCHUP_WR_CAP = 0.15
 
 # Banda de decisividade, em margem |score − 0.5| 
 
@@ -59,7 +59,7 @@ FIELD_SIZE = 100                  # tamanho do campo (unidades)
 INITIAL_DISTANCE = 50             # distância inicial entre lutadores
 TICK_SCALE = 5                    # resolução sub-tick de cooldown/stun/movimento (mais granularidade = menos platôs no AG)
 MAX_TICKS = 500 * TICK_SCALE      # duração máxima de uma luta
-DEFEND_DAMAGE_REDUCTION = 0.5     # multiplicador no dano recebido ao defender
+DEFEND_DAMAGE_REDUCTION = 1 - 0.4     # multiplicador no dano recebido ao defender
 ACTION_PERSISTENCE_SUBTICKS = 10  # sub-ticks que uma intenção sorteada é mantida (inércia/momentum)
 
 # ── Bounds e nomes dos genes ─────────────────────────────────────────────────
@@ -67,7 +67,7 @@ ACTION_PERSISTENCE_SUBTICKS = 10  # sub-ticks que uma intenção sorteada é man
 
 ATTRIBUTE_BOUNDS = [
     (250.0, 450.0),  # hp
-    (10.0, 20.0),    # damage (flat; só reduzido por DEFEND)
+    (15.0, 30.0),    # damage (flat; só reduzido por DEFEND)
     (1.0, 5.0),      # attack_cooldown (ticks entre ataques; menor = mais rápido)
     (5.0, 20.0),     # range (< INITIAL_DISTANCE)
     (1.0, 5.0),      # speed

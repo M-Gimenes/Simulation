@@ -1,0 +1,874 @@
+{
+  "algorithm": "nsga2",
+  "n_seeds": 10,
+  "seeds": [
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50,
+    51
+  ],
+  "validation_seed": 9999,
+  "sims_per_matchup": 200,
+  "per_seed": [
+    {
+      "seed": 42,
+      "dominance_penalty": 0.21120780449856533,
+      "drift_penalty": 0.29448520027701985,
+      "characters": {
+        "Zoner": {
+          "wr": 0.5025,
+          "balanced": true
+        },
+        "Rushdown": {
+          "wr": 0.53125,
+          "balanced": true
+        },
+        "Combo Master": {
+          "wr": 0.39625,
+          "balanced": false
+        },
+        "Grappler": {
+          "wr": 0.5825,
+          "balanced": true
+        },
+        "Turtle": {
+          "wr": 0.4875,
+          "balanced": true
+        }
+      },
+      "matchups": {
+        "Zoner vs Rushdown": {
+          "wr": 0.725,
+          "hard_counter": true
+        },
+        "Zoner vs Combo Master": {
+          "wr": 0.61,
+          "hard_counter": false
+        },
+        "Zoner vs Grappler": {
+          "wr": 0.385,
+          "hard_counter": false
+        },
+        "Zoner vs Turtle": {
+          "wr": 0.29,
+          "hard_counter": true
+        },
+        "Rushdown vs Combo Master": {
+          "wr": 0.73,
+          "hard_counter": true
+        },
+        "Rushdown vs Grappler": {
+          "wr": 0.665,
+          "hard_counter": false
+        },
+        "Rushdown vs Turtle": {
+          "wr": 0.455,
+          "hard_counter": false
+        },
+        "Combo Master vs Grappler": {
+          "wr": 0.3,
+          "hard_counter": false
+        },
+        "Combo Master vs Turtle": {
+          "wr": 0.625,
+          "hard_counter": false
+        },
+        "Grappler vs Turtle": {
+          "wr": 0.68,
+          "hard_counter": false
+        }
+      },
+      "n_chars_balanced": 4,
+      "n_hard_counters": 3,
+      "roster_balanced": false,
+      "front_size": 300,
+      "hypervolume": 1.7382539073084962,
+      "spacing": 0.0038041252607556608
+    },
+    {
+      "seed": 43,
+      "dominance_penalty": 0.1695052678922542,
+      "drift_penalty": 0.24868093192186805,
+      "characters": {
+        "Zoner": {
+          "wr": 0.5275,
+          "balanced": true
+        },
+        "Rushdown": {
+          "wr": 0.48875,
+          "balanced": true
+        },
+        "Combo Master": {
+          "wr": 0.505,
+          "balanced": true
+        },
+        "Grappler": {
+          "wr": 0.495,
+          "balanced": true
+        },
+        "Turtle": {
+          "wr": 0.48375,
+          "balanced": true
+        }
+      },
+      "matchups": {
+        "Zoner vs Rushdown": {
+          "wr": 0.725,
+          "hard_counter": true
+        },
+        "Zoner vs Combo Master": {
+          "wr": 0.275,
+          "hard_counter": true
+        },
+        "Zoner vs Grappler": {
+          "wr": 0.43,
+          "hard_counter": false
+        },
+        "Zoner vs Turtle": {
+          "wr": 0.68,
+          "hard_counter": false
+        },
+        "Rushdown vs Combo Master": {
+          "wr": 0.7,
+          "hard_counter": false
+        },
+        "Rushdown vs Grappler": {
+          "wr": 0.505,
+          "hard_counter": false
+        },
+        "Rushdown vs Turtle": {
+          "wr": 0.475,
+          "hard_counter": false
+        },
+        "Combo Master vs Grappler": {
+          "wr": 0.42,
+          "hard_counter": false
+        },
+        "Combo Master vs Turtle": {
+          "wr": 0.575,
+          "hard_counter": false
+        },
+        "Grappler vs Turtle": {
+          "wr": 0.335,
+          "hard_counter": false
+        }
+      },
+      "n_chars_balanced": 5,
+      "n_hard_counters": 2,
+      "roster_balanced": false,
+      "front_size": 267,
+      "hypervolume": 1.7380843489593696,
+      "spacing": 0.004243821158570396
+    },
+    {
+      "seed": 44,
+      "dominance_penalty": 0.1977510672035968,
+      "drift_penalty": 0.23167098844080042,
+      "characters": {
+        "Zoner": {
+          "wr": 0.55,
+          "balanced": true
+        },
+        "Rushdown": {
+          "wr": 0.4125,
+          "balanced": true
+        },
+        "Combo Master": {
+          "wr": 0.52875,
+          "balanced": true
+        },
+        "Grappler": {
+          "wr": 0.54,
+          "balanced": true
+        },
+        "Turtle": {
+          "wr": 0.46875,
+          "balanced": true
+        }
+      },
+      "matchups": {
+        "Zoner vs Rushdown": {
+          "wr": 0.525,
+          "hard_counter": false
+        },
+        "Zoner vs Combo Master": {
+          "wr": 0.475,
+          "hard_counter": false
+        },
+        "Zoner vs Grappler": {
+          "wr": 0.695,
+          "hard_counter": false
+        },
+        "Zoner vs Turtle": {
+          "wr": 0.505,
+          "hard_counter": false
+        },
+        "Rushdown vs Combo Master": {
+          "wr": 0.39,
+          "hard_counter": false
+        },
+        "Rushdown vs Grappler": {
+          "wr": 0.325,
+          "hard_counter": false
+        },
+        "Rushdown vs Turtle": {
+          "wr": 0.46,
+          "hard_counter": false
+        },
+        "Combo Master vs Grappler": {
+          "wr": 0.29,
+          "hard_counter": true
+        },
+        "Combo Master vs Turtle": {
+          "wr": 0.69,
+          "hard_counter": false
+        },
+        "Grappler vs Turtle": {
+          "wr": 0.47,
+          "hard_counter": false
+        }
+      },
+      "n_chars_balanced": 5,
+      "n_hard_counters": 1,
+      "roster_balanced": false,
+      "front_size": 261,
+      "hypervolume": 1.749761408020104,
+      "spacing": 0.004804852328258186
+    },
+    {
+      "seed": 45,
+      "dominance_penalty": 0.17639096766076803,
+      "drift_penalty": 0.23863579560598938,
+      "characters": {
+        "Zoner": {
+          "wr": 0.5175,
+          "balanced": true
+        },
+        "Rushdown": {
+          "wr": 0.4625,
+          "balanced": true
+        },
+        "Combo Master": {
+          "wr": 0.51,
+          "balanced": true
+        },
+        "Grappler": {
+          "wr": 0.5125,
+          "balanced": true
+        },
+        "Turtle": {
+          "wr": 0.4975,
+          "balanced": true
+        }
+      },
+      "matchups": {
+        "Zoner vs Rushdown": {
+          "wr": 0.53,
+          "hard_counter": false
+        },
+        "Zoner vs Combo Master": {
+          "wr": 0.51,
+          "hard_counter": false
+        },
+        "Zoner vs Grappler": {
+          "wr": 0.6,
+          "hard_counter": false
+        },
+        "Zoner vs Turtle": {
+          "wr": 0.43,
+          "hard_counter": false
+        },
+        "Rushdown vs Combo Master": {
+          "wr": 0.605,
+          "hard_counter": false
+        },
+        "Rushdown vs Grappler": {
+          "wr": 0.215,
+          "hard_counter": true
+        },
+        "Rushdown vs Turtle": {
+          "wr": 0.56,
+          "hard_counter": false
+        },
+        "Combo Master vs Grappler": {
+          "wr": 0.72,
+          "hard_counter": true
+        },
+        "Combo Master vs Turtle": {
+          "wr": 0.435,
+          "hard_counter": false
+        },
+        "Grappler vs Turtle": {
+          "wr": 0.585,
+          "hard_counter": false
+        }
+      },
+      "n_chars_balanced": 5,
+      "n_hard_counters": 2,
+      "roster_balanced": false,
+      "front_size": 297,
+      "hypervolume": 1.7821938148751015,
+      "spacing": 0.005017708922154359
+    },
+    {
+      "seed": 46,
+      "dominance_penalty": 0.23316255789460655,
+      "drift_penalty": 0.20159112953522113,
+      "characters": {
+        "Zoner": {
+          "wr": 0.525,
+          "balanced": true
+        },
+        "Rushdown": {
+          "wr": 0.51125,
+          "balanced": true
+        },
+        "Combo Master": {
+          "wr": 0.54125,
+          "balanced": true
+        },
+        "Grappler": {
+          "wr": 0.47125,
+          "balanced": true
+        },
+        "Turtle": {
+          "wr": 0.45125,
+          "balanced": true
+        }
+      },
+      "matchups": {
+        "Zoner vs Rushdown": {
+          "wr": 0.33,
+          "hard_counter": false
+        },
+        "Zoner vs Combo Master": {
+          "wr": 0.435,
+          "hard_counter": false
+        },
+        "Zoner vs Grappler": {
+          "wr": 0.59,
+          "hard_counter": false
+        },
+        "Zoner vs Turtle": {
+          "wr": 0.745,
+          "hard_counter": true
+        },
+        "Rushdown vs Combo Master": {
+          "wr": 0.285,
+          "hard_counter": true
+        },
+        "Rushdown vs Grappler": {
+          "wr": 0.65,
+          "hard_counter": false
+        },
+        "Rushdown vs Turtle": {
+          "wr": 0.44,
+          "hard_counter": false
+        },
+        "Combo Master vs Grappler": {
+          "wr": 0.215,
+          "hard_counter": true
+        },
+        "Combo Master vs Turtle": {
+          "wr": 0.67,
+          "hard_counter": false
+        },
+        "Grappler vs Turtle": {
+          "wr": 0.34,
+          "hard_counter": false
+        }
+      },
+      "n_chars_balanced": 5,
+      "n_hard_counters": 3,
+      "roster_balanced": false,
+      "front_size": 295,
+      "hypervolume": 1.732571797420672,
+      "spacing": 0.005795203872650263
+    },
+    {
+      "seed": 47,
+      "dominance_penalty": 0.09594940883079667,
+      "drift_penalty": 0.18769609265589146,
+      "characters": {
+        "Zoner": {
+          "wr": 0.50875,
+          "balanced": true
+        },
+        "Rushdown": {
+          "wr": 0.48375,
+          "balanced": true
+        },
+        "Combo Master": {
+          "wr": 0.525,
+          "balanced": true
+        },
+        "Grappler": {
+          "wr": 0.51,
+          "balanced": true
+        },
+        "Turtle": {
+          "wr": 0.4725,
+          "balanced": true
+        }
+      },
+      "matchups": {
+        "Zoner vs Rushdown": {
+          "wr": 0.645,
+          "hard_counter": false
+        },
+        "Zoner vs Combo Master": {
+          "wr": 0.545,
+          "hard_counter": false
+        },
+        "Zoner vs Grappler": {
+          "wr": 0.345,
+          "hard_counter": false
+        },
+        "Zoner vs Turtle": {
+          "wr": 0.5,
+          "hard_counter": false
+        },
+        "Rushdown vs Combo Master": {
+          "wr": 0.285,
+          "hard_counter": true
+        },
+        "Rushdown vs Grappler": {
+          "wr": 0.64,
+          "hard_counter": false
+        },
+        "Rushdown vs Turtle": {
+          "wr": 0.655,
+          "hard_counter": false
+        },
+        "Combo Master vs Grappler": {
+          "wr": 0.55,
+          "hard_counter": false
+        },
+        "Combo Master vs Turtle": {
+          "wr": 0.38,
+          "hard_counter": false
+        },
+        "Grappler vs Turtle": {
+          "wr": 0.575,
+          "hard_counter": false
+        }
+      },
+      "n_chars_balanced": 5,
+      "n_hard_counters": 1,
+      "roster_balanced": false,
+      "front_size": 296,
+      "hypervolume": 1.8001746038501325,
+      "spacing": 0.0051546444367059265
+    },
+    {
+      "seed": 48,
+      "dominance_penalty": 0.143028589833128,
+      "drift_penalty": 0.2128435156098119,
+      "characters": {
+        "Zoner": {
+          "wr": 0.51625,
+          "balanced": true
+        },
+        "Rushdown": {
+          "wr": 0.4875,
+          "balanced": true
+        },
+        "Combo Master": {
+          "wr": 0.49,
+          "balanced": true
+        },
+        "Grappler": {
+          "wr": 0.51,
+          "balanced": true
+        },
+        "Turtle": {
+          "wr": 0.49625,
+          "balanced": true
+        }
+      },
+      "matchups": {
+        "Zoner vs Rushdown": {
+          "wr": 0.33,
+          "hard_counter": false
+        },
+        "Zoner vs Combo Master": {
+          "wr": 0.37,
+          "hard_counter": false
+        },
+        "Zoner vs Grappler": {
+          "wr": 0.66,
+          "hard_counter": false
+        },
+        "Zoner vs Turtle": {
+          "wr": 0.705,
+          "hard_counter": true
+        },
+        "Rushdown vs Combo Master": {
+          "wr": 0.33,
+          "hard_counter": false
+        },
+        "Rushdown vs Grappler": {
+          "wr": 0.355,
+          "hard_counter": false
+        },
+        "Rushdown vs Turtle": {
+          "wr": 0.595,
+          "hard_counter": false
+        },
+        "Combo Master vs Grappler": {
+          "wr": 0.35,
+          "hard_counter": false
+        },
+        "Combo Master vs Turtle": {
+          "wr": 0.31,
+          "hard_counter": false
+        },
+        "Grappler vs Turtle": {
+          "wr": 0.405,
+          "hard_counter": false
+        }
+      },
+      "n_chars_balanced": 5,
+      "n_hard_counters": 1,
+      "roster_balanced": false,
+      "front_size": 226,
+      "hypervolume": 1.7549604780302082,
+      "spacing": 0.005461913946160812
+    },
+    {
+      "seed": 49,
+      "dominance_penalty": 0.2488597314698171,
+      "drift_penalty": 0.2085032735918703,
+      "characters": {
+        "Zoner": {
+          "wr": 0.5175,
+          "balanced": true
+        },
+        "Rushdown": {
+          "wr": 0.4775,
+          "balanced": true
+        },
+        "Combo Master": {
+          "wr": 0.475,
+          "balanced": true
+        },
+        "Grappler": {
+          "wr": 0.49,
+          "balanced": true
+        },
+        "Turtle": {
+          "wr": 0.54,
+          "balanced": true
+        }
+      },
+      "matchups": {
+        "Zoner vs Rushdown": {
+          "wr": 0.275,
+          "hard_counter": true
+        },
+        "Zoner vs Combo Master": {
+          "wr": 0.325,
+          "hard_counter": false
+        },
+        "Zoner vs Grappler": {
+          "wr": 0.835,
+          "hard_counter": true
+        },
+        "Zoner vs Turtle": {
+          "wr": 0.635,
+          "hard_counter": false
+        },
+        "Rushdown vs Combo Master": {
+          "wr": 0.55,
+          "hard_counter": false
+        },
+        "Rushdown vs Grappler": {
+          "wr": 0.45,
+          "hard_counter": false
+        },
+        "Rushdown vs Turtle": {
+          "wr": 0.185,
+          "hard_counter": true
+        },
+        "Combo Master vs Grappler": {
+          "wr": 0.38,
+          "hard_counter": false
+        },
+        "Combo Master vs Turtle": {
+          "wr": 0.395,
+          "hard_counter": false
+        },
+        "Grappler vs Turtle": {
+          "wr": 0.625,
+          "hard_counter": false
+        }
+      },
+      "n_chars_balanced": 5,
+      "n_hard_counters": 3,
+      "roster_balanced": false,
+      "front_size": 300,
+      "hypervolume": 1.7281478143671747,
+      "spacing": 0.0049660124093104056
+    },
+    {
+      "seed": 50,
+      "dominance_penalty": 0.19946989447439856,
+      "drift_penalty": 0.2696499050915213,
+      "characters": {
+        "Zoner": {
+          "wr": 0.50125,
+          "balanced": true
+        },
+        "Rushdown": {
+          "wr": 0.51875,
+          "balanced": true
+        },
+        "Combo Master": {
+          "wr": 0.5275,
+          "balanced": true
+        },
+        "Grappler": {
+          "wr": 0.52375,
+          "balanced": true
+        },
+        "Turtle": {
+          "wr": 0.42875,
+          "balanced": true
+        }
+      },
+      "matchups": {
+        "Zoner vs Rushdown": {
+          "wr": 0.62,
+          "hard_counter": false
+        },
+        "Zoner vs Combo Master": {
+          "wr": 0.43,
+          "hard_counter": false
+        },
+        "Zoner vs Grappler": {
+          "wr": 0.69,
+          "hard_counter": false
+        },
+        "Zoner vs Turtle": {
+          "wr": 0.265,
+          "hard_counter": true
+        },
+        "Rushdown vs Combo Master": {
+          "wr": 0.625,
+          "hard_counter": false
+        },
+        "Rushdown vs Grappler": {
+          "wr": 0.275,
+          "hard_counter": true
+        },
+        "Rushdown vs Turtle": {
+          "wr": 0.795,
+          "hard_counter": true
+        },
+        "Combo Master vs Grappler": {
+          "wr": 0.68,
+          "hard_counter": false
+        },
+        "Combo Master vs Turtle": {
+          "wr": 0.485,
+          "hard_counter": false
+        },
+        "Grappler vs Turtle": {
+          "wr": 0.74,
+          "hard_counter": true
+        }
+      },
+      "n_chars_balanced": 5,
+      "n_hard_counters": 4,
+      "roster_balanced": false,
+      "front_size": 300,
+      "hypervolume": 1.7371953829136013,
+      "spacing": 0.007670637448885325
+    },
+    {
+      "seed": 51,
+      "dominance_penalty": 0.20401333066157346,
+      "drift_penalty": 0.20979527013922375,
+      "characters": {
+        "Zoner": {
+          "wr": 0.52125,
+          "balanced": true
+        },
+        "Rushdown": {
+          "wr": 0.46375,
+          "balanced": true
+        },
+        "Combo Master": {
+          "wr": 0.55375,
+          "balanced": true
+        },
+        "Grappler": {
+          "wr": 0.4625,
+          "balanced": true
+        },
+        "Turtle": {
+          "wr": 0.49875,
+          "balanced": true
+        }
+      },
+      "matchups": {
+        "Zoner vs Rushdown": {
+          "wr": 0.585,
+          "hard_counter": false
+        },
+        "Zoner vs Combo Master": {
+          "wr": 0.365,
+          "hard_counter": false
+        },
+        "Zoner vs Grappler": {
+          "wr": 0.67,
+          "hard_counter": false
+        },
+        "Zoner vs Turtle": {
+          "wr": 0.465,
+          "hard_counter": false
+        },
+        "Rushdown vs Combo Master": {
+          "wr": 0.4,
+          "hard_counter": false
+        },
+        "Rushdown vs Grappler": {
+          "wr": 0.575,
+          "hard_counter": false
+        },
+        "Rushdown vs Turtle": {
+          "wr": 0.465,
+          "hard_counter": false
+        },
+        "Combo Master vs Grappler": {
+          "wr": 0.285,
+          "hard_counter": true
+        },
+        "Combo Master vs Turtle": {
+          "wr": 0.695,
+          "hard_counter": false
+        },
+        "Grappler vs Turtle": {
+          "wr": 0.38,
+          "hard_counter": false
+        }
+      },
+      "n_chars_balanced": 5,
+      "n_hard_counters": 1,
+      "roster_balanced": false,
+      "front_size": 226,
+      "hypervolume": 1.7414198138954913,
+      "spacing": 0.006004557782482505
+    }
+  ],
+  "aggregate": {
+    "dominance_penalty": {
+      "mean": 0.18793386204195045,
+      "std": 0.04439438698484036
+    },
+    "drift_penalty": {
+      "mean": 0.23035521028692174,
+      "std": 0.03319456193741017
+    },
+    "characters": {
+      "Zoner": {
+        "mean": 0.51875,
+        "std": 0.014055939827860853,
+        "balanced_rate": 1.0
+      },
+      "Rushdown": {
+        "mean": 0.48375,
+        "std": 0.033737137466661946,
+        "balanced_rate": 1.0
+      },
+      "Combo Master": {
+        "mean": 0.50525,
+        "std": 0.04489107186661211,
+        "balanced_rate": 0.9
+      },
+      "Grappler": {
+        "mean": 0.50975,
+        "std": 0.0345346042237187,
+        "balanced_rate": 1.0
+      },
+      "Turtle": {
+        "mean": 0.48250000000000004,
+        "std": 0.030121282619879706,
+        "balanced_rate": 1.0
+      }
+    },
+    "matchup_wr": {
+      "Zoner vs Rushdown": {
+        "mean": 0.529,
+        "std": 0.16513967152417103
+      },
+      "Zoner vs Combo Master": {
+        "mean": 0.434,
+        "std": 0.10370363756611647
+      },
+      "Zoner vs Grappler": {
+        "mean": 0.59,
+        "std": 0.15638272140986534
+      },
+      "Zoner vs Turtle": {
+        "mean": 0.522,
+        "std": 0.16776637194490307
+      },
+      "Rushdown vs Combo Master": {
+        "mean": 0.49000000000000005,
+        "std": 0.17143187827498388
+      },
+      "Rushdown vs Grappler": {
+        "mean": 0.4655,
+        "std": 0.16635721271475495
+      },
+      "Rushdown vs Turtle": {
+        "mean": 0.5085,
+        "std": 0.1602957336369943
+      },
+      "Combo Master vs Grappler": {
+        "mean": 0.41900000000000004,
+        "std": 0.174017879030352
+      },
+      "Combo Master vs Turtle": {
+        "mean": 0.526,
+        "std": 0.14278577582440688
+      },
+      "Grappler vs Turtle": {
+        "mean": 0.5135,
+        "std": 0.14674335116492027
+      }
+    },
+    "hard_counter_rate": {
+      "Zoner vs Rushdown": 0.3,
+      "Zoner vs Combo Master": 0.1,
+      "Zoner vs Grappler": 0.1,
+      "Zoner vs Turtle": 0.4,
+      "Rushdown vs Combo Master": 0.3,
+      "Rushdown vs Grappler": 0.2,
+      "Rushdown vs Turtle": 0.2,
+      "Combo Master vs Grappler": 0.4,
+      "Combo Master vs Turtle": 0.0,
+      "Grappler vs Turtle": 0.1
+    },
+    "hard_counters_per_seed": {
+      "mean": 2.1,
+      "std": 1.1005049346146119
+    },
+    "roster_balanced_rate": 0.0,
+    "hypervolume": {
+      "mean": 1.7502763369640353,
+      "std": 0.023277609037700903
+    },
+    "spacing": {
+      "mean": 0.005292347756593384,
+      "std": 0.0010644702081652586
+    }
+  }
+}
