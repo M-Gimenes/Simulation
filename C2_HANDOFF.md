@@ -153,3 +153,182 @@ invalidadas** (mudou o objetivo) — re-rodar tudo (`report`, `multi_run`,
 - **`CLAUDE.md`** (seção *Key Design Decisions* + *Hyperparameters*): descrição do
   `dominance_penalty`, "Two fitness terms", "Direction-blind dominance", "Convergence
   criteria" e bullets de hiperparâmetros.
+
+---
+
+## Combate (2026-06-27)
+
+### Novo modelo de combate: intenção → execução
+
+O loop JIT foi reescrito em duas fases por tick:
+
+**Fase 1 — Intenção (quando em range):** o personagem sorteia uma *intenção*
+(`FRENTE / RECUAR / GUARDA`) via `random.choices` ponderado por
+`(w_aggressiveness, w_retreat, w_defend)`, mantida por `ACTION_PERSISTENCE_SUBTICKS`
+ticks (comprometimento/momentum).
+
+**Fase 2 — Execução:** a intenção determina a ação concreta:
+- `FRENTE` → `ATTACK` se cooldown=0, senão `ADVANCE` (pressão sem desperdício de cooldown)
+- `RECUAR` → `RETREAT` se houver espaço, senão `DEFEND` (encurralado)
+- `GUARDA` → `DEFEND`
+
+Fora do range próprio: `ADVANCE` incondicional (neutral game).
+
+O modelo anterior tinha 4 prioridades hierárquicas independentes (ATTACK → ADVANCE →
+COMMITMENT → NEW SOFT POLICY) com hesitação (`HESITATION_RATE`) como segunda fonte
+estocástica. O novo modelo **elimina a hesitação** — estocasticidade vem apenas do
+sorteio de intenção, que nunca interrompe uma intenção em andamento (sem flip-flop
+por tick).
+
+### stun como fração
+
+```python
+stun_t = round(a_stun * round(a_cd * tick_scale))
+```
+
+`stun` agora é uma **fração do próprio cooldown do atacante** em sub-ticks (bound
+`[0.0, 0.6]`). Antes era valor absoluto em sub-ticks independente do cooldown.
+Consequência: stun aplicado é **sempre < cooldown do atacante**, garantindo janela de
+ação livre ao defensor. O `STUN_CAP_MULTIPLIER` explícito foi removido — o bound de
+gene (`stun < 1.0`) garante a invariante matematicamente.
+
+### defense e recovery removidos
+
+- **`defense`** (redução passiva de dano) foi removido dos genes e do JIT. Dano agora
+  é flat: `dmg = a_dmg`, modificado apenas pela ação `DEFEND` (que aplica
+  `DEFEND_DAMAGE_REDUCTION`). O gene `defense` não existe mais — 7 atributos, não 9.
+- **`recovery`** (subtração de stun recebido) foi removido dos genes e do JIT. Stun
+  bruto é aplicado diretamente (sujeito ao bound de fração acima).
+
+### Constantes removidas de config.py
+
+| Constante             | Motivo                                              |
+|-----------------------|-----------------------------------------------------|
+| `HESITATION_RATE`     | Hesitação eliminada — estocasticidade só via intenção |
+| `WALL_CORNER_THRESHOLD` | Cornering removido — RETREAT recua até borda (0/FIELD_SIZE) |
+| `STUN_CAP_MULTIPLIER` | Cap garantido pelo bound do gene (`stun < 1.0`)     |
+| `INTEGER_ATTRIBUTES`  | `recovery` (único int) foi removido                 |
+
+### 10 genes por personagem
+
+Antes: 9 atributos (`hp, damage, cooldown, range, speed, defense, stun, recovery, knockback`)
+       + 3 pesos = **12 genes**.
+
+Agora: 7 atributos (`hp, damage, cooldown, range, speed, stun, knockback`)
+       + 3 pesos = **10 genes**. Individuo = 5 × 10 = **50 genes** total.
+
+`stun` passou de índice 6 para índice 5 no array de atributos (ver `Attr` em
+`character.py`). O índice `[5]` em `combat.py` é válido (stun novo).
+
+---
+
+### Auditoria de código morto — resultado: LIMPO
+
+Grep em `src/` para os símbolos removidos:
+`defense, recovery, STUN_CAP_MULTIPLIER, HESITATION_RATE, WALL_CORNER_THRESHOLD,
+INTEGER_ATTRIBUTES, cornered, hesitate, a_def, b_def, a_rec, b_rec`
+
+**Resultado: nenhum hit.** O código está limpo.
+
+Índices de gene verificados:
+- `[8]` (índice antigo de recovery) → nenhum hit em `src/` ✓
+- `[5]` → todos os hits são `a_stun`/`b_stun` (índice atual de stun, válido) ✓
+- `== 12` → único hit é `test_archetype_validator.py:79` (conta de asserções, não genes) ✓
+
+---
+
+### Suíte de testes — resultado: todos passam
+
+```
+test_base              ✓ (10 genes OK, 50 genes/individual OK)
+test_combat            ✓ (stun-lock invariant + seed_combat + traced)
+test_fitness           ✓ (range -4.0 < f <= 0, cache, invalidação)
+test_operators         ✓ (torneio, cruzamento, mutação, nova geração)
+test_nsga2             ✓
+test_archetype_validator ✓
+NSGA-II e2e (3 gens)   ✓ (16 no front)
+```
+
+---
+
+### Flavor text estale em archetypes.py — listar, NÃO reescrever agora
+
+As `description` dos arquétipos referenciam mecânicas removidas. Decisão de redação —
+ajustar na sessão de textos:
+
+| Arquétipo    | Trecho estale                                                           | Mecânica removida |
+|--------------|-------------------------------------------------------------------------|-------------------|
+| **Rushdown** | "Se ferra contra alta defesa e personagens que absorvem pressão."       | `defense` (passivo) |
+| **Grappler** | "Recuperação alta resiste aos combos adversários."                      | `recovery`          |
+| **Turtle**   | "Perde para quem quebra a defesa com stun."                             | `defense` (passivo) |
+
+---
+
+### Textos a atualizar na próxima sessão de redação
+
+**CLAUDE.md:**
+- Seção "Priority-based action selection" (~linhas 154-162): descreve o modelo antigo
+  de 4 prioridades hierárquicas. Substituir pela descrição intenção→execução acima.
+- Seção "Action persistence": menciona que ATTACK/cornered interrompem commitment.
+  Cornering não existe mais; o novo modelo mantém intenção até o fim do contador.
+- Seção "Architecture" (combat.py): lista hesitação como "2ª fonte de estocasticidade".
+  Remover — única fonte agora é o sorteio de intenção.
+- Seção "Key Design Decisions": remover bullets de `STUN_CAP_MULTIPLIER`, `recovery`
+  (subtração inteira), `defense` (redução passiva), nota "cooldown only on hit / if dmg>0"
+  (continua válida, mas o contexto da `defense` sumiu — revisar). Atualizar stun
+  para a semântica de fração.
+- Seção "Hyperparameters" (~linha 215): remover `HESITATION_RATE` da lista.
+
+**docs/reference/04-combat-model.md:**
+- `WALL_CORNER_THRESHOLD` + cornering removidos.
+- `HESITATION_RATE` + hesitação removidos.
+- Stun: era valor absoluto, agora fração × cooldown_subticks; sem `STUN_CAP_MULTIPLIER`.
+- `recovery`: removido dos genes e do JIT.
+- `defense`: removido dos genes e do JIT.
+- Sistema de prioridades: substituir pelos 3 estados de intenção + execução.
+
+**docs/reference/07-configuration.md:**
+- Remover linhas de `HESITATION_RATE`, `WALL_CORNER_THRESHOLD`, `STUN_CAP_MULTIPLIER`,
+  `INTEGER_ATTRIBUTES`.
+- Atualizar bounds: `defense` e `recovery` não existem mais em `ATTRIBUTE_BOUNDS`.
+- Atualizar semântica do `stun` (era sub-ticks absoluto, agora fração ∈ [0.0, 0.6]).
+
+**docs/reference/10-known-issues.md:**
+- Issue de calibração de `HESITATION_RATE` agora obsoleta — remover ou arquivar.
+- Achado "recovery-neutro" (estava em aberto): fechado — recovery foi removido.
+
+**docs/reference/11-combat-review.md:**
+- WR graduada era creditada à hesitação (`HESITATION_RATE`). Hesitação foi removida;
+  a gradação agora vem de `ACTION_PERSISTENCE_SUBTICKS` + sorteio de intenção. Atualizar.
+- Análise de recovery: seção cobre recovery como gene — agora obsoleta. Anotar.
+
+**docs/reference/03-archetypes.md:**
+- Tabela canônica: remover colunas `defense` e `recovery`, stun era absoluto (ex. Grappler
+  `recovery=4` sub-ticks), agora é fração (`stun=0.30`). Atualizar semântica.
+- Semântica dos pesos: sem mudança estrutural, mas verificar contexto.
+
+**docs/reference/05-genetic-algorithm.md:**
+- Contagem de genes: atualizar de 12 para 10 por personagem, 60 para 50 total.
+- `drift_penalty` computado sobre 10 genes (não 12).
+
+**overleaf/artigo-SBC/main.tex:**
+- Tabela canônica: remover colunas `defense` e `recovery`; atualizar `stun` de absoluto
+  para fração; atualizar contagem de genes (12→10).
+- §3.2 combate: atualizar modelo de prioridades e mecanismo de stun/hesitação.
+- §3.3 representação: atualizar contagem de genes (12→10) e lista de atributos.
+
+---
+
+### Aviso: todas as rodadas anteriores estão invalidadas
+
+O motor de combate mudou (genes, JIT, fórmula de stun). Todos os `results/` existentes
+foram gerados com o modelo antigo e **não devem ser citados**. Re-rodar após calibrar:
+
+**Itens de calibração (fora do escopo desta task — ver brief):**
+- Valores canônicos: semântica de `w_agg` mudou; Turtle virou tanky-ativo; re-tune dos
+  canônicos conforme novo modelo.
+- Força do stun: `stun` agora é fração [0.0, 0.6] — calibrar o bound superior e os
+  valores canônicos (Combo Master `stun=0.55` era sub-ticks, agora fração).
+- `MATCHUP_WR_CAP` (C2): definir quão duras as arestas do ciclo podem ser.
+- `ACTION_PERSISTENCE_SUBTICKS`: calibrar comprometimento de intenção.
+- `TICK_SCALE`: subir para 10 apenas se aparecer platô de granularidade.
