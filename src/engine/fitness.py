@@ -19,12 +19,14 @@ from typing import Dict, List, Optional, Tuple
 from .combat import seed_combat, simulate_combat
 from .config import (
     ATTRIBUTE_BOUNDS,
+    DOMINANCE_CAP_WEIGHT,
     DOMINANCE_DECIS_WEIGHT,
-    DOMINANCE_WR_WEIGHT,
+    DOMINANCE_GLOBAL_WEIGHT,
     LAMBDA_DOMINANCE,
     LAMBDA_DRIFT,
     MATCHUP_FLOOR,
     MATCHUP_THRESHOLD,
+    MATCHUP_WR_CAP,
     N_WORKERS,
     SIMS_PER_MATCHUP,
 )
@@ -105,30 +107,44 @@ def _fight_score(result, hp_max_i: float, hp_max_j: float) -> float:
 
 
 def _dominance_penalty(
+    winrates: List[float],
     matchup_winrates: Dict[Tuple[int, int], float],
     matchup_decisiveness: Dict[Tuple[int, int], float],
 ) -> float:
-    """RMS sobre os 10 pares do excesso `e = WR_w·wr_excess + DECIS_w·decis_excess`.
+    """Soma ponderada de três sinais cegos à direção (formulação C2). Nenhum codifica
+    QUEM deveria vencer cada par — o ciclo de vantagens segue métrica post-hoc.
 
-    Termo PRIMÁRIO (`wr_excess = |WR − 0.5| / 0.5`, contínuo, sem banda morta):
-    balanço de win rate — gradiente liso até 50%. Termo SECUNDÁRIO (`decis_excess`,
-    excesso da decisividade fora da banda [MATCHUP_FLOOR, MATCHUP_THRESHOLD]):
-    qualidade de luta, guarda contra blowout-coinflip (WR ~50% mas toda luta um
-    massacre). Cego à direção — não codifica quem deveria vencer cada matchup."""
+    PRIMÁRIO — balanço GLOBAL por personagem (`global_excess = |WR − 0.5| / 0.5`, RMS
+    sobre os 5): nenhum boneco domina o roster. NÃO empurra cada par a 50%, então um
+    boneco a 50% global pode vencer 2 e perder 2 — o espaço em que o ciclo vive.
+    SECUNDÁRIO (teto) — hard-counter por par (`cap_excess`, |WR − 0.5| além de
+    MATCHUP_WR_CAP, RMS sobre os 10): mantém as arestas do ciclo como vantagens, não
+    como counters esmagadores (ex.: 100×0).
+    SECUNDÁRIO (qualidade) — decisividade por luta fora da banda
+    [MATCHUP_FLOOR, MATCHUP_THRESHOLD] (RMS sobre os 10): guarda contra blowout (toda
+    luta um massacre, mesmo com WR equilibrada)."""
+    global_excesses = [abs(wr - 0.5) / 0.5 for wr in winrates]
+    global_term = math.sqrt(sum(e * e for e in global_excesses) / len(global_excesses))
+
+    cap_scale  = 0.5 - MATCHUP_WR_CAP
     over_scale = 0.5 - MATCHUP_THRESHOLD
-    excesses = []
+    cap_excesses:   List[float] = []
+    decis_excesses: List[float] = []
     for key in matchup_decisiveness:
         wr = matchup_winrates[key]
-        d = matchup_decisiveness[key]
-        wr_excess = abs(wr - 0.5) / 0.5
-        decis_over = max(0.0, d - MATCHUP_THRESHOLD) / over_scale
+        d  = matchup_decisiveness[key]
+        cap_excesses.append(max(0.0, abs(wr - 0.5) - MATCHUP_WR_CAP) / cap_scale)
+        decis_over  = max(0.0, d - MATCHUP_THRESHOLD) / over_scale
         decis_under = max(0.0, MATCHUP_FLOOR - d) / MATCHUP_FLOOR
-        e = (
-            DOMINANCE_WR_WEIGHT * wr_excess
-            + DOMINANCE_DECIS_WEIGHT * (decis_over + decis_under)
-        )
-        excesses.append(e)
-    return math.sqrt(sum(e * e for e in excesses) / len(excesses))
+        decis_excesses.append(decis_over + decis_under)
+    cap_term   = math.sqrt(sum(e * e for e in cap_excesses) / len(cap_excesses))
+    decis_term = math.sqrt(sum(e * e for e in decis_excesses) / len(decis_excesses))
+
+    return (
+        DOMINANCE_GLOBAL_WEIGHT * global_term
+        + DOMINANCE_CAP_WEIGHT   * cap_term
+        + DOMINANCE_DECIS_WEIGHT * decis_term
+    )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -197,7 +213,7 @@ def evaluate_detail_n(individual: Individual, sims: int) -> FitnessDetail:
 
     archetype_deviations = [_archetype_deviation(c) for c in chars]
     drift_penalty        = sum(archetype_deviations) / n
-    dominance_pen        = _dominance_penalty(matchup_winrates, matchup_decisiveness)
+    dominance_pen        = _dominance_penalty(winrates, matchup_winrates, matchup_decisiveness)
 
     fitness = -(
         LAMBDA_DRIFT     * drift_penalty

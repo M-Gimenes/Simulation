@@ -27,8 +27,8 @@ for i, aid in enumerate(ARCHETYPE_ORDER):
 print(f"\n  drift_penalty     = {detail.drift_penalty:.4f}")
 print(f"  dominance_penalty = {detail.dominance_penalty:.4f}")
 print(f"  fitness           = {detail.fitness:.4f}")
-# fitness = -(LAMBDA_DRIFT*drift + LAMBDA_DOMINANCE*dom); ambos os termos em [0,1]
-assert -2.0 < detail.fitness <= 0.0, f"Fitness fora do range: {detail.fitness}"
+# fitness = -(LAMBDA_DRIFT*drift + LAMBDA_DOMINANCE*dom); drift∈[0,~1], dom∈[0,~2] (C2)
+assert -4.0 < detail.fitness <= 0.0, f"Fitness fora do range: {detail.fitness}"
 print("  ✓ Fitness dentro do range esperado")
 
 # Matriz de matchup direto

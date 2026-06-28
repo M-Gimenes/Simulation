@@ -1,8 +1,8 @@
 """
 Loop principal do AG escalar — inicializa, evolui e retorna o melhor indivíduo.
 
-Para por convergência (todos matchups dentro do threshold), estagnação
-(STAGNATION_LIMIT gerações sem melhoria) ou MAX_GENERATIONS.
+Para por convergência (roster equilibrado: WR global ~50% por boneco e nenhum
+counter duro), estagnação (STAGNATION_LIMIT gerações sem melhoria) ou MAX_GENERATIONS.
 """
 
 from __future__ import annotations
@@ -17,7 +17,8 @@ import numpy as np
 from .combat import seed_combat
 from .config import (
     ELITE_SIZE,
-    MATCHUP_CONVERGENCE_THRESHOLD,
+    GLOBAL_CONVERGENCE_THRESHOLD,
+    MATCHUP_WR_CAP,
     MAX_GENERATIONS,
     POPULATION_SIZE,
     SIMS_CONVERGENCE_CHECK,
@@ -199,12 +200,18 @@ def run(
             _log(stats, verbose)
 
         if best_detail.dominance_penalty <= 1e-9:
-            confirmed   = evaluate_detail_n(best_ind, SIMS_CONVERGENCE_CHECK)
-            matchups_ok = all(
-                abs(wr - 0.5) <= MATCHUP_CONVERGENCE_THRESHOLD
+            confirmed = evaluate_detail_n(best_ind, SIMS_CONVERGENCE_CHECK)
+            # Equilíbrio C2: nenhum boneco domina o roster (WR global ~50%) e nenhum
+            # par é counter duro. NÃO exige cada par a 50% — arestas de ciclo são ok.
+            global_ok = all(
+                abs(wr - 0.5) <= GLOBAL_CONVERGENCE_THRESHOLD
+                for wr in confirmed.winrates
+            )
+            no_hard_counter = all(
+                abs(wr - 0.5) <= MATCHUP_WR_CAP
                 for wr in confirmed.matchup_winrates.values()
             )
-            if matchups_ok:
+            if global_ok and no_hard_counter:
                 best_ind.fitness = confirmed.fitness
                 _log_result(GAResult(best_ind, confirmed, gen, True, False, history), verbose)
                 return GAResult(

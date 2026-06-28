@@ -9,7 +9,9 @@ POPULATION_SIZE = 300
 ELITE_SIZE = int(POPULATION_SIZE * 0.1)  # indivíduos preservados por elitismo por geração
 MAX_GENERATIONS = 150  # limite de gerações
 STAGNATION_LIMIT = 30  # gerações sem melhoria > 0.001 antes de parar
-MATCHUP_CONVERGENCE_THRESHOLD = 0.10  # desvio máximo de WR por matchup
+GLOBAL_CONVERGENCE_THRESHOLD = 0.10   # convergência: |WR global − 0.5| máx por personagem (ninguém domina o roster)
+MATCHUP_CONVERGENCE_THRESHOLD = 0.10  # banda de matchup "apertado" — métrica SECUNDÁRIA de reporting (tools).
+# A convergência do AG (C2) não usa mais isto: usa GLOBAL_CONVERGENCE_THRESHOLD (boneco) + MATCHUP_WR_CAP (counter duro).
 
 # ── AG — Operadores ──────────────────────────────────────────────────────────
 
@@ -37,16 +39,33 @@ LAMBDA_DOMINANCE = (
 #   MATCHUP_FLOOR     (piso)  → abaixo disso a luta é fina demais (quase-empate)
 # Banda saudável = [MATCHUP_FLOOR, MATCHUP_THRESHOLD]. Cega à direção (não codifica
 # quem deveria vencer — o ciclo continua métrica post-hoc).
-MATCHUP_THRESHOLD = 0.10  # ⟺ vencedor fecha com ~20% de HP
-MATCHUP_FLOOR = 0.05      # ⟺ vencedor fecha com ~10% de HP
+MATCHUP_THRESHOLD = 0.20  # ⟺ vencedor fecha com ~20% de HP
+MATCHUP_FLOOR = 0.10      # ⟺ vencedor fecha com ~10% de HP
 
-# Pesos dos dois componentes do dominance_penalty (ver docs/reference/05-genetic-
-# algorithm.md). WR é o objetivo PRIMÁRIO de balanceamento (|WR − 0.5| contínuo,
-# sem banda morta); a decisividade é regularizador SECUNDÁRIO de qualidade de luta
-# (guarda contra blowout-coinflip: 50% A esmaga / 50% B esmaga → WR ~50% mas toda
-# luta um massacre).
-DOMINANCE_WR_WEIGHT = 1.0
+# Pesos dos três componentes do dominance_penalty (formulação C2 — equilíbrio
+# GLOBAL, não por-matchup; ver C2_HANDOFF.md). Todos cegos à direção (nenhum
+# codifica quem deveria vencer — o ciclo de vantagens segue métrica post-hoc).
+#
+#   PRIMÁRIO  — balanço GLOBAL por personagem: |WR_global − 0.5| → 0. Garante que
+#               nenhum boneco domina o roster, mas NÃO força cada par a 50%. Um
+#               boneco a 50% global pode vencer 2 e perder 2 — é o espaço em que o
+#               ciclo de vantagens pode existir. (Antes o termo primário era WR
+#               por-matchup, que empurrava TODO par a 50% e, por construção,
+#               destruía o ciclo.)
+#   SECUNDÁRIO (teto) — hard-counter por par: pune |WR_par − 0.5| acima de
+#               MATCHUP_WR_CAP. Mantém as arestas do ciclo como VANTAGENS, não como
+#               counters esmagadores (ex.: 100×0).
+#   SECUNDÁRIO (qualidade) — decisividade por luta fora da banda saudável. Guarda
+#               contra blowout (toda luta um massacre, mesmo com WR equilibrada).
+DOMINANCE_GLOBAL_WEIGHT = 1.0
+DOMINANCE_CAP_WEIGHT = 0.5
 DOMINANCE_DECIS_WEIGHT = 0.5
+
+# Meia-banda do hard-counter: um par é "counter duro" (penalizado pelo termo de teto
+# e barrado na convergência) quando |WR − 0.5| > MATCHUP_WR_CAP, i.e. fora de
+# [0.20, 0.80]. Dentro da banda, o par é vantagem de ciclo, não desbalanço.
+# PROVISÓRIO — calibrar (0.25→[0.25,0.75] mais rígido; 0.35→[0.15,0.85] mais permissivo).
+MATCHUP_WR_CAP = 0.20
 
 # ── Paralelismo ──────────────────────────────────────────────────────────────
 
@@ -135,10 +154,11 @@ NSGA2_POP_SIZE = POPULATION_SIZE
 NSGA2_GENERATIONS = MAX_GENERATIONS
 NSGA2_OBJECTIVES = ["dominance_penalty", "drift_penalty"]
 # Ponto de referência do hipervolume (item 1.2 da metodologia): canto dos PIORES
-# valores possíveis de (dominance_penalty, drift_penalty). dominance_penalty ≤ ~1.5
-# (RMS de excessos: WR_w·1 + DECIS_w·1 = 1.0 + 0.5); drift_penalty ≤ ~1.0 (distância
-# euclidiana normalizada média). Fixo entre execuções para que o HV seja comparável.
-HYPERVOLUME_REFERENCE = (1.5, 1.0)
+# valores possíveis de (dominance_penalty, drift_penalty). dominance_penalty ≤ ~2.0
+# (soma dos 3 termos no pior caso: GLOBAL·1 + CAP·1 + DECIS·1 = 1.0 + 0.5 + 0.5);
+# drift_penalty ≤ ~1.0 (distância euclidiana normalizada média). Fixo entre execuções
+# para que o HV seja comparável.
+HYPERVOLUME_REFERENCE = (2.0, 1.0)
 
 # ── Multi-run — N execuções independentes + estatística agregada ─────────────
 # Item 1.1 da metodologia (Eiben & Smith 2015; Deb 2001): um EA é estocástico, então
