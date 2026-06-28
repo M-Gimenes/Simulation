@@ -23,7 +23,7 @@ Isso existia só como diagnóstico (`FitnessDetail.winrates`) e havia sumido do 
 **C2 (escolhida).** Equilíbrio = **nenhum boneco globalmente dominante** (WR global →
 50%), **não** cada par a 50%. Mais um **teto de hard-counter** (impede counters
 esmagadores tipo 100×0, mantendo as arestas do ciclo como *vantagens* dentro de uma
-banda) e a **decisividade** secundária inalterada. Tudo continua **cego à direção** —
+banda) e a **fórmula** da decisividade inalterada (os valores da banda foram ajustados depois). Tudo continua **cego à direção** —
 o ciclo segue métrica **post-hoc**, não codificado. Resultado: o ciclo passa a ser
 **expressável** pelo sistema; "o ciclo emerge das identidades preservadas?" vira o
 achado real (e C2 é robusto ao próprio fracasso: se emergir, ótimo; se o plano
@@ -44,7 +44,8 @@ decis_term  = RMS_{pares=1..10} ( decisividade fora de [MATCHUP_FLOOR, MATCHUP_T
 com `GLOBAL_W=1.0`, `CAP_W=0.5`, `DECIS_W=0.5`. Máximo teórico do `dominance` = **2.0**
 (era 1.5). Todos os termos são RMS de excessos normalizados em ~[0,1].
 
-Sanity check empírico (canônico, `test_fitness`): `dominance ≈ 1.34`, `drift = 0`.
+Sanity check empírico (canônico, `test_fitness`): `dominance ≈ 1.34`, `drift = 0`
+(calculado sob a banda anterior 0.10/0.05; aproximado).
 Coerente — Grappler 100% / Zoner ~1% global puxam `global_term`; os 10 blowouts puxam
 `cap_term` e `decis_term`.
 
@@ -55,10 +56,10 @@ Coerente — Grappler 100% / Zoner ~1% global puxam `global_term`; os 10 blowout
 ### `src/engine/config.py`
 - **Removido:** `DOMINANCE_WR_WEIGHT`.
 - **Adicionado:** `DOMINANCE_GLOBAL_WEIGHT = 1.0`, `DOMINANCE_CAP_WEIGHT = 0.5`,
-  `MATCHUP_WR_CAP = 0.30` (banda hard-counter = [0.20, 0.80]),
+  `MATCHUP_WR_CAP = 0.20` (banda hard-counter = [0.30, 0.70]; ajustado pelo usuário; provisório),
   `GLOBAL_CONVERGENCE_THRESHOLD = 0.10`.
-- **Mantido:** `DOMINANCE_DECIS_WEIGHT = 0.5`, `MATCHUP_THRESHOLD = 0.10`,
-  `MATCHUP_FLOOR = 0.05`.
+- **Mantido:** `DOMINANCE_DECIS_WEIGHT = 0.5`, `MATCHUP_THRESHOLD = 0.20`,
+  `MATCHUP_FLOOR = 0.10` (ajustados pelo usuário; provisórios).
 - **`MATCHUP_CONVERGENCE_THRESHOLD = 0.10`:** mantido, mas **agora só usado pelas
   tools** (reporting secundário "matchup apertado"). O AG **não** usa mais.
 - **`HYPERVOLUME_REFERENCE`:** `(1.5, 1.0)` → **`(2.0, 1.0)`** (novo máx de dominance).

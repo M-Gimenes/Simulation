@@ -34,13 +34,13 @@ LAMBDA_DOMINANCE = (
 )
 # Banda de decisividade por-luta do dominance_penalty (margem |score − 0.5|,
 # em que score = 0.5 + 0.5·HP_frac do vencedor). A luta ideal não é nem blowout
-# nem decidida no fio: o vencedor fecha com ~10-20% de HP de folga.
+# nem decidida no fio: o vencedor fecha com ~20-40% de HP de folga.
 #   MATCHUP_THRESHOLD (teto) → acima disso a luta é decisiva demais (blowout)
 #   MATCHUP_FLOOR     (piso)  → abaixo disso a luta é fina demais (quase-empate)
 # Banda saudável = [MATCHUP_FLOOR, MATCHUP_THRESHOLD]. Cega à direção (não codifica
 # quem deveria vencer — o ciclo continua métrica post-hoc).
-MATCHUP_THRESHOLD = 0.20  # ⟺ vencedor fecha com ~20% de HP
-MATCHUP_FLOOR = 0.10      # ⟺ vencedor fecha com ~10% de HP
+MATCHUP_THRESHOLD = 0.20  # ⟺ vencedor fecha com ~40% de HP
+MATCHUP_FLOOR = 0.10      # ⟺ vencedor fecha com ~20% de HP
 
 # Pesos dos três componentes do dominance_penalty (formulação C2 — equilíbrio
 # GLOBAL, não por-matchup; ver C2_HANDOFF.md). Todos cegos à direção (nenhum
@@ -63,8 +63,8 @@ DOMINANCE_DECIS_WEIGHT = 0.5
 
 # Meia-banda do hard-counter: um par é "counter duro" (penalizado pelo termo de teto
 # e barrado na convergência) quando |WR − 0.5| > MATCHUP_WR_CAP, i.e. fora de
-# [0.20, 0.80]. Dentro da banda, o par é vantagem de ciclo, não desbalanço.
-# PROVISÓRIO — calibrar (0.25→[0.25,0.75] mais rígido; 0.35→[0.15,0.85] mais permissivo).
+# [0.30, 0.70]. Dentro da banda, o par é vantagem de ciclo, não desbalanço.
+# PROVISÓRIO — calibrar (0.25→[0.25,0.75] mais rígido; 0.15→[0.35,0.65] mais permissivo).
 MATCHUP_WR_CAP = 0.20
 
 # ── Paralelismo ──────────────────────────────────────────────────────────────
@@ -101,6 +101,10 @@ ATTRIBUTE_BOUNDS = [
     (5.0, 20.0),     # range
     (1.0, 5.0),      # speed
     (0.0, 0.6),      # stun (fração do cooldown; bound < 1 garante stun < cooldown_subticks)
+                   # Nota: a garantia anti-lock depende do acoplamento stun_bound × TICK_SCALE.
+                   # Com cd_min=1 e TICK_SCALE=5, cooldown_subticks ≥ 5, portanto
+                   # round(0.6 × 5) = 3 < 5. Se TICK_SCALE caísse para 1,
+                   # round(0.6 × 1) = 1 empataria com o cooldown mínimo.
     (0.0, 3.0),      # knockback
 ]
 
