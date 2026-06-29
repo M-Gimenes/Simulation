@@ -49,8 +49,6 @@ class GenerationStats:
     worst_fitness:          float
     drift_penalty:          float
     dominance_penalty:      float
-    winrates:               List[float]
-    archetype_deviations:   List[float]
     elapsed_s:              float
 
 
@@ -100,58 +98,6 @@ def _log_header(verbose: bool) -> None:
     print(f"{'─'*80}")
 
 
-def _bar(value: float, width: int = 20) -> str:
-    filled = int(value * width)
-    return "█" * filled + "░" * (width - filled)
-
-
-def log_matchup_matrix(detail: FitnessDetail, indent: str = "    ") -> None:
-    names  = [ARCHETYPES[aid].name[:6] for aid in ARCHETYPE_ORDER]
-    n      = len(names)
-    col_w  = 7
-    header = f"{indent}{'':12s}" + "".join(f"{name:>{col_w}}" for name in names)
-    print(header)
-    print(f"{indent}{'':12s}" + "─" * (col_w * n))
-    for i, aid in enumerate(ARCHETYPE_ORDER):
-        row = f"{indent}{ARCHETYPES[aid].name:<12s}"
-        for j in range(n):
-            if i == j:
-                row += f"{'—':>{col_w}}"
-            else:
-                lo, hi  = min(i, j), max(i, j)
-                wr      = detail.matchup_winrates.get((lo, hi), 0.0)
-                wr      = wr if i < j else 1.0 - wr
-                color   = "\033[32m" if wr >= 0.55 else ("\033[31m" if wr <= 0.45 else "")
-                reset   = "\033[0m" if color else ""
-                row    += f"{color}{wr:>{col_w-1}.0%}{reset} "
-        print(row)
-
-
-def _log_result(result: GAResult, verbose: bool) -> None:
-    if not verbose:
-        return
-    d = result.best_detail
-    print(f"\n{'─'*80}")
-    print(f"  Parada: {result.stop_reason}  (geração {result.generation})")
-    print(f"  {'Fitness':22s} {result.best.fitness:+.4f}")
-    print(f"  {'Dominance penalty':22s} {d.dominance_penalty:.4f}")
-    print(f"  {'Drift penalty':22s} {d.drift_penalty:.4f}")
-
-    print(f"\n  Winrate agregado por personagem:")
-    for i, aid in enumerate(ARCHETYPE_ORDER):
-        wr = d.winrates[i]
-        print(f"    {ARCHETYPES[aid].name:<15s} [{_bar(wr)}] {wr:.1%}")
-
-    print(f"\n  Matriz de matchup (WR da linha vs coluna):")
-    log_matchup_matrix(d)
-
-    print(f"\n  Desvio arquetípico (drift do canônico):")
-    for i, aid in enumerate(ARCHETYPE_ORDER):
-        dev = d.archetype_deviations[i] if i < len(d.archetype_deviations) else 0.0
-        print(f"    {ARCHETYPES[aid].name:<15s} [{_bar(dev)}] {dev:.3f}")
-    print(f"{'─'*80}\n")
-
-
 # ─────────────────────────────────────────────────────────────────────────────
 # Loop principal
 # ─────────────────────────────────────────────────────────────────────────────
@@ -197,8 +143,6 @@ def run(
             worst_fitness=min(fitnesses),
             drift_penalty=best_detail.drift_penalty,
             dominance_penalty=best_detail.dominance_penalty,
-            winrates=best_detail.winrates,
-            archetype_deviations=best_detail.archetype_deviations,
             elapsed_s=time.time() - t_start,
         )
         history.append(stats)
@@ -216,7 +160,6 @@ def run(
             )
             if global_ok and no_hard_counter:
                 best_ind.fitness = confirmed.fitness
-                _log_result(GAResult(best_ind, confirmed, gen, True, False, history), verbose)
                 return GAResult(
                     best=best_ind,
                     best_detail=confirmed,
@@ -233,7 +176,6 @@ def run(
             stagnation_count += 1
 
         if stagnation_count >= STAGNATION_LIMIT:
-            _log_result(GAResult(best_ind, best_detail, gen, False, True, history), verbose)
             return GAResult(
                 best=best_ind,
                 best_detail=best_detail,
@@ -248,7 +190,7 @@ def run(
 
     best_ind    = max(population, key=lambda ind: ind.fitness)
     best_detail = evaluate_detail(best_ind)
-    result = GAResult(
+    return GAResult(
         best=best_ind,
         best_detail=best_detail,
         generation=MAX_GENERATIONS - 1,
@@ -256,5 +198,3 @@ def run(
         stagnated=False,
         history=history,
     )
-    _log_result(result, verbose)
-    return result

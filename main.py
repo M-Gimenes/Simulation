@@ -7,8 +7,7 @@ import argparse
 import datetime
 import json
 
-from src.engine.archetypes import ARCHETYPE_ORDER, ARCHETYPES
-from src.engine.ga import run as run_ga, log_matchup_matrix
+from src.engine.ga import run as run_ga
 from src.engine.paths import GA_RESULTS_PATH, NSGA2_PLOTS_DIR, NSGA2_RESULTS_PATH, PROJECT_ROOT, RESULTS_DIR
 
 
@@ -29,33 +28,16 @@ def _main_ga(args):
         log_every=args.log_every,
     )
 
-    print("\n=== Personagens evoluídos ===\n")
-    for i, aid in enumerate(ARCHETYPE_ORDER):
-        char = result.best.get(aid)
-        wr   = result.best_detail.winrates[i]
-        print(f"  {ARCHETYPES[aid].name}")
-        print(f"    WR: {wr:.1%}  |  hp={char.hp:.1f}  dmg={char.damage:.1f}  "
-              f"cd={char.attack_cooldown:.1f}  rng={char.range_:.1f}  spd={char.speed:.1f}")
-        print(f"    stun={char.stun:.2f}  kb={char.knockback:.1f}")
-        print(f"    w=[ret={char.w_retreat:.2f}  def={char.w_defend:.2f}  agg={char.w_aggressiveness:.2f}]")
-        print()
-
-    print("\n=== Matriz de matchup (WR direto) ===\n")
-    log_matchup_matrix(result.best_detail, indent="  ")
-    print()
-    print(f"  Células: WR da linha contra a coluna (verde ≥55%, vermelho ≤45%)")
-
-    print(f"Parada: {result.stop_reason}")
-    print(f"Geração: {result.generation}")
-    print(f"Fitness: {result.best.fitness:+.4f}")
-    print(f"Dominance penalty:      {result.best_detail.dominance_penalty:.4f}")
-    print(f"Drift penalty:          {result.best_detail.drift_penalty:.4f}")
-
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     out = {"best_individual": [c.genes() for c in result.best.characters]}
     with open(GA_RESULTS_PATH, "w") as fh:
         json.dump(out, fh)
-    print(f"\nIndivíduo salvo em {GA_RESULTS_PATH.relative_to(PROJECT_ROOT)}")
+
+    d = result.best_detail
+    print(f"\nParada: {result.stop_reason} (geração {result.generation})")
+    print(f"fitness={result.best.fitness:+.4f}  dom={d.dominance_penalty:.4f}  drift={d.drift_penalty:.4f}")
+    print(f"Salvo em {GA_RESULTS_PATH.relative_to(PROJECT_ROOT)}")
+    print("→ py -m src.tools.report --evolved")
 
 
 def _main_nsga2(args):
@@ -84,6 +66,7 @@ def _main_nsga2(args):
     for name, ind in result.representatives.items():
         dom, drift = ind.objectives
         print(f"  {name:15s}  dom={dom:.4f}  drift={drift:.4f}")
+    print("\n→ py -m src.tools.report --nsga2 [knee_point|best_dominance|best_drift|ideal_point]")
 
 
 def main():

@@ -154,5 +154,12 @@ Outras paradas: `STAGNATION_LIMIT = 30` gerações sem melhoria > 0.001, ou
 
 ## Saída
 
-`py main.py` salva o melhor indivíduo em `results/results.json` como lista de
-genes por personagem. Consumido por tools via `Individual.from_results()`.
+`py main.py` evolui, salva o melhor indivíduo em `results/results.json` (lista de
+genes por personagem, consumida por tools via `Individual.from_results()`) e imprime
+apenas um **headline curto** — motivo de parada, geração, `fitness/dom/drift` — e o
+ponteiro `→ py -m src.tools.report --evolved`. A avaliação completa (matchups, drift
+por gene, fingerprint, validador) vive **só** no dossiê do `report`, não no `main`.
+
+`run()` ainda acumula `history` (lista de `GenerationStats`: `best/mean/worst
+fitness`, `drift_penalty`, `dominance_penalty`, `elapsed_s` por geração) para a curva
+de convergência da tese — ver [tcc/06-resultados-a-apresentar.md](../tcc/06-resultados-a-apresentar.md).
