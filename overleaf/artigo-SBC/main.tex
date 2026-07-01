@@ -9,20 +9,15 @@
 \usepackage{xcolor}
 
 % ============================================================
-% PLACEHOLDERS — valores a preencher após rodar os experimentos.
-% Cada placeholder \ph aparece em vermelho e negrito no PDF; basta localizar a macro.
-% Fatos estruturais (tabela canônica, parâmetros, validador 21/21) são REAIS.
-% Apenas os números que dependem da rodada estão como placeholder.
-%
-% Como gerar cada grupo:
-%   baseline canônico .... py -m src.tools.report --nsga2 best_drift
-%                          py -m src.tools.external_validation --canonical
-%   AG escalar ........... py -m src.tools.report --evolved
-%   fronteira/representantes  py -m src.tools.nsga2_plots ; pareto_metrics
-%   estatística agregada . py -m src.tools.multi_run --algorithm nsga2 (e ga)
-%   robustez ............. py -m src.tools.external_validation --nsga2 best_dominance
+% VALORES DERIVADOS DOS EXPERIMENTOS — fonte única em values.tex.
+% Todos os números que dependem da rodada são macros (\domBd, \eqCan, ...);
+% para atualizar após novas execuções, edite SÓ values.tex.
+% As matrizes de dados (Tabelas de matchups e fingerprint) trazem os valores
+% inline, com o comando de regeneração anotado acima de cada tabela.
+% \ph{} permanece como marcador de segurança para qualquer valor ainda pendente.
 % ============================================================
 \newcommand{\ph}[1]{\textcolor{red}{\textbf{[#1]}}}
+\input{values}
 
 \sloppy
 
@@ -50,11 +45,11 @@ arquétipos de jogos de luta}
   \emph{measured}, not enforced: deviation from a canonical profile is a soft
   penalty, and the advantage cycle is reported \emph{post hoc}, which avoids a
   circular research question. Balance and identity are treated as two objectives,
-  optimized both by a scalar GA and by NSGA-II. Aggregated over \ph{N} independent
+  optimized both by a scalar GA and by NSGA-II. Aggregated over \nSeeds{} independent
   runs, the results show that the canonical roster is severely unbalanced
-  (\ph{eq-can} balanced matchups); directly optimizing balance attains
-  \ph{eq-ag} balanced matchups but homogenizes the roster, whereas a solution
-  from the Pareto front reaches \ph{eq-bd} balanced matchups while \emph{increasing}
+  (\eqCan{} balanced matchups); directly optimizing balance attains
+  \eqAg{} balanced matchups but homogenizes the roster, whereas a solution
+  from the Pareto front reaches \eqBd{} balanced matchups while \emph{largely preserving}
   the differentiation between archetypes. The front makes the trade-off between
   balance and identity explicit and measurable.
 \end{abstract}
@@ -68,11 +63,11 @@ arquétipos de jogos de luta}
   suave, e o ciclo de vantagens é reportado \emph{post hoc}, o que evita uma
   pergunta de pesquisa circular. Equilíbrio e identidade são tratados como dois
   objetivos, otimizados tanto por um AG escalar quanto pelo NSGA-II. Agregados
-  sobre \ph{N} execuções independentes, os resultados mostram que o roster
-  canônico é fortemente desequilibrado (\ph{eq-can} confrontos equilibrados);
-  otimizar o equilíbrio diretamente alcança \ph{eq-ag} confrontos equilibrados, mas
+  sobre \nSeeds{} execuções independentes, os resultados mostram que o roster
+  canônico é fortemente desequilibrado (\eqCan{} confrontos equilibrados);
+  otimizar o equilíbrio diretamente alcança \eqAg{} confrontos equilibrados, mas
   homogeneíza o elenco, ao passo que uma solução da fronteira de Pareto atinge
-  \ph{eq-bd} confrontos equilibrados \emph{aumentando} a diferenciação entre
+  \eqBd{} confrontos equilibrados \emph{preservando em grande parte} a diferenciação entre
   arquétipos. A fronteira torna explícito e mensurável o compromisso entre
   equilíbrio e identidade.
 \end{resumo}
@@ -489,7 +484,7 @@ Numbers}), de modo que as diferenças de \emph{fitness} reflitam os genes, e nã
 sorteio. As sementes de treino, de agregação multissemente e de validação externa
 ocupam faixas disjuntas, de modo que a avaliação fora do laço nunca reencontra uma
 condição vista na otimização. Salvo indicação contrária, as execuções individuais
-reportadas a seguir usam a semente \ph{seed}; a agregação multissemente usa \ph{N}
+reportadas a seguir usam a semente \seedMain{}; a agregação multissemente usa \nSeeds{}
 sementes independentes.
 
 \section{Resultados}
@@ -508,18 +503,19 @@ construção. O validador confirma esse ponto de forma objetiva:
 \textbf{o \emph{roster} canônico satisfaz as 21 de 21 asserções} de identidade (17
 estruturais, por construção, e 4 comportamentais), e o desvio é nulo
 ($\textit{drift}=0$). O \emph{fingerprint} comportamental é coerente
-com os conceitos~--- o \emph{rushdown} avança em \ph{fp-rush} dos ticks, o
-\emph{turtle} defende em \ph{fp-turtle} e o \emph{zoner} recua em \ph{fp-zoner}~---,
+com os conceitos~--- o \emph{rushdown} avança em \fpRushAdv{}\% de suas ações, o
+\emph{turtle} defende (guarda) em \fpTurtleDef{}\% e o \emph{zoner} recua em \fpZonerRet{}\%~---,
 o que indica que os pesos produzem identidade comportamental visível, e não ruído
 arbitrário.
 
-Apesar dessa integridade de identidade, o \emph{roster} é marcadamente desequilibrado. A
-validação externa atribui-lhe $\textit{dominance}=\ph{dom-can-ext}$ e
-\textbf{\ph{eq-can}} confrontos equilibrados (Tabela~\ref{tab:matchups}, bloco
-superior): o Grappler vence \ph{wr-grap} de suas lutas, enquanto o Zoner vence
-\ph{wr-zon}; \ph{blow-can} dos dez confrontos são unilaterais (\emph{blowouts}). Esse resultado é, em si, um achado: o ciclo de vantagens canônico não é
-trivialmente preservado em um modelo de combate determinístico~--- apenas
-\ph{cycle-can} dos dez pares do ciclo se sustentam~---, o que sugere que a
+Apesar dessa integridade de identidade, o \emph{roster} é marcadamente desequilibrado
+(Tabela~\ref{tab:matchups}, bloco superior): \textbf{nenhum} dos dez confrontos é
+equilibrado, o Rushdown vence \emph{todas} as suas lutas (100\%) e o Turtle não vence
+\emph{nenhuma} (0\%), com \blowCan{} dos dez confrontos sendo \emph{blowouts}. A validação
+externa, sob \extNSeeds{} sementes inteiramente novas, confirma o quadro
+($\textit{dominance}=\domCanExt{}$). Esse resultado é, em si, um achado: o ciclo de vantagens
+canônico não é trivialmente preservado em um modelo de combate determinístico~--- apenas
+\cycleCan{} dos dez pares do ciclo se sustentam~---, o que sugere que a
 estrutura não transitiva dos jogos de luta reais depende parcialmente de mecânicas
 (combos encadeados, variância) deliberadamente ausentes do modelo. O
 \emph{baseline} define o ponto de partida contra o qual todo indivíduo evoluído é
@@ -528,11 +524,11 @@ lido.
 \subsection{A otimização direta do equilíbrio custa identidade}
 
 O AG escalar, com pesos iguais, persegue um único ponto e o empurra para o
-equilíbrio. Ele alcança $\textit{dominance}=\ph{dom-ag}$ e \textbf{\ph{eq-ag}}
+equilíbrio. Ele alcança $\textit{dominance}=\domAg{}$ e \textbf{todos os \eqAg{}}
 confrontos equilibrados, com WR em $[40\%,60\%]$. Esse equilíbrio quase total tem,
 porém, um custo de identidade visível e mensurável pelos instrumentos
-\emph{post hoc}: o desvio sobe para \ph{drift-ag} e, sobretudo, a diferenciação cai
-para uma razão de \ph{diff-ag}~--- sinal de homogeneização, isto é, os cinco
+\emph{post hoc}: o desvio sobe para $\driftAg{}$ e, sobretudo, a diferenciação cai
+para uma razão de $\diffAg{}$~--- sinal de homogeneização, isto é, os cinco
 personagens convergiram parcialmente entre si. O resultado mostra empiricamente
 que igualar as taxas de vitória, por si só, tende a dissolver a distinção entre
 arquétipos~--- precisamente a tensão que a pergunta de pesquisa identifica~--- e
@@ -542,17 +538,18 @@ em uma única medida escalar.
 \subsection{A fronteira de Pareto torna o \emph{trade-off} explícito}
 
 A Figura~\ref{fig:pareto} apresenta a fronteira de Pareto obtida pelo NSGA-II após
-150 gerações: \ph{n-front} soluções não dominadas, formando uma curva bem
-distribuída (espalhamento de \ph{spacing}), com hipervolume de \ph{hv} em relação
-ao ponto de referência $(2{,}0,\,1{,}0)$. A fronteira responde diretamente à
+150 gerações: \nFront{} soluções não dominadas (\nFrontDistinct{} pontos distintos no
+espaço de objetivos), formando uma curva bem distribuída (espalhamento de $\spacingVal{}$),
+com hipervolume de $\hvVal{}$ em relação ao ponto de referência $(2{,}0,\,1{,}0)$. A
+fronteira responde diretamente à
 pergunta de pesquisa: evidencia que equilíbrio e identidade \emph{são} objetivos
 conflitantes neste domínio e quantifica \emph{quanto} de um se troca pelo outro. O
 extremo de identidade preservada (\texttt{best\_drift}) coincide com o canônico
-($\textit{drift}=0$, $\textit{dominance}=\ph{dom-can}$); à medida que se admite
+($\textit{drift}=0$, $\textit{dominance}=\domCan{}$); à medida que se admite
 desvio, a penalidade de desbalanço diminui de forma monotônica, até o extremo de
-equilíbrio (\texttt{best\_dominance}: $\textit{dominance}=\ph{dom-bd}$,
-$\textit{drift}=\ph{drift-bd}$). O \emph{knee point}, melhor compromisso, situa-se
-em $(\ph{knee-dom},\,\ph{knee-drift})$.
+equilíbrio (\texttt{best\_dominance}: $\textit{dominance}=\domBd{}$,
+$\textit{drift}=\driftBd{}$). O \emph{knee point}, melhor compromisso, situa-se
+em $(\domKnee{},\,\driftKnee{})$.
 
 \begin{figure}[ht]
 \centering
@@ -569,18 +566,20 @@ equilíbrio e preservação de identidade.}
 
 A Tabela~\ref{tab:tradeoff} resume quatro pontos do \emph{trade-off}, medidos pelos
 quatro instrumentos de identidade. A comparação é o ponto central do trabalho. No
-extremo de identidade perfeita (canônico), o equilíbrio é nulo (\ph{eq-can}). No
-ponto do AG escalar, o equilíbrio é quase total (\ph{eq-ag}), mas a diferenciação
-cai (\ph{diff-ag}) e o validador registra apenas \ph{val-ag} de 21
-asserções preservadas. O representante \texttt{best\_dominance} do NSGA-II ocupa a posição
-mais relevante: pagando um desvio modesto de \ph{drift-bd}, reduz o desbalanço de
-\ph{dom-can} para \ph{dom-bd} e atinge \textbf{\ph{eq-bd}} confrontos
-equilibrados~--- e, decisivamente, a diferenciação par a par \emph{aumenta} em
-relação ao canônico (razão \ph{diff-bd}), com \ph{val-bd} de 21 asserções
-de identidade preservadas. Trata-se de equilíbrio substancial \emph{sem}
-homogeneização. Mesmo sem ser codificado na função objetivo, \ph{cycle-bd} dos dez
-pares do ciclo de vantagens canônico sobrevivem nesse indivíduo, como métrica
-\emph{post hoc}.
+extremo de identidade perfeita (canônico), o equilíbrio é nulo (\eqCan{} confrontos
+equilibrados). No ponto do AG escalar, o equilíbrio é total (\eqAg{}), mas a diferenciação
+cai (razão $\diffAg{}$) e o validador registra apenas \valAg{} de \valTotal{} asserções
+preservadas. O representante \texttt{best\_dominance} do NSGA-II leva o equilíbrio quase
+ao limite: pagando um desvio de $\driftBd{}$, reduz o desbalanço de $\domCan{}$ para
+$\domBd{}$ e atinge \textbf{\eqBd{}} dos dez confrontos equilibrados, com um único
+\emph{hard-counter}. Esse equilíbrio tem, porém, um custo de identidade parcial~--- o
+validador cai para \valBd{} de \valTotal{}~---, ainda que a diferenciação par a par seja
+\emph{largamente preservada} (razão $\diffBd{}$, bem acima do $\diffAg{}$ do AG escalar):
+a homogeneização é modesta, mas a identidade estrutural e comportamental se erode ao
+empurrar o equilíbrio ao extremo. O \emph{knee point}, examinado adiante, mostra que essa
+erosão pode ser quase evitada. Mesmo sem ser codificado na função objetivo, \cycleBd{} dos
+dez pares do ciclo de vantagens canônico sobrevivem no \texttt{best\_dominance}, como
+métrica \emph{post hoc}.
 
 \begin{table}[ht]
 \centering
@@ -597,12 +596,12 @@ representantes da fronteira NSGA-II.}
 \toprule
 Métrica & Canônico & AG escalar & \texttt{knee\_point} & \texttt{best\_dominance} \\
 \midrule
-\emph{dominance} $\downarrow$ & \ph{dom-can}   & \ph{dom-ag}   & \ph{knee-dom}   & \ph{dom-bd} \\
-\emph{drift} $\downarrow$     & 0{,}00         & \ph{drift-ag} & \ph{knee-drift} & \ph{drift-bd} \\
-Conf.\ eq.                    & \ph{eq-can}    & \ph{eq-ag}    & \ph{knee-eq}    & \ph{eq-bd} \\
-Difer.                        & 1{,}00         & \ph{diff-ag}  & \ph{knee-diff}  & \ph{diff-bd} \\
-Valid.\ (de 21)               & 21             & \ph{val-ag}   & \ph{knee-val}   & \ph{val-bd} \\
-Ciclo (de 10)                 & \ph{cycle-can} & \ph{cycle-ag} & \ph{knee-cycle} & \ph{cycle-bd} \\
+\emph{dominance} $\downarrow$ & \domCan   & \domAg   & \domKnee   & \domBd \\
+\emph{drift} $\downarrow$     & \driftCan & \driftAg & \driftKnee & \driftBd \\
+Conf.\ eq.                    & \eqCan    & \eqAg    & \eqKnee    & \eqBd \\
+Difer.                        & \diffCan  & \diffAg  & \diffKnee  & \diffBd \\
+Valid.\ (de \valTotal)        & \valCan   & \valAg   & \valKnee   & \valBd \\
+Ciclo (de \cycleTotal)        & \cycleCan & \cycleAg & \cycleKnee & \cycleBd \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -616,7 +615,8 @@ canônico dão lugar a lutas dentro da banda de vantagem.
 \centering
 \caption{Taxa de vitória (\%) da linha contra a coluna, no \emph{roster} canônico e
 no evoluído (\texttt{best\_dominance}). \emph{Global}: WR agregada sobre os quatro
-oponentes (alvo de equilíbrio: $50\%$). Valores a preencher após a rodada.}
+oponentes (alvo de equilíbrio: $50\%$). Medido na semente 42, 200 simulações por par.}
+% Blocos de: py -m src.tools.report [--nsga2 best_dominance] --seed 42  (matriz WR, n=200)
 \label{tab:matchups}
 \footnotesize
 \begin{tabular}{lrrrrrc}
@@ -624,82 +624,93 @@ oponentes (alvo de equilíbrio: $50\%$). Valores a preencher após a rodada.}
  & Zon. & Rush & CM & Grap & Turt. & \emph{Global} \\
 \midrule
 \multicolumn{7}{l}{\textit{Canônico}}\\
-Zoner        & ---      & \ph{cZR} & \ph{cZC} & \ph{cZG} & \ph{cZT} & \ph{cZg} \\
-Rushdown     & \ph{cRZ} & ---      & \ph{cRC} & \ph{cRG} & \ph{cRT} & \ph{cRg} \\
-Combo Master & \ph{cCZ} & \ph{cCR} & ---      & \ph{cCG} & \ph{cCT} & \ph{cCg} \\
-Grappler     & \ph{cGZ} & \ph{cGR} & \ph{cGC} & ---      & \ph{cGT} & \ph{cGg} \\
-Turtle       & \ph{cTZ} & \ph{cTR} & \ph{cTC} & \ph{cTG} & ---      & \ph{cTg} \\
+Zoner        & ---  & 0    & 0    & 0    & 98   & 25  \\
+Rushdown     & 100  & ---  & 100  & 100  & 100  & 100 \\
+Combo Master & 100  & 0    & ---  & 13   & 100  & 53  \\
+Grappler     & 100  & 0    & 87   & ---  & 100  & 72  \\
+Turtle       & 2    & 0    & 0    & 0    & ---  & 0   \\
 \midrule
 \multicolumn{7}{l}{\textit{best\_dominance}}\\
-Zoner        & ---      & \ph{eZR} & \ph{eZC} & \ph{eZG} & \ph{eZT} & \ph{eZg} \\
-Rushdown     & \ph{eRZ} & ---      & \ph{eRC} & \ph{eRG} & \ph{eRT} & \ph{eRg} \\
-Combo Master & \ph{eCZ} & \ph{eCR} & ---      & \ph{eCG} & \ph{eCT} & \ph{eCg} \\
-Grappler     & \ph{eGZ} & \ph{eGR} & \ph{eGC} & ---      & \ph{eGT} & \ph{eGg} \\
-Turtle       & \ph{eTZ} & \ph{eTR} & \ph{eTC} & \ph{eTG} & ---      & \ph{eTg} \\
+Zoner        & ---  & 48   & 56   & 68   & 46   & 54  \\
+Rushdown     & 52   & ---  & 55   & 43   & 59   & 52  \\
+Combo Master & 44   & 45   & ---  & 47   & 42   & 45  \\
+Grappler     & 32   & 57   & 53   & ---  & 60   & 50  \\
+Turtle       & 54   & 41   & 57   & 40   & ---  & 48  \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-No plano comportamental, a Tabela~\ref{tab:fingerprint} mostra que, no \emph{roster}
-\texttt{best\_dominance}, cada arquétipo ainda \emph{lidera} o eixo que o define (em
-negrito)~--- evidência direta, agora quantitativa, das asserções comportamentais
-preservadas pelo validador.
+No plano comportamental, a Tabela~\ref{tab:fingerprint} mostra o \emph{roster}
+\texttt{knee\_point}~--- o melhor compromisso da fronteira, com o validador em \valKnee{}
+de \valTotal{} asserções: cada arquétipo ainda \emph{lidera} o eixo que o define (em negrito),
+evidência direta e quantitativa de que, no joelho da fronteira, a identidade
+comportamental sobrevive ao equilíbrio. É o contraste com o extremo
+\texttt{best\_dominance}, em que apenas o \emph{rushdown} mantém sua assinatura
+comportamental~--- exatamente a erosão que o \emph{trade-off} torna visível.
 
+% Valores da coluna "evoluído" de: py -m src.tools.fingerprint --nsga2 knee_point --seed 42 --n 200
 \begin{table}[ht]
 \centering
-\caption{Perfil comportamental do \emph{roster} evoluído (\texttt{best\_dominance})
-nos quatro eixos que definem a identidade funcional (Camada 3 do validador). Em
-\textbf{negrito}, o eixo-assinatura de cada arquétipo, que deve ser o máximo da
-coluna. Distância e contagens são por luta; \emph{DEF guarda} é fração das ações. O
-\emph{grappler} não tem assinatura comportamental (o modelo não representa o
-\emph{grab}); o canônico é a referência do validador ($\Delta\approx0$).}
+\caption{Perfil comportamental do \emph{roster} \texttt{knee\_point} (melhor
+compromisso da fronteira) nos quatro eixos que definem a identidade funcional
+(Camada 3 do validador). Em \textbf{negrito}, o eixo-assinatura de cada arquétipo,
+que é o máximo da coluna. Distância e contagens são por luta; \emph{DEF guarda} é
+fração das ações. O \emph{grappler} não tem assinatura comportamental (o modelo não
+representa o \emph{grab}); o canônico é a referência do validador ($\Delta\approx0$).}
 \label{tab:fingerprint}
 \small
 \begin{tabular}{lrrrr}
 \toprule
 Arquétipo & Dist.\ média & ATK/luta & Stun/luta & DEF guarda \\
 \midrule
-Zoner        & \textbf{\ph{fp-zon-dist}}  & \ph{fp-zon-atk}           & \ph{fp-zon-stun}          & \ph{fp-zon-def} \\
-Rushdown     & \ph{fp-rush-dist}          & \textbf{\ph{fp-rush-atk}} & \ph{fp-rush-stun}         & \ph{fp-rush-def} \\
-Combo Master & \ph{fp-cm-dist}            & \ph{fp-cm-atk}            & \textbf{\ph{fp-cm-stun}}  & \ph{fp-cm-def} \\
-Grappler     & \ph{fp-grap-dist}          & \ph{fp-grap-atk}          & \ph{fp-grap-stun}         & \ph{fp-grap-def} \\
-Turtle       & \ph{fp-turt-dist}          & \ph{fp-turt-atk}          & \ph{fp-turt-stun}         & \textbf{\ph{fp-turt-def}} \\
+Zoner        & \textbf{8{,}4} & 14{,}8          & 29{,}5           & 18\% \\
+Rushdown     & 4{,}3          & \textbf{28{,}6} & 28{,}6           & 8\%  \\
+Combo Master & 4{,}0          & 22{,}8          & \textbf{182{,}3} & 19\% \\
+Grappler     & 5{,}9          & 14{,}4          & 86{,}2           & 26\% \\
+Turtle       & 7{,}8          & 15{,}1          & 15{,}1           & \textbf{32\%} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 A lição é que empurrar o equilíbrio até o limite custa identidade, ao passo que um
 ponto intermediário da fronteira~--- o \emph{knee point} (Tabela~\ref{tab:tradeoff})~---
-captura a maior parte do ganho de equilíbrio preservando~--- ou até ampliando~---
-a distinção entre arquétipos. A fronteira de
-Pareto é justamente o que permite \emph{escolher} conscientemente esse ponto, em
-vez de aceitar o resultado fixo de uma soma ponderada.
+captura a maior parte do ganho de equilíbrio preservando quase intacta a distinção
+entre arquétipos (validador em \valKnee{} de \valTotal{}, ante \valBd{} no extremo
+\texttt{best\_dominance}). A fronteira de Pareto é justamente o que permite
+\emph{escolher} conscientemente esse ponto, em vez de aceitar o resultado fixo de uma
+soma ponderada.
 
 \subsection{Estatística agregada e robustez}
 
 Para distinguir o que é estrutural do que é amostral, os resultados acima são
-consolidados sobre \ph{N} execuções independentes. Em média, o NSGA-II aterrissa
-em $\textit{dominance}=\ph{dom-mean}\pm\ph{dom-std}$ e
-$\textit{drift}=\ph{drift-mean}\pm\ph{drift-std}$, com hipervolume médio de
-\ph{hv-mean}$\pm$\ph{hv-std}. A taxa de sucesso por confronto identifica quais
-pares o sistema equilibra de forma consistente: \ph{sr-resumo}. Em
-\textbf{\ph{frac-balance}} das execuções, o representante de maior equilíbrio
-equilibra todos os 10 confrontos.
+consolidados sobre \nSeeds{} execuções independentes. Em média, o NSGA-II aterrissa
+em $\textit{dominance}=\aggDomMean{}\pm\aggDomStd{}$ e
+$\textit{drift}=\aggDriftMean{}\pm\aggDriftStd{}$, com hipervolume médio de
+$\aggHvMean{}\pm\aggHvStd{}$. O equilíbrio \emph{global} é a parte estrutural: cada
+personagem permanece globalmente equilibrado (WR em $[40\%,60\%]$) em 90--100\% das
+execuções. Já zerar simultaneamente os \emph{hard-counters} de par é sensível à
+semente: o \texttt{best\_dominance} deixa, em média, $\hcPerSeed{}\pm\hcPerSeedStd{}$
+pares residuais por execução, e o par Combo~Master~vs~Turtle nunca degenera em
+\emph{counter}, ao passo que Zoner~vs~Turtle e Combo~Master~vs~Grappler são os mais
+frágeis (\emph{counter} em 40\% das sementes).
 
 A robustez do indivíduo \texttt{best\_dominance} é então verificada fora do laço de
-otimização, sob \ph{ext-N} sementes de avaliação inteiramente novas
-(Seção~\ref{sec:protocolo}). O veredito é que \ph{rob-bd} dos 10 confrontos
-permanecem equilibrados em todas as condições, o que indica que o equilíbrio
-reportado \ph{rob-verdito} um artefato de sobreajuste ao \emph{fitness}.
+otimização, sob \extNSeeds{} sementes de avaliação inteiramente novas
+(Seção~\ref{sec:protocolo}). O veredito é que os \robCharsBd{} personagens permanecem
+globalmente equilibrados e \robBd{} dos \robTotal{} confrontos seguem equilibrados em
+\emph{todas} as condições (apenas Zoner~vs~Grappler resvala para \emph{hard-counter}
+em algumas), o que indica que o equilíbrio global reportado \textbf{não é} um artefato
+de sobreajuste ao \emph{fitness}.
 
 \subsection{Síntese dos achados}
 
 Os resultados sustentam uma resposta afirmativa, ainda que matizada: o equilíbrio
 competitivo \emph{pode} ser alcançado sem destruir as identidades funcionais, mas
 sob um \emph{trade-off} mensurável~--- o grau de equilíbrio buscado determina
-quanto de identidade se preserva. O equilíbrio substancial (\ph{eq-bd}) é
-compatível com identidade preservada, ou até reforçada; o equilíbrio total
-(\ph{eq-ag}), nesta configuração, exige alguma homogeneização.
+quanto de identidade se preserva. O equilíbrio substancial (\eqBd{} confrontos) é
+compatível com identidade largamente preservada~--- quase intacta no \emph{knee
+point}~---; já o equilíbrio total (\eqAg{}), nesta configuração, exige alguma
+homogeneização.
 
 \section{Limitações}
 
@@ -727,8 +738,8 @@ investigou com um AG escalar e com o NSGA-II, sob a premissa metodológica de
 pesquisa circular. Os resultados mostram que o \emph{roster} canônico é fortemente
 desequilibrado, que a otimização direta do equilíbrio o homogeneíza, e que a
 fronteira de Pareto torna o \emph{trade-off} explícito e mensurável, permitindo
-obter equilíbrio substancial enquanto se \emph{aumenta} a diferenciação entre
-arquétipos. A separação entre objetivos otimizados e métricas \emph{post hoc}
+obter equilíbrio substancial enquanto se \emph{preserva em grande parte} a
+diferenciação entre arquétipos. A separação entre objetivos otimizados e métricas \emph{post hoc}
 (ciclo, diferenciação, comportamento e estrutura) é o que preserva a validade
 científica da resposta.
 

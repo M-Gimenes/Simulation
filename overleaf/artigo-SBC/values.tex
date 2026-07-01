@@ -1,0 +1,83 @@
+% ============================================================
+% values.tex — VALORES DERIVADOS DOS EXPERIMENTOS (fonte única).
+% Todo número reportado no texto e na Tabela do trade-off vem daqui.
+% Ao refazer as rodadas, atualize SÓ este arquivo.
+%
+% Provenance (comandos que produzem cada grupo, na semente 42 salvo indicado):
+%   por-solução (dom/drift/eq/diff/val/cycle) .. py -m src.tools.report [--evolved|--nsga2 REP] --seed 42
+%                                                 py -m src.tools.drift_table [...]   (diferenciação)
+%   dominance/drift dos representantes NSGA ..... results/nsga2_results.json (objetivos da fronteira)
+%   fronteira (hv/spacing/tamanho) .............. src.engine.pareto_metrics sobre results/nsga2_results.json
+%   fingerprint canônico ........................ py -m src.tools.fingerprint --seed 42
+%   estatística agregada (10 sementes) .......... results/multi_run/multi_run_nsga2.json
+%   robustez / validação externa ................ results/external_validation/external_validation_*.json
+% Convenção: números com vírgula decimal (padrão pt-BR); "\%" fica no texto, não no macro.
+% ============================================================
+
+% ── Protocolo ────────────────────────────────────────────────
+\newcommand{\seedMain}{42}          % semente das execuções individuais
+\newcommand{\nSeeds}{10}            % execuções independentes (agregação)
+
+% ── Trade-off por solução (Canônico | AG escalar | knee | best_dominance) ──
+% dominance (menor = mais equilibrado); Canônico ≡ best_drift (objetivo da fronteira)
+\newcommand{\domCan}{1{,}42}
+\newcommand{\domAg}{0{,}01}
+\newcommand{\domKnee}{0{,}34}
+\newcommand{\domBd}{0{,}11}
+% drift (desvio ao canônico; determinístico nos genes)
+\newcommand{\driftCan}{0{,}00}
+\newcommand{\driftAg}{0{,}26}
+\newcommand{\driftKnee}{0{,}09}
+\newcommand{\driftBd}{0{,}27}
+% confrontos equilibrados: pares com WR em [40\%,60\%] (de 10)
+\newcommand{\eqCan}{0}
+\newcommand{\eqAg}{10}
+\newcommand{\eqKnee}{2}
+\newcommand{\eqBd}{9}
+% diferenciação: razão da distância média par-a-par vs. canônico (>1 = mais distinto)
+\newcommand{\diffCan}{1{,}00}
+\newcommand{\diffAg}{0{,}92}
+\newcommand{\diffKnee}{0{,}96}
+\newcommand{\diffBd}{0{,}96}
+% validador de identidade: asserções preservadas (de \valTotal)
+\newcommand{\valTotal}{21}
+\newcommand{\valCan}{21}
+\newcommand{\valAg}{7}
+\newcommand{\valKnee}{20}
+\newcommand{\valBd}{13}
+% ciclo de vantagens canônico: arestas mantidas post-hoc (de \cycleTotal)
+\newcommand{\cycleTotal}{10}
+\newcommand{\cycleCan}{5}
+\newcommand{\cycleAg}{5}
+\newcommand{\cycleKnee}{5}
+\newcommand{\cycleBd}{6}
+
+% ── Baseline canônico ────────────────────────────────────────
+\newcommand{\blowCan}{sete}          % confrontos que são blowouts (de 10)
+% fingerprint canônico (sanity de identidade comportamental), em % — \% fica no texto
+\newcommand{\fpRushAdv}{73}          % rushdown: fração de ADV
+\newcommand{\fpTurtleDef}{46}        % turtle: fração de DEFEND (guarda)
+\newcommand{\fpZonerRet}{44}         % zoner: fração de RETREAT
+
+% ── Fronteira de Pareto (execução única, semente 42) ─────────
+\newcommand{\nFront}{300}            % soluções não dominadas na fronteira final
+\newcommand{\nFrontDistinct}{216}    % pontos distintos no espaço de objetivos
+\newcommand{\hvVal}{1{,}80}          % hipervolume (ref (2,0, 1,0))
+\newcommand{\spacingVal}{0{,}005}    % espalhamento (Schott)
+
+% ── Estatística agregada — NSGA-II, \nSeeds execuções ────────
+\newcommand{\aggDomMean}{0{,}19}
+\newcommand{\aggDomStd}{0{,}04}
+\newcommand{\aggDriftMean}{0{,}23}
+\newcommand{\aggDriftStd}{0{,}03}
+\newcommand{\aggHvMean}{1{,}75}
+\newcommand{\aggHvStd}{0{,}02}
+\newcommand{\hcPerSeed}{2{,}1}       % hard-counters residuais por execução (média)
+\newcommand{\hcPerSeedStd}{1{,}1}
+
+% ── Robustez / validação externa (fora do laço) ──────────────
+\newcommand{\domCanExt}{1{,}11}      % dominance do canônico sob 10 sementes novas
+\newcommand{\extNSeeds}{10}          % condições de avaliação independentes
+\newcommand{\robTotal}{10}           % confrontos avaliados
+\newcommand{\robBd}{9}               % confrontos equilibrados em TODAS as condições
+\newcommand{\robCharsBd}{5}          % personagens globalmente equilibrados em TODAS (de 5)
