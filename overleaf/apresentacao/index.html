@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Balanceamento competitivo com preservação de identidade — Defesa</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --ink:#0B0D12;
+  --ink2:#0F131B;
+  --surface:#151A24;
+  --line:#242C3A;
+  --line2:#333d4f;
+  --text:#EAEDF3;
+  --muted:#828B9C;
+  --p1:#FF6A48;      /* identidade — quente */
+  --p1-dim:#7a3527;
+  --p2:#31D0D8;      /* equilíbrio — frio */
+  --p2-dim:#1c5e63;
+  --gold:#F5C463;    /* knee / destaque */
+  --f-display:'Chakra Petch', system-ui, sans-serif;
+  --f-body:'Space Grotesk', system-ui, sans-serif;
+  --f-mono:'JetBrains Mono', ui-monospace, 'Courier New', monospace;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  color:var(--text);
+  font-family:var(--f-body);
+  overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+  /* ambient glows: quente (identidade) x frio (equilíbrio) — gradients baratos */
+  background:
+    radial-gradient(46vw 46vw at 8% 0%, rgba(255,106,72,.16), transparent 60%),
+    radial-gradient(48vw 48vw at 96% 100%, rgba(49,208,216,.15), transparent 60%),
+    var(--ink);
+}
+
+/* ---------- HUD ---------- */
+.hud{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;
+  align-items:center;padding:clamp(1rem,2.4vw,1.6rem) clamp(1.4rem,4vw,3.4rem);
+  z-index:20;pointer-events:none}
+.hud-sec{font-family:var(--f-mono);font-size:clamp(.62rem,1vw,.76rem);letter-spacing:.22em;
+  color:var(--muted);text-transform:uppercase;display:flex;align-items:center;gap:.7em}
+.hud-sec::before{content:"";width:26px;height:2px;background:var(--p2);display:inline-block}
+.hud-count{font-family:var(--f-mono);font-size:clamp(.62rem,1vw,.76rem);letter-spacing:.18em;color:var(--muted)}
+.hud-count b{color:var(--text);font-weight:700}
+
+.timeline{position:fixed;left:0;bottom:0;height:3px;width:100%;background:var(--line);z-index:20}
+.timeline-fill{height:100%;width:0;background:linear-gradient(90deg,var(--p1),var(--gold),var(--p2));
+  transition:width .5s cubic-bezier(.2,.7,.2,1)}
+.hint{position:fixed;bottom:clamp(1rem,2vw,1.6rem);left:50%;transform:translateX(-50%);
+  font-family:var(--f-mono);font-size:.68rem;letter-spacing:.14em;color:var(--muted);
+  opacity:.55;z-index:20;pointer-events:none;text-transform:uppercase}
+
+/* ---------- slides ---------- */
+.deck{position:fixed;inset:0;z-index:5}
+.slide{position:absolute;inset:0;z-index:1;display:flex;flex-direction:column;justify-content:center;
+  padding:clamp(3.4rem,7vw,6rem) clamp(1.6rem,7vw,7rem);
+  opacity:0;visibility:hidden;transform:translateY(14px);
+  transition:opacity .4s ease, transform .4s ease, visibility .4s;
+  max-width:1600px;margin:0 auto;width:100%}
+.slide.active{opacity:1;visibility:visible;transform:none;z-index:2}
+.wrap{width:100%;max-width:1180px;margin:0 auto}
+
+/* staggered rise for content */
+.slide.active .rise{animation:rise .6s cubic-bezier(.2,.7,.2,1) both}
+.slide.active .rise:nth-child(2){animation-delay:.06s}
+.slide.active .rise:nth-child(3){animation-delay:.12s}
+.slide.active .rise:nth-child(4){animation-delay:.18s}
+.slide.active .rise:nth-child(5){animation-delay:.24s}
+@keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+
+.eyebrow{font-family:var(--f-mono);font-size:clamp(.66rem,1vw,.82rem);letter-spacing:.26em;
+  text-transform:uppercase;color:var(--p2);margin-bottom:1.6rem;display:flex;align-items:center;gap:.8em}
+.eyebrow .num{color:var(--muted)}
+h1.title{font-family:var(--f-display);font-weight:700;line-height:1.04;letter-spacing:-.01em;
+  font-size:clamp(1.9rem,4.4vw,3.5rem)}
+.lead{font-size:clamp(1.05rem,1.7vw,1.35rem);color:var(--muted);line-height:1.55;max-width:56ch;margin-top:1.4rem}
+.statement{font-family:var(--f-display);font-weight:600;line-height:1.14;letter-spacing:-.01em;
+  font-size:clamp(1.8rem,4.2vw,3.4rem)}
+.statement .dim{color:var(--muted)}
+.statement em{font-style:normal;color:var(--p1)}
+.foot{margin-top:2rem;font-size:clamp(.9rem,1.3vw,1.05rem);color:var(--muted);
+  border-left:2px solid var(--line2);padding-left:1rem;max-width:60ch;line-height:1.5}
+strong.k1{color:var(--p1);font-weight:600}
+strong.k2{color:var(--p2);font-weight:600}
+strong.kg{color:var(--gold);font-weight:600}
+.mono{font-family:var(--f-mono)}
+
+/* ---------- hero (versus) ---------- */
+.hero{align-items:center;text-align:center}
+.hero .kicker{font-family:var(--f-mono);letter-spacing:.28em;font-size:clamp(.66rem,1vw,.8rem);
+  color:var(--muted);text-transform:uppercase;margin-bottom:2.4rem}
+.versus{display:flex;align-items:center;justify-content:center;gap:clamp(1rem,3vw,2.6rem);
+  flex-wrap:wrap;line-height:.95}
+.versus .side{font-family:var(--f-display);font-weight:700;letter-spacing:-.01em;
+  font-size:clamp(2.4rem,7vw,5.8rem)}
+.versus .p2side{color:var(--p2)}
+.versus .p1side{color:var(--p1)}
+.versus .vs{font-family:var(--f-display);font-weight:700;font-size:clamp(1.2rem,2.6vw,2rem);
+  color:var(--ink);background:var(--text);border-radius:50%;
+  width:clamp(2.6rem,5vw,3.6rem);height:clamp(2.6rem,5vw,3.6rem);
+  display:flex;align-items:center;justify-content:center;flex:none}
+.hero .subtitle{margin:2.6rem auto 0;font-size:clamp(1rem,1.7vw,1.3rem);max-width:64ch;line-height:1.5;color:var(--text)}
+.hero .byline{margin-top:2rem;font-family:var(--f-mono);font-size:clamp(.72rem,1.1vw,.9rem);
+  color:var(--muted);letter-spacing:.04em;line-height:1.9}
+.hero .byline b{color:var(--text);font-weight:700}
+
+/* ---------- versus panels (dois objetivos) ---------- */
+.panels{display:grid;grid-template-columns:1fr auto 1fr;gap:clamp(1rem,3vw,2.4rem);align-items:stretch;margin-top:.6rem}
+.panel{border:1px solid var(--line);border-radius:14px;background:var(--surface);
+  padding:clamp(1.4rem,2.6vw,2.2rem)}
+.panel.p1{border-top:3px solid var(--p1)}
+.panel.p2{border-top:3px solid var(--p2)}
+.panel .tag{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+.panel h3{font-family:var(--f-display);font-weight:700;font-size:clamp(1.3rem,2.4vw,2rem);margin:.5rem 0 .7rem}
+.panel.p1 h3{color:var(--p1)} .panel.p2 h3{color:var(--p2)}
+.panel p{color:var(--muted);line-height:1.5;font-size:clamp(.95rem,1.3vw,1.08rem)}
+.panel .metricbig{font-family:var(--f-mono);font-size:.82rem;color:var(--text);margin-top:1rem;letter-spacing:.03em}
+.vsmid{display:flex;align-items:center;justify-content:center}
+.vsmid span{font-family:var(--f-display);font-weight:700;font-size:clamp(1rem,2vw,1.5rem);color:var(--ink);
+  background:var(--text);border-radius:50%;width:clamp(2.2rem,4vw,3rem);height:clamp(2.2rem,4vw,3rem);
+  display:flex;align-items:center;justify-content:center}
+.centernote{text-align:center;margin-top:1.8rem;font-family:var(--f-display);font-weight:600;
+  font-size:clamp(1.2rem,2.4vw,1.9rem)}
+
+/* ---------- metric bars / gauges ---------- */
+.metricgrid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(1.2rem,3vw,2.6rem) clamp(2rem,5vw,4rem);margin-top:.4rem}
+@media(max-width:820px){.metricgrid{grid-template-columns:1fr}}
+.mgroup .glabel{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:1.1rem;display:flex;align-items:center;gap:.6em}
+.mgroup.ident .glabel::before{content:"";width:10px;height:10px;background:var(--p1);border-radius:2px}
+.mgroup.bal .glabel::before{content:"";width:10px;height:10px;background:var(--p2);border-radius:2px}
+
+.metric{margin-bottom:1.1rem}
+.metric .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:.45rem}
+.metric .name{font-size:.98rem;color:var(--text)}
+.metric .val{font-family:var(--f-mono);font-weight:700;font-size:1.02rem}
+.metric.p1 .val{color:var(--p1)} .metric.p2 .val{color:var(--p2)} .metric.gold .val{color:var(--gold)}
+
+.bar{height:11px;border-radius:6px;background:var(--line);overflow:hidden}
+.bar > i{display:block;height:100%;width:0;border-radius:6px}
+.metric.p1 .bar > i{background:linear-gradient(90deg,var(--p1-dim),var(--p1))}
+.metric.p2 .bar > i{background:linear-gradient(90deg,var(--p2-dim),var(--p2))}
+.metric.gold .bar > i{background:linear-gradient(90deg,#8a6b28,var(--gold))}
+.slide.active .bar > i{width:var(--v);transition:width 1s cubic-bezier(.2,.75,.25,1) .25s}
+
+.gauge{display:flex;gap:5px;margin-top:.15rem}
+.gauge .seg{flex:1;height:16px;border-radius:3px;background:var(--line)}
+.gauge.p1{--c:var(--p1)} .gauge.p2{--c:var(--p2)} .gauge.gold{--c:var(--gold)}
+.gauge .seg.on{transition:background .3s ease, box-shadow .3s ease;transition-delay:calc(var(--i)*.04s + .2s)}
+.slide.active .gauge .seg.on{background:var(--c);box-shadow:0 0 10px -3px var(--c)}
+
+.punch{margin-top:2rem;font-family:var(--f-display);font-weight:600;line-height:1.25;
+  font-size:clamp(1.15rem,2.2vw,1.7rem);max-width:32ch}
+.punch.wide{max-width:46ch}
+
+/* ---------- key/value stacked list ---------- */
+.rowlist{margin-top:.6rem;display:flex;flex-direction:column;gap:1rem}
+.rowitem{display:flex;gap:1.1rem;align-items:flex-start;padding:1.1rem 1.3rem;border:1px solid var(--line);
+  border-radius:12px;background:var(--surface)}
+.rowitem .badge{font-family:var(--f-mono);font-weight:700;font-size:.72rem;letter-spacing:.12em;
+  padding:.35em .7em;border-radius:6px;flex:none;text-transform:uppercase;margin-top:.1rem}
+.rowitem.p1 .badge{color:var(--p1);border:1px solid var(--p1-dim);background:rgba(255,106,72,.08)}
+.rowitem.p2 .badge{color:var(--p2);border:1px solid var(--p2-dim);background:rgba(49,208,216,.08)}
+.rowitem .rtext{line-height:1.5}
+.rowitem .rtext b{color:var(--text)}
+.rowitem .rtext span{color:var(--muted)}
+
+/* ---------- combat field ---------- */
+.field{margin:1.4rem 0 .6rem;position:relative;height:70px}
+.field .track{position:absolute;top:34px;left:0;right:0;height:2px;background:var(--line2)}
+.field .track::before,.field .track::after{content:"";position:absolute;top:-6px;width:2px;height:14px;background:var(--line2)}
+.field .track::before{left:0}.field .track::after{right:0}
+.field .fighter{position:absolute;top:26px;width:18px;height:18px;border-radius:50%;transform:translateX(-50%)}
+.field .fighter.a{left:14%;background:var(--p1);box-shadow:0 0 16px -2px var(--p1)}
+.field .fighter.b{left:82%;background:var(--p2);box-shadow:0 0 16px -2px var(--p2)}
+.field .lbl{position:absolute;top:0;font-family:var(--f-mono);font-size:.7rem;color:var(--muted);transform:translateX(-50%)}
+.field .lbl.a{left:14%}.field .lbl.b{left:82%}
+.field .dist{position:absolute;top:52px;left:50%;transform:translateX(-50%);font-family:var(--f-mono);
+  font-size:.68rem;color:var(--muted);letter-spacing:.1em}
+
+.bul{margin-top:1.2rem;display:flex;flex-direction:column;gap:.9rem;max-width:64ch}
+.bul li{list-style:none;display:flex;gap:.8rem;line-height:1.5;color:var(--text);font-size:clamp(1rem,1.4vw,1.15rem)}
+.bul li::before{content:"▸";color:var(--p2);flex:none;margin-top:.05rem}
+.bul li span{color:var(--muted)}
+
+/* ---------- pareto / svg ---------- */
+.figwrap{display:grid;grid-template-columns:1.35fr .9fr;gap:clamp(1.4rem,3vw,3rem);align-items:center;margin-top:.4rem}
+@media(max-width:900px){.figwrap{grid-template-columns:1fr}}
+.figwrap svg,.cyclewrap svg{width:100%;height:auto;display:block;max-height:44vh}
+.legend{display:flex;flex-direction:column;gap:1rem}
+.legend .li{display:flex;gap:.8rem;align-items:flex-start;font-size:.98rem;line-height:1.4}
+.legend .dot{width:13px;height:13px;border-radius:50%;flex:none;margin-top:.25rem}
+.legend .li b{color:var(--text)} .legend .li span{color:var(--muted)}
+.caption{margin-top:1.4rem;font-family:var(--f-mono);font-size:.78rem;color:var(--muted);letter-spacing:.04em}
+
+/* pentagon */
+.cyclewrap{display:grid;grid-template-columns:1.1fr .9fr;gap:clamp(1.4rem,3vw,3rem);align-items:center;margin-top:.2rem}
+@media(max-width:900px){.cyclewrap{grid-template-columns:1fr}}
+.rolelist{display:flex;flex-direction:column;gap:.75rem}
+.role{display:flex;gap:.8rem;align-items:baseline}
+.role .rn{font-family:var(--f-mono);font-weight:700;font-size:.86rem;color:var(--p1);min-width:11ch}
+.role .rd{color:var(--muted);font-size:.96rem}
+
+/* ---------- table ---------- */
+.tbl{width:100%;border-collapse:collapse;margin-top:.4rem;font-size:clamp(.82rem,1.25vw,1.02rem)}
+.tbl th,.tbl td{padding:.85rem 1rem;text-align:center;border-bottom:1px solid var(--line)}
+.tbl thead th{font-family:var(--f-mono);font-weight:700;font-size:.74rem;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--muted)}
+.tbl tbody th{text-align:left;font-family:var(--f-body);font-weight:500;color:var(--text);white-space:nowrap}
+.tbl td{font-family:var(--f-mono);color:var(--text)}
+.tbl .colknee{background:rgba(245,196,99,.09)}
+.tbl thead .colknee{color:var(--gold);border-bottom:2px solid var(--gold)}
+.tbl td.colknee{color:var(--gold);font-weight:700}
+.tbl .canon{color:var(--muted)}
+
+/* ---------- standout ---------- */
+.standout{align-items:center;justify-content:center;text-align:center}
+.standout .big{font-family:var(--f-display);font-weight:700;line-height:1.08;letter-spacing:-.01em;
+  font-size:clamp(2rem,5.4vw,4.4rem);max-width:20ch;margin-left:auto;margin-right:auto}
+.standout .big em{font-style:normal;color:var(--gold)}
+.standout .sub{margin-top:1.6rem;color:var(--muted);font-size:clamp(1rem,1.6vw,1.25rem)}
+.thanks .big{font-size:clamp(2.6rem,8vw,6rem)}
+.thanks .contact{margin-top:1.8rem;font-family:var(--f-mono);color:var(--muted);font-size:.95rem;line-height:1.9}
+.thanks .contact b{color:var(--text)}
+
+.futurenote{margin-top:1.6rem;font-size:.95rem;color:var(--muted);line-height:1.55;border-top:1px solid var(--line);padding-top:1.2rem}
+.futurenote b{color:var(--text);font-weight:600}
+
+@media(max-width:640px){
+  .panels{grid-template-columns:1fr}.vsmid{display:none}
+  .versus .vs{order:2}
+}
+@media (prefers-reduced-motion: reduce){
+  *{transition:none!important;animation:none!important}
+  .slide.active .bar>i{width:var(--v)}
+}
+</style>
+</head>
+<body>
+
+<div class="hud">
+  <div class="hud-sec" id="secLabel">TCC · IFES</div>
+  <div class="hud-count"><b id="cur">01</b> / <span id="total">16</span></div>
+</div>
+
+<main class="deck" id="deck">
+
+  <!-- 01 — HERO / VERSUS -->
+  <section class="slide hero" data-sec="Defesa de TCC">
+    <div class="wrap">
+      <div class="kicker rise">Trabalho de Conclusão de Curso · IFES Cachoeiro de Itapemirim</div>
+      <div class="versus rise">
+        <span class="side p2side">EQUILÍBRIO</span>
+        <span class="vs">VS</span>
+        <span class="side p1side">IDENTIDADE</span>
+      </div>
+      <div class="subtitle rise">Balanceamento competitivo com preservação de identidade —
+        Algoritmos Genéticos e NSGA-II em arquétipos de jogos de luta</div>
+      <div class="byline rise">
+        <b>Matheus Gimenes de Souza</b><br>
+        Orientador: Prof. Dr. Everson Scherrer Borges &nbsp;·&nbsp; 2026
+      </div>
+    </div>
+  </section>
+
+  <!-- 02 — O PROBLEMA -->
+  <section class="slide" data-sec="O problema">
+    <div class="wrap">
+      <div class="eyebrow rise"><span class="num">01</span> · A tensão central</div>
+      <div class="statement rise">Equilibrar é trivial quando todas as opções são iguais.
+        <span class="dim">O desafio é equilibrar <em>preservando a diferença</em>.</span></div>
+      <div class="foot rise">Ao ajustar números para igualar as taxas de vitória, corre-se o risco de
+        <strong class="k1">homogeneizar</strong> os personagens — dissolvendo as identidades que distinguem o jogo.</div>
+    </div>
+  </section>
+
+  <!-- 03 — PERGUNTA -->
+  <section class="slide" data-sec="O problema">
+    <div class="wrap">
+      <div class="eyebrow rise">Pergunta de pesquisa</div>
+      <div class="statement rise">Um Algoritmo Genético é capaz de atingir <strong class="k2">equilíbrio</strong>
+        competitivo entre cinco arquétipos distintos <span class="dim">sem destruir suas</span>
+        <strong class="k1">identidades funcionais</strong>?</div>
+    </div>
+  </section>
+
+  <!-- 04 — MEDIR NÃO IMPOR -->
+  <section class="slide" data-sec="O problema">
+    <div class="wrap">
+      <div class="eyebrow rise">A decisão-chave</div>
+      <h1 class="title rise">Medir a identidade — nunca <span style="color:var(--muted)">impô-la</span></h1>
+      <div class="rowlist rise" style="margin-top:1.8rem">
+        <div class="rowitem p1"><span class="badge">objetivo</span>
+          <div class="rtext"><b>Desvio ao perfil canônico</b> <span>→ penalidade <b>suave</b>, otimizada</span></div></div>
+        <div class="rowitem p2"><span class="badge">post hoc</span>
+          <div class="rtext"><b>Ciclo de vantagens</b> (quem vence quem) <span>→ apenas <b>medido</b>, fora da otimização</span></div></div>
+      </div>
+      <div class="foot rise">Se a identidade fosse <em>recompensada</em>, o AG a "preservaria" só por isso —
+        e a resposta à pergunta seria circular.</div>
+    </div>
+  </section>
+
+  <!-- 05 — ARQUÉTIPOS + CICLO -->
+  <section class="slide" data-sec="Método · Roster">
+    <div class="wrap">
+      <div class="eyebrow rise">Cinco arquétipos</div>
+      <h1 class="title rise">Um ciclo não transitivo (pedra-papel-tesoura)</h1>
+      <div class="cyclewrap rise">
+        <svg viewBox="-40 6 540 320" role="img" aria-label="Ciclo de vantagens entre cinco arquétipos">
+          <defs>
+            <marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+              <path d="M0,0 L7,3 L0,6 Z" fill="#31D0D8"/>
+            </marker>
+          </defs>
+          <!-- star chords (faint) -->
+          <g stroke="#333d4f" stroke-width="1" opacity=".55">
+            <line x1="230" y1="50" x2="309" y2="294"/>
+            <line x1="230" y1="50" x2="151" y2="294"/>
+            <line x1="358" y1="143" x2="151" y2="294"/>
+            <line x1="358" y1="143" x2="102" y2="143"/>
+            <line x1="309" y1="294" x2="102" y2="143"/>
+          </g>
+          <!-- outer directed arrows (beats next) -->
+          <g stroke="#31D0D8" stroke-width="2.2" marker-end="url(#ah)" fill="none">
+            <line x1="241" y1="58" x2="347" y2="135"/>
+            <line x1="354" y1="156" x2="313" y2="281"/>
+            <line x1="295" y1="294" x2="165" y2="294"/>
+            <line x1="147" y1="281" x2="106" y2="156"/>
+            <line x1="113" y1="135" x2="219" y2="58"/>
+          </g>
+          <!-- nodes -->
+          <g>
+            <circle cx="230" cy="50" r="7" fill="#FF6A48"/>
+            <circle cx="358" cy="143" r="7" fill="#FF6A48"/>
+            <circle cx="309" cy="294" r="7" fill="#FF6A48"/>
+            <circle cx="151" cy="294" r="7" fill="#FF6A48"/>
+            <circle cx="102" cy="143" r="7" fill="#FF6A48"/>
+          </g>
+          <g font-family="JetBrains Mono, monospace" font-size="14" font-weight="700" fill="#EAEDF3">
+            <text x="230" y="34" text-anchor="middle">RUSHDOWN</text>
+            <text x="372" y="140" text-anchor="start">COMBO MASTER</text>
+            <text x="322" y="316" text-anchor="middle">ZONER</text>
+            <text x="138" y="316" text-anchor="middle">GRAPPLER</text>
+            <text x="88" y="140" text-anchor="end">TURTLE</text>
+          </g>
+        </svg>
+        <div>
+          <div class="rolelist">
+            <div class="role"><span class="rn">rushdown</span><span class="rd">agressor de curta distância</span></div>
+            <div class="role"><span class="rn">zoner</span><span class="rd">controla o espaço à distância</span></div>
+            <div class="role"><span class="rn">grappler</span><span class="rd">agarrões de alto dano</span></div>
+            <div class="role"><span class="rn">combo master</span><span class="rd">converte acertos em sequências</span></div>
+            <div class="role"><span class="rn">turtle</span><span class="rd">defende e pune erros</span></div>
+          </div>
+          <div class="caption">cada um vence 2 e perde 2 · a seta indica quem vence · hipótese dos autores, medida <em>post hoc</em></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 06 — COMBATE -->
+  <section class="slide" data-sec="Método · Simulação">
+    <div class="wrap">
+      <div class="eyebrow rise">O motor</div>
+      <h1 class="title rise">Combate 1 vs 1, tick a tick</h1>
+      <div class="field rise">
+        <div class="track"></div>
+        <div class="lbl a">A</div><div class="fighter a"></div>
+        <div class="lbl b">B</div><div class="fighter b"></div>
+        <div class="dist">campo unidimensional · 100 unidades</div>
+      </div>
+      <ul class="bul rise">
+        <li>Decisão em duas fases: <strong class="k2">intenção → execução</strong> <span>(ATTACK · ADVANCE · RETREAT · DEFEND)</span></li>
+        <li>A intenção é amostrada pelos <strong class="k1">pesos comportamentais</strong> do personagem</li>
+        <li>Essa amostragem é a <strong class="kg">única</strong> fonte de aleatoriedade do laço</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 07 — DOIS OBJETIVOS -->
+  <section class="slide" data-sec="Método · Objetivos">
+    <div class="wrap">
+      <div class="eyebrow rise">Formulação</div>
+      <h1 class="title rise" style="margin-bottom:1.6rem">Dois objetivos em conflito</h1>
+      <div class="panels rise">
+        <div class="panel p1">
+          <div class="tag">Identidade</div>
+          <h3>drift</h3>
+          <p>Distância euclidiana ao perfil canônico de cada personagem.</p>
+          <div class="metricbig">objetivo ↓ · menor = mais fiel</div>
+        </div>
+        <div class="vsmid"><span>VS</span></div>
+        <div class="panel p2">
+          <div class="tag">Equilíbrio</div>
+          <h3>dominance</h3>
+          <p>Nenhum arquétipo domina o roster (cego à direção).</p>
+          <div class="metricbig">objetivo ↓ · menor = mais equilibrado</div>
+        </div>
+      </div>
+      <div class="centernote rise">Balanceamento = problema <strong class="kg">bi-objetivo</strong>.</div>
+    </div>
+  </section>
+
+  <!-- 08 — ESCALAR vs NSGA -->
+  <section class="slide" data-sec="Método · Busca">
+    <div class="wrap">
+      <div class="eyebrow rise">As duas buscas</div>
+      <h1 class="title rise">Os mesmos objetivos, dois caminhos</h1>
+      <div class="figwrap rise" style="margin-top:1.4rem">
+        <svg viewBox="0 0 460 300" role="img" aria-label="AG escalar entrega um ponto; NSGA-II mapeia a fronteira">
+          <line x1="55" y1="255" x2="440" y2="255" stroke="#333d4f" stroke-width="1.5"/>
+          <line x1="55" y1="255" x2="55" y2="25" stroke="#333d4f" stroke-width="1.5"/>
+          <text x="250" y="288" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="13" fill="#828B9C">drift  (identidade) →</text>
+          <text x="24" y="140" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="13" fill="#828B9C" transform="rotate(-90 24 140)">dominance →</text>
+          <path d="M70,50 C130,150 180,205 250,215 C330,226 380,240 430,244" fill="none" stroke="#31D0D8" stroke-width="3"/>
+          <circle cx="250" cy="215" r="6" fill="#F5C463"/>
+          <circle cx="410" cy="235" r="8" fill="#FF6A48"/>
+          <text x="398" y="220" text-anchor="end" font-family="JetBrains Mono,monospace" font-size="12" fill="#FF6A48">AG escalar</text>
+          <text x="150" y="120" font-family="JetBrains Mono,monospace" font-size="12" fill="#31D0D8">NSGA-II</text>
+        </svg>
+        <div class="legend">
+          <div class="li"><span class="dot" style="background:var(--p1)"></span>
+            <div><b>AG escalar</b> <span>— soma ponderada dos objetivos; entrega <b>um</b> ponto do trade-off.</span></div></div>
+          <div class="li"><span class="dot" style="background:var(--p2)"></span>
+            <div><b>NSGA-II</b> <span>— sem pesos; mapeia <b>toda</b> a fronteira de Pareto.</span></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 09 — BASELINE -->
+  <section class="slide" data-sec="Resultados">
+    <div class="wrap">
+      <div class="eyebrow rise"><span class="num">Resultado 01</span> · Baseline canônico</div>
+      <h1 class="title rise">Identidade perfeita, equilíbrio ausente</h1>
+      <div class="metricgrid rise" style="margin-top:1.6rem">
+        <div class="mgroup ident">
+          <div class="glabel">Identidade — intacta</div>
+          <div class="metric p1"><div class="top"><span class="name">Validador de identidade</span><span class="val">21 / 21</span></div>
+            <div class="gauge p1" data-on="21" data-total="21"></div></div>
+          <div class="metric p1"><div class="top"><span class="name">Desvio (drift)</span><span class="val">0,00</span></div>
+            <div class="bar"><i style="--v:2%"></i></div></div>
+        </div>
+        <div class="mgroup bal">
+          <div class="glabel">Equilíbrio — ausente</div>
+          <div class="metric p2"><div class="top"><span class="name">Confrontos equilibrados</span><span class="val">0 / 10</span></div>
+            <div class="gauge p2" data-on="0" data-total="10"></div></div>
+          <div class="metric p1"><div class="top"><span class="name">Rushdown — win rate global</span><span class="val">100%</span></div>
+            <div class="bar"><i style="--v:100%"></i></div></div>
+          <div class="metric p1"><div class="top"><span class="name">Turtle — win rate global</span><span class="val">0%</span></div>
+            <div class="bar"><i style="--v:1%"></i></div></div>
+        </div>
+      </div>
+      <div class="punch wide rise">O ciclo canônico <strong class="k1">não</strong> sobrevive sozinho ao modelo determinístico — só <strong class="kg">5/10</strong> arestas se sustentam.</div>
+    </div>
+  </section>
+
+  <!-- 10 — OTIMIZAR SÓ EQUILÍBRIO -->
+  <section class="slide" data-sec="Resultados">
+    <div class="wrap">
+      <div class="eyebrow rise"><span class="num">Resultado 02</span> · AG escalar</div>
+      <h1 class="title rise">Otimizar só o equilíbrio custa identidade</h1>
+      <div class="metricgrid rise" style="margin-top:1.6rem">
+        <div class="mgroup bal">
+          <div class="glabel">Equilíbrio — conquistado</div>
+          <div class="metric p2"><div class="top"><span class="name">Confrontos equilibrados</span><span class="val">10 / 10</span></div>
+            <div class="gauge p2" data-on="10" data-total="10"></div></div>
+        </div>
+        <div class="mgroup ident">
+          <div class="glabel">Identidade — erodida</div>
+          <div class="metric p1"><div class="top"><span class="name">Validador de identidade</span><span class="val">7 / 21</span></div>
+            <div class="gauge p1" data-on="7" data-total="21"></div></div>
+          <div class="metric p1"><div class="top"><span class="name">Diferenciação (vs canônico)</span><span class="val">0,92 ×</span></div>
+            <div class="bar"><i style="--v:92%"></i></div></div>
+        </div>
+      </div>
+      <div class="punch wide rise">Igualar as vitórias, sozinho, <strong class="k1">dissolve</strong> as identidades — exatamente a tensão prevista.</div>
+    </div>
+  </section>
+
+  <!-- 11 — FRONTEIRA -->
+  <section class="slide" data-sec="Resultados">
+    <div class="wrap">
+      <div class="eyebrow rise"><span class="num">Resultado 03</span> · NSGA-II</div>
+      <h1 class="title rise">A fronteira de Pareto torna o trade-off explícito</h1>
+      <div class="figwrap rise">
+        <svg viewBox="0 0 620 360" role="img" aria-label="Fronteira de Pareto entre desbalanço e desvio">
+          <!-- grid -->
+          <g stroke="#1c2230" stroke-width="1">
+            <line x1="70" y1="40" x2="70" y2="320"/><line x1="70" y1="320" x2="585" y2="320"/>
+          </g>
+          <g stroke="#161b26" stroke-width="1">
+            <line x1="70" y1="115" x2="585" y2="115"/><line x1="70" y1="190" x2="585" y2="190"/><line x1="70" y1="255" x2="585" y2="255"/>
+          </g>
+          <!-- scatter (sugestão de densidade) -->
+          <g fill="#2b3546">
+            <circle cx="92" cy="70" r="2.4"/><circle cx="120" cy="120" r="2.4"/><circle cx="150" cy="170" r="2.4"/>
+            <circle cx="185" cy="210" r="2.4"/><circle cx="260" cy="250" r="2.4"/><circle cx="330" cy="272" r="2.4"/>
+            <circle cx="400" cy="285" r="2.4"/><circle cx="470" cy="295" r="2.4"/><circle cx="108" cy="95" r="2.4"/>
+            <circle cx="205" cy="228" r="2.4"/><circle cx="290" cy="262" r="2.4"/><circle cx="360" cy="280" r="2.4"/>
+          </g>
+          <!-- front curve -->
+          <path d="M70,55 C120,180 175,250 223,257 C330,268 430,292 529,300" fill="none" stroke="#31D0D8" stroke-width="2.6" opacity=".8"/>
+          <!-- named points -->
+          <circle cx="70" cy="55" r="8" fill="#FF6A48"/>
+          <circle cx="223" cy="257" r="10" fill="#F5C463"/>
+          <circle cx="529" cy="300" r="8" fill="#31D0D8"/>
+          <g font-family="JetBrains Mono,monospace" font-size="13" fill="#EAEDF3">
+            <text x="86" y="52">best_drift · canônico</text>
+            <text x="239" y="252">knee point</text>
+            <text x="525" y="290" text-anchor="end">best_dominance</text>
+          </g>
+          <text x="327" y="348" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="12" fill="#828B9C">desvio (identidade) →</text>
+          <text x="40" y="180" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="12" fill="#828B9C" transform="rotate(-90 40 180)">desbalanço →</text>
+        </svg>
+        <div class="legend">
+          <div class="li"><span class="dot" style="background:var(--p1)"></span><div><b>best_drift</b> <span>= canônico: identidade máxima, desbalanço 1,42.</span></div></div>
+          <div class="li"><span class="dot" style="background:var(--gold)"></span><div><b>knee point</b> <span>= melhor compromisso.</span></div></div>
+          <div class="li"><span class="dot" style="background:var(--p2)"></span><div><b>best_dominance</b> <span>= equilíbrio máximo, desbalanço 0,11.</span></div></div>
+          <div class="caption">300 soluções não dominadas · hipervolume 1,80</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 — LENDO O TRADE-OFF -->
+  <section class="slide" data-sec="Resultados">
+    <div class="wrap">
+      <div class="eyebrow rise"><span class="num">Resultado 04</span> · O trade-off</div>
+      <h1 class="title rise">Lendo o trade-off</h1>
+      <table class="tbl rise" style="margin-top:1.4rem">
+        <thead><tr><th></th><th>Canônico</th><th>AG escalar</th><th class="colknee">knee point</th><th>best_dom</th></tr></thead>
+        <tbody>
+          <tr><th>Desbalanço ↓</th><td class="canon">1,42</td><td>0,01</td><td class="colknee">0,34</td><td>0,11</td></tr>
+          <tr><th>Confrontos eq. (/10)</th><td class="canon">0</td><td>10</td><td class="colknee">2</td><td>9</td></tr>
+          <tr><th>Validador (/21)</th><td class="canon">21</td><td>7</td><td class="colknee">20</td><td>13</td></tr>
+          <tr><th>Diferenciação</th><td class="canon">1,00</td><td>0,92</td><td class="colknee">0,96</td><td>0,96</td></tr>
+        </tbody>
+      </table>
+      <div class="punch wide rise">O <strong class="kg">knee point</strong> reduz o desbalanço de 1,42 → 0,34 preservando a identidade quase intacta (<strong class="kg">20/21</strong>) — onde o extremo equilibra mais, mas erode a identidade (13/21).</div>
+    </div>
+  </section>
+
+  <!-- 13 — ROBUSTEZ -->
+  <section class="slide" data-sec="Resultados">
+    <div class="wrap">
+      <div class="eyebrow rise"><span class="num">Resultado 05</span> · Robustez</div>
+      <h1 class="title rise">Não é sobreajuste ao <span class="mono" style="color:var(--muted)">fitness</span></h1>
+      <div class="rowlist rise" style="margin-top:1.6rem">
+        <div class="rowitem p2"><span class="badge">10 seeds</span>
+          <div class="rtext"><b>Agregado sobre 10 execuções independentes:</b> <span>cada personagem fica globalmente equilibrado em <b>90–100%</b> das execuções.</span></div></div>
+        <div class="rowitem p1"><span class="badge">fora do laço</span>
+          <div class="rtext"><b>Validação externa (10 sementes novas, estilo Ludi):</b> <span><b>5/5</b> personagens seguem equilibrados e <b>9/10</b> confrontos permanecem equilibrados em <b>todas</b> as condições.</span></div></div>
+      </div>
+      <div class="foot rise">O que depende da semente é zerar simultaneamente todos os <em>hard-counters</em> de par — o equilíbrio global, não.</div>
+    </div>
+  </section>
+
+  <!-- 14 — RESPOSTA (STANDOUT) -->
+  <section class="slide standout" data-sec="Conclusão">
+    <div class="wrap">
+      <div class="big rise">Sim — equilíbrio substancial, <em>identidade preservada</em>.</div>
+      <div class="sub rise">e o trade-off entre os dois deixa de ser artesanal para virar uma escolha informada</div>
+    </div>
+  </section>
+
+  <!-- 15 — CONCLUSÃO -->
+  <section class="slide" data-sec="Conclusão">
+    <div class="wrap">
+      <div class="eyebrow rise">Resposta à pergunta</div>
+      <ul class="bul rise" style="margin-top:1.4rem;font-size:clamp(1.05rem,1.6vw,1.3rem)">
+        <li>Equilíbrio <strong class="k2">substancial</strong> é compatível com identidade largamente preservada <span>— quase intacta no knee point</span></li>
+        <li>Equilíbrio <strong class="k2">total</strong> <span>exige alguma homogeneização</span></li>
+        <li>A fronteira permite <strong class="kg">escolher conscientemente</strong> o ponto de operação</li>
+      </ul>
+      <div class="futurenote rise">
+        <b>Limitações:</b> modelo de combate simplificado (sem frames/mix-ups), 5 arquétipos, round-robin.
+        &nbsp; <b>Trabalhos futuros:</b> coevolução · quality-diversity (MAP-Elites) · restricted play.
+      </div>
+    </div>
+  </section>
+
+  <!-- 16 — OBRIGADO -->
+  <section class="slide standout thanks" data-sec="Conclusão">
+    <div class="wrap">
+      <div class="big rise">Obrigado.</div>
+      <div class="contact rise">
+        <b>Matheus Gimenes de Souza</b><br>
+        contato.matheusgimenes@gmail.com<br>
+        IFES · Campus Cachoeiro de Itapemirim
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<div class="timeline"><div class="timeline-fill" id="tl"></div></div>
+<div class="hint" id="hint">← →  navegar &nbsp;·&nbsp; F  tela cheia</div>
+
+<script>
+(function(){
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const total = slides.length;
+  let idx = 0;
+
+  // build segmented gauges
+  document.querySelectorAll('.gauge').forEach(g=>{
+    const t = +g.dataset.total, on = +g.dataset.on;
+    for(let i=0;i<t;i++){
+      const s=document.createElement('i');
+      s.className='seg'+(i<on?' on':'');
+      s.style.setProperty('--i', i);
+      g.appendChild(s);
+    }
+  });
+
+  document.getElementById('total').textContent = String(total).padStart(2,'0');
+
+  function show(n){
+    idx = Math.max(0, Math.min(total-1, n));
+    slides.forEach((s,i)=>s.classList.toggle('active', i===idx));
+    document.getElementById('cur').textContent = String(idx+1).padStart(2,'0');
+    document.getElementById('secLabel').textContent = slides[idx].dataset.sec || '';
+    document.getElementById('tl').style.width = ((idx)/(total-1)*100)+'%';
+    document.getElementById('hint').style.opacity = idx===0 ? '.55' : '0';
+    history.replaceState(null,'', '#'+(idx+1));
+  }
+  function next(){ show(idx+1); }
+  function prev(){ show(idx-1); }
+
+  document.addEventListener('keydown', e=>{
+    if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'||e.key==='ArrowDown'){e.preventDefault();next();}
+    else if(e.key==='ArrowLeft'||e.key==='PageUp'||e.key==='ArrowUp'){e.preventDefault();prev();}
+    else if(e.key==='Home'){show(0);}
+    else if(e.key==='End'){show(total-1);}
+    else if(e.key==='f'||e.key==='F'){
+      if(!document.fullscreenElement){document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen();}
+      else{document.exitFullscreen&&document.exitFullscreen();}
+    }
+  });
+
+  // click to advance (ignora seleção de texto)
+  document.getElementById('deck').addEventListener('click', e=>{
+    if(window.getSelection && window.getSelection().toString().length) return;
+    const x = e.clientX / window.innerWidth;
+    x < 0.28 ? prev() : next();
+  });
+
+  // swipe (touch)
+  let sx=0;
+  document.addEventListener('touchstart', e=>{ sx=e.touches[0].clientX; }, {passive:true});
+  document.addEventListener('touchend', e=>{
+    const dx = e.changedTouches[0].clientX - sx;
+    if(Math.abs(dx)>50){ dx<0 ? next() : prev(); }
+  }, {passive:true});
+
+  window.addEventListener('hashchange', ()=>{
+    const n = parseInt(location.hash.slice(1),10);
+    if(!isNaN(n) && n-1!==idx) show(n-1);
+  });
+
+  const start = parseInt((location.hash||'#1').slice(1),10);
+  show(isNaN(start)?0:start-1);
+})();
+</script>
+</body>
+</html>
