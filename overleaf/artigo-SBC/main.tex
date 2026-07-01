@@ -11,7 +11,7 @@
 % ============================================================
 % PLACEHOLDERS — valores a preencher após rodar os experimentos.
 % Cada placeholder \ph aparece em vermelho e negrito no PDF; basta localizar a macro.
-% Fatos estruturais (tabela canônica, parâmetros, validador 20/20) são REAIS.
+% Fatos estruturais (tabela canônica, parâmetros, validador 21/21) são REAIS.
 % Apenas os números que dependem da rodada estão como placeholder.
 %
 % Como gerar cada grupo:
@@ -130,10 +130,10 @@ As contribuições deste artigo são: (i) uma formulação do balanceamento como
 problema \emph{bi-objetivo} explícito~--- equilíbrio \emph{versus} preservação de
 identidade~--- otimizado tanto por um AG escalar quanto pelo NSGA-II
 \cite{deb2002nsga}; (ii) um conjunto de quatro instrumentos de medição
-\emph{post hoc} da identidade~--- validação estrutural por invariantes de
-ranqueamento, assinatura comportamental, desvio numérico ao canônico e
-diferenciação par a par~--- que quantificam a preservação de identidade sem
-contaminar a função objetivo; e (iii) uma avaliação experimental que torna o
+\emph{post hoc} da identidade~--- validação por invariantes de ranqueamento
+(estruturais e comportamentais), assinatura comportamental, desvio numérico ao
+canônico e diferenciação par a par~--- que quantificam a preservação de identidade
+sem contaminar a função objetivo; e (iii) uma avaliação experimental que torna o
 \emph{trade-off} mensurável e evidencia ser possível obter ganho substancial de
 equilíbrio sem homogeneizar o elenco. As seções seguintes apresentam a
 fundamentação teórica, a metodologia e os resultados.
@@ -228,34 +228,35 @@ de qualquer personagem depende simultaneamente dos outros quatro.
 \subsection{Representação: arquétipos e cromossomo}
 
 Cada indivíduo da população é um \emph{roster} completo de cinco personagens. Cada
-personagem é descrito por 12 genes~--- 9 atributos numéricos (HP, dano,
-\emph{cooldown} de ataque, alcance, velocidade, defesa, \emph{stun},
-\emph{knockback} e \emph{recovery}) e 3 pesos comportamentais ($w_{retreat}$,
-$w_{defend}$, $w_{aggressiveness}$)~--- totalizando 60 genes por indivíduo. Os
-pesos governam a política de combate (Seção~\ref{sec:combate}). A
-Tabela~\ref{tab:canonicos} apresenta os valores canônicos dos atributos,
-construídos conforme a Seção~\ref{sec:arquetipos}. Os limites (\emph{bounds}) de
-cada gene foram calibrados de forma estreita~--- por exemplo, $\mathrm{HP}\in
-[300,400]$, $\mathrm{defesa}\in [0{,}00,\,0{,}30]$ e \emph{recovery} inteiro em
-$[0,10]$~--- a fim de eliminar modos de exploração degenerados pelo algoritmo,
-como personagens com durabilidade arbitrariamente superior à do \emph{turtle}.
+personagem é descrito por 10 genes~--- 7 atributos numéricos (HP, dano,
+\emph{cooldown} de ataque, alcance, velocidade, \emph{stun} e \emph{knockback}) e
+3 pesos comportamentais ($w_{retreat}$, $w_{defend}$, $w_{aggressiveness}$)~---
+totalizando 50 genes por indivíduo. Os pesos governam a política de combate
+(Seção~\ref{sec:combate}). A Tabela~\ref{tab:canonicos} apresenta os valores
+canônicos dos atributos, construídos conforme a Seção~\ref{sec:arquetipos}. Os
+limites (\emph{bounds}) de cada gene foram calibrados de forma estreita~--- por
+exemplo, $\mathrm{HP}\in [250,450]$ e $\mathrm{dano}\in [15,30]$~--- a fim de
+eliminar modos de exploração degenerados pelo algoritmo, como personagens com
+durabilidade arbitrariamente superior à do \emph{turtle}.
 
 \begin{table}[ht]
 \centering
-\caption{Valores canônicos dos cinco arquétipos (9 atributos numéricos),
+\caption{Valores canônicos dos cinco arquétipos (7 atributos numéricos),
 construídos pelos autores (Seção~\ref{sec:arquetipos}). Servem como semente da
-população e \emph{baseline} de medição de desvio; não constituem restrições.}
+população e \emph{baseline} de medição de desvio; não constituem restrições. O
+\emph{stun} é expresso como \emph{fração} do \emph{cooldown} do próprio atacante
+(Seção~\ref{sec:combate}), não como valor absoluto.}
 \label{tab:canonicos}
 \small
-\begin{tabular}{lrrrrrrrrr}
+\begin{tabular}{lrrrrrrr}
 \toprule
-Arquétipo & HP & Dano & Cool. & Alc. & Vel. & Def. & Stun & Knock. & Recov. \\
+Arquétipo & HP & Dano & Cool. & Alc. & Vel. & Stun & Knock. \\
 \midrule
-Zoner        & 300 & 12 & 4 & 18 & 2{,}5 & 0{,}05 & 1{,}0 & 2{,}0 & 2 \\
-Rushdown     & 320 & 11 & 1 & 10 & 5{,}0 & 0{,}10 & 1{,}0 & 1{,}0 & 3 \\
-Combo Master & 350 & 13 & 3 & 10 & 3{,}0 & 0{,}15 & 3{,}5 & 0{,}5 & 3 \\
-Grappler     & 380 & 20 & 4 &  8 & 2{,}0 & 0{,}20 & 2{,}5 & 0{,}5 & 4 \\
-Turtle       & 400 & 10 & 5 & 13 & 1{,}5 & 0{,}25 & 2{,}0 & 1{,}0 & 7 \\
+Zoner        & 300 & 20 & 4 & 18 & 2{,}5 & 0{,}10 & 2{,}0 \\
+Rushdown     & 320 & 16 & 1 & 10 & 5{,}0 & 0{,}10 & 1{,}0 \\
+Combo Master & 350 & 18 & 3 & 10 & 3{,}0 & 0{,}55 & 0{,}5 \\
+Grappler     & 400 & 27 & 4 &  8 & 2{,}0 & 0{,}30 & 0{,}5 \\
+Turtle       & 450 & 15 & 5 & 13 & 1{,}5 & 0{,}20 & 1{,}0 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -266,33 +267,39 @@ Turtle       & 400 & 10 & 5 & 13 & 1{,}5 & 0{,}25 & 2{,}0 & 1{,}0 & 7 \\
 O combate é uma simulação tick a tick, 1\,vs\,1, em um campo unidimensional de 100
 unidades, com distância inicial de 50 e resolução em sub-ticks
 ($\texttt{TICK\_SCALE}=5$) para suavizar o espaço de \emph{fitness}. A cada
-sub-tick, cada lutador escolhe uma de quatro ações~--- ATTACK, ADVANCE, RETREAT ou
-DEFEND~--- por um sistema de prioridades:
+sub-tick, a ação de cada lutador~--- ATTACK, ADVANCE, RETREAT ou DEFEND~--- é
+decidida em duas fases, \emph{intenção} seguida de \emph{execução} (um lutador sob
+\emph{stun} perde a ação):
 
-\begin{enumerate}
-\item \textbf{ATTACK}, se está em alcance e com o \emph{cooldown} pronto;
-\item \textbf{ADVANCE}, se está fora de alcance ou encurralado contra a parede;
-\item \textbf{\emph{soft policy}} (caso contrário): amostra uma ação de
-$\{$ADVANCE, RETREAT, DEFEND$\}$ com probabilidade proporcional aos pesos
-$(w_{aggressiveness}, w_{retreat}, w_{defend})$ e a mantém por
-$\texttt{ACTION\_PERSISTENCE}=10$ sub-ticks (inércia estratégica).
-\end{enumerate}
+\begin{description}
+\item[Fase 1 --- intenção.] Se está \emph{fora} do próprio alcance, a intenção é
+ignorada e o lutador faz um ADVANCE incondicional (\emph{neutral game}, aproxima-se).
+Se está \emph{em} alcance e não há intenção vigente, ele \emph{amostra} uma intenção
+em $\{$FRENTE, RECUAR, GUARDA$\}$ com probabilidade proporcional aos pesos
+$(w_{aggressiveness}, w_{retreat}, w_{defend})$ e a mantém pelos próximos
+$\texttt{ACTION\_PERSISTENCE}=10$ sub-ticks (comprometimento/inércia estratégica).
+\item[Fase 2 --- execução.] A intenção vigente é mapeada na ação concreta do
+sub-tick: FRENTE $\rightarrow$ ATTACK se o \emph{cooldown} está pronto, senão
+ADVANCE (pressiona sem desperdiçar o \emph{cooldown}); RECUAR $\rightarrow$ RETREAT
+se ainda há espaço para recuar, senão DEFEND; GUARDA $\rightarrow$ DEFEND.
+\end{description}
 
-A \emph{soft policy} é a única fonte de estocasticidade do laço. Como os pesos
+A amostragem da intenção é a \emph{única} fonte de estocasticidade do laço~--- não
+há termo de hesitação nem tratamento especial de encurralamento. Como os pesos
 agem de forma contínua, uma variação infinitesimal em qualquer peso produz
-variação proporcional na probabilidade de ação, o que fornece ao algoritmo um
-gradiente contínuo sobre esses genes. Um termo de hesitação
-($\varepsilon=0{,}10$, valor provisório, a calibrar) permite que, mesmo em ramos
-determinísticos, o lutador eventualmente recaia na amostragem ponderada,
-modelando a variância de execução do jogador.
+variação proporcional na probabilidade da intenção, o que fornece ao algoritmo um
+gradiente contínuo sobre esses genes; uma comparação categórica (só a ordem dos
+pesos importando) tornaria as magnitudes invisíveis à seleção.
 
-A resolução de dano é determinística: o dano efetivo é
-$\textit{dano}\times(1-\textit{defesa})$, e a ação DEFEND reduz o dano recebido em
-60\%. O \emph{stun} efetivo é $\max\!\big(0,\;\mathrm{round}(\textit{stun}\times
-5) - \textit{recovery}\big)$, limitado a um valor estritamente
-inferior ao \emph{cooldown} do atacante, o que garante sempre uma janela livre
-entre golpes e evita o \emph{lockdown} degenerado. Uma luta termina por nocaute
-ou, ao atingir o limite de duração, pela maior fração de HP remanescente.
+A resolução de dano é determinística e \emph{flat}: o dano é o próprio atributo do
+atacante, sem redução passiva; o único modificador é a ação DEFEND do alvo, que
+reduz o dano recebido em 40\%. O \emph{stun} efetivo é
+$\mathrm{round}\!\big(\textit{stun}\times\mathrm{round}(\textit{cooldown}\times5)\big)$,
+em que o gene $\textit{stun}\in[0;\,0{,}6]$ é uma \emph{fração} do \emph{cooldown}
+do próprio atacante (em sub-ticks). Como esse limite é inferior a 1, o \emph{stun}
+aplicado é sempre estritamente menor que o \emph{cooldown}, o que garante sempre
+uma janela livre entre golpes e dispensa um teto explícito. Uma luta termina por
+nocaute ou, ao atingir o limite de duração, pela maior fração de HP remanescente.
 
 \subsection{Definição e medição de identidade}
 \label{sec:identidade}
@@ -305,16 +312,24 @@ lentes complementares, três das quais são puramente de medição e uma das qua
 (o desvio) também integra a função objetivo (Seção~\ref{sec:fitness}):
 
 \begin{description}
-\item[Estrutural (validador).] Um conjunto de \textbf{20 asserções de
-ranqueamento} verifica se cada personagem ocupa, dentro do \emph{roster}, a
-posição relativa que define seu arquétipo. São 14 asserções inter-personagem
+\item[Estrutural e comportamental (validador).] Um conjunto de \textbf{21 asserções
+de ranqueamento}, em três camadas, verifica se cada personagem ocupa, dentro do
+\emph{roster}, a posição relativa que define seu arquétipo. As duas primeiras
+camadas são \emph{estruturais} (17 asserções sobre os genes): 12 inter-personagem
 (por exemplo, o \emph{rushdown} deve ter a maior velocidade e o menor
-\emph{cooldown}; o \emph{turtle}, a maior defesa, HP e \emph{recovery}; o
-\emph{grappler}, o maior dano) e 6 asserções intra-personagem sobre ordenações
-internas normalizadas (por exemplo, no \emph{zoner}, alcance normalizado maior
-que velocidade normalizada). Por se basear em ranqueamento, e não em distância a
-valores específicos, esse instrumento é \emph{invariante à magnitude exata} dos
-genes: ele afere a identidade no sentido qualitativo que a define.
+\emph{cooldown}; o \emph{turtle}, o maior HP, o maior \emph{cooldown} e a maior
+propensão a defender; o \emph{grappler}, o maior dano) e 5 intra-personagem sobre
+ordenações internas normalizadas (por exemplo, no \emph{zoner}, alcance normalizado
+maior que velocidade normalizada). A terceira camada é \emph{comportamental} (4
+asserções): afere se a identidade se traduz em jogo efetivo~--- o \emph{zoner} luta
+da maior distância média, o \emph{rushdown} conecta o maior número de ataques, o
+\emph{turtle} é quem mais \emph{escolhe} defender e o \emph{combo master} é quem
+mais aplica \emph{stun}. O \emph{grappler} não recebe asserção comportamental: como
+o modelo não representa a mecânica de \emph{grab}, sua identidade não tem expressão
+comportamental distinta~--- um achado honesto de que 4 das 5 identidades se
+manifestam funcionalmente. Por se basear em ranqueamento, e não em distância a
+valores específicos, o instrumento é \emph{invariante à magnitude exata} dos genes:
+afere a identidade no sentido qualitativo que a define.
 
 \item[Comportamental (\emph{fingerprint}).] Para cada personagem, agregado sobre
 seus quatro confrontos, registra-se o perfil de jogo: a distribuição de ações
@@ -350,45 +365,53 @@ da pergunta de pesquisa.
 
 \paragraph{Desvio (\emph{drift}).} Operacionaliza a preservação de identidade
 como a distância euclidiana normalizada de cada personagem ao seu perfil
-canônico, sobre os 12 genes, agregada pela média entre os cinco:
+canônico, sobre os 10 genes, agregada pela média entre os cinco:
 \begin{equation}
 \textit{drift} = \frac{1}{5}\sum_{i=1}^{5}
-\sqrt{\frac{1}{12}\!\left(\sum_{a}\!\Big(\tfrac{g_{a}-c_{a}}{g_{a}^{\max}}\Big)^{\!2}
+\sqrt{\frac{1}{10}\!\left(\sum_{a}\!\Big(\tfrac{g_{a}-c_{a}}{g_{a}^{\max}}\Big)^{\!2}
 + \sum_{w}(g_{w}-c_{w})^{2}\right)} .
 \end{equation}
 É também o verdadeiro mecanismo anti-homogeneização da otimização, pois atrai cada
 personagem para um perfil canônico distinto.
 
-\paragraph{Desbalanço (\emph{dominance}).} Combina dois sinais por confronto. O
-termo primário é o desbalanço contínuo da taxa de vitória (\emph{win rate}, WR),
-$\textit{wr\_excess}=|\textit{WR}-0{,}5|/0{,}5$, sem banda morta~--- o objetivo
-direto de balanceamento. O termo secundário é a \emph{decisividade} por luta fora
-de uma banda saudável $[0{,}05,\,0{,}10]$ (em que o vencedor encerra com 10\% a
-20\% de HP de folga), que regulariza a \emph{qualidade} da luta. A penalidade é a
-raiz quadrática média (RMS) sobre os 10 pares, de modo que confrontos extremos
-pesem mais que moderados:
+\paragraph{Desbalanço (\emph{dominance}).} Combina três sinais cegos à direção,
+cada um agregado como raiz quadrática média (RMS), de modo que casos extremos pesem
+mais que moderados. O termo \emph{primário} é o desbalanço \emph{global} por
+personagem: para cada um dos cinco, $|\textit{WR}_{\textit{glob}}-0{,}5|/0{,}5$, em
+que $\textit{WR}_{\textit{glob}}$ é a taxa de vitória (\emph{win rate}, WR) agregada
+sobre os quatro oponentes. Seu ótimo é ``nenhum arquétipo domina o \emph{roster}''
+e, crucialmente, ele \emph{não} força cada par a 50\%: um personagem a 50\% global
+pode vencer dois confrontos e perder dois~--- exatamente o espaço em que o ciclo de
+vantagens pode existir. Dois termos \emph{secundários}, ambos por par, regularizam a
+qualidade: (i) um \emph{teto de hard-counter}, que penaliza apenas o excesso de
+$|\textit{WR}_{\textit{par}}-0{,}5|$ acima de $\texttt{MATCHUP\_WR\_CAP}=0{,}15$,
+mantendo as arestas do ciclo como \emph{vantagens} dentro de $[0{,}35;\,0{,}65]$ e
+barrando counters esmagadores (como 100\%$\times$0\%); e (ii) a \emph{decisividade}
+por luta fora de uma banda saudável $[0{,}10;\,0{,}20]$ (em que o vencedor encerra
+com 20\% a 40\% de HP de folga). Sejam
 \begin{equation}
-e_{ij} = w_{\textit{wr}}\cdot\textit{wr\_excess}_{ij}
-       + w_{\textit{d}}\cdot\textit{decis\_excess}_{ij},\qquad
-\textit{dominance} = \sqrt{\tfrac{1}{10}\textstyle\sum_{ij} e_{ij}^{2}} ,
+g=\sqrt{\tfrac{1}{5}\textstyle\sum_{i=1}^{5}\!\Big(\tfrac{|\textit{WR}_{\textit{glob},i}-0{,}5|}{0{,}5}\Big)^{\!2}},\ \
+c=\sqrt{\tfrac{1}{10}\textstyle\sum_{ij}\!\Big(\tfrac{\max(0,\,|\textit{WR}_{ij}-0{,}5|-0{,}15)}{0{,}35}\Big)^{\!2}},\ \
+d=\sqrt{\tfrac{1}{10}\textstyle\sum_{ij}\textit{decis\_excess}_{ij}^{2}},
 \end{equation}
-com $w_{\textit{wr}}=1{,}0$ e $w_{\textit{d}}=0{,}5$. Ambos os sinais são
-\emph{cegos à direção} ($|\textit{WR}-0{,}5|$ e $|\textit{score}-0{,}5|$): a
-penalidade não codifica \emph{qual} arquétipo deveria vencer cada confronto, o que
-preserva a não circularidade.
+\begin{equation}
+\textit{dominance} = w_{g}\,g + w_{c}\,c + w_{d}\,d,\qquad
+w_{g}=1{,}0,\quad w_{c}=w_{d}=0{,}5 .
+\end{equation}
+Os três sinais usam $|\textit{WR}-0{,}5|$ e $|\textit{score}-0{,}5|$~--- são
+\emph{cegos à direção}: a penalidade não codifica \emph{qual} arquétipo deveria
+vencer cada confronto, o que preserva a não circularidade.
 
-A combinação dos dois termos é necessária porque cada um, isolado, é insuficiente.
-A decisividade isolada é \emph{cega à frequência de vitória}: um confronto de
-100\%$\times$0\% pode ser sempre decidido por margem estreita de HP e, ainda
-assim, cair dentro da banda saudável ($D\approx 0{,}075$), recebendo penalidade
-nula apesar do desequilíbrio total. Por isso a WR é o termo primário. A WR, por
-sua vez, exige um sinal de qualidade que a complemente, pois é cega ao formato da
-luta: a decisividade secundária protege contra o \emph{blowout-coinflip}~---
-situações em que cada lado vence de forma esmagadora em metade das partidas,
-produzindo WR próxima de 50\% embora nenhuma luta seja de fato equilibrada. O ruído introduzido pela
-\emph{soft policy} torna a WR um gradiente utilizável: quando os confrontos se
-aproximam do equilíbrio, pequenas variações de genes deslocam continuamente as
-taxas de vitória.
+Os três termos são complementares porque cada um, isolado, é insuficiente. O
+balanço global é cego ao \emph{formato} de cada par: admite tanto um counter
+esmagador (100\%$\times$0\%, com WR global ainda equilibrada) quanto um
+\emph{blowout-coinflip}~--- situação em que cada lado vence de forma esmagadora em
+metade das partidas, produzindo WR próxima de 50\% embora nenhuma luta seja de fato
+equilibrada. O teto de \emph{hard-counter} barra o primeiro; a decisividade por
+luta, medida como margem contínua de HP, captura o segundo. O ruído introduzido
+pela amostragem de intenção torna a WR um gradiente utilizável: quando os
+confrontos se aproximam do equilíbrio, pequenas variações de genes deslocam
+continuamente as taxas de vitória.
 
 \subsection{AG escalar e NSGA-II}
 
@@ -422,7 +445,7 @@ protocolo experimental, incorporado da literatura, prevê três instrumentos: (i
 \emph{múltiplas execuções independentes} com estatística agregada~--- média $\pm$
 desvio-padrão, taxa de sucesso por confronto e fração de sementes que equilibram
 todos os 10 confrontos; (ii) \emph{métricas de qualidade da fronteira}~---
-hipervolume com ponto de referência fixo $(1{,}5,\,1{,}0)$ e espalhamento; e (iii)
+hipervolume com ponto de referência fixo $(2{,}0,\,1{,}0)$ e espalhamento; e (iii)
 \emph{validação externa ao} \emph{fitness}, ao estilo Ludi
 \cite{browne2010evolutionary}, que reavalia um indivíduo fixo sob sementes de
 avaliação inteiramente novas, fora do laço de otimização, e emite um veredito de
@@ -448,9 +471,10 @@ validação de robustez.
 \subsection{O \emph{baseline} canônico: identidade validada, equilíbrio ausente}
 
 Antes da evolução, o \emph{roster} canônico possui identidade perfeita por
-construção. O validador estrutural confirma esse ponto de forma objetiva:
-\textbf{o roster canônico satisfaz as 20 de 20 asserções} de identidade, e o
-desvio é nulo ($\textit{drift}=0$). O \emph{fingerprint} comportamental é coerente
+construção. O validador confirma esse ponto de forma objetiva:
+\textbf{o roster canônico satisfaz as 21 de 21 asserções} de identidade (17
+estruturais, por construção, e 4 comportamentais), e o desvio é nulo
+($\textit{drift}=0$). O \emph{fingerprint} comportamental é coerente
 com os conceitos~--- o \emph{rushdown} avança em \ph{fp-rush} dos ticks, o
 \emph{turtle} defende em \ph{fp-turtle} e o \emph{zoner} recua em \ph{fp-zoner}~---,
 o que indica que os pesos produzem identidade comportamental visível, e não ruído
@@ -487,7 +511,7 @@ em uma única medida escalar.
 A Figura~\ref{fig:pareto} apresenta a fronteira de Pareto obtida pelo NSGA-II após
 150 gerações: \ph{n-front} soluções não dominadas, formando uma curva bem
 distribuída (espalhamento de \ph{spacing}), com hipervolume de \ph{hv} em relação
-ao ponto de referência $(1{,}5,\,1{,}0)$. A fronteira responde diretamente à
+ao ponto de referência $(2{,}0,\,1{,}0)$. A fronteira responde diretamente à
 pergunta de pesquisa: evidencia que equilíbrio e identidade \emph{são} objetivos
 conflitantes neste domínio e quantifica \emph{quanto} de um se troca pelo outro. O
 extremo de identidade preservada (\texttt{best\_drift}) coincide com o canônico
@@ -514,13 +538,13 @@ A Tabela~\ref{tab:tradeoff} resume três pontos do \emph{trade-off}, medidos pel
 quatro instrumentos de identidade. A comparação é o ponto central do trabalho. No
 extremo de identidade perfeita (canônico), o equilíbrio é nulo (\ph{eq-can}). No
 ponto do AG escalar, o equilíbrio é quase total (\ph{eq-ag}), mas a diferenciação
-cai (\ph{diff-ag}) e o validador estrutural registra apenas \ph{val-ag} de 20
+cai (\ph{diff-ag}) e o validador registra apenas \ph{val-ag} de 21
 asserções preservadas. O representante \texttt{best\_dominance} do NSGA-II ocupa a posição
 mais relevante: pagando um desvio modesto de \ph{drift-bd}, reduz o desbalanço de
 \ph{dom-can} para \ph{dom-bd} e atinge \textbf{\ph{eq-bd}} confrontos
 equilibrados~--- e, decisivamente, a diferenciação par a par \emph{aumenta} em
-relação ao canônico (razão \ph{diff-bd}), com \ph{val-bd} de 20 asserções
-estruturais preservadas. Trata-se de equilíbrio substancial \emph{sem}
+relação ao canônico (razão \ph{diff-bd}), com \ph{val-bd} de 21 asserções
+de identidade preservadas. Trata-se de equilíbrio substancial \emph{sem}
 homogeneização. Mesmo sem ser codificado na função objetivo, \ph{cycle-bd} dos dez
 pares do ciclo de vantagens canônico sobrevivem nesse indivíduo, como métrica
 \emph{post hoc}.
@@ -530,17 +554,17 @@ pares do ciclo de vantagens canônico sobrevivem nesse indivíduo, como métrica
 \caption{Três pontos do \emph{trade-off} equilíbrio $\times$ identidade, medidos
 por métricas \emph{post hoc}. As setas indicam a direção de melhoria. ``Conf.
 eq.''~= pares com WR em $[40\%,60\%]$; ``Difer.''~= razão da diferenciação par a
-par em relação à do canônico ($>1$ indica maior distinção); ``Estrut.''~= asserções
-estruturais preservadas (de 20); ``Ciclo''~= pares do ciclo canônico mantidos
-\emph{post hoc}.}
+par em relação à do canônico ($>1$ indica maior distinção); ``Valid.''~= asserções
+de identidade preservadas (de 21; 17 estruturais + 4 comportamentais); ``Ciclo''~=
+pares do ciclo canônico mantidos \emph{post hoc}.}
 \label{tab:tradeoff}
 \small
 \begin{tabular}{lcccccc}
 \toprule
 Configuração & \emph{dominance} $\downarrow$ & \emph{drift} $\downarrow$ &
-Conf. eq. & Difer. & Estrut. & Ciclo \\
+Conf. eq. & Difer. & Valid. & Ciclo \\
 \midrule
-Canônico (\texttt{best\_drift})    & \ph{dom-can} & 0{,}00 & \ph{eq-can} & 1{,}00 & 20/20 & \ph{cycle-can} \\
+Canônico (\texttt{best\_drift})    & \ph{dom-can} & 0{,}00 & \ph{eq-can} & 1{,}00 & 21/21 & \ph{cycle-can} \\
 AG escalar ($\lambda_d{=}\lambda_D$) & \ph{dom-ag} & \ph{drift-ag} & \ph{eq-ag} & \ph{diff-ag} & \ph{val-ag} & \ph{cycle-ag} \\
 NSGA-II \texttt{best\_dominance}   & \ph{dom-bd} & \ph{drift-bd} & \ph{eq-bd} & \ph{diff-bd} & \ph{val-bd} & \ph{cycle-bd} \\
 \bottomrule
@@ -578,11 +602,7 @@ identidades funcionais, mas há um \emph{trade-off} mensurável, e o grau de
 equilíbrio buscado determina quanto de identidade se preserva. O equilíbrio
 substancial (\ph{eq-bd}) é compatível com identidade preservada~--- e até
 reforçada, conforme a diferenciação~--- ao passo que o equilíbrio total
-(\ph{eq-ag}), nesta configuração, exige alguma homogeneização. Um achado
-secundário é que o gene de \emph{recovery} se mostrou evolutivamente neutro
-(tende ao piso): em lutas amplamente desequilibradas, resistir ao \emph{stun} não
-altera o desfecho, de modo que não há pressão seletiva sobre ele~--- hipótese a confirmar
-quando os confrontos se tornarem mais apertados.
+(\ph{eq-ag}), nesta configuração, exige alguma homogeneização.
 
 \section{Limitações}
 

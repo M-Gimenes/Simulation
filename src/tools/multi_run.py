@@ -8,7 +8,7 @@ treino (Common Random Numbers entre execuções) e agrega (headline C2):
   • média ± desvio de `dominance_penalty` / `drift_penalty`;
   • WR global média ± desvio por personagem + fração de sementes em que cada boneco
     fica equilibrado (WR global em [0.40, 0.60]);
-  • número de hard-counters (pares fora de [0.30, 0.70]) por execução;
+  • número de hard-counters (pares fora de [0.35, 0.65]) por execução;
   • fração de sementes que equilibram o ROSTER (5 bonecos em banda E 0 hard-counters).
   • (secundário) WR média por matchup.
 
@@ -213,7 +213,7 @@ def _print_summary(result: dict) -> None:
         print(f"      {name:<15s} {c['mean']:.1%} ± {c['std']:.1%}   eq em {c['balanced_rate']:.0%} das sementes")
 
     hc = agg["hard_counters_per_seed"]
-    print(f"\n    Hard-counters por execução (pares fora de [30%, 70%]): "
+    print(f"\n    Hard-counters por execução (pares fora de [35%, 65%]): "
           f"{hc['mean']:.1f} ± {hc['std']:.1f}")
 
     rate = agg["roster_balanced_rate"]

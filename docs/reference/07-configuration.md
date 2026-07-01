@@ -8,10 +8,14 @@ constantes espalhadas.
 São **7 atributos** + 3 pesos = 10 genes por personagem (`defense` e `recovery`
 foram removidos do modelo — ver [04-combat-model.md](04-combat-model.md)).
 
+> **Fonte única:** `src/engine/config.py` → `ATTRIBUTE_BOUNDS` / `WEIGHT_BOUNDS`
+> (hoje ~L68–L82). A tabela abaixo espelha o código; **em divergência, o código
+> vence** — ao mudar um bound, atualize lá e só reflita aqui.
+
 | Atributo | Mín | Máx | Semântica |
 |---|---|---|---|
 | HP | 250 | 450 | pontos de vida |
-| Damage | 10 | 20 | dano por hit (flat; só reduzido por DEFEND) |
+| Damage | 15 | 30 | dano por hit (flat; só reduzido por DEFEND) |
 | Attack Cooldown | 1 | 5 | ticks entre ataques; menor = mais rápido |
 | Range | 5 | 20 | alcance (todos < distância inicial 50) |
 | Speed | 1 | 5 | unidades de campo por tick |
@@ -64,14 +68,14 @@ foi removido).
 | `DOMINANCE_GLOBAL_WEIGHT` | 1.0 | peso do termo **primário** (balanço global por personagem) do dominance_penalty |
 | `DOMINANCE_CAP_WEIGHT` | 0.5 | peso do teto de hard-counter (excesso de `\|WR−0.5\|` acima de `MATCHUP_WR_CAP`) |
 | `DOMINANCE_DECIS_WEIGHT` | 0.5 | peso do termo de decisividade — guarda contra blowout-coinflip |
-| `MATCHUP_WR_CAP` | 0.20 | meia-banda do hard-counter: par é counter duro se `\|WR−0.5\| > 0.20` (fora de [0.30, 0.70]). **Provisório — calibrar** |
+| `MATCHUP_WR_CAP` | 0.15 | meia-banda do hard-counter: par é counter duro se `\|WR−0.5\| > 0.15` (fora de [0.35, 0.65]). **Provisório — calibrar** |
 | `N_WORKERS` | None | núcleos para avaliação paralela (None = todos; 1 = serial) |
 | `FIELD_SIZE` | 100 | tamanho do campo |
 | `INITIAL_DISTANCE` | 50 | distância inicial entre lutadores |
 | `ACTION_PERSISTENCE_SUBTICKS` | 10 | sub-ticks que uma intenção sorteada é mantida |
 | `TICK_SCALE` | 5 | resolução sub-tick de cooldown/stun/movimento |
 | `MAX_TICKS` | 2500 | `500 × TICK_SCALE` — duração máxima de uma luta |
-| `DEFEND_DAMAGE_REDUCTION` | 0.4 | multiplicador no dano ao defender (40% recebido) |
+| `DEFEND_DAMAGE_REDUCTION` | 0.6 (= 1 − 0.4) | multiplicador no dano ao defender (recebe 60% = **40% de redução**) |
 | `NSGA2_POP_SIZE` | 300 | alias de POPULATION_SIZE |
 | `NSGA2_GENERATIONS` | 150 | alias de MAX_GENERATIONS |
 | `NSGA2_OBJECTIVES` | (dominance, drift) | objetivos do NSGA-II |

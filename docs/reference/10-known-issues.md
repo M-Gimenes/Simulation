@@ -31,7 +31,7 @@ personagem (7 atributos + 3 pesos), 50 por indivíduo. Detalhe em
 
 Os dois predicados de equilíbrio C2 foram extraídos para **fonte única** em
 `fitness.py` — `character_balanced(wr)` (WR global em [0.40, 0.60]) e
-`is_hard_counter(wr)` (par fora de [0.30, 0.70]) — e consumidos por `ga.py` e pelas
+`is_hard_counter(wr)` (par fora de [0.35, 0.65]) — e consumidos por `ga.py` e pelas
 tools (sem banda hardcoded espalhada):
 
 - `analyze_matchups`: headline = WR **global** por personagem (`character_balanced`);

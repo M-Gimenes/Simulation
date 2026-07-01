@@ -95,8 +95,9 @@ contador é **zerado** ao sair do range (que força ADVANCE) e quando o personag
 
 - **Dano flat:** `damage`, sem variância por hit e sem redução passiva. O único
   modificador é a ação `DEFEND` do alvo. (Não existe gene `defense`.)
-- **DEFEND:** multiplica o dano recebido por `DEFEND_DAMAGE_REDUCTION = 0.4`
-  (recebe 40% = 60% de redução).
+- **DEFEND:** multiplica o dano recebido por `DEFEND_DAMAGE_REDUCTION = 0.6`
+  (`= 1 − 0.4` em `config.py`) — o defensor recebe 60% do dano, i.e. **40% de
+  redução**.
 - <a name="stun"></a>**Stun:** `stun_t = round(stun × round(attack_cooldown × TICK_SCALE))`.
   O gene `stun ∈ [0.0, 0.6]` é uma **fração do próprio cooldown do atacante** (em
   sub-ticks), não um valor absoluto.

@@ -72,8 +72,8 @@ Com `DOMINANCE_GLOBAL_WEIGHT = 1.0`, `DOMINANCE_CAP_WEIGHT = 0.5`,
   incompatível com o ciclo.)
 - **Secundário — teto de hard-counter (`cap_term`):** penaliza só o excesso de
   `|WR_par − 0.5|` **acima** de `MATCHUP_WR_CAP` (RMS sobre os 10 pares). Mantém as
-  arestas do ciclo como **vantagens** dentro de uma banda (`[0.30, 0.70]` com cap
-  0.20), barrando counters esmagadores (ex.: 100×0). Dentro da banda o par não é
+  arestas do ciclo como **vantagens** dentro de uma banda (`[0.35, 0.65]` com cap
+  0.15), barrando counters esmagadores (ex.: 100×0). Dentro da banda o par não é
   penalizado.
 - **Secundário — decisividade por-luta (`decis_term`):** score por-luta contínuo
   (`_fight_score`): em KO, `score = 0.5 + 0.5·(HP_frac do vencedor)` — esmaga →
@@ -138,7 +138,7 @@ equilíbrio **global**, não "todo par a 50%":
 2. **Confirmação (a):** cada personagem com WR **global** dentro de
    `GLOBAL_CONVERGENCE_THRESHOLD (0.10)` de 50% — ninguém domina o roster;
 3. **Confirmação (b):** nenhum par é counter duro — todo `|wr_par − 0.5| ≤
-   MATCHUP_WR_CAP (0.20)`. **Não** exige cada par a 50% (arestas de ciclo são ok).
+   MATCHUP_WR_CAP (0.15)`. **Não** exige cada par a 50% (arestas de ciclo são ok).
 
 Os predicados `(a)` e `(b)` vivem em `fitness.py` (`character_balanced` e
 `is_hard_counter`) e são a **fonte única** consumida tanto pela convergência do AG

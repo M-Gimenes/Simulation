@@ -32,7 +32,7 @@ ANALYZE_SIMS = 1000
 #   • WR GLOBAL por personagem (headline): equilibrado em [40%, 60%] via
 #     `character_balanced` (0.5 ± GLOBAL_CONVERGENCE_THRESHOLD) — ninguém domina o roster.
 #   • WR POR PAR (secundário): só marca ✗ quando o par é COUNTER DURO
-#     (`is_hard_counter`: |WR − 50%| > MATCHUP_WR_CAP, fora de [30%, 70%]); dentro do
+#     (`is_hard_counter`: |WR − 50%| > MATCHUP_WR_CAP, fora de [35%, 65%]); dentro do
 #     teto é aresta de ciclo permitida, não desbalanço.
 # O ciclo canônico (quem "deveria" vencer) é reportado à parte como anotação descritiva.
 BAL_LO = 0.5 - MATCHUP_WR_CAP    # piso do teto de counter (30%)
@@ -219,7 +219,7 @@ def _fight_margin_score(r: MatchupResult) -> float:
 
 
 def classify_decisiveness(d: float) -> Tuple[str, str]:
-    """Banda saudável [MATCHUP_FLOOR, MATCHUP_THRESHOLD]: vencedor fecha 10-20% HP."""
+    """Banda saudável [MATCHUP_FLOOR, MATCHUP_THRESHOLD]: vencedor fecha 20-40% HP."""
     if d > MATCHUP_THRESHOLD:
         return ("⬆", "blowout")
     if d < MATCHUP_FLOOR:
@@ -348,7 +348,7 @@ def wilson_ci(wins: int, n: int, z: float = 1.96) -> Tuple[float, float]:
 
 def classify_balance(wr: float) -> Tuple[str, str]:
     """Veredito do par, cego à direção: ✗ só quando o par é COUNTER DURO
-    (`is_hard_counter`: |WR − 50%| > MATCHUP_WR_CAP, fora de [30%, 70%]); dentro do
+    (`is_hard_counter`: |WR − 50%| > MATCHUP_WR_CAP, fora de [35%, 65%]); dentro do
     teto é aresta de ciclo permitida, não desbalanço. Simétrico em torno de 50%, então
     `wr` e `1 − wr` recebem a mesma classificação."""
     if is_hard_counter(wr):

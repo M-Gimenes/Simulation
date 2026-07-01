@@ -161,7 +161,7 @@ def character_balanced(global_wr: float) -> bool:
 
 
 def is_hard_counter(matchup_wr: float) -> bool:
-    """Par é counter duro quando |WR − 0.5| > MATCHUP_WR_CAP (fora de [0.30, 0.70]):
+    """Par é counter duro quando |WR − 0.5| > MATCHUP_WR_CAP (fora de [0.35, 0.65]):
     counter esmagador, não vantagem de ciclo. Dentro do teto, o par é uma aresta
     de ciclo permitida."""
     return abs(matchup_wr - 0.5) > MATCHUP_WR_CAP

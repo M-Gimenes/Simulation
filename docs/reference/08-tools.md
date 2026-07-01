@@ -41,7 +41,7 @@ headline **C2**):
   (via `fitness.character_balanced`), `⬆` domina, `⬇` fraco. É o eixo principal de
   equilíbrio — nenhum boneco domina o roster.
 - **Counter por par** (cego à direção): `✗ counter duro` só quando o par sai de
-  `[30%, 70%]` (`fitness.is_hard_counter`, `|WR − 50%| > MATCHUP_WR_CAP`); dentro do
+  `[35%, 65%]` (`fitness.is_hard_counter`, `|WR − 50%| > MATCHUP_WR_CAP`); dentro do
   teto é `=` (aresta de ciclo permitida, não desbalanço). Leitura secundária ao
   headline global.
 - **Ciclo canônico** (descritivo, não pass/fail): o favorito observado bate com o
@@ -157,7 +157,7 @@ fronteira. Saídas agregadas (impressas + salvas em `results/multi_run/multi_run
 - **média ± desvio** de `dominance_penalty` e `drift_penalty`;
 - **WR global por personagem** (média ± desvio) + **fração de sementes em que cada
   boneco fica equilibrado** (WR global em `[0.40, 0.60]`, via `character_balanced`);
-- **hard-counters por execução** (média ± desvio; pares fora de `[0.30, 0.70]`);
+- **hard-counters por execução** (média ± desvio; pares fora de `[0.35, 0.65]`);
 - **fração de sementes que equilibram o ROSTER** (5 bonecos em banda **e** 0
   hard-counters) — a frase-tese (*"em N execuções, X% equilibraram o roster"*);
 - **(secundário)** WR média por matchup + fração de sementes em que cada par vira

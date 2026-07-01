@@ -20,13 +20,17 @@ São **7 atributos** por personagem (`defense` e `recovery` foram removidos do
 modelo — ver [04-combat-model.md](04-combat-model.md)). `stun` é uma **fração do
 cooldown do atacante** (∈ [0, 0.6]), não mais um valor absoluto.
 
+> **Fonte única:** `src/engine/archetypes.py` → `ARCHETYPES` (hoje ~L70). A tabela
+> espelha o código; **em divergência, o código vence** — ao mudar um canônico,
+> atualize lá e só reflita aqui.
+
 | Classe | HP | Dmg | Cooldown | Range | Speed | Stun | Knockback |
 |---|---|---|---|---|---|---|---|
-| Zoner | 300 | 12 | 4 | 18 | 2.5 | 0.10 | 2.0 |
-| Rushdown | 320 | 11 | 1 | 10 | 5.0 | 0.10 | 1.0 |
-| Combo Master | 350 | 13 | 3 | 10 | 3.0 | 0.55 | 0.5 |
-| Grappler | 400 | 20 | 4 | 8 | 2.0 | 0.30 | 0.5 |
-| Turtle | 450 | 10 | 5 | 13 | 1.5 | 0.20 | 1.0 |
+| Zoner | 300 | 20 | 4 | 18 | 2.5 | 0.10 | 2.0 |
+| Rushdown | 320 | 16 | 1 | 10 | 5.0 | 0.10 | 1.0 |
+| Combo Master | 350 | 18 | 3 | 10 | 3.0 | 0.55 | 0.5 |
+| Grappler | 400 | 27 | 4 | 8 | 2.0 | 0.30 | 0.5 |
+| Turtle | 450 | 15 | 5 | 13 | 1.5 | 0.20 | 1.0 |
 
 ### Pesos comportamentais canônicos
 
