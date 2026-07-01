@@ -567,7 +567,7 @@ equilíbrio e preservação de identidade.}
 
 \subsection{Equilíbrio sem homogeneização: a leitura dos extremos}
 
-A Tabela~\ref{tab:tradeoff} resume três pontos do \emph{trade-off}, medidos pelos
+A Tabela~\ref{tab:tradeoff} resume quatro pontos do \emph{trade-off}, medidos pelos
 quatro instrumentos de identidade. A comparação é o ponto central do trabalho. No
 extremo de identidade perfeita (canônico), o equilíbrio é nulo (\ph{eq-can}). No
 ponto do AG escalar, o equilíbrio é quase total (\ph{eq-ag}), mas a diferenciação
@@ -587,19 +587,22 @@ pares do ciclo de vantagens canônico sobrevivem nesse indivíduo, como métrica
 \caption{Quatro pontos do \emph{trade-off} equilíbrio $\times$ identidade, medidos
 por métricas \emph{post hoc} (setas = direção de melhoria). \emph{Conf. eq.}: pares
 com WR em $[40\%,60\%]$; \emph{Difer.}: razão da diferenciação par a par vs.\ o
-canônico ($>1$ = mais distinto); \emph{Valid.}: asserções de identidade preservadas
-(de 21); \emph{Ciclo}: arestas do ciclo canônico mantidas.}
+canônico ($>1$ = mais distinto); \emph{Valid.}: asserções de identidade preservadas;
+\emph{Ciclo}: arestas do ciclo canônico mantidas. Canônico $\equiv$
+\texttt{best\_drift}; \texttt{knee\_point} e \texttt{best\_dominance} são
+representantes da fronteira NSGA-II.}
 \label{tab:tradeoff}
 \small
-\begin{tabular}{lcccccc}
+\begin{tabular}{lcccc}
 \toprule
-Configuração & \emph{dominance} $\downarrow$ & \emph{drift} $\downarrow$ &
-Conf. eq. & Difer. & Valid. & Ciclo \\
+Métrica & Canônico & AG escalar & \texttt{knee\_point} & \texttt{best\_dominance} \\
 \midrule
-Canônico (\texttt{best\_drift})    & \ph{dom-can} & 0{,}00 & \ph{eq-can} & 1{,}00 & 21/21 & \ph{cycle-can} \\
-AG escalar ($\lambda_d{=}\lambda_D$) & \ph{dom-ag} & \ph{drift-ag} & \ph{eq-ag} & \ph{diff-ag} & \ph{val-ag} & \ph{cycle-ag} \\
-NSGA-II \texttt{best\_dominance}   & \ph{dom-bd} & \ph{drift-bd} & \ph{eq-bd} & \ph{diff-bd} & \ph{val-bd} & \ph{cycle-bd} \\
-NSGA-II \texttt{knee\_point}       & \ph{knee-dom} & \ph{knee-drift} & \ph{knee-eq} & \ph{knee-diff} & \ph{knee-val} & \ph{knee-cycle} \\
+\emph{dominance} $\downarrow$ & \ph{dom-can}   & \ph{dom-ag}   & \ph{knee-dom}   & \ph{dom-bd} \\
+\emph{drift} $\downarrow$     & 0{,}00         & \ph{drift-ag} & \ph{knee-drift} & \ph{drift-bd} \\
+Conf.\ eq.                    & \ph{eq-can}    & \ph{eq-ag}    & \ph{knee-eq}    & \ph{eq-bd} \\
+Difer.                        & 1{,}00         & \ph{diff-ag}  & \ph{knee-diff}  & \ph{diff-bd} \\
+Valid.\ (de 21)               & 21             & \ph{val-ag}   & \ph{knee-val}   & \ph{val-bd} \\
+Ciclo (de 10)                 & \ph{cycle-can} & \ph{cycle-ag} & \ph{knee-cycle} & \ph{cycle-bd} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -633,6 +636,34 @@ Rushdown     & \ph{eRZ} & ---      & \ph{eRC} & \ph{eRG} & \ph{eRT} & \ph{eRg} \
 Combo Master & \ph{eCZ} & \ph{eCR} & ---      & \ph{eCG} & \ph{eCT} & \ph{eCg} \\
 Grappler     & \ph{eGZ} & \ph{eGR} & \ph{eGC} & ---      & \ph{eGT} & \ph{eGg} \\
 Turtle       & \ph{eTZ} & \ph{eTR} & \ph{eTC} & \ph{eTG} & ---      & \ph{eTg} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+No plano comportamental, a Tabela~\ref{tab:fingerprint} mostra que, no \emph{roster}
+\texttt{best\_dominance}, cada arquétipo ainda \emph{lidera} o eixo que o define (em
+negrito)~--- evidência direta, agora quantitativa, das asserções comportamentais
+preservadas pelo validador.
+
+\begin{table}[ht]
+\centering
+\caption{Perfil comportamental do \emph{roster} evoluído (\texttt{best\_dominance})
+nos quatro eixos que definem a identidade funcional (Camada 3 do validador). Em
+\textbf{negrito}, o eixo-assinatura de cada arquétipo, que deve ser o máximo da
+coluna. Distância e contagens são por luta; \emph{DEF guarda} é fração das ações. O
+\emph{grappler} não tem assinatura comportamental (o modelo não representa o
+\emph{grab}); o canônico é a referência do validador ($\Delta\approx0$).}
+\label{tab:fingerprint}
+\small
+\begin{tabular}{lrrrr}
+\toprule
+Arquétipo & Dist.\ média & ATK/luta & Stun/luta & DEF guarda \\
+\midrule
+Zoner        & \textbf{\ph{fp-zon-dist}}  & \ph{fp-zon-atk}           & \ph{fp-zon-stun}          & \ph{fp-zon-def} \\
+Rushdown     & \ph{fp-rush-dist}          & \textbf{\ph{fp-rush-atk}} & \ph{fp-rush-stun}         & \ph{fp-rush-def} \\
+Combo Master & \ph{fp-cm-dist}            & \ph{fp-cm-atk}            & \textbf{\ph{fp-cm-stun}}  & \ph{fp-cm-def} \\
+Grappler     & \ph{fp-grap-dist}          & \ph{fp-grap-atk}          & \ph{fp-grap-stun}         & \ph{fp-grap-def} \\
+Turtle       & \ph{fp-turt-dist}          & \ph{fp-turt-atk}          & \ph{fp-turt-stun}         & \textbf{\ph{fp-turt-def}} \\
 \bottomrule
 \end{tabular}
 \end{table}
