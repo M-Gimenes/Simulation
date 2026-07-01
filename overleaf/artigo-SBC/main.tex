@@ -79,16 +79,15 @@ arquétipos de jogos de luta}
 
 \section{Introdução}
 
-A indústria de jogos digitais consolidou-se como um dos maiores mercados de
-entretenimento do mundo, com receita anual da ordem de centenas de bilhões de
-dólares e crescimento sustentado dos esportes eletrônicos
+A indústria de jogos digitais é um dos maiores mercados de entretenimento do
+mundo, com receita anual da ordem de centenas de bilhões de dólares e crescimento
+sustentado dos esportes eletrônicos
 \cite{newzoo2025,pgb2026,hamari2017esports,reitman2020esports}. Em jogos
-competitivos, a qualidade da experiência depende criticamente do
-\emph{equilíbrio}: o grau em que as diferentes opções disponíveis ao jogador
----~personagens, classes, estratégias~--- oferecem chances comparáveis de vitória
-\cite{adams2014fundamentals,schell2019art}. Um jogo desequilibrado tende a
-degenerar em um \emph{metagame} estreito, no qual apenas algumas opções são
-competitivamente viáveis, o que reduz a profundidade estratégica e o engajamento
+competitivos, a qualidade da experiência depende criticamente do \emph{equilíbrio}:
+o grau em que as opções do jogador ---~personagens, classes, estratégias~---
+oferecem chances comparáveis de vitória \cite{adams2014fundamentals,schell2019art}.
+Um jogo desequilibrado degenera em um \emph{metagame} estreito, no qual poucas
+opções são viáveis, reduzindo a profundidade estratégica e o engajamento
 \cite{sirlin2006playing,sweetser2005gameflow}.
 
 O balanceamento, contudo, não se reduz a igualar taxas de vitória. Jogos
@@ -142,32 +141,25 @@ fundamentação teórica, a metodologia e os resultados.
 
 \subsection{Algoritmos Genéticos e otimização multiobjetivo}
 
-Algoritmos Genéticos (AGs) são metaheurísticas de busca inspiradas na evolução
-natural, nas quais uma população de soluções candidatas é iterativamente
-submetida a seleção, recombinação (\emph{crossover}) e mutação, evoluindo em
-direção a regiões de maior aptidão (\emph{fitness})
-\cite{holland1975adaptation,goldberg1989genetic,mitchell1998introduction}. São
-particularmente adequados a espaços de busca grandes, não lineares e sem gradiente
-analítico~--- exatamente o caso de um espaço de parâmetros de \emph{game design}
-avaliado por simulação. O compromisso entre exploração (diversificar) e explotação
-(intensificar) é determinado por operadores e parâmetros como pressão de seleção,
-taxa de mutação e elitismo
+Algoritmos Genéticos (AGs) são metaheurísticas inspiradas na evolução natural, em
+que uma população de soluções candidatas é iterativamente submetida a seleção,
+recombinação (\emph{crossover}) e mutação, evoluindo para regiões de maior aptidão
+(\emph{fitness}) \cite{holland1975adaptation,goldberg1989genetic,mitchell1998introduction}.
+São adequados a espaços de busca grandes, não lineares e sem gradiente analítico~---
+o caso de um espaço de parâmetros de \emph{game design} avaliado por simulação~---,
+com o compromisso entre exploração e explotação regido por operadores como pressão
+de seleção, taxa de mutação e elitismo
 \cite{whitley1994tutorial,eiben1998exploration,eiben2015introduction}.
 
-Quando o problema envolve objetivos conflitantes, não existe uma única solução
-ótima, mas um conjunto de soluções não dominadas~--- a \emph{fronteira de
-Pareto}~--- em que melhorar um objetivo implica piorar outro
-\cite{deb2001multiobjective}. O NSGA-II \cite{deb2002nsga} é um algoritmo de
-referência para esse cenário: combina ordenação rápida por não dominância, uma
-medida de \emph{crowding distance} para preservar a diversidade ao longo da
-fronteira e elitismo $(\mu+\lambda)$. A qualidade de uma fronteira é avaliada por
-indicadores como o hipervolume (volume do espaço de objetivos dominado em relação
-a um ponto de referência, que captura convergência e espalhamento em um único
-número) e o espalhamento (\emph{spacing}, uniformidade da distribuição)
-\cite{deb2001multiobjective,deb2002nsga}. O tratamento da preservação de
-identidade como penalidade \emph{suave}, em vez de restrição rígida, alinha-se à
-literatura de tratamento de restrições em algoritmos evolutivos
-\cite{michalewicz1996constrained}.
+Quando os objetivos conflitam, não há solução única, mas um conjunto não dominado~---
+a \emph{fronteira de Pareto} \cite{deb2001multiobjective}. O NSGA-II
+\cite{deb2002nsga}, referência nesse cenário, combina ordenação rápida por não
+dominância, \emph{crowding distance} (diversidade ao longo da fronteira) e elitismo
+$(\mu+\lambda)$; a qualidade da fronteira é aferida por hipervolume (volume do
+espaço de objetivos dominado, capturando convergência e espalhamento num só número)
+e \emph{spacing} \cite{deb2001multiobjective,deb2002nsga}. Tratar a preservação de
+identidade como penalidade \emph{suave}, e não como restrição rígida, alinha-se à
+literatura de restrições em algoritmos evolutivos \cite{michalewicz1996constrained}.
 
 \subsection{Balanceamento de jogos por busca}
 
@@ -412,9 +404,11 @@ ciclo como \emph{vantagens} dentro de $[0{,}35;\,0{,}65]$ e barrando counters
 esmagadores (como 100\%$\times$0\%)~---, e a \emph{decisividade} por luta,
 detalhada adiante. Sejam
 \begin{equation}
-g=\sqrt{\tfrac{1}{5}\textstyle\sum_{i=1}^{5}\!\Big(\tfrac{|\textit{WR}_{\textit{glob},i}-0{,}5|}{0{,}5}\Big)^{\!2}},\ \
-c=\sqrt{\tfrac{1}{10}\textstyle\sum_{ij}\!\Big(\tfrac{\max(0,\,|\textit{WR}_{ij}-0{,}5|-0{,}15)}{0{,}35}\Big)^{\!2}},\ \
-d=\sqrt{\tfrac{1}{10}\textstyle\sum_{ij}\textit{decis\_excess}_{ij}^{2}},
+\begin{aligned}
+g &= \sqrt{\tfrac{1}{5}\textstyle\sum_{i=1}^{5}\Big(\tfrac{|\textit{WR}_{\textit{glob},i}-0{,}5|}{0{,}5}\Big)^{2}}, \\[2pt]
+c &= \sqrt{\tfrac{1}{10}\textstyle\sum_{ij}\Big(\tfrac{\max(0,\,|\textit{WR}_{ij}-0{,}5|-0{,}15)}{0{,}35}\Big)^{2}}, \\[2pt]
+d &= \sqrt{\tfrac{1}{10}\textstyle\sum_{ij}\textit{decis\_excess}_{ij}^{2}} .
+\end{aligned}
 \end{equation}
 \begin{equation}
 \textit{dominance} = w_{g}\,g + w_{c}\,c + w_{d}\,d,\qquad
