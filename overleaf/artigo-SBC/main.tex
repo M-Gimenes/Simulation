@@ -80,7 +80,7 @@ arquétipos de jogos de luta}
 \section{Introdução}
 
 A indústria de jogos digitais consolidou-se como um dos maiores mercados de
-entretenimento do mundo, com receita global na casa das centenas de bilhões de
+entretenimento do mundo, com receita anual da ordem de centenas de bilhões de
 dólares e crescimento sustentado dos esportes eletrônicos
 \cite{newzoo2025,pgb2026,hamari2017esports,reitman2020esports}. Em jogos
 competitivos, a qualidade da experiência depende criticamente do
@@ -173,18 +173,18 @@ literatura de tratamento de restrições em algoritmos evolutivos
 
 A geração e o ajuste de conteúdo de jogos por busca (\emph{search-based procedural
 content generation}) constituem um campo consolidado
-\cite{togelius2011searchbased,yannakakis2018ai}. \cite{hom2007automatic}
-automatizam o projeto de jogos de tabuleiro balanceados, avaliando configurações
-por simulações de partidas. \cite{browne2010evolutionary}, no sistema Ludi,
-evoluem regras de jogos completos guiados por uma bateria de critérios de
-qualidade mensuráveis e validados por \emph{self-play}, culminando em jogos
-efetivamente publicáveis~--- metodologia que inspira diretamente a etapa de
-validação externa adotada neste trabalho. \cite{chen2014mmorpg} tratam o
-balanceamento de classes de um \emph{MMORPG} por programação coevolutiva,
-deixando as estratégias evoluírem contra adversários que também se adaptam, e
-\cite{livingstone2006coevolution} explora coevolução em IA hierárquica para jogos
-de estratégia. \cite{preuss2012balanced} buscam planos de jogo balanceados para um
-cenário competitivo. A maior parte desses trabalhos otimiza o equilíbrio
+\cite{togelius2011searchbased,yannakakis2018ai}. O projeto de jogos de tabuleiro
+balanceados já foi automatizado avaliando-se configurações por simulações de
+partidas \cite{hom2007automatic}. No sistema Ludi, regras de jogos completos são
+evoluídas sob uma bateria de critérios de qualidade mensuráveis e validadas por
+\emph{self-play}, culminando em jogos efetivamente publicáveis
+\cite{browne2010evolutionary}~--- metodologia que inspira diretamente a etapa de
+validação externa adotada neste trabalho. O balanceamento de classes de um
+\emph{MMORPG} foi tratado por programação coevolutiva, com as estratégias
+evoluindo contra adversários que também se adaptam \cite{chen2014mmorpg}; a
+coevolução foi ainda explorada em IA hierárquica para jogos de estratégia
+\cite{livingstone2006coevolution} e na busca de planos balanceados para um
+cenário competitivo \cite{preuss2012balanced}. A maior parte desses trabalhos otimiza o equilíbrio
 diretamente; a contribuição específica deste trabalho é colocar o equilíbrio em
 \emph{tensão explícita} com a preservação de identidade e mapear esse
 \emph{trade-off}, em vez de tratá-lo como restrição implícita.
@@ -215,7 +215,27 @@ como uma lei empírica a ser reproduzida pelo sistema. Essa delimitação refor�
 não circularidade: como o ciclo é uma hipótese dos próprios autores, verificar se
 ele sobrevive sob o modelo é um achado sobre o modelo, e não a confirmação de um
 fato externo. Cinco arquétipos bastam para um ciclo fechado, em que cada um vence
-dois e perde para dois.
+dois e perde para dois (Tabela~\ref{tab:ciclo}).
+
+\begin{table}[ht]
+\centering
+\caption{Ciclo de vantagens canônico hipotetizado pelos autores: cada arquétipo
+vence dois confrontos e perde dois. É \emph{medido post hoc}, nunca codificado na
+função objetivo.}
+\label{tab:ciclo}
+\small
+\begin{tabular}{ll}
+\toprule
+Arquétipo & Vence \\
+\midrule
+Rushdown     & Zoner, Combo Master \\
+Zoner        & Grappler, Turtle \\
+Grappler     & Rushdown, Turtle \\
+Combo Master & Grappler, Zoner \\
+Turtle       & Rushdown, Combo Master \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \section{Metodologia}
 
@@ -265,8 +285,8 @@ Turtle       & 450 & 15 & 5 & 13 & 1{,}5 & 0{,}20 & 1{,}0 \\
 \label{sec:combate}
 
 O combate é uma simulação tick a tick, 1\,vs\,1, em um campo unidimensional de 100
-unidades, com distância inicial de 50 e resolução em sub-ticks
-($\texttt{TICK\_SCALE}=5$) para suavizar o espaço de \emph{fitness}. A cada
+unidades, com distância inicial de 50 e resolução em sub-ticks (cada tick lógico
+subdividido em cinco) para suavizar o espaço de \emph{fitness}. A cada
 sub-tick, a ação de cada lutador~--- ATTACK, ADVANCE, RETREAT ou DEFEND~--- é
 decidida em duas fases, \emph{intenção} seguida de \emph{execução} (um lutador sob
 \emph{stun} perde a ação):
@@ -276,8 +296,8 @@ decidida em duas fases, \emph{intenção} seguida de \emph{execução} (um lutad
 ignorada e o lutador faz um ADVANCE incondicional (\emph{neutral game}, aproxima-se).
 Se está \emph{em} alcance e não há intenção vigente, ele \emph{amostra} uma intenção
 em $\{$FRENTE, RECUAR, GUARDA$\}$ com probabilidade proporcional aos pesos
-$(w_{aggressiveness}, w_{retreat}, w_{defend})$ e a mantém pelos próximos
-$\texttt{ACTION\_PERSISTENCE}=10$ sub-ticks (comprometimento/inércia estratégica).
+$(w_{aggressiveness}, w_{retreat}, w_{defend})$ e a mantém pelos dez sub-ticks
+seguintes (comprometimento/inércia estratégica).
 \item[Fase 2 --- execução.] A intenção vigente é mapeada na ação concreta do
 sub-tick: FRENTE $\rightarrow$ ATTACK se o \emph{cooldown} está pronto, senão
 ADVANCE (pressiona sem desperdiçar o \emph{cooldown}); RECUAR $\rightarrow$ RETREAT
@@ -314,26 +334,25 @@ lentes complementares, três das quais são puramente de medição e uma das qua
 \begin{description}
 \item[Estrutural e comportamental (validador).] Um conjunto de \textbf{21 asserções
 de ranqueamento}, em três camadas, verifica se cada personagem ocupa, dentro do
-\emph{roster}, a posição relativa que define seu arquétipo. As duas primeiras
-camadas são \emph{estruturais} (17 asserções sobre os genes): 12 inter-personagem
-(por exemplo, o \emph{rushdown} deve ter a maior velocidade e o menor
-\emph{cooldown}; o \emph{turtle}, o maior HP, o maior \emph{cooldown} e a maior
-propensão a defender; o \emph{grappler}, o maior dano) e 5 intra-personagem sobre
-ordenações internas normalizadas (por exemplo, no \emph{zoner}, alcance normalizado
-maior que velocidade normalizada). A terceira camada é \emph{comportamental} (4
-asserções): afere se a identidade se traduz em jogo efetivo~--- o \emph{zoner} luta
-da maior distância média, o \emph{rushdown} conecta o maior número de ataques, o
-\emph{turtle} é quem mais \emph{escolhe} defender e o \emph{combo master} é quem
-mais aplica \emph{stun}. O \emph{grappler} não recebe asserção comportamental: como
-o modelo não representa a mecânica de \emph{grab}, sua identidade não tem expressão
-comportamental distinta~--- um achado honesto de que 4 das 5 identidades se
-manifestam funcionalmente. Por se basear em ranqueamento, e não em distância a
-valores específicos, o instrumento é \emph{invariante à magnitude exata} dos genes:
-afere a identidade no sentido qualitativo que a define.
+\emph{roster}, a posição relativa que define seu arquétipo. As duas primeiras são
+\emph{estruturais} (17 asserções sobre os genes): 12 inter-personagem (p.\,ex., o
+\emph{rushdown} com a maior velocidade e o menor \emph{cooldown}; o \emph{turtle},
+o maior HP e a maior propensão a defender) e 5 intra-personagem sobre ordenações
+internas normalizadas (p.\,ex., no \emph{zoner}, alcance $>$ velocidade). A terceira
+é \emph{comportamental} (4 asserções): afere se a identidade se traduz em jogo
+efetivo~--- o \emph{zoner} luta da maior distância média, o \emph{rushdown} conecta
+mais ataques, o \emph{turtle} é quem mais \emph{escolhe} defender e o \emph{combo
+master} é quem mais aplica \emph{stun}. O \emph{grappler} não recebe asserção
+comportamental: como o modelo não representa o \emph{grab}, sua identidade não tem
+expressão comportamental distinta~--- um achado honesto de que 4 das 5 identidades
+se manifestam funcionalmente. Por se basear em ranqueamento, o instrumento é
+\emph{invariante à magnitude exata} dos genes.
 
 \item[Comportamental (\emph{fingerprint}).] Para cada personagem, agregado sobre
-seus quatro confrontos, registra-se o perfil de jogo: a distribuição de ações
-(ATTACK/ADVANCE/RETREAT/DEFEND), a fração de tempo fora de alcance (espaçamento) e
+seus quatro confrontos, registra-se o perfil de jogo: a distribuição de ações~---
+com o DEFEND \emph{separado} entre guarda deliberada (intenção GUARDA) e recuo sem
+espaço contra a borda do campo, para que a geometria não seja confundida com
+identidade defensiva~---, a fração de tempo fora de alcance (espaçamento) e
 a fração de tempo sob \emph{stun}. A comparação entre o perfil canônico e o
 evoluído (em pontos percentuais) verifica se o personagem evoluído \emph{ainda
 joga} como o arquétipo~--- se o \emph{zoner} continua a recuar e espaçar, se o
@@ -359,9 +378,9 @@ pela função objetivo.
 \label{sec:fitness}
 
 A avaliação de um indivíduo é feita por \emph{round-robin} completo: os
-$\binom{5}{2}=10$ confrontos são simulados $\texttt{SIMS\_PER\_MATCHUP}=150$ vezes
-cada. Dela derivam os dois objetivos do problema, que são exatamente os dois eixos
-da pergunta de pesquisa.
+$\binom{5}{2}=10$ confrontos são simulados 150 vezes cada~--- número que mantém o
+desvio-padrão binomial da taxa de vitória em torno de 4\% a 50\%. Dela derivam os
+dois objetivos do problema, que são exatamente os dois eixos da pergunta de pesquisa.
 
 \paragraph{Desvio (\emph{drift}).} Operacionaliza a preservação de identidade
 como a distância euclidiana normalizada de cada personagem ao seu perfil
@@ -371,8 +390,12 @@ canônico, sobre os 10 genes, agregada pela média entre os cinco:
 \sqrt{\frac{1}{10}\!\left(\sum_{a}\!\Big(\tfrac{g_{a}-c_{a}}{g_{a}^{\max}}\Big)^{\!2}
 + \sum_{w}(g_{w}-c_{w})^{2}\right)} .
 \end{equation}
-É também o verdadeiro mecanismo anti-homogeneização da otimização, pois atrai cada
-personagem para um perfil canônico distinto.
+Aqui $g$ e $c$ são o valor evoluído e o canônico de cada gene; o índice $i$
+percorre os cinco personagens; os sete atributos $a$ são normalizados pelo
+respectivo limite superior de \emph{bound} $g_{a}^{\max}$, enquanto os três pesos
+$w$, já contidos em $[0,1]$, entram sem normalização. É também o verdadeiro
+mecanismo anti-homogeneização da otimização, pois atrai cada personagem para um
+perfil canônico distinto.
 
 \paragraph{Desbalanço (\emph{dominance}).} Combina três sinais cegos à direção,
 cada um agregado como raiz quadrática média (RMS), de modo que casos extremos pesem
@@ -382,13 +405,12 @@ que $\textit{WR}_{\textit{glob}}$ é a taxa de vitória (\emph{win rate}, WR) ag
 sobre os quatro oponentes. Seu ótimo é ``nenhum arquétipo domina o \emph{roster}''
 e, crucialmente, ele \emph{não} força cada par a 50\%: um personagem a 50\% global
 pode vencer dois confrontos e perder dois~--- exatamente o espaço em que o ciclo de
-vantagens pode existir. Dois termos \emph{secundários}, ambos por par, regularizam a
-qualidade: (i) um \emph{teto de hard-counter}, que penaliza apenas o excesso de
-$|\textit{WR}_{\textit{par}}-0{,}5|$ acima de $\texttt{MATCHUP\_WR\_CAP}=0{,}15$,
-mantendo as arestas do ciclo como \emph{vantagens} dentro de $[0{,}35;\,0{,}65]$ e
-barrando counters esmagadores (como 100\%$\times$0\%); e (ii) a \emph{decisividade}
-por luta fora de uma banda saudável $[0{,}10;\,0{,}20]$ (em que o vencedor encerra
-com 20\% a 40\% de HP de folga). Sejam
+vantagens pode existir. Dois termos \emph{secundários}, ambos por par, regularizam
+a qualidade: um \emph{teto de hard-counter}, que penaliza apenas o excesso de
+$|\textit{WR}_{\textit{par}}-0{,}5|$ acima de $0{,}15$~--- mantendo as arestas do
+ciclo como \emph{vantagens} dentro de $[0{,}35;\,0{,}65]$ e barrando counters
+esmagadores (como 100\%$\times$0\%)~---, e a \emph{decisividade} por luta,
+detalhada adiante. Sejam
 \begin{equation}
 g=\sqrt{\tfrac{1}{5}\textstyle\sum_{i=1}^{5}\!\Big(\tfrac{|\textit{WR}_{\textit{glob},i}-0{,}5|}{0{,}5}\Big)^{\!2}},\ \
 c=\sqrt{\tfrac{1}{10}\textstyle\sum_{ij}\!\Big(\tfrac{\max(0,\,|\textit{WR}_{ij}-0{,}5|-0{,}15)}{0{,}35}\Big)^{\!2}},\ \
@@ -398,20 +420,30 @@ d=\sqrt{\tfrac{1}{10}\textstyle\sum_{ij}\textit{decis\_excess}_{ij}^{2}},
 \textit{dominance} = w_{g}\,g + w_{c}\,c + w_{d}\,d,\qquad
 w_{g}=1{,}0,\quad w_{c}=w_{d}=0{,}5 .
 \end{equation}
-Os três sinais usam $|\textit{WR}-0{,}5|$ e $|\textit{score}-0{,}5|$~--- são
-\emph{cegos à direção}: a penalidade não codifica \emph{qual} arquétipo deveria
-vencer cada confronto, o que preserva a não circularidade.
+com cada excesso normalizado pelo seu máximo possível ($0{,}5$ no termo global;
+$0{,}5-0{,}15=0{,}35$ no teto). A decisividade de um confronto é
+$D=\overline{|s-0{,}5|}$, a média, sobre as simulações, do desvio do \emph{escore
+por luta} $s\in[0,1]$ em relação a $0{,}5$~--- $D\!\to\!0$ são lutas no fio,
+$D\!\to\!0{,}5$ são massacres. O escore é contínuo: em nocaute,
+$s=0{,}5+0{,}5\,h_{v}$, com $h_{v}$ a fração de HP com que o vencedor termina; em
+esgotamento de tempo, é a parcela de HP do lutador. O último termo penaliza o
+excesso de $D$ fora da banda saudável $[0{,}10;\,0{,}20]$ (vencedor fechando com
+20\% a 40\% de HP):
+\begin{equation}
+\textit{decis\_excess} = \frac{\max(0,\,D-0{,}20)}{0{,}30}
++ \frac{\max(0,\,0{,}10-D)}{0{,}10} .
+\end{equation}
+Os três sinais usam $|\textit{WR}-0{,}5|$ e $|s-0{,}5|$: são \emph{cegos à
+direção}~--- não codificam \emph{qual} arquétipo deveria vencer, o que preserva a
+não circularidade.
 
 Os três termos são complementares porque cada um, isolado, é insuficiente. O
 balanço global é cego ao \emph{formato} de cada par: admite tanto um counter
-esmagador (100\%$\times$0\%, com WR global ainda equilibrada) quanto um
-\emph{blowout-coinflip}~--- situação em que cada lado vence de forma esmagadora em
-metade das partidas, produzindo WR próxima de 50\% embora nenhuma luta seja de fato
-equilibrada. O teto de \emph{hard-counter} barra o primeiro; a decisividade por
-luta, medida como margem contínua de HP, captura o segundo. O ruído introduzido
-pela amostragem de intenção torna a WR um gradiente utilizável: quando os
-confrontos se aproximam do equilíbrio, pequenas variações de genes deslocam
-continuamente as taxas de vitória.
+esmagador (100\%$\times$0\%) quanto um \emph{blowout-coinflip}~--- cada lado
+vencendo de forma esmagadora em metade das partidas, com WR próxima de 50\% embora
+nenhuma luta seja equilibrada. O teto barra o primeiro; a decisividade, o segundo.
+O ruído da amostragem de intenção torna a WR um gradiente utilizável: perto do
+equilíbrio, pequenas variações de genes deslocam continuamente as taxas de vitória.
 
 \subsection{AG escalar e NSGA-II}
 
@@ -428,9 +460,11 @@ visualizável.
 
 Ambos compartilham os operadores: seleção por torneio (tamanho 3),
 \emph{crossover} por bloco de personagem (cada personagem do filho é herdado
-integralmente de um dos pais, o que preserva a coerência interna do arquétipo),
-mutação gaussiana com desvio quatro vezes menor nos pesos do que nos atributos
-(inércia estratégica) e elitismo de 10\%. A população é de 300 indivíduos,
+integralmente de um dos pais, o que preserva a coerência interna do arquétipo, mas
+delega inteiramente à mutação a recombinação \emph{intra}-personagem, já que não há
+troca gene a gene), mutação gaussiana com desvio quatro vezes menor nos pesos do
+que nos atributos (inércia estratégica) e elitismo de 10\%. A população é de 300
+indivíduos~--- o \emph{roster} canônico e 299 sorteados aleatoriamente~---,
 evoluídos por até 150 gerações. Da fronteira final, quatro representantes são
 extraídos: \texttt{best\_dominance} (maior equilíbrio), \texttt{best\_drift}
 (maior fidelidade ao canônico), \texttt{knee\_point} (melhor compromisso, ponto de
@@ -445,19 +479,24 @@ protocolo experimental, incorporado da literatura, prevê três instrumentos: (i
 \emph{múltiplas execuções independentes} com estatística agregada~--- média $\pm$
 desvio-padrão, taxa de sucesso por confronto e fração de sementes que equilibram
 todos os 10 confrontos; (ii) \emph{métricas de qualidade da fronteira}~---
-hipervolume com ponto de referência fixo $(2{,}0,\,1{,}0)$ e espalhamento; e (iii)
+hipervolume com ponto de referência fixo $(2{,}0,\,1{,}0)$, os piores valores
+possíveis de $(\textit{dominance},\textit{drift})$, e espalhamento; e (iii)
 \emph{validação externa ao} \emph{fitness}, ao estilo Ludi
 \cite{browne2010evolutionary}, que reavalia um indivíduo fixo sob sementes de
 avaliação inteiramente novas, fora do laço de otimização, e emite um veredito de
 robustez por confronto.
 
-A reprodutibilidade exige cuidado específico: o combate amostra com o gerador
-interno do compilador \emph{just-in-time} (Numba), independente do gerador do
-Python. A semeadura é, por isso, feita por rotina dedicada que reinicializa o
-estado ao mesmo \emph{seed} base em toda avaliação (\emph{Common Random Numbers}),
-de modo que as diferenças de \emph{fitness} reflitam os genes, e não o sorteio.
-Salvo indicação contrária, as execuções individuais reportadas a seguir usam a
-semente \ph{seed}; a agregação multissemente usa \ph{N} sementes independentes.
+O laço de combate é compilado \emph{just-in-time} (Numba), o que torna tratável o
+volume de simulações do \emph{round-robin}; esse compilador, porém, amostra com um
+gerador interno próprio, independente do gerador do Python, e a reprodutibilidade
+exige cuidado. A semeadura é, por isso, feita por rotina dedicada que reinicializa
+o estado ao mesmo \emph{seed} base em toda avaliação (\emph{Common Random
+Numbers}), de modo que as diferenças de \emph{fitness} reflitam os genes, e não o
+sorteio. As sementes de treino, de agregação multissemente e de validação externa
+ocupam faixas disjuntas, de modo que a avaliação fora do laço nunca reencontra uma
+condição vista na otimização. Salvo indicação contrária, as execuções individuais
+reportadas a seguir usam a semente \ph{seed}; a agregação multissemente usa \ph{N}
+sementes independentes.
 
 \section{Resultados}
 
@@ -472,7 +511,7 @@ validação de robustez.
 
 Antes da evolução, o \emph{roster} canônico possui identidade perfeita por
 construção. O validador confirma esse ponto de forma objetiva:
-\textbf{o roster canônico satisfaz as 21 de 21 asserções} de identidade (17
+\textbf{o \emph{roster} canônico satisfaz as 21 de 21 asserções} de identidade (17
 estruturais, por construção, e 4 comportamentais), e o desvio é nulo
 ($\textit{drift}=0$). O \emph{fingerprint} comportamental é coerente
 com os conceitos~--- o \emph{rushdown} avança em \ph{fp-rush} dos ticks, o
@@ -480,11 +519,11 @@ com os conceitos~--- o \emph{rushdown} avança em \ph{fp-rush} dos ticks, o
 o que indica que os pesos produzem identidade comportamental visível, e não ruído
 arbitrário.
 
-Apesar dessa integridade de identidade, o roster é marcadamente desequilibrado. A
+Apesar dessa integridade de identidade, o \emph{roster} é marcadamente desequilibrado. A
 validação externa atribui-lhe $\textit{dominance}=\ph{dom-can-ext}$ e
-\textbf{\ph{eq-can}} confrontos equilibrados: o Grappler vence \ph{wr-grap} de suas
-lutas, enquanto o Zoner vence \ph{wr-zon}; \ph{blow-can} dos dez confrontos são
-unilaterais (\emph{blowouts}). Esse resultado é, em si, um achado: o ciclo de vantagens canônico não é
+\textbf{\ph{eq-can}} confrontos equilibrados (Tabela~\ref{tab:matchups}, bloco
+superior): o Grappler vence \ph{wr-grap} de suas lutas, enquanto o Zoner vence
+\ph{wr-zon}; \ph{blow-can} dos dez confrontos são unilaterais (\emph{blowouts}). Esse resultado é, em si, um achado: o ciclo de vantagens canônico não é
 trivialmente preservado em um modelo de combate determinístico~--- apenas
 \ph{cycle-can} dos dez pares do ciclo se sustentam~---, o que sugere que a
 estrutura não transitiva dos jogos de luta reais depende parcialmente de mecânicas
@@ -551,12 +590,11 @@ pares do ciclo de vantagens canônico sobrevivem nesse indivíduo, como métrica
 
 \begin{table}[ht]
 \centering
-\caption{Três pontos do \emph{trade-off} equilíbrio $\times$ identidade, medidos
-por métricas \emph{post hoc}. As setas indicam a direção de melhoria. ``Conf.
-eq.''~= pares com WR em $[40\%,60\%]$; ``Difer.''~= razão da diferenciação par a
-par em relação à do canônico ($>1$ indica maior distinção); ``Valid.''~= asserções
-de identidade preservadas (de 21; 17 estruturais + 4 comportamentais); ``Ciclo''~=
-pares do ciclo canônico mantidos \emph{post hoc}.}
+\caption{Quatro pontos do \emph{trade-off} equilíbrio $\times$ identidade, medidos
+por métricas \emph{post hoc} (setas = direção de melhoria). \emph{Conf. eq.}: pares
+com WR em $[40\%,60\%]$; \emph{Difer.}: razão da diferenciação par a par vs.\ o
+canônico ($>1$ = mais distinto); \emph{Valid.}: asserções de identidade preservadas
+(de 21); \emph{Ciclo}: arestas do ciclo canônico mantidas.}
 \label{tab:tradeoff}
 \small
 \begin{tabular}{lcccccc}
@@ -567,13 +605,48 @@ Conf. eq. & Difer. & Valid. & Ciclo \\
 Canônico (\texttt{best\_drift})    & \ph{dom-can} & 0{,}00 & \ph{eq-can} & 1{,}00 & 21/21 & \ph{cycle-can} \\
 AG escalar ($\lambda_d{=}\lambda_D$) & \ph{dom-ag} & \ph{drift-ag} & \ph{eq-ag} & \ph{diff-ag} & \ph{val-ag} & \ph{cycle-ag} \\
 NSGA-II \texttt{best\_dominance}   & \ph{dom-bd} & \ph{drift-bd} & \ph{eq-bd} & \ph{diff-bd} & \ph{val-bd} & \ph{cycle-bd} \\
+NSGA-II \texttt{knee\_point}       & \ph{knee-dom} & \ph{knee-drift} & \ph{knee-eq} & \ph{knee-diff} & \ph{knee-val} & \ph{knee-cycle} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+A Tabela~\ref{tab:matchups} desce ao nível do confronto, contrastando a matriz de
+taxas de vitória do \emph{roster} canônico com a do \texttt{best\_dominance}: torna
+visível \emph{quais} arestas do ciclo sobrevivem e como os \emph{blowouts} do
+canônico dão lugar a lutas dentro da banda de vantagem.
+
+\begin{table}[ht]
+\centering
+\caption{Taxa de vitória (\%) da linha contra a coluna, no \emph{roster} canônico e
+no evoluído (\texttt{best\_dominance}). \emph{Global}: WR agregada sobre os quatro
+oponentes (alvo de equilíbrio: $50\%$). Valores a preencher após a rodada.}
+\label{tab:matchups}
+\footnotesize
+\begin{tabular}{lrrrrrc}
+\toprule
+ & Zon. & Rush & CM & Grap & Turt. & \emph{Global} \\
+\midrule
+\multicolumn{7}{l}{\textit{Canônico}}\\
+Zoner        & ---      & \ph{cZR} & \ph{cZC} & \ph{cZG} & \ph{cZT} & \ph{cZg} \\
+Rushdown     & \ph{cRZ} & ---      & \ph{cRC} & \ph{cRG} & \ph{cRT} & \ph{cRg} \\
+Combo Master & \ph{cCZ} & \ph{cCR} & ---      & \ph{cCG} & \ph{cCT} & \ph{cCg} \\
+Grappler     & \ph{cGZ} & \ph{cGR} & \ph{cGC} & ---      & \ph{cGT} & \ph{cGg} \\
+Turtle       & \ph{cTZ} & \ph{cTR} & \ph{cTC} & \ph{cTG} & ---      & \ph{cTg} \\
+\midrule
+\multicolumn{7}{l}{\textit{best\_dominance}}\\
+Zoner        & ---      & \ph{eZR} & \ph{eZC} & \ph{eZG} & \ph{eZT} & \ph{eZg} \\
+Rushdown     & \ph{eRZ} & ---      & \ph{eRC} & \ph{eRG} & \ph{eRT} & \ph{eRg} \\
+Combo Master & \ph{eCZ} & \ph{eCR} & ---      & \ph{eCG} & \ph{eCT} & \ph{eCg} \\
+Grappler     & \ph{eGZ} & \ph{eGR} & \ph{eGC} & ---      & \ph{eGT} & \ph{eGg} \\
+Turtle       & \ph{eTZ} & \ph{eTR} & \ph{eTC} & \ph{eTG} & ---      & \ph{eTg} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 A lição é que empurrar o equilíbrio até o limite custa identidade, ao passo que um
-ponto intermediário da fronteira captura a maior parte do ganho de equilíbrio
-preservando~--- ou até ampliando~--- a distinção entre arquétipos. A fronteira de
+ponto intermediário da fronteira~--- o \emph{knee point} (Tabela~\ref{tab:tradeoff})~---
+captura a maior parte do ganho de equilíbrio preservando~--- ou até ampliando~---
+a distinção entre arquétipos. A fronteira de
 Pareto é justamente o que permite \emph{escolher} conscientemente esse ponto, em
 vez de aceitar o resultado fixo de uma soma ponderada.
 
@@ -596,12 +669,11 @@ reportado \ph{rob-verdito} um artefato de sobreajuste ao \emph{fitness}.
 
 \subsection{Síntese dos achados}
 
-Os resultados sustentam uma resposta afirmativa, ainda que matizada, à pergunta de
-pesquisa: o equilíbrio competitivo \emph{pode} ser alcançado sem destruir as
-identidades funcionais, mas há um \emph{trade-off} mensurável, e o grau de
-equilíbrio buscado determina quanto de identidade se preserva. O equilíbrio
-substancial (\ph{eq-bd}) é compatível com identidade preservada~--- e até
-reforçada, conforme a diferenciação~--- ao passo que o equilíbrio total
+Os resultados sustentam uma resposta afirmativa, ainda que matizada: o equilíbrio
+competitivo \emph{pode} ser alcançado sem destruir as identidades funcionais, mas
+sob um \emph{trade-off} mensurável~--- o grau de equilíbrio buscado determina
+quanto de identidade se preserva. O equilíbrio substancial (\ph{eq-bd}) é
+compatível com identidade preservada, ou até reforçada; o equilíbrio total
 (\ph{eq-ag}), nesta configuração, exige alguma homogeneização.
 
 \section{Limitações}
