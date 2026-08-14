@@ -14,8 +14,11 @@ apenas se referencia.
 > tarefa (instrução permanente do `CLAUDE.md`). O **status do que está implementado vs
 > citar/futuro** vive em [08-metodologias-da-literatura.md](08-metodologias-da-literatura.md).
 
-> A pasta `overleaf/` (raiz) tem o texto final da monografia e não é tocada por estes
-> arquivos. Backlog de decisões/calibrações pendentes: [`../10-known-issues.md`](../reference/10-known-issues.md).
+> A pasta `overleaf/` (raiz) tem os textos redigidos — a monografia (`TCC/`) e os
+> artigos derivados dela (`artigo-SBC/`, `artigo-latinware-2026/`, este último um
+> short paper de 3–4 páginas comprimido do SBC) — e não é tocada por estes arquivos.
+> Os artigos compartilham `values.tex` como fonte única dos números experimentais.
+> Backlog de decisões/calibrações pendentes: [`../10-known-issues.md`](../reference/10-known-issues.md).
 
 ## Mapa
 
