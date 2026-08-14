@@ -77,11 +77,11 @@ node [inner sep=0,outer sep=0,above right]
 % \finalfalse  = versão CEGA para submissão (sem autores) — usar agora.
 % \finaltrue   = versão FINAL, após aceite: descomentar o bloco de autores.
 \newif\iffinal
-\finaltrue
+\finalfalse
 %-------------------------------------------------------------------------
 
 % ID atribuído pelo sistema de submissão do evento.
-\newcommand{\cmtid}{\ph{preencher com o ID da submissão}}
+\newcommand{\cmtid}{34734}
 
 \iffinal
 \author{
@@ -101,6 +101,8 @@ node [inner sep=0,outer sep=0,above right]
 
 \maketitle
 \thispagestyle{fancy}
+
+\renewcommand{\abstractname}{Abstract}
 
 \begin{abstract}
 Balancing competitive games requires distinct character archetypes to remain
@@ -441,7 +443,7 @@ uma única solução pela iluminação de \emph{quantas} configurações distint
 \iffinal
 Os autores agradecem ao Instituto Federal do Espírito Santo, \emph{campus}
 Cachoeiro de Itapemirim, pelo apoio institucional ao desenvolvimento deste
-trabalho. \ph{incluir agência de fomento/bolsa, se houver}
+trabalho.
 \else
 Suprimidos nesta versão para preservar o anonimato da revisão.
 \fi
