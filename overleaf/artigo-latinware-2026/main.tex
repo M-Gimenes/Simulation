@@ -48,7 +48,7 @@
 \usepackage{tikzpagenodes}
 \renewcommand{\headrulewidth}{0pt}
 \renewcommand{\footrulewidth}{0pt}
-\usetikzlibrary{calc,positioning,arrows.meta}
+\usetikzlibrary{calc,positioning,arrows.meta,fit}
 \pagestyle{fancy}
 \setlength\headheight{10.0pt}
 \addtolength{\textheight}{-40.0pt}
@@ -213,51 +213,64 @@ pois a taxa de vitória de qualquer um depende simultaneamente dos outros quatro
 \centering
 \begin{tikzpicture}[
   font=\scriptsize,
-  bloco/.style   = {draw, rounded corners=1.5pt, align=center, inner sep=2.5pt,
-                    text width=50mm, minimum height=7mm},
-  obj/.style     = {draw, rounded corners=1.5pt, align=center, inner sep=2.5pt,
-                    text width=22mm, minimum height=6.5mm, fill=black!7},
-  medida/.style  = {draw, dashed, rounded corners=1.5pt, align=center,
-                    inner sep=3pt, text width=72mm},
+  bloco/.style = {draw, rounded corners=1.5pt, align=center, inner sep=2.5pt,
+                  text width=52mm, minimum height=6.5mm, fill=white},
+  obj/.style   = {draw, rounded corners=1.5pt, align=center, inner sep=2pt,
+                  text width=20mm, minimum height=5.5mm, fill=black!8},
+  faixa/.style = {draw=black!40, dashed, rounded corners=2pt,
+                  inner xsep=4mm, inner ysep=1.5mm},
+  rot/.style   = {rotate=90, font=\scriptsize\bfseries, anchor=center},
   seta/.style      = {-{Latex[length=1.5mm]}, thick},
   tracejada/.style = {-{Latex[length=1.5mm]}, dashed}
 ]
 
-\node[bloco] (pop) {População: 300 indivíduos\\
-  1 indivíduo $=$ 5 personagens $\times$ 10 genes};
+% ── ENTRADA ──────────────────────────────────────────────
+\node[bloco] (ent) {5 arquétipos canônicos ($5\times10$ genes)\\[-1.5pt]
+  semeiam a população \emph{e} servem de \emph{baseline} do desvio};
 
-\node[bloco, below=3.5mm of pop] (sim) {Simulação: \emph{round-robin}\\
-  10 confrontos $\times$ 150 lutas};
-
-\node[obj, below=3.5mm of sim, xshift=-16mm] (drift)
-  {\emph{drift}\\[-1pt] identidade};
-\node[obj, right=5mm of drift] (dom)
-  {\emph{dominance}\\[-1pt] equilíbrio};
-
-\node[bloco, below=14mm of sim] (oper)
+% ── PROCESSAMENTO ────────────────────────────────────────
+\node[bloco, below=7mm of ent] (pop)
+  {População: 300 \emph{rosters} (canônico $+$ 299 sorteados)};
+\node[bloco, below=3mm of pop] (sim)
+  {Simulação: \emph{round-robin}, 10 confrontos $\times$ 150 lutas};
+\node[obj, below=3mm of sim, xshift=-13mm] (drift) {\emph{drift}};
+\node[obj, right=6mm of drift] (dom) {\emph{dominance}};
+\node[bloco, below=11mm of sim] (oper)
   {seleção $\cdot$ \emph{crossover} $\cdot$ mutação $\cdot$ elitismo};
 
-\node[medida, below=6mm of oper] (ph)
-  {\textbf{Medição \emph{post hoc}} --- não realimenta a busca\\[1pt]
-   validador (\valTotal{} asserções) $\cdot$ diferenciação $\cdot$
-   perfil comportamental $\cdot$ ciclo de vantagens};
+% ── SAÍDA ────────────────────────────────────────────────
+\node[bloco, below=7mm of oper] (sai)
+  {Fronteira de Pareto\\[-1.5pt]
+   \emph{best\_dominance} $\cdot$ \emph{knee\_point} $\cdot$ \emph{best\_drift}};
+\node[bloco, below=2.5mm of sai, dashed, fill=black!4] (med)
+  {medição \emph{post hoc}, que não realimenta a busca:\\[-1.5pt]
+   validador $\cdot$ diferenciação $\cdot$ perfil $\cdot$ ciclo};
 
+% faixas e rótulos
+\node[faixa, fit=(ent)] (fe) {};
+\node[faixa, fit=(pop)(sim)(drift)(dom)(oper)] (fp) {};
+\node[faixa, fit=(sai)(med)] (fs) {};
+\node[rot] at ($(fe.west)+(-2.5mm,0)$) {ENTRADA};
+\node[rot] at ($(fp.west)+(-2.5mm,0)$) {PROCESSAMENTO};
+\node[rot] at ($(fs.west)+(-2.5mm,0)$) {SAÍDA};
+
+% fluxo
+\draw[seta] (fe) -- (fp);
 \draw[seta] (pop) -- (sim);
 \draw[seta] (sim.south) -- (drift.north);
 \draw[seta] (sim.south) -- (dom.north);
 \draw[seta] (drift.south) -- (oper.north);
 \draw[seta] (dom.south)   -- (oper.north);
-
-% laço de otimização: fecha pela esquerda
-\draw[seta] (oper.west) -- ++(-6mm,0) |- (pop.west);
-
-% ramo de medição: sai das mesmas simulações e NÃO retorna
-\draw[tracejada] (sim.east) -| ($(ph.north east)+(-6mm,0)$);
+\draw[seta] (oper.east) -- ++(3mm,0) |- (pop.east);
+\draw[seta] (fp) -- (fs)
+  node[midway, right=0.5mm, font=\scriptsize] {após 150 gerações};
+\draw[tracejada] (sai) -- (med);
 
 \end{tikzpicture}
-\caption{Arquitetura do sistema. O laço de otimização (setas cheias) fecha sobre os
-dois objetivos; os instrumentos de identidade (tracejado) consomem as mesmas
-simulações mas não retornam à busca --- a separação que sustenta a não
+\caption{Arquitetura do sistema. Os arquétipos canônicos entram em dois papéis
+distintos --- semente e \emph{baseline}; o processamento é o laço evolutivo sobre os
+dois objetivos; a saída é a fronteira de Pareto. As métricas \emph{post hoc}
+(tracejado) incidem sobre a saída e não retornam ao laço, o que sustenta a não
 circularidade.}
 \label{fig:arq}
 \end{figure}
