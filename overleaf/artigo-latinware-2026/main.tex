@@ -48,7 +48,7 @@
 \usepackage{tikzpagenodes}
 \renewcommand{\headrulewidth}{0pt}
 \renewcommand{\footrulewidth}{0pt}
-\usetikzlibrary{calc}
+\usetikzlibrary{calc,positioning,arrows.meta}
 \pagestyle{fancy}
 \setlength\headheight{10.0pt}
 \addtolength{\textheight}{-40.0pt}
@@ -105,19 +105,17 @@ node [inner sep=0,outer sep=0,above right]
 \renewcommand{\abstractname}{Abstract}
 
 \begin{abstract}
-Balancing competitive games requires distinct character archetypes to remain
-viable without collapsing into a single dominant style. This work in progress
-investigates whether a Genetic Algorithm can balance five fighting-game
-archetypes without destroying their functional identities. Identity is
-\emph{measured}, not enforced: deviation from a canonical profile is a soft
-penalty, and the advantage cycle is reported \emph{post hoc}, which avoids a
-circular research question. Balance and identity are treated as two objectives,
-optimized by a scalar GA and by NSGA-II. Preliminary results show that the
-canonical roster is severely unbalanced (\eqCan{} of 10 balanced matchups) and
-that optimizing balance directly reaches all \eqAg{} but homogenizes the roster
-(\valAg{} of \valTotal{} identity assertions preserved), whereas Pareto-front
-solutions retain up to \valKnee{} of \valTotal{}. The front makes the trade-off
-explicit and measurable.
+This work in progress investigates whether a Genetic Algorithm can balance five
+fighting-game archetypes without destroying their functional identities --- the
+tension being that equalizing win rates tends to homogenize a roster. Identity is
+\emph{measured}, not enforced: deviation from a canonical profile is a soft penalty
+and the advantage cycle is reported \emph{post hoc}, which avoids a circular
+research question. Balance and identity are optimized as two objectives, by a
+scalar GA and by NSGA-II. Preliminary results show the canonical roster is severely
+unbalanced (\eqCan{} of 10 balanced matchups); optimizing balance directly reaches
+all \eqAg{} but homogenizes the roster (\valAg{} of \valTotal{} identity assertions
+preserved), whereas Pareto-front solutions retain up to \valKnee{} of \valTotal{}.
+The front makes the trade-off explicit and measurable.
 \end{abstract}
 
 \renewcommand{\IEEEkeywordsname}{Keywords}
@@ -129,17 +127,16 @@ character archetypes.
 \renewcommand{\abstractname}{Resumo}
 
 \begin{abstract}
-Balancear jogos competitivos exige que arquétipos distintos permaneçam viáveis
-sem colapsar em um único estilo dominante. Este trabalho em andamento investiga
-se um Algoritmo Genético é capaz de equilibrar cinco arquétipos de um jogo de
-luta \emph{sem destruir suas identidades funcionais}. A identidade é
-\emph{medida}, não imposta: o desvio em relação a um perfil canônico é penalizado
-de forma suave, e o ciclo de vantagens é reportado \emph{post hoc}, o que evita
-uma pergunta de pesquisa circular. Equilíbrio e identidade são tratados como dois
-objetivos, otimizados por um AG escalar e pelo NSGA-II. Os resultados preliminares
-mostram que o \emph{roster} canônico é fortemente desequilibrado (\eqCan{} de 10
-confrontos equilibrados) e que otimizar o equilíbrio diretamente alcança os
-\eqAg{}, mas homogeneíza o elenco (\valAg{} de \valTotal{} asserções de identidade
+Este trabalho em andamento investiga se um Algoritmo Genético é capaz de equilibrar
+cinco arquétipos de um jogo de luta \emph{sem destruir suas identidades
+funcionais} --- a tensão sendo que igualar taxas de vitória tende a homogeneizar o
+elenco. A identidade é \emph{medida}, não imposta: o desvio em relação a um perfil
+canônico é penalizado de forma suave e o ciclo de vantagens é reportado \emph{post
+hoc}, o que evita uma pergunta de pesquisa circular. Equilíbrio e identidade são
+otimizados como dois objetivos, por um AG escalar e pelo NSGA-II. Os resultados
+preliminares mostram que o \emph{roster} canônico é fortemente desequilibrado
+(\eqCan{} de 10 confrontos equilibrados); otimizar o equilíbrio diretamente alcança
+os \eqAg{}, mas homogeneíza o elenco (\valAg{} de \valTotal{} asserções
 preservadas), ao passo que soluções da fronteira de Pareto mantêm até \valKnee{} de
 \valTotal{}. A fronteira torna o \emph{trade-off} explícito e mensurável.
 \end{abstract}
@@ -209,8 +206,61 @@ calibração dos limites dos genes e das bandas de equilíbrio segue em refiname
 
 \section{Metodologia}
 
-A unidade de evolução é o \emph{conjunto dos cinco personagens}, pois a taxa de
-vitória de qualquer um deles depende simultaneamente dos outros quatro.
+A unidade de evolução é o \emph{conjunto dos cinco personagens} (Fig.~\ref{fig:arq}),
+pois a taxa de vitória de qualquer um depende simultaneamente dos outros quatro.
+
+\begin{figure}[!t]
+\centering
+\begin{tikzpicture}[
+  font=\scriptsize,
+  bloco/.style   = {draw, rounded corners=1.5pt, align=center, inner sep=2.5pt,
+                    text width=50mm, minimum height=7mm},
+  obj/.style     = {draw, rounded corners=1.5pt, align=center, inner sep=2.5pt,
+                    text width=22mm, minimum height=6.5mm, fill=black!7},
+  medida/.style  = {draw, dashed, rounded corners=1.5pt, align=center,
+                    inner sep=3pt, text width=72mm},
+  seta/.style      = {-{Latex[length=1.5mm]}, thick},
+  tracejada/.style = {-{Latex[length=1.5mm]}, dashed}
+]
+
+\node[bloco] (pop) {População: 300 indivíduos\\
+  1 indivíduo $=$ 5 personagens $\times$ 10 genes};
+
+\node[bloco, below=3.5mm of pop] (sim) {Simulação: \emph{round-robin}\\
+  10 confrontos $\times$ 150 lutas};
+
+\node[obj, below=3.5mm of sim, xshift=-16mm] (drift)
+  {\emph{drift}\\[-1pt] identidade};
+\node[obj, right=5mm of drift] (dom)
+  {\emph{dominance}\\[-1pt] equilíbrio};
+
+\node[bloco, below=14mm of sim] (oper)
+  {seleção $\cdot$ \emph{crossover} $\cdot$ mutação $\cdot$ elitismo};
+
+\node[medida, below=6mm of oper] (ph)
+  {\textbf{Medição \emph{post hoc}} --- não realimenta a busca\\[1pt]
+   validador (\valTotal{} asserções) $\cdot$ diferenciação $\cdot$
+   perfil comportamental $\cdot$ ciclo de vantagens};
+
+\draw[seta] (pop) -- (sim);
+\draw[seta] (sim.south) -- (drift.north);
+\draw[seta] (sim.south) -- (dom.north);
+\draw[seta] (drift.south) -- (oper.north);
+\draw[seta] (dom.south)   -- (oper.north);
+
+% laço de otimização: fecha pela esquerda
+\draw[seta] (oper.west) -- ++(-6mm,0) |- (pop.west);
+
+% ramo de medição: sai das mesmas simulações e NÃO retorna
+\draw[tracejada] (sim.east) -| ($(ph.north east)+(-6mm,0)$);
+
+\end{tikzpicture}
+\caption{Arquitetura do sistema. O laço de otimização (setas cheias) fecha sobre os
+dois objetivos; os instrumentos de identidade (tracejado) consomem as mesmas
+simulações mas não retornam à busca --- a separação que sustenta a não
+circularidade.}
+\label{fig:arq}
+\end{figure}
 
 \subsection{Representação e modelo de combate}
 
@@ -241,10 +291,8 @@ fração de HP.
 
 \subsection{Os dois objetivos}
 
-A avaliação de um indivíduo é feita por \emph{round-robin} completo: os
-$\binom{5}{2}=10$ confrontos são simulados 150 vezes cada. Dela derivam os dois
-objetivos, ambos com ótimo em 0 e limitados a $1{,}0$ (desvio) e $2{,}0$
-(desbalanço).
+Do \emph{round-robin} derivam os dois objetivos, ambos com ótimo em 0 e limitados a
+$1{,}0$ (desvio) e $2{,}0$ (desbalanço).
 
 O \textbf{desvio} (\emph{drift}) operacionaliza a preservação de identidade como a
 distância euclidiana normalizada de cada personagem ao seu perfil canônico, sobre
@@ -271,21 +319,20 @@ que o global não enxerga: um \emph{teto de hard-counter} $c$, que penaliza o ex
 de $|\textit{WR}_{\textit{par}}-0{,}5|$ acima de $0{,}15$ e barra \emph{counters}
 esmagadores (100\%$\times$0\%); e a \emph{decisividade} $d$, que penaliza lutas fora
 da banda em que o vencedor fecha a partida com 20\% a 40\% de HP, barrando o
-\emph{blowout-coinflip} (cada lado vencendo de forma esmagadora em metade das
-partidas, com taxa de vitória próxima de 50\%). Os três compõem
+\emph{blowout-coinflip} --- cada lado massacrando em metade das partidas, com taxa
+de vitória perto de 50\%. Os três compõem
 $\textit{dominance} = 1{,}0\,g + 0{,}5\,c + 0{,}5\,d$ e usam $|\textit{WR}-0{,}5|$
 e $|s-0{,}5|$, sendo \emph{cegos à direção}: não codificam \emph{qual} arquétipo
 deveria vencer, o que preserva a não circularidade.
 
-Apenas esses dois entram na otimização. A identidade é ainda medida \emph{fora} da
-função objetivo, por três instrumentos: um \textbf{validador} de \valTotal{}
-asserções de ranqueamento, que verifica se cada personagem ocupa no \emph{roster} a
-posição que define seu arquétipo (17 sobre os genes --- o \emph{rushdown} com a
-maior velocidade, o \emph{turtle} com o maior HP --- e 4 sobre o jogo efetivo); a
+Os instrumentos que medem a identidade \emph{fora} da função objetivo
+(Fig.~\ref{fig:arq}) são três: um \textbf{validador} de \valTotal{} asserções de
+ranqueamento, que verifica se cada personagem ocupa no \emph{roster} a posição que
+define seu arquétipo (17 sobre os genes --- o \emph{rushdown} com a maior
+velocidade, o \emph{turtle} com o maior HP --- e 4 sobre o jogo efetivo); a
 \textbf{diferenciação}, razão entre a distância média par a par do elenco evoluído e
 a do canônico ($<1$ indica homogeneização); e o \textbf{perfil comportamental}, a
-distribuição de ações de cada personagem em combate. Medi-los, em vez de
-recompensá-los, é o que sustenta a não circularidade.
+distribuição de ações de cada personagem em combate.
 
 \subsection{AG escalar e NSGA-II}
 
@@ -294,10 +341,11 @@ $\textit{fitness} = -(\lambda_{d}\,\textit{drift} + \lambda_{D}\,\textit{dominan
 com $\lambda_{d}=\lambda_{D}=1{,}0$; entrega \emph{um} ponto do \emph{trade-off}. O
 \textbf{NSGA-II} \cite{deb2002nsga} dispensa os pesos e otimiza o par
 $(\textit{dominance}, \textit{drift})$ diretamente, mapeando \emph{toda} a
-fronteira \cite{deb2001multiobjective}. Ambos usam torneio, \emph{crossover} por
-bloco de personagem, mutação gaussiana com desvio quatro vezes menor nos pesos que
-nos atributos, elitismo de 10\% e população de 300 indivíduos (o \emph{roster}
-canônico e 299 sorteados), por até 150 gerações. Da fronteira extraem-se
+fronteira \cite{deb2001multiobjective}. Ambos partilham os operadores da
+Fig.~\ref{fig:arq}, com duas particularidades: o \emph{crossover} é por bloco de
+personagem e a mutação gaussiana tem desvio quatro vezes menor nos pesos que nos
+atributos. A população inicial é o \emph{roster} canônico mais 299 indivíduos
+sorteados, evoluídos por até 150 gerações. Da fronteira extraem-se
 representantes, entre eles \emph{best\_dominance}, \emph{best\_drift} e
 \emph{knee\_point}.
 
