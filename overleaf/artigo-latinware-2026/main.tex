@@ -106,12 +106,11 @@ node [inner sep=0,outer sep=0,above right]
 
 \begin{abstract}
 This work in progress investigates whether a Genetic Algorithm can balance five
-fighting-game archetypes without destroying their functional identities --- the
-tension being that equalizing win rates tends to homogenize a roster. Identity is
+fighting-game archetypes without destroying their functional identities. Identity is
 \emph{measured}, not enforced: deviation from a canonical profile is a soft penalty
 and the advantage cycle is reported \emph{post hoc}, which avoids a circular
-research question. Balance and identity are optimized as two objectives, by a
-scalar GA and by NSGA-II. Preliminary results show the canonical roster is severely
+research question. Both are optimized as objectives, by a scalar GA and by
+NSGA-II. Preliminary results show the canonical roster is severely
 unbalanced (\eqCan{} of 10 balanced matchups); optimizing balance directly reaches
 all \eqAg{} but homogenizes the roster (\valAg{} of \valTotal{} identity assertions
 preserved), whereas Pareto-front solutions retain up to \valKnee{} of \valTotal{}.
@@ -129,12 +128,11 @@ character archetypes.
 \begin{abstract}
 Este trabalho em andamento investiga se um Algoritmo Genético é capaz de equilibrar
 cinco arquétipos de um jogo de luta \emph{sem destruir suas identidades
-funcionais} --- a tensão sendo que igualar taxas de vitória tende a homogeneizar o
-elenco. A identidade é \emph{medida}, não imposta: o desvio em relação a um perfil
-canônico é penalizado de forma suave e o ciclo de vantagens é reportado \emph{post
-hoc}, o que evita uma pergunta de pesquisa circular. Equilíbrio e identidade são
-otimizados como dois objetivos, por um AG escalar e pelo NSGA-II. Os resultados
-preliminares mostram que o \emph{roster} canônico é fortemente desequilibrado
+funcionais}. A identidade é \emph{medida}, não imposta: o desvio em relação a um
+perfil canônico é penalizado de forma suave e o ciclo de vantagens é reportado
+\emph{post hoc}, o que evita uma pergunta de pesquisa circular. Ambos são otimizados
+como objetivos, por um AG escalar e pelo NSGA-II. Os resultados preliminares mostram
+que o \emph{roster} canônico é fortemente desequilibrado
 (\eqCan{} de 10 confrontos equilibrados); otimizar o equilíbrio diretamente alcança
 os \eqAg{}, mas homogeneíza o elenco (\valAg{} de \valTotal{} asserções
 preservadas), ao passo que soluções da fronteira de Pareto mantêm até \valKnee{} de
@@ -153,7 +151,7 @@ arquétipos de personagens.
 \section{Introdução}
 
 Em jogos competitivos --- um mercado de entretenimento em crescimento sustentado
-\cite{newzoo2025, hamari2017esports} ---, a qualidade da experiência depende
+\cite{newzoo2025} ---, a qualidade da experiência depende
 criticamente do \emph{equilíbrio}: o grau em que as opções do jogador oferecem
 chances comparáveis de vitória \cite{adams2014fundamentals}. Um jogo desequilibrado
 degenera em um \emph{metagame} estreito, no qual poucas opções são viáveis
@@ -182,10 +180,10 @@ livremente. O desvio ao perfil canônico é penalizado de forma suave, e o
 alguma: é medido \emph{post hoc}. Isso evita uma armadilha de circularidade: se a
 identidade fosse imposta pela função de avaliação, o algoritmo a ``preservaria''
 apenas por ter sido recompensado para tal, e o resultado não responderia à
-pergunta. Mantida como algo \emph{medido, não imposto}, sua preservação --- ou sua
-ausência --- torna-se um achado genuíno, no espírito do argumento de
-\cite{lehman2011novelty} de que não codificar diretamente o objetivo pode revelar
-mais sobre o espaço de busca do que otimizá-lo.
+pergunta. \emph{Medida}, e não imposta, sua preservação --- ou a ausência dela ---
+torna-se um
+achado genuíno, no espírito de \cite{lehman2011novelty}: não codificar diretamente
+o objetivo pode revelar mais sobre o espaço de busca do que otimizá-lo.
 
 Cabe delimitar o estatuto dos arquétipos: a literatura fundamenta a estrutura não
 transitiva de forma geral, mas não define um conjunto específico nem um ciclo
@@ -282,8 +280,8 @@ totalizando 50 genes por indivíduo. Os limites de cada gene são estreitos
 ($\mathrm{HP}\in[250,450]$, $\mathrm{dano}\in[15,30]$), para eliminar modos de
 exploração degenerados.
 
-O combate ocorre em um campo unidimensional de 100 unidades, com distância
-inicial de 50 e resolução em sub-ticks (cada tick lógico subdividido em cinco).
+O combate ocorre em um campo unidimensional de 100 unidades (distância inicial 50),
+com resolução em sub-ticks (cada tick subdividido em cinco).
 Fora do próprio alcance, o lutador avança incondicionalmente (\emph{neutral game});
 em alcance, ele \emph{amostra} uma intenção em $\{$FRENTE, RECUAR, GUARDA$\}$ com
 probabilidade proporcional aos pesos
@@ -319,10 +317,10 @@ limite superior do gene) e $\delta_{w} = g_{w}-c_{w}$ para os três pesos, já e
 $[0,1]$. É também o mecanismo anti-homogeneização da otimização, pois atrai cada
 personagem para um perfil distinto.
 
-O \textbf{desbalanço} (\emph{dominance}) combina três sinais cegos à direção, cada
-um agregado como raiz quadrática média. O termo \emph{primário} $g$ é o desbalanço
-global por personagem, $|\textit{WR}_{\textit{glob}}-0{,}5|/0{,}5$, sobre a taxa de
-vitória agregada nos quatro oponentes. Seu ótimo é ``nenhum arquétipo domina o
+O \textbf{desbalanço} (\emph{dominance}) combina três sinais cegos à direção. O
+termo \emph{primário} $g$ é o desbalanço global por personagem,
+$|\textit{WR}_{\textit{glob}}-0{,}5|/0{,}5$, sobre a taxa de vitória agregada nos
+quatro oponentes. Seu ótimo é ``nenhum arquétipo domina o
 \emph{roster}'' e, crucialmente, ele \emph{não} força cada par a 50\%: um personagem
 a 50\% global pode vencer dois confrontos e perder dois --- exatamente o espaço em
 que o ciclo de vantagens pode existir. Dois termos secundários, por par, cobrem o
@@ -330,8 +328,8 @@ que o global não enxerga: um \emph{teto de hard-counter} $c$, que penaliza o ex
 de $|\textit{WR}_{\textit{par}}-0{,}5|$ acima de $0{,}15$ e barra \emph{counters}
 esmagadores (100\%$\times$0\%); e a \emph{decisividade} $d$, que penaliza lutas fora
 da banda em que o vencedor fecha a partida com 20\% a 40\% de HP, barrando o
-\emph{blowout-coinflip} --- cada lado massacrando em metade das partidas, com taxa
-de vitória perto de 50\%. Os três compõem
+\emph{blowout-coinflip} (massacres alternados, com WR perto de 50\%). Os três
+compõem
 $\textit{dominance} = 1{,}0\,g + 0{,}5\,c + 0{,}5\,d$ e usam $|\textit{WR}-0{,}5|$
 e $|s-0{,}5|$, sendo \emph{cegos à direção}: não codificam \emph{qual} arquétipo
 deveria vencer, o que preserva a não circularidade.
@@ -363,8 +361,8 @@ representantes, entre eles \emph{best\_dominance}, \emph{best\_drift} e
 Como um algoritmo evolutivo é estocástico, uma única execução é uma amostra, não um
 resultado \cite{eiben2015introduction}: o protocolo prevê \nSeeds{} execuções
 independentes e \emph{validação externa} ao \emph{fitness}, ao estilo Ludi
-\cite{browne2010evolutionary}, que reavalia um indivíduo fixo sob sementes
-inteiramente novas. As execuções individuais usam a semente \seedMain{}.
+\cite{browne2010evolutionary}, sob sementes inteiramente novas. As execuções
+individuais usam a semente \seedMain{}.
 
 \section{Resultados e Discussão}
 
@@ -374,8 +372,8 @@ Antes da evolução, o \emph{roster} canônico tem desvio nulo e satisfaz as \va
 de \valTotal{} asserções do validador. As 17 estruturais são verdadeiras por
 construção; as 4 comportamentais não são, e também se sustentam: o \emph{rushdown}
 avança em \fpRushAdv{}\% de suas ações, o \emph{turtle} defende em
-\fpTurtleDef{}\% e o \emph{zoner} recua em \fpZonerRet{}\%. Os pesos produzem,
-portanto, identidade comportamental visível, e não ruído arbitrário.
+\fpTurtleDef{}\% e o \emph{zoner} recua em \fpZonerRet{}\% --- os pesos produzem
+identidade comportamental visível, e não ruído arbitrário.
 
 Apesar dessa integridade, o \emph{roster} é marcadamente desequilibrado:
 \textbf{nenhum} dos dez confrontos é equilibrado, o \emph{rushdown} vence
@@ -408,15 +406,15 @@ quantifica \emph{quanto} de um se troca pelo outro.
 \begin{figure}[!tb]
 \centering
 \includegraphics[width=0.88\columnwidth]{pareto_front.png}
-\caption{Fronteira de Pareto (desbalanço $\times$ desvio) obtida pelo NSGA-II. Cada
-ponto é um \emph{roster} não dominado; os destacados marcam os extremos, o
-\emph{knee point} e o \emph{ideal point}.}
+\caption{Fronteira de Pareto (desbalanço $\times$ desvio) pelo NSGA-II. Cada ponto é
+um \emph{roster} não dominado; os destacados marcam os extremos, o \emph{knee
+point} e o \emph{ideal point}.}
 \label{fig:pareto}
 \end{figure}
 
-A Tabela~\ref{tab:tradeoff} resume quatro pontos do \emph{trade-off}. No extremo de
-identidade perfeita (canônico, que coincide com \emph{best\_drift}), o equilíbrio é
-nulo. No ponto do AG escalar, o equilíbrio é total, mas a identidade se erode. O
+A Tabela~\ref{tab:tradeoff} resume quatro pontos do \emph{trade-off}. No canônico
+(que coincide com \emph{best\_drift}) o equilíbrio é nulo; no AG escalar é total,
+mas a identidade se erode. O
 \emph{knee\_point} ocupa a posição intermediária: reduz o desbalanço de $\domCan{}$
 para $\domKnee{}$ --- três quartos do caminho --- preservando \valKnee{} das
 \valTotal{} asserções, ainda que apenas \eqKnee{} dos dez pares caiam na banda
@@ -451,11 +449,10 @@ Ciclo (de \cycleTotal)          & \cycleCan & \cycleAg & \cycleKnee & \cycleBd \
 
 \vspace{2pt}
 {\footnotesize\raggedright
-\emph{Confrontos eq.}: pares com taxa de vitória em $[40\%,60\%]$.
-\emph{Diferenciação}: razão da distância média par a par vs.\ o canônico ($<1$ =
-homogeneização). \emph{Joelho} e \emph{Equilíb.}: representantes
-\emph{knee\_point} e \emph{best\_dominance} da fronteira; o canônico coincide com
-\emph{best\_drift}.\par}
+\emph{Confrontos eq.}: pares com WR em $[40\%,60\%]$. \emph{Diferenciação}: razão da
+distância média par a par vs.\ o canônico ($<1$ = homogeneização). \emph{Joelho} e
+\emph{Equilíb.}: \emph{knee\_point} e \emph{best\_dominance}; o canônico coincide
+com \emph{best\_drift}.\par}
 \end{table}
 
 Sobre \nSeeds{} execuções independentes, o NSGA-II aterrissa em
@@ -480,12 +477,12 @@ ranqueamentos antes de se dissolver na geometria do elenco --- e o equilíbrio t
 otimizados e métricas \emph{post hoc} é o que sustenta a não circularidade dessa
 resposta.
 
-Três delimitações balizam o alcance dos resultados. O modelo simplifica os jogos de
-luta reais --- não representa \emph{frames} de inicialização e recuperação,
-\emph{mix-ups} nem oclusão ---, e o achado de que o ciclo canônico não sobrevive a
-ele é evidência de que essas mecânicas têm papel estrutural. O estudo emprega cinco
-arquétipos, ante os dez ou mais dos jogos reais. E o \emph{round-robin} pressupõe
-todos jogados em igual proporção, sem modelar o \emph{matchmaking}.
+Três delimitações: o modelo simplifica os jogos reais --- não representa
+\emph{frames} de inicialização e recuperação, \emph{mix-ups} nem oclusão ---, e o
+achado de que o ciclo canônico não sobrevive a ele indica que essas mecânicas têm
+papel estrutural; o estudo emprega cinco arquétipos, ante os dez ou mais dos jogos
+reais; e o \emph{round-robin} pressupõe todos jogados em igual proporção, sem
+modelar o \emph{matchmaking}.
 
 Como trabalho em andamento, três frentes seguem abertas: a calibração final dos
 limites dos genes e da banda de \emph{hard-counter}, hoje provisórios; o teste de
