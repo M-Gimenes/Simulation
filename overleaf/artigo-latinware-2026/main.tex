@@ -387,14 +387,14 @@ Validador (de \valTotal)        & \valCan   & \valAg   & \valKnee   & \valBd \\
 Ciclo (de \cycleTotal)          & \cycleCan & \cycleAg & \cycleKnee & \cycleBd \\
 \bottomrule
 \end{tabular}
+
 \vspace{2pt}
-\footnotesize
-\raggedright
+{\footnotesize\raggedright
 \emph{Confrontos eq.}: pares com taxa de vitória em $[40\%,60\%]$.
 \emph{Diferenciação}: razão da distância média par a par vs.\ o canônico ($<1$ =
 homogeneização). \emph{Joelho} e \emph{Equilíb.}: representantes
 \emph{knee\_point} e \emph{best\_dominance} da fronteira; o canônico coincide com
-\emph{best\_drift}.
+\emph{best\_drift}.\par}
 \end{table}
 
 Sobre \nSeeds{} execuções independentes, o NSGA-II aterrissa em
@@ -436,9 +436,15 @@ uma única solução pela iluminação de \emph{quantas} configurações distint
 
 \section*{Agradecimentos}
 
-Os autores agradecem ao orientador e à instituição de ensino pelo apoio ao
-desenvolvimento deste trabalho. \ph{completar com nomes e afiliação na versão
-final, após o aceite}
+% Texto nominal só na versão final (\finaltrue). Na versão cega (\finalfalse) a
+% seção existe — o template a exige —, mas sem nada que identifique os autores.
+\iffinal
+Os autores agradecem ao Instituto Federal do Espírito Santo, \emph{campus}
+Cachoeiro de Itapemirim, pelo apoio institucional ao desenvolvimento deste
+trabalho. \ph{incluir agência de fomento/bolsa, se houver}
+\else
+Suprimidos nesta versão para preservar o anonimato da revisão.
+\fi
 
 \section*{Declaração sobre uso de Inteligência Artificial}
 
