@@ -209,16 +209,16 @@ calibração dos limites dos genes e das bandas de equilíbrio segue em refiname
 A unidade de evolução é o \emph{conjunto dos cinco personagens} (Fig.~\ref{fig:arq}),
 pois a taxa de vitória de qualquer um depende simultaneamente dos outros quatro.
 
-\begin{figure}[!t]
+\begin{figure}[!tb]
 \centering
 \begin{tikzpicture}[
   font=\scriptsize,
-  bloco/.style = {draw, rounded corners=1.5pt, align=center, inner sep=2.5pt,
-                  text width=52mm, minimum height=6.5mm, fill=white},
+  bloco/.style = {draw, rounded corners=1.5pt, align=center, inner sep=2pt,
+                  text width=64mm, minimum height=5.5mm, fill=white},
   obj/.style   = {draw, rounded corners=1.5pt, align=center, inner sep=2pt,
-                  text width=20mm, minimum height=5.5mm, fill=black!8},
+                  text width=20mm, minimum height=5mm, fill=black!8},
   faixa/.style = {draw=black!40, dashed, rounded corners=2pt,
-                  inner xsep=4mm, inner ysep=1.5mm},
+                  inner xsep=3mm, inner ysep=1.2mm},
   rot/.style   = {rotate=90, font=\scriptsize\bfseries, anchor=center},
   seta/.style      = {-{Latex[length=1.5mm]}, thick},
   tracejada/.style = {-{Latex[length=1.5mm]}, dashed}
@@ -229,21 +229,21 @@ pois a taxa de vitória de qualquer um depende simultaneamente dos outros quatro
   semeiam a população \emph{e} servem de \emph{baseline} do desvio};
 
 % ── PROCESSAMENTO ────────────────────────────────────────
-\node[bloco, below=7mm of ent] (pop)
+\node[bloco, below=5mm of ent] (pop)
   {População: 300 \emph{rosters} (canônico $+$ 299 sorteados)};
-\node[bloco, below=3mm of pop] (sim)
+\node[bloco, below=2.5mm of pop] (sim)
   {Simulação: \emph{round-robin}, 10 confrontos $\times$ 150 lutas};
-\node[obj, below=3mm of sim, xshift=-13mm] (drift) {\emph{drift}};
+\node[obj, below=2.5mm of sim, xshift=-13mm] (drift) {\emph{drift}};
 \node[obj, right=6mm of drift] (dom) {\emph{dominance}};
-\node[bloco, below=11mm of sim] (oper)
+\node[bloco, below=10mm of sim] (oper)
   {seleção $\cdot$ \emph{crossover} $\cdot$ mutação $\cdot$ elitismo};
 
 % ── SAÍDA ────────────────────────────────────────────────
-\node[bloco, below=7mm of oper] (sai)
+\node[bloco, below=5mm of oper] (sai)
   {Fronteira de Pareto\\[-1.5pt]
    \emph{best\_dominance} $\cdot$ \emph{knee\_point} $\cdot$ \emph{best\_drift}};
-\node[bloco, below=2.5mm of sai, dashed, fill=black!4] (med)
-  {medição \emph{post hoc}, que não realimenta a busca:\\[-1.5pt]
+\node[bloco, below=2mm of sai, dashed, fill=black!4] (med)
+  {medição \emph{post hoc} --- não realimenta a busca:\\[-1.5pt]
    validador $\cdot$ diferenciação $\cdot$ perfil $\cdot$ ciclo};
 
 % faixas e rótulos
@@ -267,11 +267,9 @@ pois a taxa de vitória de qualquer um depende simultaneamente dos outros quatro
 \draw[tracejada] (sai) -- (med);
 
 \end{tikzpicture}
-\caption{Arquitetura do sistema. Os arquétipos canônicos entram em dois papéis
-distintos --- semente e \emph{baseline}; o processamento é o laço evolutivo sobre os
-dois objetivos; a saída é a fronteira de Pareto. As métricas \emph{post hoc}
-(tracejado) incidem sobre a saída e não retornam ao laço, o que sustenta a não
-circularidade.}
+\caption{Arquitetura do sistema. Os arquétipos canônicos entram em dois papéis ---
+semente e \emph{baseline}. As métricas \emph{post hoc} (tracejado) incidem sobre a
+saída e não retornam ao laço, o que sustenta a não circularidade.}
 \label{fig:arq}
 \end{figure}
 
@@ -407,9 +405,9 @@ com hipervolume de $\hvVal{}$ ante a referência $(2{,}0;\,1{,}0)$. Ela evidenci
 que equilíbrio e identidade \emph{são} objetivos conflitantes neste domínio e
 quantifica \emph{quanto} de um se troca pelo outro.
 
-\begin{figure}[!t]
+\begin{figure}[!tb]
 \centering
-\includegraphics[width=\columnwidth]{pareto_front.png}
+\includegraphics[width=0.88\columnwidth]{pareto_front.png}
 \caption{Fronteira de Pareto (desbalanço $\times$ desvio) obtida pelo NSGA-II. Cada
 ponto é um \emph{roster} não dominado; os destacados marcam os extremos, o
 \emph{knee point} e o \emph{ideal point}.}
@@ -431,8 +429,8 @@ indicando homogeneização modesta. Quanto ao ciclo canônico, não codificado n
 objetivo: ele se mantém em \cycleCan{} a \cycleBd{} dos dez pares em \emph{todos} os
 pontos da tabela --- a evolução não o destrói, mas tampouco o recupera.
 
-\begin{table}[!t]
-\renewcommand{\arraystretch}{1.15}
+\begin{table}[!tb]
+\renewcommand{\arraystretch}{1.0}
 \setlength{\tabcolsep}{4pt}
 \caption{Quatro Pontos do \emph{Trade-off} Equilíbrio $\times$ Identidade}
 \label{tab:tradeoff}
