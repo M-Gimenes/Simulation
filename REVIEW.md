@@ -74,17 +74,29 @@ um item, registrar a decisão no doc de referência do tema e marcar aqui.
   `GLOBAL_CONVERGENCE_THRESHOLD`), ou o critério de parada por convergência deve sair?
   Do jeito que está, `converged` é sempre `False` — e é um critério descrito na
   metodologia.
-- [ ] **`dominance_penalty` abaixo do piso de ruído sugere ajuste ao stream de CRN.**
-  *Fato:* com 150 sims/matchup, o desvio binomial da WR global (600 lutas) é ~2%, o que
-  daria um `global_term` da ordem de 0,03; o AG chegou a 0,005. Como o CRN fixa o
-  stream, o AG pode estar otimizando *aquela realização do RNG*. *Pergunta:* o que a
-  `external_validation` (sementes 10000+, 500 sims) diz sobre esse indivíduo? É
-  exatamente o que ela existe para detectar — confrontar os números.
+- [x] **`dominance_penalty` abaixo do piso de ruído: há ajuste ao stream, mas o
+  equilíbrio sobrevive.** *Fato:* com 150 sims/matchup o desvio binomial da WR global
+  (600 lutas) é ~2%, o que daria um `global_term` da ordem de 0,03 — e o AG chegou a
+  0,0076 no laço, indicando adaptação à realização específica do RNG fixada pelo CRN.
+  Fora do laço (`external_validation`, sementes 10000+, 500 sims) o mesmo indivíduo dá
+  **0,0279 ± 0,0062**: degrada ~3,7×, mas mantém 5/5 bonecos em banda em todas as 10
+  condições e **0/10** hard-counters — veredito **ROBUSTO**. *Conclusão:* o ajuste ao
+  stream existe e precisa ser declarado, mas não é o que sustenta o resultado. Reportar
+  sempre o número **fora** do laço.
 - [ ] **`MATCHUP_WR_CAP = 0.15` provisório.** Define o que é "counter duro" e portanto
   quanto do ciclo de vantagens cabe no espaço permitido. *Pergunta:* há justificativa
   de domínio (FGC) para 15 pontos percentuais, ou é preciso um sweep?
 - [ ] **Pesos 1.0 / 0.5 / 0.5 dos três termos do dominance.** Nunca variados.
   *Pergunta:* o que muda na fronteira ao mexer neles?
+- [ ] **A análise de sensibilidade mede no ponto errado do espaço.** *Fato:* ela roda
+  fixa no **canônico** (`Individual.from_canonical()` está hardcoded em `_eval_task`, o
+  tool não tem `--evolved`/`--nsga2`), e o canônico é saturado — Rushdown ganha 100% de
+  tudo, Turtle 0,1%, 10/10 hard-counters. Com a WR presa no teto, perturbar um gene não
+  muda nada, e o resultado é que **6 dos 7 atributos saem classificados como "neutros"**
+  (só `attack_cooldown`, 5,6%, passa do piso de 1,8%). Isso é **efeito de teto**, não
+  neutralidade de gene. *Pergunta:* a tabela precisa ser medida também num indivíduo
+  equilibrado (evoluído / knee) para sustentar a afirmação "o AG enxerga o cromossomo";
+  do jeito que está, ela sustenta o contrário do que se quer afirmar.
 - [ ] **`SIMS_PER_MATCHUP = 150` vs as bandas de decisão.** Ruído binomial por matchup
   ~4% contra um cap de 15%. *Pergunta:* a margem é confortável o bastante, ou o número
   de sims precisa subir para o cap significar o que diz?
@@ -94,8 +106,12 @@ um item, registrar a decisão no doc de referência do tema e marcar aqui.
 - [ ] **Escalar e NSGA-II não param pelo mesmo critério.** O AG tem convergência +
   estagnação + teto; o NSGA-II roda `NSGA2_GENERATIONS` fixas. *Pergunta:* a assimetria
   é intencional? Ela afeta a comparação entre os dois.
-- [ ] **Qual ponto da fronteira representa o NSGA-II na comparação.** *Fato:* o AG
-  escalar com `LAMBDA_DRIFT = LAMBDA_DOMINANCE = 1.0` minimiza a **soma** (L1) dos dois
+- [ ] **Qual ponto da fronteira representa o NSGA-II na comparação.** *Fato novo:* com
+  a bateria de 2026-09-10, o AG escalar **vence** o `best_dominance` do NSGA-II em
+  `dominance_penalty` (mediana 0,066 vs 0,129; p_Holm = 0,018; Â₁₂ = 0,12, efeito grande)
+  e em hard-counters por execução (0 vs 3; p_Holm = 0,049), sem diferença significativa
+  em `drift_penalty`. Isso torna a escolha do representante decisiva para a leitura.
+  *Fato:* o AG escalar com `LAMBDA_DRIFT = LAMBDA_DOMINANCE = 1.0` minimiza a **soma** (L1) dos dois
   objetivos; o representante `ideal_point` minimiza a **norma euclidiana** (L2); e o
   `multi_run` compara contra `best_dominance` (um **extremo** da fronteira). São três
   pontos diferentes. *Pergunta:* qual é o comparável correto? Se o argumento é "o
@@ -122,6 +138,12 @@ um item, registrar a decisão no doc de referência do tema e marcar aqui.
 - [ ] **Referências de estatística fora do `.bib`.** Derrac et al. 2011, Arcuri & Briand
   2011 e Vargha & Delaney 2000 são citadas nos docs e no código, mas **não estão** em
   `overleaf/TCC/bibliografia.bib`.
+- [ ] **O veredito da validação externa é binário e sensível a ruído.** *Fato:* o roster
+  só é ROBUSTO se **nenhum** par virar hard-counter em **nenhuma** das 10 condições — 100
+  oportunidades de falhar. O `best_dominance` do NSGA-II tem 5/5 bonecos robustos e
+  apenas 1/10 pares que trip em alguma condição, e ainda assim sai FRÁGIL. *Pergunta:* o
+  quantificador "em alguma condição" é o certo, ou o veredito deveria ser uma fração
+  (ex.: par fora da banda em >X% das condições)?
 - [ ] **`results/` não tem versionamento parcial.** Mexer em `config.py`, nos canônicos
   ou no motor invalida tudo de uma vez. *Pergunta:* vale gravar um snapshot da config
   dentro de cada artefato, para que um JSON antigo se denuncie sozinho?

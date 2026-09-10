@@ -1,0 +1,80 @@
+{
+  "test": "Mann-Whitney U (bicaudal)",
+  "effect_size": "Vargha-Delaney A12 (ga vs nsga2)",
+  "correction": "Holm-Bonferroni",
+  "alpha": 0.05,
+  "n_seeds": 10,
+  "seeds": [
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50,
+    51
+  ],
+  "validation_seed": 9999,
+  "sims_per_matchup": 200,
+  "nsga2_representative": "best_dominance",
+  "metrics": [
+    {
+      "metric": "dominance_penalty",
+      "label": "dominance_penalty",
+      "better_is": "lower",
+      "median_ga": 0.06573947415049029,
+      "median_nsga2": 0.12906774407827787,
+      "u_statistic": 12.0,
+      "p_value": 0.004586392080253494,
+      "a12_ga_vs_nsga2": 0.12,
+      "better": "ga",
+      "p_holm": 0.018345568321013975,
+      "significant": true,
+      "effect_magnitude": "grande"
+    },
+    {
+      "metric": "drift_penalty",
+      "label": "drift_penalty",
+      "better_is": "lower",
+      "median_ga": 0.26649006520485335,
+      "median_nsga2": 0.25220921506560784,
+      "u_statistic": 62.0,
+      "p_value": 0.3846730627355087,
+      "a12_ga_vs_nsga2": 0.62,
+      "better": "nsga2",
+      "p_holm": 0.7693461254710174,
+      "significant": false,
+      "effect_magnitude": "pequeno"
+    },
+    {
+      "metric": "n_hard_counters",
+      "label": "hard-counters por execução",
+      "better_is": "lower",
+      "median_ga": 0.0,
+      "median_nsga2": 3.0,
+      "u_statistic": 19.0,
+      "p_value": 0.016508509318717685,
+      "a12_ga_vs_nsga2": 0.19,
+      "better": "ga",
+      "p_holm": 0.04952552795615306,
+      "significant": true,
+      "effect_magnitude": "grande"
+    },
+    {
+      "metric": "n_chars_balanced",
+      "label": "bonecos em banda por execução",
+      "better_is": "higher",
+      "median_ga": 5.0,
+      "median_nsga2": 5.0,
+      "u_statistic": 50.0,
+      "p_value": NaN,
+      "a12_ga_vs_nsga2": 0.5,
+      "better": "empate",
+      "p_holm": 1.0,
+      "significant": false,
+      "effect_magnitude": "desprezível"
+    }
+  ]
+}
