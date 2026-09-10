@@ -1,6 +1,7 @@
 # 10 — Pontos em aberto
 
-O que **ainda está aberto** no sistema, em 2026-09-10. Não é histórico: a trajetória
+O que **ainda está aberto** no sistema, em 2026-09-10 (fim do dia, depois da
+auditoria de coerência e da reforma do motor de combate). Não é histórico: a trajetória
 das decisões (que problema cada mudança resolveu) vive em
 [`../tcc/04-caminhos-e-decisoes.md`](../tcc/04-caminhos-e-decisoes.md), e o estado
 atual do sistema nos docs 01–09. Aqui ficam só as pendências e os limites conhecidos,
@@ -52,10 +53,18 @@ Precisam aparecer explicitamente na Discussão, não só em Trabalhos Futuros.
 - **Round-robin uniforme.** Todos os 10 pares pesam igual. Não modela matchmaking
   real (jogadores escolhendo matchups favoráveis), então "equilíbrio" aqui é
   equilíbrio sob confronto uniforme.
-- **Grappler sem asserção comportamental.** A Layer 3 do validador tem 4 asserções
-  para 5 arquétipos: o combate não modela grab/throw, então a identidade do Grappler
-  não tem expressão comportamental distinta do corpo-a-corpo do Rushdown. Registrado
-  no relatório do validador, fora do denominador. Achado honesto, não bug.
+- **Grappler sem asserção comportamental — e o eixo Recurso sem counter.** A Layer 3
+  do validador tem 4 asserções para 5 arquétipos: o combate não modela grab/throw, então
+  a identidade do Grappler não tem expressão comportamental distinta do corpo-a-corpo do
+  Rushdown. A auditoria de 2026-09-10 mostrou que isso **não é um achado isolado**: o
+  DEFEND não tem custo nem quebra de guarda, e o grab é ao mesmo tempo o counter que
+  falta ao eixo Recurso, a assinatura que falta ao Grappler e a aresta "Grappler vence
+  Turtle" do ciclo canônico. Escopo e esboços de desenho no item **R** de
+  [`../../REVIEW.md`](../../REVIEW.md) §2 — decidido entrar, depois de fechar A, B e C.
+- **A política é cega ao estado.** A intenção não depende de HP, distância, cooldown
+  do oponente nem de o oponente estar stunado: "estratégia" no modelo é uma mistura fixa
+  de três posturas, mantida por `ACTION_PERSISTENCE_SUBTICKS`. É o commitment pretendido,
+  mas nenhum arquétipo tem plano. Ver [`../../REVIEW.md`](../../REVIEW.md) §2.
 - **Alinhamento CRN imperfeito depois do 1º matchup.** Toda avaliação reseta o RNG do
   combate ao mesmo seed-base, mas cada luta consome um número variável de sorteios —
   a posição do stream diverge entre indivíduos nos matchups seguintes. Muito melhor
@@ -65,19 +74,24 @@ Precisam aparecer explicitamente na Discussão, não só em Trabalhos Futuros.
 
 ## 3. Estado dos artefatos em `results/`
 
-O commit `3e64bbd` (28/06) mudou de uma vez `MATCHUP_WR_CAP` (0.20→0.15), os bounds
-de dano ([10,20]→[15,30]), os danos canônicos dos 5 arquétipos e
-`DEFEND_DAMAGE_REDUCTION` (0.5→0.6). Artefatos gerados **antes** dele descrevem um
-sistema que não existe mais — e os dois `multi_run` publicados nos artigos eram
-exatamente esse caso.
+> 🔴 **Todo o `results/` está OBSOLETO desde 2026-09-10.** A reforma do motor de combate
+> daquele dia (dois canais de ação, colisão, timer de stun contínuo, empate como terceiro
+> desfecho — ver [11-combat-review.md](11-combat-review.md)) mudou o simulador. Nenhum
+> número em `results/` descreve o sistema atual, e o `values.tex` dos dois artigos
+> tampouco.
 
-Todos os artefatos em `results/` foram **regerados em 2026-09-10** com o código
-atual, com a bateria completa:
+**Não regenerar a bateria ainda.** Mexer no motor ou no fitness invalida `results/`
+inteiro de uma vez — não há versionamento parcial —, e ainda faltam decisões que mudam
+número: a régua de identidade (A), a formulação do `dominance_penalty` (B), o gate de
+convergência (E) e a recalibração dos canônicos (H). A bateria é o **passo 7** da ordem
+em [`../../REVIEW.md`](../../REVIEW.md) §8; rodá-la antes disso é trabalho jogado fora.
+
+Quando chegar a vez, a bateria completa é:
 
 ```bash
-py main.py --seed 42                                    # results.json (agora com seed + history)
+py main.py --seed 42                                    # results.json
 py main.py --algorithm nsga2 --seed 42                  # nsga2_results.json + plots
-py -m src.tools.multi_run --algorithm both              # multi_run_ga.json + multi_run_nsga2.json
+py -m src.tools.multi_run --algorithm both              # multi_run_{ga,nsga2}.json
 py -m src.tools.compare_algorithms                      # comparison_ga_vs_nsga2.json
 py -m src.tools.external_validation                     # canônico
 py -m src.tools.external_validation --nsga2 best_dominance
@@ -86,9 +100,9 @@ py -m src.tools.external_validation --evolved
 py -m src.tools.sensitivity_analysis                    # sensitivity_analysis.json
 ```
 
-**Regra:** ao mexer em `config.py`, nos canônicos ou no motor de combate, todo
-`results/` fica obsoleto de uma vez — não há versionamento parcial. Rode a bateria
-inteira antes de citar qualquer número.
+Levou 1h24 na última vez. **Regra:** ao mexer em `config.py`, nos canônicos ou no motor,
+todo `results/` fica obsoleto de uma vez — rode a bateria inteira antes de citar
+qualquer número.
 
 ## 4. Encerrado (para não reabrir por engano)
 
@@ -104,10 +118,18 @@ Resolvido e verificado; o raciocínio completo está em
 - **WR por-matchup forçava equilíbrio plano** — incompatível com o ciclo por
   construção; substituída pela WR **global** por personagem (formulação C2).
 - **`LAMBDA_DRIFT` 6.0 → 1.0** — com 6.0 o AG escalar ficava colado no canônico.
-- **Simplificação do combate** — fora `defense`, `recovery`, hesitação e
-  encurralamento; `stun` virou fração do cooldown; decisão virou intenção→execução.
+- **Simplificação do combate** — fora `defense`, `recovery` e hesitação; `stun` virou
+  fração do cooldown. (A decisão "intenção→execução" foi por sua vez substituída pelo
+  modelo de dois canais em 2026-09-10, e o encurralamento voltou a existir com a
+  colisão — ver [11-combat-review.md](11-combat-review.md).)
 - **Persistência dos artefatos** — `results.json` grava semente, condição de parada,
   objetivos e `history`, no mesmo contrato do `nsga2_results.json`; o
   `sensitivity_analysis` grava a matriz Δ WR.
 - **Teste estatístico entre algoritmos** — `compare_algorithms` (Mann-Whitney U +
   Â₁₂ + Holm-Bonferroni) fecha o item que faltava do 1.1.
+- **Reforma do motor de combate (2026-09-10)** — quatro defeitos medidos e corrigidos:
+  o avanço incondicional fora do alcance (que matava o espaçamento e invertia o sinal do
+  knockback), a exclusividade entre atacar e recuar (que impedia zonear), o
+  atravessamento dos corpos e o stun arredondado. Mais o empate como terceiro desfecho,
+  que eliminou o viés do lado A, e a regra de impasse, que eliminou a estagnação.
+  Números antes/depois em [11-combat-review.md](11-combat-review.md).
