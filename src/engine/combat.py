@@ -16,6 +16,11 @@ Tools que precisam instrumentar a luta (viewer, web_viewer, analyze_matchups)
 consomem `CombatTrace` em vez de reimplementar o loop em Python — eliminando a
 fonte tradicional de divergência entre Python e JIT.
 
+Modelo de ação em dois canais: a intenção sorteada governa a POSTURA de movimento
+(ADVANCE / RETREAT / DEFEND) e o ataque dispara por regra na resolução — cooldown
+pronto, oponente ao alcance e postura fora da guarda. Avançar e recuar batem; só a
+GUARDA abre mão do golpe.
+
 Reprodutibilidade: o JIT usa o RNG interno do Numba, que é **independente** do
 `np.random` de nível Python e só pode ser semeado de dentro de um `@njit`. Use
 `seed_combat(s)` para torná-lo reprodutível — semear `np.random`/`random` no
@@ -48,29 +53,36 @@ from .config import (
 
 
 class Action(IntEnum):
-    ATTACK = 0
-    ADVANCE = 1
-    RETREAT = 2
-    DEFEND = 3
+    """Postura de movimento num sub-tick. O ataque NAO e uma postura: ele dispara
+    por regra na fase de resolucao (cooldown pronto + em alcance + postura != DEFEND),
+    entao um lutador pode recuar batendo — e o que torna o controle de espaco viavel."""
+    ADVANCE = 0
+    RETREAT = 1
+    DEFEND = 2
 
 
 @dataclass
 class CombatResult:
-    winner: int
+    winner: int      # 0 = A, 1 = B, -1 = empate (HP% idêntico)
     ticks: int
     ko: bool
     hp_remaining: Tuple[float, float]
 
     @property
+    def is_draw(self) -> bool:
+        return self.winner < 0
+
+    @property
     def loser(self) -> int:
-        return 1 - self.winner
+        return -1 if self.is_draw else 1 - self.winner
 
 
 @dataclass
 class ActionLog:
-    action_counts: Tuple[Dict[int, int], Dict[int, int]]
+    stance_counts: Tuple[Dict[int, int], Dict[int, int]]
+    attacks: Tuple[int, int]
     active_ticks: Tuple[int, int]
-    stun_applied: Tuple[int, int]
+    stun_applied: Tuple[float, float]
 
 
 @dataclass
@@ -82,18 +94,19 @@ class CombatTrace:
     Para arrays "_dealt" e "_applied", o índice da coluna identifica o ATACANTE
     (i.e. damage_dealt[t, 0] é o dano que A causou em B no tick t).
     """
-    winner: int
+    winner: int      # 0 = A, 1 = B, -1 = empate
     end_tick: int
     ko: bool
     hp_max: Tuple[float, float]
 
     pos:             np.ndarray  # (T, 2) float — após movimento + knockback
     hp:              np.ndarray  # (T, 2) float — após dano
-    action:          np.ndarray  # (T, 2) int   — Action ou -1 se stunned
+    stance:          np.ndarray  # (T, 2) int   — Action ou -1 se stunned
+    attacked:        np.ndarray  # (T, 2) int   — 1 = o ataque disparou neste sub-tick
     cooldown:        np.ndarray  # (T, 2) int   — ao final do tick
-    stun:            np.ndarray  # (T, 2) int   — ao final do tick
+    stun:            np.ndarray  # (T, 2) float — ao final do tick
     damage_dealt:    np.ndarray  # (T, 2) float — coluna i = dano de i no oponente
-    stun_applied:    np.ndarray  # (T, 2) int   — sub-ticks de stun aplicados pelo atacante
+    stun_applied:    np.ndarray  # (T, 2) float — sub-ticks de stun aplicados pelo atacante
     knockback_dealt: np.ndarray  # (T, 2) float — knockback aplicado pelo atacante
     forced_defend:   np.ndarray  # (T, 2) int   — 1 = DEFEND por encurralamento (RECUAR sem espaço)
 
@@ -113,26 +126,35 @@ class CombatTrace:
 
 @njit(cache=True)
 def _decide_action(
-    stun_rem, distance, reach, persist, commit,
-    wagg, wret, wdef, cd_rem, pos, opp_pos,
+    stun_rem, distance, reach, opp_reach, persist, commit,
+    wagg, wret, wdef, pos, is_left,
     speed, tick_scale, field_size, persist_max,
 ):
-    """Decide a ação de UM lutador num sub-tick (intenção→execução).
+    """Decide a POSTURA de UM lutador num sub-tick (intenção→execução).
 
     Fonte única consumida pelos dois JITs (fitness e traced) — garante que ambos
     simulem exatamente o mesmo combate (mesmo consumo de RNG). É o único nó
     estocástico do loop (`np.random.random` na amostragem de intenção).
 
-    Retorna `(action, persist, commit, forced_defend)`:
-      • action: -1 stunned / 0 ATTACK / 1 ADVANCE / 2 RETREAT / 3 DEFEND;
+    O ataque não aparece aqui: ele dispara por regra na fase de resolução, então a
+    intenção governa só o movimento e um lutador pode recuar batendo. Isso é o que
+    torna o controle de espaço uma estratégia — e o que faz o knockback valer algo.
+
+    A intenção sorteada vale sempre, com uma exceção: no **impasse** (nenhum dos dois
+    alcança o outro) o avanço é imposto, senão dois passivos recuariam para paredes
+    opostas e a luta terminaria por timeout sem um golpe. Quem está sob ameaça — o
+    oponente alcança — segue livre para recuar, então o kite não é afetado.
+
+    Retorna `(stance, persist, commit, forced_defend)`:
+      • stance: -1 stunned / 0 ADVANCE / 1 RETREAT / 2 DEFEND;
       • persist, commit: estado de persistência da intenção, atualizado;
       • forced_defend: 1 quando o DEFEND veio de RECUAR sem espaço de recuo
         (encurralamento) — distinto do DEFEND escolhido (GUARDA), que retorna 0.
     """
-    if stun_rem > 0:
+    if stun_rem > 0.0:
         return -1, persist, commit, 0
-    if distance > reach:
-        return 1, 0, commit, 0          # ADVANCE — neutral game; zera persistência
+    if distance > reach and distance > opp_reach:
+        return 0, 0, commit, 0          # impasse — ADVANCE imposto; zera a persistência
     if persist == 0:
         tot = wagg + wret + wdef
         if tot <= 0.0:
@@ -148,14 +170,81 @@ def _decide_action(
         persist = persist_max
     persist -= 1
     if commit == 0:                                     # FRENTE
-        return (0 if cd_rem == 0 else 1), persist, commit, 0   # ATTACK senão ADVANCE
+        return 0, persist, commit, 0                    # ADVANCE
     if commit == 1:                                     # RECUAR
         step = speed / tick_scale
-        can_back = (pos - step >= 0.0) if pos < opp_pos else (pos + step <= field_size)
+        can_back = (pos - step >= 0.0) if is_left else (pos + step <= field_size)
         if can_back:
-            return 2, persist, commit, 0
-        return 3, persist, commit, 1                    # DEFEND forçado (encurralado)
-    return 3, persist, commit, 0                        # GUARDA → DEFEND escolhido
+            return 1, persist, commit, 0                # RETREAT
+        return 2, persist, commit, 1                    # DEFEND forçado (encurralado)
+    return 2, persist, commit, 0                        # GUARDA → DEFEND escolhido
+
+
+@njit(cache=True)
+def _apply_movement(
+    pos_a, pos_b, stance_a, stance_b, speed_a, speed_b, tick_scale, field_size,
+):
+    """Move os dois lutadores a partir das posições do início do sub-tick.
+
+    A é sempre o lado esquerdo (`pos_a <= pos_b`) — invariante preservada porque os
+    corpos não se atravessam: avançar aproxima, recuar afasta, e dois avanços que se
+    cruzariam param no ponto de encontro. Movimento simultâneo (ambos partem das
+    posições de início do sub-tick), então nenhum dos lados chega "primeiro".
+    """
+    step_a = 0.0
+    if stance_a == 0:
+        step_a = speed_a / tick_scale        # ADVANCE → direita, em direção a B
+    elif stance_a == 1:
+        step_a = -speed_a / tick_scale       # RETREAT → esquerda
+
+    step_b = 0.0
+    if stance_b == 0:
+        step_b = -speed_b / tick_scale       # ADVANCE → esquerda, em direção a A
+    elif stance_b == 1:
+        step_b = speed_b / tick_scale        # RETREAT → direita
+
+    new_a = pos_a + step_a
+    if new_a < 0.0:
+        new_a = 0.0
+    elif new_a > field_size:
+        new_a = field_size
+
+    new_b = pos_b + step_b
+    if new_b < 0.0:
+        new_b = 0.0
+    elif new_b > field_size:
+        new_b = field_size
+
+    if new_a > new_b:                        # se cruzariam, param encostados
+        gap = pos_b - pos_a
+        closing = gap - (new_b - new_a)
+        t = gap / closing if closing > 0.0 else 0.0
+        new_a = pos_a + t * (new_a - pos_a)
+        new_b = pos_b + t * (new_b - pos_b)
+
+    return new_a, new_b
+
+
+@njit(cache=True)
+def _decide_winner(hp_a, hp_b, a_hp_max, b_hp_max):
+    """Desfecho da luta. Empate (`-1`) quando os dois terminam com a MESMA fração de
+    HP — KO duplo (ambos a zero no mesmo sub-tick) ou timeout sem diferença. Sem o
+    empate o desempate cairia sempre para o lado A, que no round-robin é sempre o
+    arquétipo de índice menor: um viés sistemático na métrica que o fitness otimiza."""
+    alive_a = hp_a > 0.0
+    alive_b = hp_b > 0.0
+    ko = 0 if (alive_a and alive_b) else 1
+    if alive_a and not alive_b:
+        return 0, ko
+    if alive_b and not alive_a:
+        return 1, ko
+    a_pct = hp_a / a_hp_max if a_hp_max > 0.0 else 0.0
+    b_pct = hp_b / b_hp_max if b_hp_max > 0.0 else 0.0
+    if a_pct > b_pct:
+        return 0, ko
+    if b_pct > a_pct:
+        return 1, ko
+    return -1, ko
 
 
 @njit(cache=True)
@@ -178,14 +267,15 @@ def _simulate_combat_jit(
     pos_a = (field_size - initial_distance) / 2.0
     pos_b = (field_size + initial_distance) / 2.0
 
-    stun_rem_a = 0; stun_rem_b = 0
+    stun_rem_a = 0.0; stun_rem_b = 0.0
     cd_rem_a = 0; cd_rem_b = 0
     commit_a = -1; commit_b = -1
     persist_a = 0; persist_b = 0
 
-    action_counts = np.zeros((2, 4), dtype=np.int64)
+    stance_counts = np.zeros((2, 3), dtype=np.int64)
+    attacks = np.zeros(2, dtype=np.int64)
     active_ticks = np.zeros(2, dtype=np.int64)
-    stun_applied = np.zeros(2, dtype=np.int64)
+    stun_applied = np.zeros(2, dtype=np.float64)
 
     end_tick = max_ticks
 
@@ -194,63 +284,48 @@ def _simulate_combat_jit(
             end_tick = tick
             break
 
-        distance = abs(pos_b - pos_a)
+        distance = pos_b - pos_a
 
-        # ── Escolha de ações (helper único — ver _decide_action) ─────────────
-        action_a, persist_a, commit_a, _ = _decide_action(
-            stun_rem_a, distance, a_range, persist_a, commit_a,
-            a_wagg, a_wret, a_wdef, cd_rem_a, pos_a, pos_b,
+        # ── Postura (helper único — ver _decide_action) ──────────────────────
+        stance_a, persist_a, commit_a, _ = _decide_action(
+            stun_rem_a, distance, a_range, b_range, persist_a, commit_a,
+            a_wagg, a_wret, a_wdef, pos_a, True,
             a_speed, tick_scale, field_size, persist,
         )
-        if action_a >= 0:
+        if stance_a >= 0:
             active_ticks[0] += 1
-            action_counts[0, action_a] += 1
+            stance_counts[0, stance_a] += 1
 
-        action_b, persist_b, commit_b, _ = _decide_action(
-            stun_rem_b, distance, b_range, persist_b, commit_b,
-            b_wagg, b_wret, b_wdef, cd_rem_b, pos_b, pos_a,
+        stance_b, persist_b, commit_b, _ = _decide_action(
+            stun_rem_b, distance, b_range, a_range, persist_b, commit_b,
+            b_wagg, b_wret, b_wdef, pos_b, False,
             b_speed, tick_scale, field_size, persist,
         )
-        if action_b >= 0:
+        if stance_b >= 0:
             active_ticks[1] += 1
-            action_counts[1, action_b] += 1
+            stance_counts[1, stance_b] += 1
 
-        # ── Movimento ────────────────────────────────────────────────────────
-        if action_a == 1 or action_a == 2:
-            spd = a_speed / tick_scale
-            d = 1.0 if pos_a < pos_b else -1.0
-            sign = 1.0 if action_a == 1 else -1.0
-            new_pos = pos_a + d * sign * spd
-            if new_pos < 0.0:
-                new_pos = 0.0
-            elif new_pos > field_size:
-                new_pos = field_size
-            pos_a = new_pos
-
-        if action_b == 1 or action_b == 2:
-            spd = b_speed / tick_scale
-            d = 1.0 if pos_b < pos_a else -1.0
-            sign = 1.0 if action_b == 1 else -1.0
-            new_pos = pos_b + d * sign * spd
-            if new_pos < 0.0:
-                new_pos = 0.0
-            elif new_pos > field_size:
-                new_pos = field_size
-            pos_b = new_pos
+        # ── Movimento simultâneo, sem atravessamento ─────────────────────────
+        pos_a, pos_b = _apply_movement(
+            pos_a, pos_b, stance_a, stance_b, a_speed, b_speed, tick_scale, field_size,
+        )
 
         # ── Snapshot dos timers antes dos ataques (decrement-stale) ──────────
         pre_stun_a = stun_rem_a; pre_stun_b = stun_rem_b
         pre_cd_a = cd_rem_a; pre_cd_b = cd_rem_b
 
         # ── Resolução de ataques ─────────────────────────────────────────────
-        distance = abs(pos_b - pos_a)
+        # O ataque não é escolhido: dispara sempre que o lutador está ativo, fora da
+        # guarda, com cooldown pronto e o oponente ao alcance. Avançar e recuar batem;
+        # só a GUARDA abre mão do golpe.
+        distance = pos_b - pos_a
 
         # A → B
-        if action_a == 0 and cd_rem_a == 0 and distance <= a_range:
+        if stance_a >= 0 and stance_a != 2 and cd_rem_a == 0 and distance <= a_range:
             dmg = a_dmg
-            if action_b == 3:
+            if stance_b == 2:
                 dmg *= defend_red
-            stun_t = round(a_stun * round(a_cd * tick_scale))  # fração × cooldown_subticks; < cooldown por bound
+            stun_t = a_stun * a_cd * tick_scale  # fração × cooldown em sub-ticks; < cooldown por bound
 
             hp_b = hp_b - dmg
             if hp_b < 0.0:
@@ -258,21 +333,19 @@ def _simulate_combat_jit(
             if stun_t > stun_rem_b:
                 stun_rem_b = stun_t
                 stun_applied[0] += stun_t
-            kb_dir = 1.0 if pos_b >= pos_a else -1.0
-            new_pos = pos_b + kb_dir * a_kb
-            if new_pos < 0.0:
-                new_pos = 0.0
-            elif new_pos > field_size:
+            new_pos = pos_b + a_kb                 # knockback empurra B para a direita (longe de A)
+            if new_pos > field_size:
                 new_pos = field_size
             pos_b = new_pos
             cd_rem_a = round(a_cd * tick_scale)
+            attacks[0] += 1
 
         # B → A
-        if action_b == 0 and cd_rem_b == 0 and distance <= b_range:
+        if stance_b >= 0 and stance_b != 2 and cd_rem_b == 0 and distance <= b_range:
             dmg = b_dmg
-            if action_a == 3:
+            if stance_a == 2:
                 dmg *= defend_red
-            stun_t = round(b_stun * round(b_cd * tick_scale))  # fração × cooldown_subticks; < cooldown por bound
+            stun_t = b_stun * b_cd * tick_scale  # fração × cooldown em sub-ticks; < cooldown por bound
 
             hp_a = hp_a - dmg
             if hp_a < 0.0:
@@ -280,39 +353,25 @@ def _simulate_combat_jit(
             if stun_t > stun_rem_a:
                 stun_rem_a = stun_t
                 stun_applied[1] += stun_t
-            kb_dir = 1.0 if pos_a >= pos_b else -1.0
-            new_pos = pos_a + kb_dir * b_kb
+            new_pos = pos_a - b_kb                 # knockback empurra A para a esquerda (longe de B)
             if new_pos < 0.0:
                 new_pos = 0.0
-            elif new_pos > field_size:
-                new_pos = field_size
             pos_a = new_pos
             cd_rem_b = round(b_cd * tick_scale)
+            attacks[1] += 1
 
         # ── Decremento de timers stale ───────────────────────────────────────
         if stun_rem_a <= pre_stun_a:
-            stun_rem_a = max(0, stun_rem_a - 1)
+            stun_rem_a = max(0.0, stun_rem_a - 1.0)
         if cd_rem_a <= pre_cd_a:
             cd_rem_a = max(0, cd_rem_a - 1)
         if stun_rem_b <= pre_stun_b:
-            stun_rem_b = max(0, stun_rem_b - 1)
+            stun_rem_b = max(0.0, stun_rem_b - 1.0)
         if cd_rem_b <= pre_cd_b:
             cd_rem_b = max(0, cd_rem_b - 1)
 
-    # ── Determinar vencedor ──────────────────────────────────────────────────
-    alive_a = hp_a > 0.0
-    alive_b = hp_b > 0.0
-
-    if alive_a and not alive_b:
-        return 0, end_tick, 1, hp_a, hp_b, action_counts, active_ticks, stun_applied
-    if alive_b and not alive_a:
-        return 1, end_tick, 1, hp_a, hp_b, action_counts, active_ticks, stun_applied
-
-    ko = 0 if (alive_a and alive_b) else 1
-    a_pct = hp_a / a_hp_max if a_hp_max > 0.0 else 0.0
-    b_pct = hp_b / b_hp_max if b_hp_max > 0.0 else 0.0
-    winner = 0 if a_pct >= b_pct else 1
-    return winner, end_tick, ko, hp_a, hp_b, action_counts, active_ticks, stun_applied
+    winner, ko = _decide_winner(hp_a, hp_b, a_hp_max, b_hp_max)
+    return winner, end_tick, ko, hp_a, hp_b, stance_counts, attacks, active_ticks, stun_applied
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -344,18 +403,19 @@ def _simulate_combat_traced_jit(
     pos_a = (field_size - initial_distance) / 2.0
     pos_b = (field_size + initial_distance) / 2.0
 
-    stun_rem_a = 0; stun_rem_b = 0
+    stun_rem_a = 0.0; stun_rem_b = 0.0
     cd_rem_a = 0; cd_rem_b = 0
     commit_a = -1; commit_b = -1
     persist_a = 0; persist_b = 0
 
     pos_arr      = np.zeros((max_ticks, 2), dtype=np.float64)
     hp_arr       = np.zeros((max_ticks, 2), dtype=np.float64)
-    action_arr   = np.full((max_ticks, 2), -1, dtype=np.int64)
+    stance_arr   = np.full((max_ticks, 2), -1, dtype=np.int64)
+    attacked_arr = np.zeros((max_ticks, 2), dtype=np.int64)
     cd_arr       = np.zeros((max_ticks, 2), dtype=np.int64)
-    stun_arr     = np.zeros((max_ticks, 2), dtype=np.int64)
+    stun_arr     = np.zeros((max_ticks, 2), dtype=np.float64)
     dmg_dealt    = np.zeros((max_ticks, 2), dtype=np.float64)
-    stun_dealt   = np.zeros((max_ticks, 2), dtype=np.int64)
+    stun_dealt   = np.zeros((max_ticks, 2), dtype=np.float64)
     kb_dealt     = np.zeros((max_ticks, 2), dtype=np.float64)
     forced_def   = np.zeros((max_ticks, 2), dtype=np.int64)  # 1 = DEFEND por encurralamento
 
@@ -366,137 +426,106 @@ def _simulate_combat_traced_jit(
             end_tick = tick
             break
 
-        distance = abs(pos_b - pos_a)
+        distance = pos_b - pos_a
 
-        # ── Escolha de ações (helper único — ver _decide_action) ─────────────
-        action_a, persist_a, commit_a, forced_a = _decide_action(
-            stun_rem_a, distance, a_range, persist_a, commit_a,
-            a_wagg, a_wret, a_wdef, cd_rem_a, pos_a, pos_b,
+        # ── Postura (helper único — ver _decide_action) ──────────────────────
+        stance_a, persist_a, commit_a, forced_a = _decide_action(
+            stun_rem_a, distance, a_range, b_range, persist_a, commit_a,
+            a_wagg, a_wret, a_wdef, pos_a, True,
             a_speed, tick_scale, field_size, persist,
         )
-        action_b, persist_b, commit_b, forced_b = _decide_action(
-            stun_rem_b, distance, b_range, persist_b, commit_b,
-            b_wagg, b_wret, b_wdef, cd_rem_b, pos_b, pos_a,
+        stance_b, persist_b, commit_b, forced_b = _decide_action(
+            stun_rem_b, distance, b_range, a_range, persist_b, commit_b,
+            b_wagg, b_wret, b_wdef, pos_b, False,
             b_speed, tick_scale, field_size, persist,
         )
 
-        # ── Movimento ────────────────────────────────────────────────────────
-        if action_a == 1 or action_a == 2:
-            spd = a_speed / tick_scale
-            d = 1.0 if pos_a < pos_b else -1.0
-            sign = 1.0 if action_a == 1 else -1.0
-            new_pos = pos_a + d * sign * spd
-            if new_pos < 0.0:
-                new_pos = 0.0
-            elif new_pos > field_size:
-                new_pos = field_size
-            pos_a = new_pos
-
-        if action_b == 1 or action_b == 2:
-            spd = b_speed / tick_scale
-            d = 1.0 if pos_b < pos_a else -1.0
-            sign = 1.0 if action_b == 1 else -1.0
-            new_pos = pos_b + d * sign * spd
-            if new_pos < 0.0:
-                new_pos = 0.0
-            elif new_pos > field_size:
-                new_pos = field_size
-            pos_b = new_pos
+        # ── Movimento simultâneo, sem atravessamento ─────────────────────────
+        pos_a, pos_b = _apply_movement(
+            pos_a, pos_b, stance_a, stance_b, a_speed, b_speed, tick_scale, field_size,
+        )
 
         # ── Snapshot dos timers antes dos ataques (decrement-stale) ──────────
         pre_stun_a = stun_rem_a; pre_stun_b = stun_rem_b
         pre_cd_a = cd_rem_a; pre_cd_b = cd_rem_b
 
         # ── Resolução de ataques ─────────────────────────────────────────────
-        distance = abs(pos_b - pos_a)
+        distance = pos_b - pos_a
 
-        if action_a == 0 and cd_rem_a == 0 and distance <= a_range:
+        if stance_a >= 0 and stance_a != 2 and cd_rem_a == 0 and distance <= a_range:
             dmg = a_dmg
-            if action_b == 3:
+            if stance_b == 2:
                 dmg *= defend_red
-            stun_t = round(a_stun * round(a_cd * tick_scale))  # fração × cooldown_subticks; < cooldown por bound
+            stun_t = a_stun * a_cd * tick_scale
 
             hp_b = hp_b - dmg
             if hp_b < 0.0:
                 hp_b = 0.0
-            applied = 0
+            applied = 0.0
             if stun_t > stun_rem_b:
                 stun_rem_b = stun_t
                 applied = stun_t
-            kb_dir = 1.0 if pos_b >= pos_a else -1.0
-            new_pos = pos_b + kb_dir * a_kb
-            if new_pos < 0.0:
-                new_pos = 0.0
-            elif new_pos > field_size:
+            new_pos = pos_b + a_kb
+            if new_pos > field_size:
                 new_pos = field_size
             pos_b = new_pos
             cd_rem_a = round(a_cd * tick_scale)
 
+            attacked_arr[tick, 0] = 1
             dmg_dealt[tick, 0]  = dmg
             stun_dealt[tick, 0] = applied
             kb_dealt[tick, 0]   = a_kb
 
-        if action_b == 0 and cd_rem_b == 0 and distance <= b_range:
+        if stance_b >= 0 and stance_b != 2 and cd_rem_b == 0 and distance <= b_range:
             dmg = b_dmg
-            if action_a == 3:
+            if stance_a == 2:
                 dmg *= defend_red
-            stun_t = round(b_stun * round(b_cd * tick_scale))  # fração × cooldown_subticks; < cooldown por bound
+            stun_t = b_stun * b_cd * tick_scale
 
             hp_a = hp_a - dmg
             if hp_a < 0.0:
                 hp_a = 0.0
-            applied = 0
+            applied = 0.0
             if stun_t > stun_rem_a:
                 stun_rem_a = stun_t
                 applied = stun_t
-            kb_dir = 1.0 if pos_a >= pos_b else -1.0
-            new_pos = pos_a + kb_dir * b_kb
+            new_pos = pos_a - b_kb
             if new_pos < 0.0:
                 new_pos = 0.0
-            elif new_pos > field_size:
-                new_pos = field_size
             pos_a = new_pos
             cd_rem_b = round(b_cd * tick_scale)
 
+            attacked_arr[tick, 1] = 1
             dmg_dealt[tick, 1]  = dmg
             stun_dealt[tick, 1] = applied
             kb_dealt[tick, 1]   = b_kb
 
         # ── Decremento de timers stale ───────────────────────────────────────
         if stun_rem_a <= pre_stun_a:
-            stun_rem_a = max(0, stun_rem_a - 1)
+            stun_rem_a = max(0.0, stun_rem_a - 1.0)
         if cd_rem_a <= pre_cd_a:
             cd_rem_a = max(0, cd_rem_a - 1)
         if stun_rem_b <= pre_stun_b:
-            stun_rem_b = max(0, stun_rem_b - 1)
+            stun_rem_b = max(0.0, stun_rem_b - 1.0)
         if cd_rem_b <= pre_cd_b:
             cd_rem_b = max(0, cd_rem_b - 1)
 
         # ── Snapshot do estado pós-tick ──────────────────────────────────────
         pos_arr[tick, 0]  = pos_a;       pos_arr[tick, 1]  = pos_b
         hp_arr[tick, 0]   = hp_a;        hp_arr[tick, 1]   = hp_b
-        action_arr[tick, 0] = action_a;  action_arr[tick, 1] = action_b
+        stance_arr[tick, 0] = stance_a;  stance_arr[tick, 1] = stance_b
         cd_arr[tick, 0]   = cd_rem_a;    cd_arr[tick, 1]   = cd_rem_b
         stun_arr[tick, 0] = stun_rem_a;  stun_arr[tick, 1] = stun_rem_b
         forced_def[tick, 0] = forced_a;  forced_def[tick, 1] = forced_b
 
-    alive_a = hp_a > 0.0
-    alive_b = hp_b > 0.0
-    ko = 0 if (alive_a and alive_b) else 1
-    if alive_a and not alive_b:
-        winner = 0
-    elif alive_b and not alive_a:
-        winner = 1
-    else:
-        a_pct = hp_a / a_hp_max if a_hp_max > 0.0 else 0.0
-        b_pct = hp_b / b_hp_max if b_hp_max > 0.0 else 0.0
-        winner = 0 if a_pct >= b_pct else 1
+    winner, ko = _decide_winner(hp_a, hp_b, a_hp_max, b_hp_max)
 
     return (
         winner, end_tick, ko,
         pos_arr[:end_tick],
         hp_arr[:end_tick],
-        action_arr[:end_tick],
+        stance_arr[:end_tick],
+        attacked_arr[:end_tick],
         cd_arr[:end_tick],
         stun_arr[:end_tick],
         dmg_dealt[:end_tick],
@@ -535,7 +564,7 @@ def _run_jit(char_a: Character, char_b: Character):
 
 
 def simulate_combat(char_a: Character, char_b: Character) -> CombatResult:
-    winner, ticks, ko, hp_a, hp_b, _, _, _ = _run_jit(char_a, char_b)
+    winner, ticks, ko, hp_a, hp_b, _, _, _, _ = _run_jit(char_a, char_b)
     return CombatResult(
         winner=int(winner),
         ticks=int(ticks),
@@ -547,7 +576,7 @@ def simulate_combat(char_a: Character, char_b: Character) -> CombatResult:
 def simulate_combat_traced(char_a: Character, char_b: Character) -> CombatTrace:
     """Roda o combate registrando estado tick-a-tick. Mais lento que
     `simulate_combat` por causa das alocações de array — usar apenas em tools."""
-    winner, end_tick, ko, pos, hp, action, cd, stun, dmg, stun_d, kb, forced = (
+    winner, end_tick, ko, pos, hp, stance, attacked, cd, stun, dmg, stun_d, kb, forced = (
         _simulate_combat_traced_jit(
             np.asarray(char_a.attributes, dtype=np.float64),
             np.asarray(char_a.weights,    dtype=np.float64),
@@ -565,7 +594,8 @@ def simulate_combat_traced(char_a: Character, char_b: Character) -> CombatTrace:
         hp_max=(float(char_a.hp), float(char_b.hp)),
         pos=pos,
         hp=hp,
-        action=action,
+        stance=stance,
+        attacked=attacked,
         cooldown=cd,
         stun=stun,
         damage_dealt=dmg,
@@ -578,7 +608,7 @@ def simulate_combat_traced(char_a: Character, char_b: Character) -> CombatTrace:
 def simulate_combat_detailed(
     char_a: Character, char_b: Character
 ) -> Tuple[CombatResult, ActionLog]:
-    winner, ticks, ko, hp_a, hp_b, action_counts, active_ticks, stun_applied = (
+    winner, ticks, ko, hp_a, hp_b, stance_counts, attacks, active_ticks, stun_applied = (
         _run_jit(char_a, char_b)
     )
     result = CombatResult(
@@ -588,11 +618,12 @@ def simulate_combat_detailed(
         hp_remaining=(float(hp_a), float(hp_b)),
     )
     log = ActionLog(
-        action_counts=(
-            {int(a): int(action_counts[0, int(a)]) for a in Action},
-            {int(a): int(action_counts[1, int(a)]) for a in Action},
+        stance_counts=(
+            {int(a): int(stance_counts[0, int(a)]) for a in Action},
+            {int(a): int(stance_counts[1, int(a)]) for a in Action},
         ),
+        attacks=(int(attacks[0]), int(attacks[1])),
         active_ticks=(int(active_ticks[0]), int(active_ticks[1])),
-        stun_applied=(int(stun_applied[0]), int(stun_applied[1])),
+        stun_applied=(float(stun_applied[0]), float(stun_applied[1])),
     )
     return result, log

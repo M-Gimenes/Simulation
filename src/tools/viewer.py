@@ -84,7 +84,6 @@ _ACOLOR = {
 }
 
 _ACT_COLOR = {
-    Action.ATTACK:  R,
     Action.ADVANCE: Y,
     Action.RETREAT: B,
     Action.DEFEND:  G,
@@ -92,7 +91,6 @@ _ACT_COLOR = {
 }
 
 _ACT_ICON = {
-    Action.ATTACK:  "[*]",
     Action.ADVANCE: "[>]",
     Action.RETREAT: "[<]",
     Action.DEFEND:  "[D]",
@@ -100,7 +98,6 @@ _ACT_ICON = {
 }
 
 _ACT_NAME = {
-    Action.ATTACK:  "ATAQUE ",
     Action.ADVANCE: "AVANCA ",
     Action.RETREAT: "RECUA  ",
     Action.DEFEND:  "DEFENDE",
@@ -143,7 +140,7 @@ def _extract_events(trace: CombatTrace, chars: Tuple[Character, Character]) -> L
                 damage=dmg,
                 hp_before=hp_before / hp_max[defender],
                 hp_after=hp_after / hp_max[defender],
-                stun=int(trace.stun_applied[t, att]),
+                stun=float(trace.stun_applied[t, att]),
                 ko=hp_after <= 0.0,
             ))
     return events
@@ -202,7 +199,8 @@ class _Frame:
     char:     Tuple[Character, Character]
     pos:      Tuple[float, float]
     hp:       Tuple[float, float]
-    action:   Tuple[Optional[Action], Optional[Action]]
+    stance:   Tuple[Optional[Action], Optional[Action]]
+    attacked: Tuple[bool, bool]
     cooldown: Tuple[int, int]
     stun:     Tuple[int, int]
 
@@ -215,7 +213,8 @@ def _frame_at(trace: CombatTrace, chars: Tuple[Character, Character], t: int) ->
         char=chars,
         pos=(float(trace.pos[t, 0]), float(trace.pos[t, 1])),
         hp=(float(trace.hp[t, 0]), float(trace.hp[t, 1])),
-        action=(_act(int(trace.action[t, 0])), _act(int(trace.action[t, 1]))),
+        stance=(_act(int(trace.stance[t, 0])), _act(int(trace.stance[t, 1]))),
+        attacked=(bool(trace.attacked[t, 0]), bool(trace.attacked[t, 1])),
         cooldown=(int(trace.cooldown[t, 0]), int(trace.cooldown[t, 1])),
         stun=(int(trace.stun[t, 0]), int(trace.stun[t, 1])),
     )
@@ -258,13 +257,14 @@ def _render(frame: _Frame, events_so_far: List[DamageEvent]) -> None:
     )
 
     def _panel(i: int) -> str:
-        act = frame.action[i]
+        act = frame.stance[i]
         col = _ACT_COLOR.get(act, M)
         cd, st = frame.cooldown[i], frame.stun[i]
         cd_s = f"{G}{BD}rdy{RS}" if cd == 0 else f"{Y}{cd:2d}t{RS}"
         st_s = f"{M}{BD}{st:2d}{RS}" if st > 0 else f"{DARK}--{RS}"
+        atk_s = f"  {R}{BD}⚔{RS}" if frame.attacked[i] else "   "
         return (
-            f"{col}{BD}{_ACT_ICON[act]} {_ACT_NAME[act]}{RS}  "
+            f"{col}{BD}{_ACT_ICON[act]} {_ACT_NAME[act]}{RS}{atk_s}  "
             f"{DARK}CD:{RS}{cd_s}  {DARK}STN:{RS}{st_s}"
         )
 
@@ -357,9 +357,10 @@ def _render_end(
         col  = _ACOLOR.get(char.archetype.id, W)
         pct  = final_hp[i] / char.hp if char.hp > 0 else 0.0
         bar  = _hp_bar(pct, 28)
-        tag  = (
-            f"{G}{BD}  ★ VENCEDOR ★  {RS}"
-            if i == trace.winner else f"{R}    derrota    {RS}"
+        tag = (
+            f"{Y}{BD}    empate     {RS}" if trace.winner < 0
+            else f"{G}{BD}  ★ VENCEDOR ★  {RS}" if i == trace.winner
+            else f"{R}    derrota    {RS}"
         )
         print(f"  {BD}{col}{char.name:<15}{RS}  {bar}  {pct:.1%}  {tag}")
     print()

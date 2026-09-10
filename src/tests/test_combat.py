@@ -7,7 +7,7 @@ import numpy as np
 
 from src.engine.archetypes import ARCHETYPES, ARCHETYPE_ORDER, ArchetypeID
 from src.engine.character import Character
-from src.engine.combat import simulate_combat, simulate_combat_detailed, simulate_combat_traced, seed_combat, CombatResult
+from src.engine.combat import Action, simulate_combat, simulate_combat_detailed, simulate_combat_traced, seed_combat, CombatResult
 from src.engine.config import MAX_TICKS
 from src.engine.individual import Individual
 
@@ -27,7 +27,7 @@ result = simulate_combat(grappler, rushdown)
 print(f"  Vencedor: {'Grappler' if result.winner == 0 else 'Rushdown'}")
 print(f"  KO: {result.ko} | Ticks: {result.ticks}")
 print(f"  HP final: Grappler={result.hp_remaining[0]:.1f} | Rushdown={result.hp_remaining[1]:.1f}")
-assert result.winner in (0, 1)
+assert result.winner in (-1, 0, 1)
 assert 1 <= result.ticks <= MAX_TICKS
 assert isinstance(result.ko, bool)
 print("  ✓ Estrutura do resultado válida")
@@ -80,7 +80,7 @@ for _ in range(50):
     a = Character.random(ARCHETYPES[ArchetypeID.COMBO_MASTER])
     b = Character.random(ARCHETYPES[ArchetypeID.TURTLE])
     r = simulate_combat(a, b)
-    assert r.winner in (0, 1)
+    assert r.winner in (-1, 0, 1)
     assert r.hp_remaining[0] >= 0
     assert r.hp_remaining[1] >= 0
 print("  ✓ 50 combates com genes aleatórios sem crash")
@@ -92,7 +92,7 @@ separator("Trace tick-a-tick e reprodutibilidade (seed_combat)")
 trace = simulate_combat_traced(grappler, rushdown)
 assert trace.pos.shape[1] == 2
 assert trace.end_tick == trace.pos.shape[0]
-assert trace.winner in (0, 1)
+assert trace.winner in (-1, 0, 1)
 print(f"  ✓ CombatTrace válido (end_tick={trace.end_tick}, arrays alinhados)")
 
 cm = Character.random(ARCHETYPES[ArchetypeID.COMBO_MASTER])
@@ -103,18 +103,46 @@ assert a == b, "seed_combat não reproduziu a sequência de lutas"
 print("  ✓ seed_combat reproduz o RNG do Numba")
 
 
-# ── 6. Rusher majoritariamente agressivo (intenção→execução) ────────────────
+# ── 6. Rusher majoritariamente em avanço (intenção→postura) ─────────────────
 
-separator("Rusher vs Zoner: majoritariamente FRENTE (atk+adv)")
+separator("Rusher vs Zoner: postura majoritariamente ADVANCE")
 ind = Individual.from_canonical()
 rush = next(c for c in ind.characters if c.archetype_id == ArchetypeID.RUSHDOWN)
 zon  = next(c for c in ind.characters if c.archetype_id == ArchetypeID.ZONER)
 _, log = simulate_combat_detailed(rush, zon)
-atk = log.action_counts[0][0]; adv = log.action_counts[0][1]
-total = sum(log.action_counts[0].values())
+adv = log.stance_counts[0][int(Action.ADVANCE)]
+total = sum(log.stance_counts[0].values())
 assert total > 0
-assert (atk + adv) / total > 0.5, f"Rusher deveria ser majoritariamente FRENTE (atk+adv), got {(atk+adv)/total:.2f}"
-print("  ✓ rusher majoritariamente FRENTE")
+assert adv / total > 0.5, f"Rusher deveria avançar na maioria dos sub-ticks, got {adv/total:.2f}"
+print("  ✓ rusher majoritariamente em avanço")
+
+
+# ── 6b. Ataque é canal paralelo: recuar não impede bater ────────────────────
+
+separator("Canal paralelo: um lutador que recua ainda ataca")
+kiter = zon.clone()
+kiter.weights = [1.0, 0.0, 0.0]      # só RECUAR
+kiter.attributes[3] = 20.0            # range máximo
+_, log_kite = simulate_combat_detailed(kiter, rush)
+assert log_kite.stance_counts[0][int(Action.RETREAT)] > 0, "kiter deveria recuar"
+assert log_kite.attacks[0] > 0, "kiter deveria atacar enquanto recua (canal paralelo)"
+print("  ✓ recuar e atacar coexistem")
+
+
+# ── 6c. GUARDA abre mão do golpe ────────────────────────────────────────────
+
+separator("Invariante: nenhum ataque dispara na postura DEFEND")
+mismatches = 0
+for aid_a, aid_b in combinations(ARCHETYPE_ORDER, 2):
+    ca = next(c for c in ind.characters if c.archetype_id == aid_a)
+    cb = next(c for c in ind.characters if c.archetype_id == aid_b)
+    seed_combat(7)
+    tr = simulate_combat_traced(ca, cb)
+    for i in (0, 1):
+        defending = tr.stance[:, i] == int(Action.DEFEND)
+        mismatches += int((defending & (tr.attacked[:, i] == 1)).sum())
+assert mismatches == 0, f"{mismatches} ataques dispararam com a postura em DEFEND"
+print("  ✓ guarda abre mão do golpe em todos os pares")
 
 
 # ── 7. Invariante: sem stun-lock ─────────────────────────────────────────────
@@ -124,8 +152,8 @@ ind = Individual.from_canonical()
 rush = next(c for c in ind.characters if c.archetype_id == ArchetypeID.RUSHDOWN)
 zon  = next(c for c in ind.characters if c.archetype_id == ArchetypeID.ZONER)
 tr = simulate_combat_traced(rush, zon)
-max_cd_subticks = round(max(rush.attack_cooldown, zon.attack_cooldown) * 5)
-assert int(tr.stun.max()) < max_cd_subticks, "stun não pode atingir o cooldown (lock)"
+max_cd_subticks = max(rush.attack_cooldown, zon.attack_cooldown) * 5
+assert float(tr.stun.max()) < max_cd_subticks, "stun não pode atingir o cooldown (lock)"
 print("  ✓ sem stun-lock")
 
 

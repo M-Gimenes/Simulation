@@ -37,8 +37,9 @@ ANALYZE_SIMS = 1000
 BAL_LO = 0.5 - MATCHUP_WR_CAP    # piso do teto de counter (30%)
 BAL_HI = 0.5 + MATCHUP_WR_CAP    # teto do teto de counter (70%)
 
-ACTION_KEYS: Tuple[Action, ...] = (Action.ATTACK, Action.ADVANCE, Action.RETREAT, Action.DEFEND)
+STANCE_KEYS: Tuple[Action, ...] = (Action.ADVANCE, Action.RETREAT, Action.DEFEND)
 NUMERIC_FIELDS: Tuple[str, ...] = (
+    "attacks",
     "hits_landed",
     "damage_dealt",
     "stun_applied",
@@ -62,6 +63,7 @@ class FighterStats:
     name: str
     hp_start: float
     hp_end: float = 0.0
+    attacks: float = 0.0         # golpes disparados (o ataque é regra, não postura)
     hits_landed: float = 0.0
     damage_dealt: float = 0.0
     stun_applied: float = 0.0
@@ -72,15 +74,15 @@ class FighterStats:
     ticks_in_range: float = 0.0
     knockback_taken: float = 0.0
     defend_forced: float = 0.0   # DEFEND por encurralamento (RECUAR sem espaço)
-    action_counts: Dict[int, float] = field(
-        default_factory=lambda: {int(a): 0.0 for a in ACTION_KEYS}
+    stance_counts: Dict[int, float] = field(
+        default_factory=lambda: {int(a): 0.0 for a in STANCE_KEYS}
     )
 
     @property
     def defend_chosen(self) -> float:
         """DEFEND vindo de GUARDA (intenção de absorver), separado do forçado por
         encurralamento. É a métrica de identidade defensiva real (Turtle)."""
-        return self.action_counts[int(Action.DEFEND)] - self.defend_forced
+        return self.stance_counts[int(Action.DEFEND)] - self.defend_forced
 
     @property
     def hp_lost(self) -> float:
@@ -115,7 +117,7 @@ class AveragedMatchupResult:
     name_a: str
     name_b: str
     winrate_a: float
-    wins_a: int
+    wins_a: float
     avg_ticks: float
     ko_rate: float
     avg_distance: float
@@ -144,13 +146,14 @@ def analyze_combat(char_a: Character, char_b: Character) -> MatchupResult:
     distances = np.abs(pos_b - pos_a).tolist()
 
     for i in (0, 1):
-        actions = trace.action[:, i]
+        stances = trace.stance[:, i]
         stats[i].hp_end = float(trace.hp[-1, i]) if trace.end_tick > 0 else char_a.hp
-        stats[i].ticks_stunned = float((actions == -1).sum())
-        for act in ACTION_KEYS:
-            stats[i].action_counts[int(act)] = float((actions == int(act)).sum())
+        stats[i].ticks_stunned = float((stances == -1).sum())
+        for st in STANCE_KEYS:
+            stats[i].stance_counts[int(st)] = float((stances == int(st)).sum())
+        stats[i].attacks = float(trace.attacked[:, i].sum())
 
-        active = actions != -1
+        active = stances != -1
         in_range = np.abs(pos_b - pos_a) <= chars[i].range_
         stats[i].ticks_in_range = float((active & in_range).sum())
         stats[i].ticks_out_of_range = float((active & ~in_range).sum())
@@ -192,22 +195,24 @@ def _accumulate_stats(target: FighterStats, src: FighterStats) -> None:
     target.hp_end += src.hp_end
     for fname in NUMERIC_FIELDS:
         setattr(target, fname, getattr(target, fname) + getattr(src, fname))
-    for k in ACTION_KEYS:
-        target.action_counts[int(k)] += src.action_counts[int(k)]
+    for k in STANCE_KEYS:
+        target.stance_counts[int(k)] += src.stance_counts[int(k)]
 
 
 def _scale_stats(target: FighterStats, n: int) -> None:
     target.hp_end /= n
     for fname in NUMERIC_FIELDS:
         setattr(target, fname, getattr(target, fname) / n)
-    for k in ACTION_KEYS:
-        target.action_counts[int(k)] /= n
+    for k in STANCE_KEYS:
+        target.stance_counts[int(k)] /= n
 
 
 def _fight_margin_score(r: MatchupResult) -> float:
     """Score por-luta ∈ [0,1] como margem (espelha fitness._fight_score). KO:
     0.5 + 0.5·(HP_frac do vencedor); timeout: fração de HP%."""
     sa, sb = r.stats
+    if r.winner < 0:
+        return 0.5
     if r.ko:
         if r.winner == 0:
             return 0.5 + 0.5 * (sa.hp_end / sa.hp_start if sa.hp_start > 0 else 0.0)
@@ -233,13 +238,16 @@ def analyze_combat_multi(
         FighterStats(name=char_a.archetype.name, hp_start=char_a.hp),
         FighterStats(name=char_b.archetype.name, hp_start=char_b.hp),
     )
-    wins_a = total_ko = 0
+    total_ko = 0
+    wins_a = 0.0
     total_ticks = total_avg_dist = total_min_dist = decis_sum = 0.0
 
     for _ in range(n):
         r = analyze_combat(char_a, char_b)
         if r.winner == 0:
-            wins_a += 1
+            wins_a += 1.0
+        elif r.winner < 0:
+            wins_a += 0.5
         total_ticks += r.ticks
         total_ko += int(r.ko)
         total_avg_dist += r.avg_distance
@@ -300,10 +308,10 @@ def behavioral_profile(
             ticks = max(r.avg_ticks, 1.0)
             for idx, aid in ((0, ids[a]), (1, ids[b])):
                 s = r.stats[idx]
-                act = sum(s.action_counts.values()) or 1.0
+                act = sum(s.stance_counts.values()) or 1.0
                 m = agg[aid]
-                m["adv"]            += s.action_counts[int(Action.ADVANCE)] / act
-                m["ret"]            += s.action_counts[int(Action.RETREAT)] / act
+                m["adv"]            += s.stance_counts[int(Action.ADVANCE)] / act
+                m["ret"]            += s.stance_counts[int(Action.RETREAT)] / act
                 m["def_chosen"]     += s.defend_chosen / act
                 m["def_forced"]     += s.defend_forced / act
                 m["oor"]            += s.ticks_out_of_range / ticks
@@ -334,7 +342,7 @@ def expected_winner(id_a: ArchetypeID, id_b: ArchetypeID) -> Optional[ArchetypeI
     return None
 
 
-def wilson_ci(wins: int, n: int, z: float = 1.96) -> Tuple[float, float]:
+def wilson_ci(wins: float, n: int, z: float = 1.96) -> Tuple[float, float]:
     """IC95% Wilson score — preciso para N pequeno e proporções extremas."""
     if n == 0:
         return (0.0, 1.0)
@@ -376,7 +384,7 @@ class MatchupRecord:
     id_b: ArchetypeID
     name_a: str
     name_b: str
-    wins_a: int
+    wins_a: float
     n_sims: int
     canonical_id: Optional[ArchetypeID]
     decisiveness: float = 0.0
@@ -462,7 +470,7 @@ def _diagnose(r: AveragedMatchupResult) -> List[str]:
         oor = s.ticks_out_of_range / total
         stunned = s.ticks_stunned / total
         kb = s.knockback_taken / total
-        ret = s.action_counts[int(Action.RETREAT)] / total
+        ret = s.stance_counts[int(Action.RETREAT)] / total
         if oor > 0.50:
             issues.append(f"  [!] {s.name}: {oor:.0%} dos ticks fora de range → dificuldade de fechar distância")
         if stunned > 0.30:
@@ -473,7 +481,7 @@ def _diagnose(r: AveragedMatchupResult) -> List[str]:
             issues.append(f"  [!] {s.name}: recuando em {ret:.0%} dos ticks")
         if s.hits_landed < 1.0:
             issues.append(f"  [!!] {s.name}: média de hits quase zero — raramente acerta")
-        atk_eff = s.action_counts[int(Action.ATTACK)] / max(s.ticks_in_range, 1.0)
+        atk_eff = s.attacks / max(s.ticks_in_range, 1.0)
         if s.ticks_in_range > 0 and atk_eff < 0.20:
             issues.append(f"  [!] {s.name}: apenas {atk_eff:.0%} dos ticks em range usados para atacar")
     return issues
@@ -496,7 +504,7 @@ def print_result(r: AveragedMatchupResult) -> None:
     print(f"{'─' * 66}")
 
     for s in (a, b):
-        ac = s.action_counts
+        sc = s.stance_counts
         print(f"\n  {s.name}")
         print(
             f"    HP perdido  : {s.hp_lost:5.0f}/{s.hp_start:.0f}"
@@ -515,11 +523,11 @@ def print_result(r: AveragedMatchupResult) -> None:
             f" ({s.ticks_in_range / total:.0%})"
         )
         print(
-            f"    Ações (média): "
-            f"ATK={ac[int(Action.ATTACK)]:.1f} "
-            f"ADV={ac[int(Action.ADVANCE)]:.1f} "
-            f"RET={ac[int(Action.RETREAT)]:.1f} "
-            f"DEF={ac[int(Action.DEFEND)]:.1f}"
+            f"    Postura (média): "
+            f"ADV={sc[int(Action.ADVANCE)]:.1f} "
+            f"RET={sc[int(Action.RETREAT)]:.1f} "
+            f"DEF={sc[int(Action.DEFEND)]:.1f}"
+            f"  |  ataques: {s.attacks:.1f}"
         )
 
     issues = _diagnose(r)

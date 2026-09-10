@@ -19,7 +19,7 @@ foram removidos do modelo — ver [04-combat-model.md](04-combat-model.md)).
 | Attack Cooldown | 1 | 5 | ticks entre ataques; menor = mais rápido |
 | Range | 5 | 20 | alcance (todos < distância inicial 50) |
 | Speed | 1 | 5 | unidades de campo por tick |
-| Stun | 0 | 0.6 | **fração** do cooldown do atacante (< 1 garante stun < cooldown) |
+| Stun | 0 | 0.6 | **fração** do cooldown do atacante, timer contínuo (< 1 garante stun < cooldown) |
 | Knockback | 0 | 3 | unidades empurradas por hit |
 | w_retreat / w_defend / w_aggressiveness | 0 | 1 | pesos do sorteio de intenção |
 
@@ -31,13 +31,16 @@ foi removido).
 > Os bounds e os canônicos foram re-ajustados ao novo modelo de combate e
 > permanecem **provisórios — a calibrar**.
 
-- **Stun ∈ [0, 0.6] (fração):** o stun passou de valor absoluto a fração do
-  cooldown do próprio atacante. Como `0.6 < 1`, o stun aplicado é sempre menor que
-  o cooldown — o defensor sempre tem uma janela livre, o que **substitui** o antigo
-  `STUN_CAP_MULTIPLIER` (a invariante agora é garantida pelo bound do gene). A
-  garantia depende do acoplamento `stun_bound × TICK_SCALE`: com `cd_min = 1` e
-  `TICK_SCALE = 5`, `round(0.6 × 5) = 3 < 5`. Se `TICK_SCALE` caísse para 1,
-  `round(0.6 × 1) = 1` empataria com o cooldown mínimo.
+- **Stun ∈ [0, 0.6] (fração, timer contínuo):** o stun é uma fração do cooldown do
+  próprio atacante, aplicada como `stun × attack_cooldown × TICK_SCALE` em ponto
+  flutuante. Como `0.6 < 1`, o stun aplicado é sempre menor que o cooldown — o
+  defensor sempre tem uma janela livre, o que **substitui** o antigo
+  `STUN_CAP_MULTIPLIER` (a invariante é garantida pelo bound do gene e coberta por
+  teste em `test_combat`). O timer era arredondado para inteiro até 2026-09-10, o que
+  deixava o gene com **4 níveis efetivos** para um atacante de `cooldown = 1`
+  (`round(cd × TICK_SCALE) = 5` sub-ticks, `round(stun × 5) ∈ {0,1,2,3}`) — na prática
+  um gene categórico. Com o timer contínuo a amplitude do gene a ±1σ de mutação subiu
+  de 6,8% para 17,4%.
 - **HP 250–450:** comporta os 5 canônicos (Zoner 300 … Turtle 450, no teto) com
   headroom inferior.
 - **Knockback ≤ 3:** teto razoável acima do Zoner (2); evita zoning trivial por
@@ -71,8 +74,8 @@ foi removido).
 | `MATCHUP_WR_CAP` | 0.15 | meia-banda do hard-counter: par é counter duro se `\|WR−0.5\| > 0.15` (fora de [0.35, 0.65]). **Provisório — calibrar** |
 | `N_WORKERS` | 8 | processos na avaliação paralela (None = todos os núcleos; 1 = serial). **Não é só gosto:** o pool é recriado a cada geração, então o custo de spawn escala com o nº de workers — medido nesta máquina, 8 workers é ~2,2× mais rápido que 28, e 28 estourava o limite de commit do Windows. Não afeta o resultado (CRN propagado aos workers) |
 | `FIELD_SIZE` | 100 | tamanho do campo |
-| `INITIAL_DISTANCE` | 50 | distância inicial entre lutadores |
-| `ACTION_PERSISTENCE_SUBTICKS` | 10 | sub-ticks que uma intenção sorteada é mantida |
+| `INITIAL_DISTANCE` | 50 | distância inicial entre lutadores (> todos os `range`, então a luta começa em impasse) |
+| `ACTION_PERSISTENCE_SUBTICKS` | 10 | sub-ticks que uma intenção sorteada é mantida (zerado no impasse e ao ser stunado) |
 | `TICK_SCALE` | 5 | resolução sub-tick de cooldown/stun/movimento |
 | `MAX_TICKS` | 2500 | `500 × TICK_SCALE` — duração máxima de uma luta |
 | `DEFEND_DAMAGE_REDUCTION` | 0.6 (= 1 − 0.4) | multiplicador no dano ao defender (recebe 60% = **40% de redução**) |

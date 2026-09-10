@@ -14,17 +14,19 @@ def test_action_log_structure():
     result, log = simulate_combat_detailed(chars[0], chars[1])
 
     # Both fighters logged
-    assert len(log.action_counts) == 2
+    assert len(log.stance_counts) == 2
+    assert len(log.attacks) == 2
     assert len(log.active_ticks) == 2
     assert len(log.stun_applied) == 2
 
-    # All four actions present as keys
-    for counts in log.action_counts:
-        assert set(counts.keys()) == {Action.ATTACK, Action.ADVANCE, Action.RETREAT, Action.DEFEND}
+    # All three stances present as keys (o ataque não é postura: é regra de resolução)
+    for counts in log.stance_counts:
+        assert set(counts.keys()) == {Action.ADVANCE, Action.RETREAT, Action.DEFEND}
 
-    # Sum of action counts equals active ticks for each fighter
+    # Sum of stance counts equals active ticks for each fighter
     for i in range(2):
-        assert sum(log.action_counts[i].values()) == log.active_ticks[i]
+        assert sum(log.stance_counts[i].values()) == log.active_ticks[i]
+        assert 0 <= log.attacks[i] <= log.active_ticks[i]
 
     # Active ticks positive (both fighters acted at some point)
     assert log.active_ticks[0] > 0

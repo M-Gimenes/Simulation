@@ -39,9 +39,8 @@ ARCHETYPE_COLORS = {
 # Gravação do combate
 # ─────────────────────────────────────────────────────────────────────────────
 
-_ACTION_NAME = {
+_STANCE_NAME = {
     -1:                  "STUNNED",
-    int(Action.ATTACK):  "ATTACK",
     int(Action.ADVANCE): "ADVANCE",
     int(Action.RETREAT): "RETREAT",
     int(Action.DEFEND):  "DEFEND",
@@ -68,7 +67,7 @@ def record_combat(char_a: Character, char_b: Character) -> dict:
             events.append({
                 "attacker_idx": att,
                 "damage":      round(dmg, 1),
-                "stun":        int(trace.stun_applied[t, att]),
+                "stun":        round(float(trace.stun_applied[t, att]), 1),
                 "knockback":   round(float(trace.knockback_dealt[t, att]), 1),
                 "ko":          hp_after_def <= 0.0,
                 "hp_before":   round((hp_after_def + dmg) / hp_max_def, 3),
@@ -83,8 +82,10 @@ def record_combat(char_a: Character, char_b: Character) -> dict:
             "hp_pct_b": round(hp_b / hp_max_b, 4),
             "pos_a":    round(float(trace.pos[t, 0]), 2),
             "pos_b":    round(float(trace.pos[t, 1]), 2),
-            "action_a": _ACTION_NAME[int(trace.action[t, 0])],
-            "action_b": _ACTION_NAME[int(trace.action[t, 1])],
+            "action_a": _STANCE_NAME[int(trace.stance[t, 0])],
+            "action_b": _STANCE_NAME[int(trace.stance[t, 1])],
+            "atk_a":    bool(trace.attacked[t, 0]),
+            "atk_b":    bool(trace.attacked[t, 1]),
             "cd_a":     int(trace.cooldown[t, 0]),
             "cd_b":     int(trace.cooldown[t, 1]),
             "stun_a":   int(trace.stun[t, 0]),
@@ -111,7 +112,7 @@ def record_combat(char_a: Character, char_b: Character) -> dict:
         "char_b": _char_info(char_b),
         "ticks": ticks,
         "winner_idx": trace.winner,
-        "winner_name": [char_a.name, char_b.name][trace.winner],
+        "winner_name": "Empate" if trace.winner < 0 else [char_a.name, char_b.name][trace.winner],
         "ko": trace.ko,
         "total_ticks": trace.end_tick,
         "field_size": FIELD_SIZE,
@@ -391,11 +392,11 @@ const ARCHETYPES = [
 
 // ── Action colors
 const ACT_COLORS = {
-  ATTACK:  '#ef4444', ADVANCE: '#eab308',
+  ADVANCE: '#eab308',
   RETREAT: '#60a5fa', DEFEND:  '#22c55e', STUNNED: '#a855f7',
 };
 const ACT_ICONS = {
-  ATTACK: '⚔ ATAQUE', ADVANCE: '→ AVANÇA', RETREAT: '← RECUA',
+  ADVANCE: '→ AVANÇA', RETREAT: '← RECUA',
   DEFEND: '🛡 DEFESA', STUNNED: '✦ STUNNED',
 };
 
@@ -469,8 +470,8 @@ function renderTick(idx) {
     `${data.char_a.name.slice(0,2).toUpperCase()}: ${t.pos_a.toFixed(1)}  ${data.char_b.name.slice(0,2).toUpperCase()}: ${t.pos_b.toFixed(1)}`;
 
   // Actions
-  setAction('a', t.action_a, t.cd_a, t.stun_a, data.char_a.color);
-  setAction('b', t.action_b, t.cd_b, t.stun_b, data.char_b.color);
+  setAction('a', t.action_a, t.atk_a, t.cd_a, t.stun_a, data.char_a.color);
+  setAction('b', t.action_b, t.atk_b, t.cd_b, t.stun_b, data.char_b.color);
 
   // Log events from this tick
   t.events.forEach(ev => appendLog(t.tick, ev, data));
@@ -486,12 +487,13 @@ function setHp(side, char, hp, pct) {
   bar.style.background = pct > 0.6 ? '#22c55e' : pct > 0.3 ? '#eab308' : '#ef4444';
 }
 
-function setAction(side, action, cd, stun, charColor) {
+function setAction(side, action, attacked, cd, stun, charColor) {
   const badge = document.getElementById(`badge-${side}`);
   const col   = ACT_COLORS[action] || '#fff';
   badge.style.borderColor = col + '66';
   badge.style.background  = col + '11';
-  document.getElementById(`act-name-${side}`).textContent = ACT_ICONS[action] || action;
+  const label = (ACT_ICONS[action] || action) + (attacked ? '  \u2694' : '');
+  document.getElementById(`act-name-${side}`).textContent = label;
   document.getElementById(`act-name-${side}`).style.color = col;
   const meta = stun > 0
     ? `stunned ${stun}t`

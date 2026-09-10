@@ -95,8 +95,10 @@ def _archetype_deviation(char) -> float:
 
 def _fight_score(result, hp_max_i: float, hp_max_j: float) -> float:
     """Score por-luta de i ∈ [0, 1] como margem contínua.
-    KO: 0.5 + 0.5·(HP_frac do vencedor) — esmaga → ~1.0; ganha no fio → ~0.5.
-    Timeout: fração de HP% (já contínua, ~0.5 quando equilibrado)."""
+    Empate: 0.5 (margem nula). KO: 0.5 + 0.5·(HP_frac do vencedor) — esmaga → ~1.0;
+    ganha no fio → ~0.5. Timeout: fração de HP% (já contínua, ~0.5 quando equilibrado)."""
+    if result.is_draw:
+        return 0.5
     if result.ko:
         if result.winner == 0:
             return 0.5 + 0.5 * (result.hp_remaining[0] / hp_max_i if hp_max_i > 0 else 0.0)
@@ -175,30 +177,34 @@ def is_hard_counter(matchup_wr: float) -> bool:
 def _run_round_robin(
     chars: List, sims: int
 ) -> Tuple[
+    List[float],
     List[int],
-    List[int],
-    Dict[Tuple[int, int], int],
+    Dict[Tuple[int, int], float],
     Dict[Tuple[int, int], float],
     Dict[Tuple[int, int], float],
 ]:
     n = len(chars)
-    wins        = [0] * n
+    wins        = [0.0] * n
     total_games = [0] * n
-    matchup_wins:         Dict[Tuple[int, int], int]   = {}
+    matchup_wins:         Dict[Tuple[int, int], float] = {}
     matchup_scores:       Dict[Tuple[int, int], float] = {}
     matchup_decisiveness: Dict[Tuple[int, int], float] = {}
 
     for i, j in combinations(range(n), 2):
-        matchup_wins[(i, j)] = 0
+        matchup_wins[(i, j)] = 0.0
         score_sum = 0.0
         decis_sum = 0.0
         for _ in range(sims):
             result = simulate_combat(chars[i], chars[j])
             if result.winner == 0:
-                wins[i] += 1
-                matchup_wins[(i, j)] += 1
-            else:
-                wins[j] += 1
+                wins[i] += 1.0
+                matchup_wins[(i, j)] += 1.0
+            elif result.winner == 1:
+                wins[j] += 1.0
+            else:                              # empate — meia vitória para cada lado
+                wins[i] += 0.5
+                wins[j] += 0.5
+                matchup_wins[(i, j)] += 0.5
             total_games[i] += 1
             total_games[j] += 1
 
