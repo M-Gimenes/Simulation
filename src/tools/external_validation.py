@@ -177,8 +177,8 @@ def _print_summary(result: dict, label: str) -> None:
 def _save(result: dict, label: str) -> None:
     EXTERNAL_VALIDATION_DIR.mkdir(parents=True, exist_ok=True)
     path = EXTERNAL_VALIDATION_DIR / f"external_validation_{label}.json"
-    with open(path, "w") as fh:
-        json.dump({"individual": label, **result}, fh, indent=2)
+    with open(path, "w", encoding="utf-8") as fh:
+        json.dump({"individual": label, **result}, fh, indent=2, ensure_ascii=False)
     print(f"\n  Salvo em {path.relative_to(PROJECT_ROOT)}")
 
 

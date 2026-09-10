@@ -104,7 +104,7 @@ Cada item: **problema → mudança → resultado.**
   boneco** (50% global é compatível com vencer 2 e perder 2). Mudança: o primário
   virou a **WR global por personagem** (`|WR_global − 0.5|`, RMS sobre os 5), mais um
   **teto de hard-counter** (`MATCHUP_WR_CAP`, mantém arestas como vantagens dentro de
-  `[0.30, 0.70]`) e a decisividade inalterada. Resultado: o ciclo passa a ser
+  `[0.35, 0.65]`) e a decisividade inalterada. Resultado: o ciclo passa a ser
   **expressável**; "ele emerge das identidades preservadas?" vira o achado real, e C2
   é robusto ao próprio fracasso (se o plano dominar mesmo com espaço, é achado honesto,
   não artefato). Interpretação em [03](03-formulacao-do-fitness.md) e

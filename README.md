@@ -51,10 +51,14 @@ py main.py --algorithm nsga2 --seed 42 --quiet  # NSGA-II
 ### Analysis tools
 
 ```powershell
-py -m src.tools.analyze_matchups                # all matchups, canonical, 30 sims
+py -m src.tools.report --evolved                # dossie completo do individuo (porta de entrada)
+py -m src.tools.analyze_matchups                # all matchups, canonical
 py -m src.tools.analyze_matchups --evolved --n 50 # evolved individual, 50 sims
-py -m src.tools.archetype_validator             # structural identity checks
+py -m src.tools.archetype_validator             # structural + behavioral identity checks
 py -m src.tools.sensitivity_analysis            # +/-sigma delta-WR per gene
+py -m src.tools.multi_run --algorithm both      # N execucoes independentes + estatistica agregada
+py -m src.tools.compare_algorithms              # GA x NSGA-II: Mann-Whitney U + A12 + Holm
+py -m src.tools.external_validation --nsga2 knee_point  # robustez do equilibrio fora do laco
 py -m src.tools.web_viewer                      # browser viewer em localhost:8080
 ```
 

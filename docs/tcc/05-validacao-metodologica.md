@@ -3,9 +3,10 @@
 **Entra em**: Metodologia (validação) e/ou Resultados.
 
 Pilares de validação que sustentam a credibilidade dos experimentos. Os dois
-primeiros (reprodutibilidade, sensibilidade) validam o **método**; os três últimos
-(N execuções, qualidade da fronteira, validação externa) constituem o **protocolo
-experimental** incorporado da literatura — ver o status em
+primeiros (reprodutibilidade, sensibilidade) validam o **método**; os quatro
+seguintes (N execuções, comparação estatística, qualidade da fronteira, validação
+externa) constituem o **protocolo experimental** incorporado da literatura — ver o
+status em
 [08-metodologias-da-literatura.md](08-metodologias-da-literatura.md). O "como" de cada
 ferramenta está em [`../reference/08-tools.md`](../reference/08-tools.md).
 
@@ -29,8 +30,11 @@ ferramenta está em [`../reference/08-tools.md`](../reference/08-tools.md).
 - **Pergunta:** algum dos 7 atributos é **neutro** — isto é, sem pressão seletiva, de
   modo que ele só drifta por random walk e não é "otimizado"?
 - **Como medir** (`sensitivity_analysis`): para cada (arquétipo, atributo), perturbar o
-  gene em ±σ e medir `|Δ WR|`. Atributos cujo Δ médio fica **abaixo do piso binomial**
-  (~4% com 150 sims) são genes neutros.
+  gene em ±σ e medir `|Δ WR|` **global** do personagem. Atributos cujo Δ médio fica
+  **abaixo do piso de ruído binomial** são genes neutros. O piso é o da WR global, que
+  agrega os 4 matchups do personagem: `sqrt(0.25 / (4·sims))` — ±1,8% com os 200 sims
+  default, ±1,1% com 500. O tool imprime esse piso e o grava no artefato JSON junto da
+  matriz completa.
 - **Variância controlada:** usa pareamento de seeds (*common random numbers*) entre +σ
   e −σ — técnica que **só funciona após o fix de reprodutibilidade** (antes, ineficaz).
 - **Para que serve na tese:** sustenta a afirmação de que a seleção atua sobre todo o
@@ -52,6 +56,21 @@ ferramenta está em [`../reference/08-tools.md`](../reference/08-tools.md).
   Resolve diretamente a fragilidade de seed única (ex.: o Combo×Rush travado em uma
   seed — [07](07-achados-e-limitacoes.md) — vira pergunta respondível: azar ou
   estrutural?).
+
+## Comparação estatística entre algoritmos (parte do item 1.1)
+
+- **Pergunta:** o `multi_run` dá média ± desvio de cada algoritmo. Quando a média de um
+  é melhor que a do outro, isso é diferença real ou amostragem de 10 execuções?
+- **Como** (`compare_algorithms`): sobre as amostras por semente já gravadas,
+  **Mann-Whitney U** bicaudal (não-paramétrico, não assume normalidade) +
+  **Â₁₂ de Vargha-Delaney** (tamanho de efeito — o `p` diz se a diferença existe, o Â₁₂
+  diz se ela importa) + **Holm-Bonferroni** nas 4 métricas comparadas. Fontes: Derrac
+  et al. 2011; Arcuri & Briand 2011; Vargha & Delaney 2000 (limiares do Â₁₂).
+  **Nenhuma das três está em `bibliografia.bib` ainda** — adicionar ao redigir.
+- **Para que serve na tese:** é o que separa "o AG escalar deu média menor" de "o AG
+  escalar é melhor nessa métrica". Ressalva a declarar: o NSGA-II devolve uma
+  fronteira, então a comparação depende de **qual ponto** a representa — o artefato
+  grava `nsga2_representative`.
 
 ## Qualidade da fronteira de Pareto: hipervolume + spacing (item 1.2)
 

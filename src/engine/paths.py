@@ -15,5 +15,9 @@ NSGA2_PLOTS_DIR = PLOTS_DIR / "nsga2"
 MULTI_RUN_DIR = RESULTS_DIR / "multi_run"
 MULTI_RUN_GA_PATH = MULTI_RUN_DIR / "multi_run_ga.json"
 MULTI_RUN_NSGA2_PATH = MULTI_RUN_DIR / "multi_run_nsga2.json"
+MULTI_RUN_COMPARISON_PATH = MULTI_RUN_DIR / "comparison_ga_vs_nsga2.json"
 
 EXTERNAL_VALIDATION_DIR = RESULTS_DIR / "external_validation"
+
+SENSITIVITY_DIR = RESULTS_DIR / "sensitivity"
+SENSITIVITY_PATH = SENSITIVITY_DIR / "sensitivity_analysis.json"

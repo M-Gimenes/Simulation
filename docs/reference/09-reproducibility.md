@@ -30,6 +30,26 @@ Tools e tests rodam como módulo a partir da raiz — ver [08-tools.md](08-tools
 | `results/results.json` | `py main.py` (AG escalar) |
 | `results/nsga2_results.json` | `py main.py --algorithm nsga2` |
 | `results/plots/nsga2/<timestamp>/` | plots da fronteira |
+| `results/multi_run/multi_run_<algo>.json` | `py -m src.tools.multi_run` |
+| `results/multi_run/comparison_ga_vs_nsga2.json` | `py -m src.tools.compare_algorithms` |
+| `results/external_validation/external_validation_<label>.json` | `py -m src.tools.external_validation` |
+| `results/sensitivity/sensitivity_analysis.json` | `py -m src.tools.sensitivity_analysis` |
+
+### O que cada artefato de execução registra
+
+Os dois algoritmos gravam o **mesmo contrato** (`ga.save_results` e
+`nsga2.save_results`): o que basta para reproduzir a execução e reconstruir a
+trajetória sem re-rodar.
+
+| Campo | `results.json` (AG) | `nsga2_results.json` |
+|---|---|---|
+| `algorithm`, `seed`, `generations_run` | ✓ | ✓ |
+| `history` (uma entrada por geração) | fitness melhor/média/pior + dominance + drift + tempo | tamanhos das frentes + amplitude da frente 0 + tempo |
+| condição de parada | `stop_reason`, `converged`, `stagnated` | — (roda `NSGA2_GENERATIONS` fixas) |
+| solução | `best_individual` (genes) + `fitness` + `objectives` | `pareto_front` + `representatives` (genes + objetivos) |
+
+Sem `--seed`, o campo `seed` é `null` e a execução **não** é reproduzível — é a
+escolha explícita de rodar sob entropia.
 
 ## Reprodutibilidade ✅
 

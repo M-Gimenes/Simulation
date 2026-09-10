@@ -69,7 +69,7 @@ foi removido).
 | `DOMINANCE_CAP_WEIGHT` | 0.5 | peso do teto de hard-counter (excesso de `\|WR−0.5\|` acima de `MATCHUP_WR_CAP`) |
 | `DOMINANCE_DECIS_WEIGHT` | 0.5 | peso do termo de decisividade — guarda contra blowout-coinflip |
 | `MATCHUP_WR_CAP` | 0.15 | meia-banda do hard-counter: par é counter duro se `\|WR−0.5\| > 0.15` (fora de [0.35, 0.65]). **Provisório — calibrar** |
-| `N_WORKERS` | None | núcleos para avaliação paralela (None = todos; 1 = serial) |
+| `N_WORKERS` | 8 | processos na avaliação paralela (None = todos os núcleos; 1 = serial). **Não é só gosto:** o pool é recriado a cada geração, então o custo de spawn escala com o nº de workers — medido nesta máquina, 8 workers é ~2,2× mais rápido que 28, e 28 estourava o limite de commit do Windows. Não afeta o resultado (CRN propagado aos workers) |
 | `FIELD_SIZE` | 100 | tamanho do campo |
 | `INITIAL_DISTANCE` | 50 | distância inicial entre lutadores |
 | `ACTION_PERSISTENCE_SUBTICKS` | 10 | sub-ticks que uma intenção sorteada é mantida |

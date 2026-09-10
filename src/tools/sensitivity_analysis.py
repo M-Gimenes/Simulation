@@ -2,28 +2,30 @@
 Análise de sensibilidade — Δ WR por (arquétipo × atributo) ao perturbar genes em ±σ.
 
 Atributos com |Δ| médio abaixo do piso binomial são genes neutros — o AG não os
-enxerga via seleção. Usa pareamento de seeds: o mesmo seed do `random` é fixado
-antes de cada par (+σ, -σ), isolando o efeito do gene do RNG.
+enxerga via seleção. Usa pareamento de seeds: `seed_combat` fixa o mesmo stream do
+RNG do combate antes de cada par (+σ, −σ), isolando o efeito do gene do sorteio
+(common random numbers).
 
 Uso:
-    py sensitivity_analysis.py
-    py sensitivity_analysis.py --sims 500
-    py sensitivity_analysis.py --sigma-mult 2
-    py sensitivity_analysis.py --workers 1
+    py -m src.tools.sensitivity_analysis
+    py -m src.tools.sensitivity_analysis --sims 500
+    py -m src.tools.sensitivity_analysis --sigma-mult 2
+    py -m src.tools.sensitivity_analysis --workers 1
 """
 
 from __future__ import annotations
 
 import argparse
-import random
+import json
 from concurrent.futures import ProcessPoolExecutor
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 from src.engine.archetypes import ARCHETYPE_ORDER, ARCHETYPES
 from src.engine.combat import seed_combat
 from src.engine.config import ATTRIBUTE_BOUNDS, ATTRIBUTE_MUTATION_SIGMA, ATTRIBUTE_NAMES
 from src.engine.fitness import evaluate_detail_n
 from src.engine.individual import Individual
+from src.engine.paths import PROJECT_ROOT, SENSITIVITY_DIR, SENSITIVITY_PATH
 
 
 Task = Tuple[int, int, float, int, int]
@@ -32,7 +34,6 @@ Task = Tuple[int, int, float, int, int]
 def _eval_task(task: Task) -> float:
     char_idx, attr_idx, delta, sims, seed = task
 
-    random.seed(seed)
     seed_combat(seed)  # mesmo seed em +σ e −σ → mesmos sorteios (common random numbers)
     ind = Individual.from_canonical()
     char = ind.characters[char_idx]
@@ -61,6 +62,35 @@ def _build_tasks(sigmas: List[float], sims: int, base_seed: int) -> List[Task]:
             tasks.append((i, j, +sigmas[j], sims, seed))
             tasks.append((i, j, -sigmas[j], sims, seed))
     return tasks
+
+
+def _save(args, sigmas: List[float], deltas: List[List[float]],
+          col_means: List[float], noise_floor: float) -> None:
+    """Grava a matriz Δ WR para que a tabela de sensibilidade tenha artefato
+    (o console é volátil; a tabela é citada na validação metodológica)."""
+    per_character: Dict[str, Dict[str, float]] = {
+        ARCHETYPES[aid].name: {
+            attr: deltas[i][j] for j, attr in enumerate(ATTRIBUTE_NAMES)
+        }
+        for i, aid in enumerate(ARCHETYPE_ORDER)
+    }
+    data = {
+        "sims_per_matchup": args.sims,
+        "sigma_mult": args.sigma_mult,
+        "seed": args.seed,
+        "sigmas": dict(zip(ATTRIBUTE_NAMES, sigmas)),
+        "noise_floor": noise_floor,
+        "delta_wr": per_character,
+        "mean_abs_delta_wr": dict(zip(ATTRIBUTE_NAMES, col_means)),
+        "classification": {
+            attr: _classify(m) for attr, m in zip(ATTRIBUTE_NAMES, col_means)
+        },
+    }
+    SENSITIVITY_DIR.mkdir(parents=True, exist_ok=True)
+    with open(SENSITIVITY_PATH, "w", encoding="utf-8") as fh:
+        json.dump(data, fh, indent=2, ensure_ascii=False)
+    print("")
+    print(f"  Salvo em {SENSITIVITY_PATH.relative_to(PROJECT_ROOT)}")
 
 
 def main() -> None:
@@ -133,13 +163,16 @@ def main() -> None:
     print("═" * 80)
     print("  Ranking de sensibilidade — atributos ordenados por |Δ WR| médio")
     print("═" * 80)
-    print(f"  Piso de ruído binomial estimado: ±{(0.25 / (4 * args.sims)) ** 0.5:.1%}")
+    noise_floor = (0.25 / (4 * args.sims)) ** 0.5
+    print(f"  Piso de ruído binomial estimado: ±{noise_floor:.1%}")
     print(f"  (4 matchups × {args.sims} sims = {4 * args.sims} simulações por personagem)")
     print()
 
     ranked = sorted(zip(ATTRIBUTE_NAMES, col_means), key=lambda x: x[1], reverse=True)
     for name, m in ranked:
         print(f"    {name:18} {m:>6.1%}  {_classify(m)}")
+
+    _save(args, sigmas, deltas, col_means, noise_floor)
 
 
 if __name__ == "__main__":

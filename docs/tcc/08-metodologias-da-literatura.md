@@ -34,11 +34,12 @@ distintas) e reportar **média ± desvio** das métricas, além de *success rate
 rodadas atingiram o critério), *MBF* (mean best fitness) e, ao comparar duas
 configurações, um **teste estatístico** não-paramétrico (Mann–Whitney / Wilcoxon).
 
-**No nosso sistema:** rodar o NSGA-II (e o AG escalar) com seeds fixas `42..46`
-(≥ 5, idealmente 10–30), e agregar (headline C2):
+**No nosso sistema:** rodar o NSGA-II (e o AG escalar) com as mesmas seeds fixas
+(`MULTI_RUN_SEED_START..+N−1`, default 42..51), agregar (headline C2) e comparar os
+dois algoritmos com teste + tamanho de efeito (`compare_algorithms`):
 - distribuição de `dominance_penalty` / `drift_penalty` do `best_dominance` por seed;
 - fração de seeds em que cada boneco fica equilibrado (WR global em [40%, 60%]) e em
-  que aparece algum hard-counter (par fora de [30%, 70%]);
+  que aparece algum hard-counter (par fora de [35%, 65%]);
 - WR global média ± desvio por personagem **através das seeds**.
 
 **O que ganha:** mata a fragilidade de amostra única — um par travado pode ser "azar
@@ -242,6 +243,13 @@ construir mais ferramentas.** Decisão tomada:
   UM indivíduo e o reavalia sob K sementes de avaliação **novas** (≥10000), com
   veredito robusto/frágil por matchup. → Metodologia (validação estilo Ludi; blinda
   contra overfitting ao fitness).
+- **1.1 (parte estatística) — teste não-paramétrico** (`src/tools/compare_algorithms.py`):
+  fecha o item que faltava do 1.1. Sobre as amostras por semente do `multi_run`, aplica
+  **Mann-Whitney U** bicaudal + tamanho de efeito **Â₁₂ de Vargha-Delaney** + correção
+  de **Holm-Bonferroni** nas 4 métricas comparadas. Antes, AG e NSGA-II eram agregados
+  lado a lado mas nunca comparados formalmente — "média X < média Y" não é resultado
+  sem teste. → Metodologia (procedimento de comparação) + Resultados (AG escalar vs
+  NSGA-II com p e efeito, não só médias).
 
 Detalhe técnico de cada um na referência: [`../reference/08-tools.md`](../reference/08-tools.md),
 [`../reference/06-nsga2.md`](../reference/06-nsga2.md), [`../reference/07-configuration.md`](../reference/07-configuration.md).

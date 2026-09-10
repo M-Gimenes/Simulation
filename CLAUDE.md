@@ -36,7 +36,7 @@ py -m venv .venv
 pip install -r requirements.txt
 ```
 
-`numba` é usado para JIT-compilar o loop de combate (`src.engine.combat._simulate_combat_jit`) — speedup de ~150× sobre Python puro. Primeira chamada compila (~2.5s); depois fica em cache. Sem numba, o sistema não roda — `simulate_combat()` chama o JIT direto.
+`numba` é usado para JIT-compilar o loop de combate (`src.engine.combat._simulate_combat_jit`) — speedup de ~150× sobre Python puro. Primeira chamada compila (~2.5s); depois fica em cache. Sem numba, o sistema não roda — `simulate_combat()` chama o JIT direto. `scipy` entra só no `src.tools.compare_algorithms` (Mann-Whitney U); o motor não depende dele.
 
 ## Layout
 
@@ -64,6 +64,7 @@ pip install -r requirements.txt
 │   │   ├── archetype_validator.py
 │   │   ├── sensitivity_analysis.py
 │   │   ├── multi_run.py       # N execuções + estatística agregada (metodologia 1.1)
+│   │   ├── compare_algorithms.py   # AG × NSGA-II: Mann-Whitney U + Â₁₂ + Holm
 │   │   ├── external_validation.py  # robustez do equilíbrio fora do laço (metodologia 3.2)
 │   │   ├── viewer.py          # ASCII viewer
 │   │   ├── web_viewer.py      # browser viewer
@@ -92,7 +93,8 @@ py -m src.tools.drift_table --evolved            # drift por gene + diferenciaç
 py -m src.tools.fingerprint --evolved            # assinatura comportamental
 py -m src.tools.archetype_validator              # identity checks: structural (L1-2) + behavioral (L3)
 py -m src.tools.sensitivity_analysis             # ±σ Δ-WR per gene
-py -m src.tools.multi_run --algorithm nsga2      # N execuções + estatística agregada (metodologia 1.1)
+py -m src.tools.multi_run --algorithm both       # N execuções + estatística agregada (metodologia 1.1)
+py -m src.tools.compare_algorithms               # AG × NSGA-II: Mann-Whitney U + Â₁₂ + Holm
 py -m src.tools.external_validation --nsga2 best_dominance  # robustez do equilíbrio fora do laço (metodologia 3.2)
 
 # Web viewer (opens browser at localhost:8080)
@@ -119,7 +121,9 @@ All GA/NSGA-II outputs go to `results/` (created automatically on first run):
 | `results/nsga2_results.json` | `py main.py --algorithm nsga2` |
 | `results/plots/nsga2/<timestamp>/` | NSGA-II projection plots |
 | `results/multi_run/multi_run_<algo>.json` | `py -m src.tools.multi_run` (estatística agregada de N execuções) |
+| `results/multi_run/comparison_ga_vs_nsga2.json` | `py -m src.tools.compare_algorithms` (teste estatístico entre os dois algoritmos) |
 | `results/external_validation/external_validation_<label>.json` | `py -m src.tools.external_validation` (robustez do equilíbrio fora do laço) |
+| `results/sensitivity/sensitivity_analysis.json` | `py -m src.tools.sensitivity_analysis` (matriz Δ WR por gene) |
 
 ## Architecture
 

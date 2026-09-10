@@ -1,15 +1,17 @@
 """
-Diagnóstico de identidade de arquétipo — 17 asserções estruturais (12 inter + 5 intra).
+Diagnóstico de identidade de arquétipo — 21 asserções: 17 estruturais
+(12 inter + 5 intra, Layers 1-2, determinísticas nos genes) + 4 comportamentais
+(Layer 3, roda combate; `--n 0` desliga e deixa só as estruturais).
 
 Uso:
-    py archetype_validator.py
-    py archetype_validator.py --evolved
-    py archetype_validator.py --nsga2 [knee_point|best_dominance|best_drift|ideal_point]
+    py -m src.tools.archetype_validator
+    py -m src.tools.archetype_validator --evolved
+    py -m src.tools.archetype_validator --nsga2 [knee_point|best_dominance|best_drift|ideal_point]
+    py -m src.tools.archetype_validator --n 0    # só estrutural (17 asserções)
 """
 
 from __future__ import annotations
 
-import random
 from dataclasses import dataclass
 from typing import Dict, List, Tuple
 
@@ -202,7 +204,6 @@ def run_validation(
 
     if behavioral_n > 0:
         seed_combat(seed)
-        random.seed(seed)
         profile = behavioral_profile(individual, behavioral_n)
         checks.extend(_check_behavioral(profile))
 

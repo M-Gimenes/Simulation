@@ -1,13 +1,12 @@
 """
 Ponto de entrada do experimento.
-Rode com: py main.py [--algorithm ga|nsga2] [--seed N] [--quiet] [--log-every N] [--plot-3d]
+Rode com: py main.py [--algorithm ga|nsga2] [--seed N] [--quiet] [--log-every N]
 """
 
 import argparse
 import datetime
-import json
 
-from src.engine.ga import run as run_ga
+from src.engine.ga import run as run_ga, save_results as save_ga_results
 from src.engine.paths import GA_RESULTS_PATH, NSGA2_PLOTS_DIR, NSGA2_RESULTS_PATH, PROJECT_ROOT, RESULTS_DIR
 
 
@@ -29,9 +28,7 @@ def _main_ga(args):
     )
 
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-    out = {"best_individual": [c.genes() for c in result.best.characters]}
-    with open(GA_RESULTS_PATH, "w") as fh:
-        json.dump(out, fh)
+    save_ga_results(result, GA_RESULTS_PATH)
 
     d = result.best_detail
     print(f"\nParada: {result.stop_reason} (geração {result.generation})")

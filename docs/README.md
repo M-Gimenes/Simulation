@@ -3,8 +3,8 @@
 Organizada em duas frentes:
 
 - **[`reference/`](reference/README.md)** — referência técnica do sistema (como
-  funciona): combate, AG, NSGA-II, config, tools, reprodutibilidade, known-issues,
-  revisão do combate. Mantida em sincronia com o código.
+  funciona): combate, AG, NSGA-II, config, tools, reprodutibilidade, pontos em
+  aberto, revisão do combate. Mantida em sincronia com o código.
 - **[`tcc/`](tcc/README.md)** — material de redação da monografia (o porquê, a
   trajetória de decisões, o que apresentar nos resultados).
 

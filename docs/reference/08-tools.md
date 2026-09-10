@@ -131,10 +131,15 @@ walk, sem pressão seletiva).
 py -m src.tools.sensitivity_analysis --sims 500 --workers 1
 ```
 
-> ⚠️ A redução de variância por pareamento de seeds descrita no docstring **não
-> está funcionando** — o combate roda no RNG do Numba, que ignora `random.seed`.
-> Ver [09-reproducibility.md](09-reproducibility.md) e
-> [10-known-issues.md](10-known-issues.md).
+O pareamento +σ/−σ é feito com `seed_combat(seed)` (o RNG do combate é interno ao
+Numba — `random.seed` não o afeta), então os dois lados do par compartilham o mesmo
+stream: o Δ medido é efeito do gene, não do sorteio. Ver
+[09-reproducibility.md](09-reproducibility.md).
+
+Salva a matriz completa em `results/sensitivity/sensitivity_analysis.json` (Δ WR por
+arquétipo × atributo, σ usado por gene, piso de ruído binomial e a classificação
+visível/borderline/neutro) — o console é volátil e a tabela é citada na validação
+metodológica.
 
 ## `multi_run` — N execuções independentes + estatística agregada
 
@@ -151,8 +156,10 @@ py -m src.tools.multi_run --algorithm ga     # só AG escalar (best por seed)
 py -m src.tools.multi_run --n-seeds 30       # escala o experimento
 ```
 
-Representante por execução: AG escalar → `best`; NSGA-II → `best_dominance` da
-fronteira. Saídas agregadas (impressas + salvas em `results/multi_run/multi_run_<algo>.json`):
+Representante por execução: AG escalar → `best`. O NSGA-II devolve uma **fronteira**,
+não um ponto — qual ponto representa a execução é uma escolha explícita
+(`--nsga2-representative`, default `best_dominance`), gravada no artefato como
+`nsga2_representative`. Saídas agregadas (impressas + salvas em `results/multi_run/multi_run_<algo>.json`):
 
 - **média ± desvio** de `dominance_penalty` e `drift_penalty`;
 - **WR global por personagem** (média ± desvio) + **fração de sementes em que cada
@@ -168,6 +175,33 @@ fronteira. Saídas agregadas (impressas + salvas em `results/multi_run/multi_run
 Parametrizado em `config.py` (`MULTI_RUN_*`) para escalar N facilmente. Mata a
 fragilidade de amostra única: um matchup travado (ex.: Combo×Rush) numa seed pode ser
 azar ou estrutural, e só N execuções respondem.
+
+## `compare_algorithms` — comparação estatística AG × NSGA-II
+
+O `multi_run` agrega média ± desvio de cada algoritmo, mas média ± desvio não decide
+se a diferença entre os dois é real ou ruído de amostragem. Este tool **não roda
+nada**: lê os dois artefatos do `multi_run` e aplica sobre as amostras por semente
+(prática padrão para algoritmos estocásticos — Derrac et al. 2011; Arcuri & Briand
+2011):
+
+- **Mann-Whitney U** bicaudal (não-paramétrico, duas amostras independentes — não
+  assume normalidade, e as métricas são limitadas por baixo em 0);
+- **Â₁₂ de Vargha-Delaney** como tamanho de efeito — `P(execução do AG > execução do
+  NSGA-II)`, com 0.5 = sem efeito. Um p pequeno diz que a diferença existe; o Â₁₂ diz
+  se ela é grande o bastante para importar;
+- **Holm-Bonferroni** sobre as 4 métricas testadas (`dominance_penalty`,
+  `drift_penalty`, hard-counters por execução, bonecos em banda por execução) — sem
+  correção, 4 testes a α=0.05 inflam a chance de falso positivo.
+
+```bash
+py -m src.tools.multi_run --algorithm both   # gera os dois artefatos
+py -m src.tools.compare_algorithms           # compara e salva
+```
+
+Aborta se os dois `multi_run` não compartilharem sementes, semente de validação e
+sims/matchup — comparar execuções sob condições diferentes não é comparação. Salva em
+`results/multi_run/comparison_ga_vs_nsga2.json`, registrando também qual representante
+da fronteira representou o NSGA-II.
 
 ## `external_validation` — validação externa ao fitness (estilo Ludi)
 
@@ -193,10 +227,6 @@ Reporta, salvando em `results/external_validation/external_validation_<label>.js
 - por matchup: WR média ± desvio + flag **⚠** (vira counter duro em ALGUMA condição);
 - **veredito do roster**: ROBUSTO (todos os bonecos robustos **e** nenhum par vira
   counter duro) vs FRÁGIL (algum boneco/par sensível à semente → overfitting ao fitness).
-
-> **Nota:** o JSON de `external_validation` commitado no repo é **obsoleto** (gerado
-> pré-C2/pré-mudança de combate) — re-rodar após calibrar (ver
-> [10-known-issues.md](10-known-issues.md)).
 
 **Diferença vs `multi_run` (1.1):** lá varia-se a *execução evolutiva* (muitos
 indivíduos, uma seed de validação); aqui fixa-se UM indivíduo e varia-se a *avaliação*

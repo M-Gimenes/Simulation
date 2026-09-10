@@ -2,15 +2,15 @@
 Visualizador de combate ASCII — tick a tick.
 
 Uso:
-    py viewer.py                           # matchup aleatório (canônico)
-    py viewer.py rushdown grappler         # matchup específico
-    py viewer.py rushdown grappler --delay 0.04
-    py viewer.py --list                    # lista arquétipos disponíveis
-    py viewer.py --evolved                 # usa resultado da última execução do AG
-    py viewer.py --nsga2                   # usa knee_point do NSGA-II
-    py viewer.py --nsga2 best_balance      # usa representante específico do NSGA-II
-    py viewer.py --all                     # roda todos os 10 matchups em sequência
-    py viewer.py --no-vs                   # pula a tela de apresentação
+    py -m src.tools.viewer                        # matchup aleatório (canônico)
+    py -m src.tools.viewer rushdown grappler      # matchup específico
+    py -m src.tools.viewer rushdown grappler --delay 0.04
+    py -m src.tools.viewer --list                 # lista arquétipos disponíveis
+    py -m src.tools.viewer --evolved              # usa resultado da última execução do AG
+    py -m src.tools.viewer --nsga2                # usa knee_point do NSGA-II
+    py -m src.tools.viewer --nsga2 best_dominance # usa representante específico do NSGA-II
+    py -m src.tools.viewer --all                  # roda todos os 10 matchups em sequência
+    py -m src.tools.viewer --no-vs                # pula a tela de apresentação
 
 Ctrl+C → sai a qualquer momento.
 """
@@ -18,7 +18,6 @@ Ctrl+C → sai a qualquer momento.
 from __future__ import annotations
 
 import argparse
-import json
 import random
 import re
 import sys
@@ -425,18 +424,12 @@ ALIASES = ARCHETYPE_ALIASES
 
 
 def _load_evolved(results_path: str) -> Optional[Individual]:
-    import os
-    if not os.path.exists(results_path):
+    """None quando o arquivo não existe ou não tem `best_individual` — o viewer
+    cai no canônico com uma mensagem, em vez de estourar."""
+    try:
+        return Individual.from_results(results_path)
+    except (FileNotFoundError, KeyError):
         return None
-    with open(results_path) as fh:
-        data = json.load(fh)
-    if "best_individual" not in data:
-        return None
-    ind = Individual.from_canonical()
-    for char, genes in zip(ind.characters, data["best_individual"]):
-        char.load_genes(genes)
-        char.clip()
-    return ind
 
 
 def main() -> None:
@@ -458,7 +451,7 @@ def main() -> None:
                         help="Usa personagens do último AG (results.json)")
     parser.add_argument("--nsga2", metavar="REP", nargs="?", const="knee_point",
                         help="Usa representante do NSGA-II "
-                             "(knee_point|best_balance|best_matchup|best_drift). "
+                             "(knee_point|best_dominance|best_drift|ideal_point). "
                              "Default: knee_point")
     parser.add_argument("--results", default=str(GA_RESULTS_PATH),
                         help="Caminho para o arquivo de resultados do AG")

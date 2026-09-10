@@ -7,9 +7,11 @@ counter duro), estagnação (STAGNATION_LIMIT gerações sem melhoria) ou MAX_GE
 
 from __future__ import annotations
 
+import json
 import random
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from pathlib import Path
 from typing import List, Optional
 
 import numpy as np
@@ -26,7 +28,6 @@ from .archetypes import ARCHETYPE_ORDER, ARCHETYPES
 from .fitness import (
     FitnessDetail,
     character_balanced,
-    evaluate,
     evaluate_detail,
     evaluate_detail_n,
     evaluate_population,
@@ -35,6 +36,7 @@ from .fitness import (
 )
 from .individual import Individual
 from .operators import next_generation
+from .paths import GA_RESULTS_PATH
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -60,6 +62,7 @@ class GAResult:
     converged: bool
     stagnated: bool
     history: List[GenerationStats]
+    seed: Optional[int] = None
 
     @property
     def stop_reason(self) -> str:
@@ -167,6 +170,7 @@ def run(
                     converged=True,
                     stagnated=False,
                     history=history,
+                    seed=seed,
                 )
 
         if best_ind.fitness - best_fitness_ever > 0.001:
@@ -183,6 +187,7 @@ def run(
                 converged=False,
                 stagnated=True,
                 history=history,
+                seed=seed,
             )
 
         population = next_generation(population)
@@ -197,4 +202,44 @@ def run(
         converged=False,
         stagnated=False,
         history=history,
+        seed=seed,
     )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Persistência
+# ─────────────────────────────────────────────────────────────────────────────
+
+def save_results(result: GAResult, path: Path = GA_RESULTS_PATH) -> None:
+    """Grava o resultado do AG escalar. Mesmo contrato do `nsga2.save_results`:
+    semente, condição de parada, objetivos do melhor indivíduo e histórico por
+    geração — o suficiente para reproduzir a execução e plotar a convergência."""
+    detail = result.best_detail
+    data = {
+        "algorithm":       "ga",
+        "seed":            result.seed,
+        "generations_run": result.generation + 1,
+        "stop_reason":     result.stop_reason,
+        "converged":       result.converged,
+        "stagnated":       result.stagnated,
+        "fitness":         result.best.fitness,
+        "objectives": {
+            "dominance_penalty": detail.dominance_penalty,
+            "drift_penalty":     detail.drift_penalty,
+        },
+        "best_individual": [c.genes() for c in result.best.characters],
+        "history": [
+            {
+                "gen":               s.generation,
+                "best_fitness":      s.best_fitness,
+                "mean_fitness":      s.mean_fitness,
+                "worst_fitness":     s.worst_fitness,
+                "dominance_penalty": s.dominance_penalty,
+                "drift_penalty":     s.drift_penalty,
+                "elapsed_s":         round(s.elapsed_s, 3),
+            }
+            for s in result.history
+        ],
+    }
+    with open(path, "w", encoding="utf-8") as fh:
+        json.dump(data, fh, indent=2, ensure_ascii=False)

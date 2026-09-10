@@ -2,17 +2,16 @@
 Análise detalhada dos 10 matchups canônicos: N combates por matchup, médias das estatísticas.
 
 Uso:
-    py analyze_matchups.py                       # todos os matchups (canônico)
-    py analyze_matchups.py zoner grappler        # matchup específico
-    py analyze_matchups.py --evolved             # usa melhor indivíduo do AG
-    py analyze_matchups.py --nsga2 [REP]         # usa representante do NSGA-II
+    py -m src.tools.analyze_matchups                    # todos os matchups (canônico)
+    py -m src.tools.analyze_matchups zoner grappler     # matchup específico
+    py -m src.tools.analyze_matchups --evolved          # usa melhor indivíduo do AG
+    py -m src.tools.analyze_matchups --nsga2 [REP]      # usa representante do NSGA-II
 """
 
 from __future__ import annotations
 
 import argparse
 import math
-import random
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 
@@ -673,7 +672,7 @@ def _build_argparser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--nsga2", metavar="REP", nargs="?", const="knee_point",
         help="Usa representante do NSGA-II "
-             "(knee_point|best_balance|best_matchup|best_drift). Default: knee_point",
+             "(knee_point|best_dominance|best_drift|ideal_point). Default: knee_point",
     )
     parser.add_argument(
         "--n", type=int, default=ANALYZE_SIMS, metavar="N",
@@ -690,7 +689,6 @@ def main() -> None:
     args = _build_argparser().parse_args()
 
     if args.seed is not None:
-        random.seed(args.seed)
         seed_combat(args.seed)
 
     ind, label = _load_individual(args)

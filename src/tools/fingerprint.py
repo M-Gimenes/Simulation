@@ -17,7 +17,6 @@ Uso:
 from __future__ import annotations
 
 import argparse
-import random
 from typing import Tuple
 
 from src.engine.archetypes import ARCHETYPE_ORDER, ARCHETYPES
@@ -69,11 +68,11 @@ def main() -> None:
 def print_fingerprint_report(
     ind: Individual, label: str, is_canon: bool, n: int = FINGERPRINT_SIMS, seed: int = 42
 ) -> None:
-    seed_combat(seed); random.seed(seed)
+    seed_combat(seed)
     fp = behavioral_profile(ind, n)
     base = fp
     if not is_canon:
-        seed_combat(seed); random.seed(seed)
+        seed_combat(seed)
         base = behavioral_profile(Individual.from_canonical(), n)
 
     print("\n" + "═" * 60)

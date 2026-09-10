@@ -45,7 +45,7 @@ exatamente o espaço em que o **ciclo de vantagens** pode existir.
 
 ### Termo secundário — teto de hard-counter
 `cap_term = RMS_par(max(0, |WR_par − 0.5| − MATCHUP_WR_CAP) / (0.5 − MATCHUP_WR_CAP))`.
-Penaliza só o excesso **acima** de `MATCHUP_WR_CAP` (banda `[0.30, 0.70]`). Mantém as
+Penaliza só o excesso **acima** de `MATCHUP_WR_CAP` (banda `[0.35, 0.65]`). Mantém as
 arestas do ciclo como **vantagens** (um par pode ter favorito), barrando apenas os
 **counters esmagadores** (ex.: 100×0). Dentro da banda, o par não é penalizado.
 

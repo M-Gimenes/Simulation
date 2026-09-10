@@ -1,7 +1,7 @@
 """
 Visualizador web de combate.
 
-Uso: py web_viewer.py [--port 8080] [--evolved | --nsga2 [REP]]
+Uso: py -m src.tools.web_viewer [--port 8080] [--evolved | --nsga2 [REP]]
 """
 
 from __future__ import annotations
@@ -691,7 +691,7 @@ def main():
     parser.add_argument("--evolved", action="store_true",
                         help="Usa o melhor indivíduo salvo em results.json (default: canônico)")
     parser.add_argument("--nsga2", metavar="REP", nargs="?", const="knee_point",
-                        help="Usa representante do NSGA-II (knee_point|best_balance|best_matchup|best_drift). Default: knee_point")
+                        help="Usa representante do NSGA-II (knee_point|best_dominance|best_drift|ideal_point). Default: knee_point")
     args = parser.parse_args()
 
     if args.nsga2:

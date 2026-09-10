@@ -17,7 +17,7 @@ reúne, num relatório único:
 | Tabela de drift por gene + `drift_penalty` | **identidade de genes** — *o preço pago* pela evolução |
 | Diferenciação par-a-par (`ratio`) | **homogeneização** — os 5 ainda são distintos? |
 | Fingerprint (canônico vs evoluído) | **identidade comportamental** — ainda joga como o arquétipo? |
-| Validador (score /20) | **identidade estrutural** — invariantes de ranking |
+| Validador (score /21: 17 estruturais + 4 comportamentais) | **identidade estrutural e comportamental** — invariantes de ranking |
 
 Apresentar o dossiê do(s) indivíduo(s) escolhido(s) — tipicamente o **canônico** (baseline)
 e os representantes de interesse do NSGA-II.
@@ -25,10 +25,12 @@ e os representantes de interesse do NSGA-II.
 ## 2. Histórico de convergência do AG escalar
 
 `run()` retorna `history` (lista de `GenerationStats`): `best/mean/worst fitness`,
-`drift_penalty`, `dominance_penalty` por geração. Plotar essas curvas mostra a
-**trajetória de otimização** — o AG melhora? converge, estagna ou bate o teto de
-gerações? como drift e dominância evoluem um contra o outro? É a evidência de que o
-processo *funciona* (ou de onde ele empaca).
+`drift_penalty`, `dominance_penalty` por geração, e `ga.save_results` grava esse
+histórico em `results/results.json` junto com a semente e a condição de parada — a
+curva sai do artefato, sem re-rodar. Plotar essas curvas mostra a **trajetória de
+otimização** — o AG melhora? converge, estagna ou bate o teto de gerações? como drift
+e dominância evoluem um contra o outro? É a evidência de que o processo *funciona*
+(ou de onde ele empaca).
 
 ## 3. Fronteira de Pareto do NSGA-II (o artefato central)
 
@@ -59,7 +61,7 @@ seed, a tabela agregada sobre 10+ seeds:
 |---|---|
 | dominance/drift **média ± desvio** | onde o processo aterrissa *em média*, com dispersão |
 | **WR global por personagem** (média ± desvio) | nenhum boneco domina o roster (o headline de equilíbrio sob C2) |
-| **contagem de hard-counters** | quantos pares saem de `[0.30, 0.70]` — counters esmagadores |
+| **contagem de hard-counters** | quantos pares saem de `[0.35, 0.65]` — counters esmagadores |
 | **fração de seeds que equilibram o roster** | a frase-tese — *"em N execuções, X% equilibraram o roster (5 bonecos em banda, 0 hard-counters)"* |
 | (NSGA-II) **hipervolume ± desvio** | qualidade média da fronteira através das seeds |
 
@@ -71,6 +73,20 @@ achados de seed única (ex.: um par travado) como estruturais ou amostrais.
 > (fração de sementes que equilibram o roster); a banda por-matchup vira leitura
 > secundária.
 
+## 5b. AG escalar × NSGA-II, com teste (`compare_algorithms`)
+
+As duas tabelas do `multi_run` colocam os algoritmos lado a lado, mas "média X <
+média Y" não é resultado: com 10 execuções por algoritmo, a diferença pode ser
+amostragem. O `compare_algorithms` fecha isso — **Mann-Whitney U** bicaudal,
+**Â₁₂ de Vargha-Delaney** (tamanho de efeito) e **Holm-Bonferroni** (4 métricas
+testadas), sobre as mesmas sementes reavaliadas sob a mesma condição de validação.
+
+O que reportar: por métrica, mediana de cada algoritmo, `p` corrigido e Â₁₂ — e a
+leitura em uma frase (diferença significativa e para qual lado, ou ausência dela).
+Registrar também **qual ponto da fronteira** representou o NSGA-II
+(`nsga2_representative`): o NSGA-II devolve uma fronteira, e comparar um escalar
+contra o extremo `best_dominance` é uma escolha, não um dado.
+
 ## 6. Robustez do equilíbrio fora do laço (`external_validation`)
 
 Item 3.2. Pega o indivíduo escolhido (tipicamente `best_dominance`) e mostra se o
@@ -81,8 +97,9 @@ Apresentar junto do dossiê do indivíduo, como sua *sustentação de robustez*.
 ## 7. Validação metodológica (sustentação)
 
 - **Tabela de sensibilidade** (`sensitivity_analysis`): mostra que o AG enxerga os
-  genes (ou quais são neutros). Vai junto da metodologia, não dos resultados de um
-  indivíduo. Ver [05](05-validacao-metodologica.md).
+  genes (ou quais são neutros), com artefato em
+  `results/sensitivity/sensitivity_analysis.json`. Vai junto da metodologia, não dos
+  resultados de um indivíduo. Ver [05](05-validacao-metodologica.md).
 - **Reprodutibilidade**: reportar o seed usado em cada experimento.
 
 ## O fio condutor dos Resultados

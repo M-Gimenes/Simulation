@@ -18,7 +18,7 @@ tese fica em [`../tcc/`](../tcc/README.md).
 | [07-configuration.md](07-configuration.md) | Tabela completa de hiperparâmetros (`config.py`) |
 | [08-tools.md](08-tools.md) | Ferramentas de análise e visualização |
 | [09-reproducibility.md](09-reproducibility.md) | Execução, ambiente e reprodutibilidade (seeds) |
-| [10-known-issues.md](10-known-issues.md) | Relatório de auditoria: bugs em aberto, pontos metodológicos, backlog |
+| [10-known-issues.md](10-known-issues.md) | Pontos em aberto: calibração pendente, limites estruturais do método, estado dos artefatos |
 | [11-combat-review.md](11-combat-review.md) | Revisão da representação do combate e veredito |
 
 ## Convenção

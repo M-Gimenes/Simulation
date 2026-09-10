@@ -12,10 +12,15 @@ treino (Common Random Numbers entre execuções) e agrega (headline C2):
   • fração de sementes que equilibram o ROSTER (5 bonecos em banda E 0 hard-counters).
   • (secundário) WR média por matchup.
 
+Cada execução do NSGA-II devolve uma fronteira, não um ponto: o ponto que representa
+a execução (`--nsga2-representative`, default `best_dominance`) fica registrado no
+artefato. Comparação estatística entre os dois algoritmos: `compare_algorithms`.
+
 Uso:
     py -m src.tools.multi_run                       # ambos os algoritmos, defaults do config
     py -m src.tools.multi_run --algorithm nsga2     # só NSGA-II
     py -m src.tools.multi_run --n-seeds 30          # escala o experimento
+    py -m src.tools.multi_run --nsga2-representative knee_point
 """
 
 from __future__ import annotations
@@ -70,15 +75,17 @@ def mean_std(values: List[float]) -> Dict[str, float]:
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-def _run_algorithm(algorithm: str, seed: int):
+def _run_algorithm(algorithm: str, seed: int, nsga2_representative: str):
     """Roda o algoritmo (silencioso) e devolve `(representante, objetivos_da_fronteira)`.
-    AG escalar → o melhor indivíduo, sem fronteira (`None`). NSGA-II → o `best_dominance`
-    e os objetivos `(dominance, drift)` de toda a fronteira (para hipervolume/spacing)."""
+    AG escalar → o melhor indivíduo, sem fronteira (`None`). NSGA-II → o representante
+    pedido e os objetivos `(dominance, drift)` de toda a fronteira (hipervolume/spacing).
+    O NSGA-II devolve uma fronteira, não um ponto: qual ponto representa a execução é
+    uma escolha, registrada no artefato (`nsga2_representative`)."""
     if algorithm == "ga":
         return run_ga(seed=seed, verbose=False).best, None
     result = run_nsga2(seed=seed, verbose=False)
     front_objectives = [ind.objectives for ind in result.pareto_front]
-    return result.representatives["best_dominance"], front_objectives
+    return result.representatives[nsga2_representative], front_objectives
 
 
 def _evaluate_independent(individual, sims: int) -> FitnessDetail:
@@ -157,16 +164,18 @@ def _aggregate(records: List[dict]) -> dict:
     return agg
 
 
-def aggregate_algorithm(algorithm: str, seeds: List[int], sims: int) -> dict:
+def aggregate_algorithm(algorithm: str, seeds: List[int], sims: int,
+                        nsga2_representative: str) -> dict:
     records: List[dict] = []
+    rep_label = f", representante {nsga2_representative}" if algorithm == "nsga2" else ""
     print(f"\n{'═' * 70}")
     print(f"  {algorithm.upper()} — {len(seeds)} execuções (seeds {seeds[0]}..{seeds[-1]}), "
-          f"validação com {sims} sims/matchup")
+          f"validação com {sims} sims/matchup{rep_label}")
     print(f"{'═' * 70}")
 
     for idx, seed in enumerate(seeds, start=1):
         print(f"  [{idx:>2}/{len(seeds)}] seed={seed} ... ", end="", flush=True)
-        individual, front_objectives = _run_algorithm(algorithm, seed)
+        individual, front_objectives = _run_algorithm(algorithm, seed, nsga2_representative)
         detail = _evaluate_independent(individual, sims)
         record = _seed_record(detail, seed, front_objectives)
         records.append(record)
@@ -175,7 +184,7 @@ def aggregate_algorithm(algorithm: str, seeds: List[int], sims: int) -> dict:
               f"bonecos eq={record['n_chars_balanced']}/{len(CHAR_NAMES)}  "
               f"counters={record['n_hard_counters']}{hv_part}")
 
-    return {
+    result = {
         "algorithm": algorithm,
         "n_seeds": len(seeds),
         "seeds": seeds,
@@ -184,6 +193,9 @@ def aggregate_algorithm(algorithm: str, seeds: List[int], sims: int) -> dict:
         "per_seed": records,
         "aggregate": _aggregate(records),
     }
+    if algorithm == "nsga2":
+        result["nsga2_representative"] = nsga2_representative
+    return result
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -230,8 +242,8 @@ def _print_summary(result: dict) -> None:
 def _save(result: dict, algorithm: str) -> None:
     MULTI_RUN_DIR.mkdir(parents=True, exist_ok=True)
     path = MULTI_RUN_GA_PATH if algorithm == "ga" else MULTI_RUN_NSGA2_PATH
-    with open(path, "w") as fh:
-        json.dump(result, fh, indent=2)
+    with open(path, "w", encoding="utf-8") as fh:
+        json.dump(result, fh, indent=2, ensure_ascii=False)
     print(f"\n  Salvo em {path.relative_to(PROJECT_ROOT)}")
 
 
@@ -252,6 +264,10 @@ def parse_args():
                         help=f"Primeira semente (default: {MULTI_RUN_SEED_START})")
     parser.add_argument("--sims", type=int, default=MULTI_RUN_SIMS,
                         help=f"Sims/matchup na reavaliação independente (default: {MULTI_RUN_SIMS})")
+    parser.add_argument("--nsga2-representative", default="best_dominance",
+                        choices=["best_dominance", "best_drift", "knee_point", "ideal_point"],
+                        help="Ponto da fronteira que representa cada execução do NSGA-II "
+                             "(default: best_dominance)")
     return parser.parse_args()
 
 
@@ -261,7 +277,7 @@ def main():
     algorithms = ["ga", "nsga2"] if args.algorithm == "both" else [args.algorithm]
 
     for algorithm in algorithms:
-        result = aggregate_algorithm(algorithm, seeds, args.sims)
+        result = aggregate_algorithm(algorithm, seeds, args.sims, args.nsga2_representative)
         _print_summary(result)
         _save(result, algorithm)
 

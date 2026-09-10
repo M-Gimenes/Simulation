@@ -348,5 +348,5 @@ def save_results(result: NSGAResult, path: Path = NSGA2_RESULTS_PATH) -> None:
             for s in result.history
         ],
     }
-    with open(path, "w") as fh:
-        json.dump(data, fh, indent=2)
+    with open(path, "w", encoding="utf-8") as fh:
+        json.dump(data, fh, indent=2, ensure_ascii=False)
