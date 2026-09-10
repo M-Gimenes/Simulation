@@ -47,9 +47,63 @@ inexistentes (`best_balance`, `best_matchup`) no help de 3 tools, linhas de uso
 **Artefatos regerados.** Todo o `results/` foi refeito com o código atual — os dois
 `multi_run` publicados nos artigos vinham de antes do commit `3e64bbd` (28/06), que
 mudou `MATCHUP_WR_CAP`, os bounds de dano, os danos canônicos e
-`DEFEND_DAMAGE_REDUCTION` de uma vez.
+`DEFEND_DAMAGE_REDUCTION` de uma vez. A bateria inteira levou 1h24.
 
-## 2. Aberto
+## 2. O que a bateria de 2026-09-10 deu
+
+> Resumo de leitura. **A fonte é o JSON**, indicada em cada bloco — não transcrever
+> daqui para o texto sem conferir no artefato. Foi exatamente uma cópia solta de números
+> (o `values.tex`) que ficou stale por dois meses.
+
+**Agregado de 10 execuções** — fonte `results/multi_run/multi_run_{ga,nsga2}.json`,
+sementes 42..51, reavaliadas sob a semente 9999 com 200 sims/matchup:
+
+| | AG escalar | NSGA-II (`best_dominance`) |
+|---|---|---|
+| `dominance_penalty` | 0,0664 ± 0,0261 | 0,1403 ± 0,0658 |
+| `drift_penalty` | 0,2669 ± 0,0149 | 0,2450 ± 0,0554 |
+| hard-counters por execução | 0,7 ± 0,9 | 2,7 ± 2,1 |
+| sementes que equilibram o roster | **60%** (6/10) | 20% (2/10) |
+| hipervolume | — | 1,8084 ± 0,0394 |
+| spacing | — | 0,0053 ± 0,0010 |
+
+Os 5 bonecos ficam com WR global em `[40%, 60%]` em **100% das sementes** nos dois
+algoritmos. O que separa os 60% dos 20% é o segundo predicado do roster equilibrado:
+ausência de hard-counter.
+
+**Comparação estatística** — fonte `results/multi_run/comparison_ga_vs_nsga2.json`:
+o AG escalar vence em `dominance_penalty` (mediana 0,066 vs 0,129; p_Holm = 0,018;
+Â₁₂ = 0,12, efeito grande) e em hard-counters por execução (0 vs 3; p_Holm = 0,049);
+**sem diferença significativa** em `drift_penalty` (p_Holm = 0,769) nem em bonecos em
+banda (p_Holm = 1,000). Ressalva obrigatória ao citar: o NSGA-II está representado pelo
+`best_dominance`, um **extremo** da fronteira — ver o item de comparável em
+[`REVIEW.md`](REVIEW.md).
+
+**Robustez fora do laço** — fonte `results/external_validation/*.json`, 10 condições
+novas (sementes 10000+) com 500 sims/matchup:
+
+| Indivíduo | dominance fora do laço | bonecos robustos | pares que tripam | veredito |
+|---|---|---|---|---|
+| melhor do AG (seed 42) | 0,0279 ± 0,0062 | 5/5 | 0/10 | **ROBUSTO** |
+| NSGA-II `best_dominance` | 0,1148 ± 0,0074 | 5/5 | 1/10 | frágil |
+| NSGA-II `knee_point` | 0,3443 ± 0,0075 | 5/5 | 7/10 | frágil |
+| canônico (baseline) | 1,4162 ± 0,0016 | 1/5 | 10/10 | frágil |
+
+O melhor do AG dava `dominance = 0,0076` **dentro** do laço e 0,0279 fora: degrada 3,7×,
+o que confirma algum ajuste à realização do RNG fixada pelo CRN — declarar isso, e
+reportar sempre o número de fora. O equilíbrio em si sobrevive.
+
+O canônico reproduz o baseline citado nos artigos (Rushdown 100%, Turtle 0,1%,
+10/10 hard-counters), e o `external_validation_nsga2_best_dominance.json` saiu
+**byte a byte idêntico** ao que já estava commitado — sinal limpo de reprodutibilidade.
+
+**Sensibilidade** — fonte `results/sensitivity/sensitivity_analysis.json`: só
+`attack_cooldown` (5,6%) passa do piso de ruído (1,8%); os outros 6 atributos saem
+"neutros". **Não citar esse número como está** — a medição roda no canônico saturado e o
+resultado é efeito de teto, não neutralidade de gene (item aberto em
+[`REVIEW.md`](REVIEW.md) §4).
+
+## 3. Aberto
 
 ### 🔴 Redação (decisão: recomeçar do zero)
 
