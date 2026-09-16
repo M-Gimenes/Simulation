@@ -246,7 +246,7 @@ construir mais ferramentas.** Decisão tomada:
 - **1.1 (parte estatística) — teste não-paramétrico** (`src/tools/compare_algorithms.py`):
   fecha o item que faltava do 1.1. Sobre as amostras por semente do `multi_run`, aplica
   **Mann-Whitney U** bicaudal + tamanho de efeito **Â₁₂ de Vargha-Delaney** + correção
-  de **Holm-Bonferroni** nas 4 métricas comparadas. Antes, AG e NSGA-II eram agregados
+  de **Holm-Bonferroni** na família de métricas comparadas. Antes, AG e NSGA-II eram agregados
   lado a lado mas nunca comparados formalmente — "média X < média Y" não é resultado
   sem teste. → Metodologia (procedimento de comparação) + Resultados (AG escalar vs
   NSGA-II com p e efeito, não só médias).

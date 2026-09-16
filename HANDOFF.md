@@ -2,8 +2,8 @@
 
 Este arquivo é o retrato do **agora**. O histórico (levantamento de 2026-09-09, rodada
 de metodologia, auditoria de coerência e reforma do combate de 2026-09-10) está no git;
-o que segue é o estado depois de fechar os **passos 2 a 7 da ordem** — itens A, B, E, C, H, R
-e a **bateria completa**, com `results/` regenerado.
+o que segue é o estado depois de fechar os **passos 2 a 8 da ordem** — itens A, B, E, C,
+H, R, a **bateria completa** com `results/` regenerado, e o **item F** (família de Holm).
 
 - Pauta da auditoria, com o que foi verificado e o que segue aberto: [`REVIEW.md`](REVIEW.md).
 - **Ordem de execução do que falta:** [`REVIEW.md` §8](REVIEW.md).
@@ -19,8 +19,11 @@ e a **bateria completa**, com `results/` regenerado.
    não tem `numpy`/`numba`/`scipy`. Rode `setup.ps1` antes de qualquer coisa.
 2. **`results/` está ATUAL** — bateria completa de 2026-09-16, sob o motor e o fitness
    de hoje. É a primeira vez desde 2026-09-10 que os artefatos podem ser citados. Mas
-   veja o item 3: eles congelam por omissão sete constantes ainda provisórias.
-3. **O próximo passo não é um item da ordem — é a agenda de calibração
+   veja o item 4: eles congelam por omissão sete constantes ainda provisórias.
+3. **O passo 8 (item F) fechou** — a família de Holm do `compare_algorithms` foi
+   corrigida e o tool re-rodado sobre os artefatos existentes. Não regenerou nada: o
+   `comparison_ga_vs_nsga2.json` é o único arquivo que mudou. Detalhe em §1b.
+4. **O próximo passo não é um item da ordem — é a agenda de calibração
    ([`REVIEW.md` §9](REVIEW.md)):** sete constantes ainda rotuladas "provisório", agora
    com a evidência que a bateria produziu. Todas mudam número, então fechar qualquer uma
    obriga a regenerar `results/` de novo. Resumo em §3.
@@ -348,6 +351,56 @@ Custo medido da mudança: 1 geração ≈ 1,18s na config real (pop 300, 150 sim
 então uma execução do AG ≈ 3 min, do NSGA-II ≈ 6 min, e a bateria de 10 sementes × 2
 algoritmos ≈ 90 min.
 
+## 1b. Passo 8 — item (F): a família de Holm estava inflada
+
+`n_chars_balanced` dá **5/5 nas 20 execuções** (10 por algoritmo). Amostra conjunta
+constante ⇒ `mannwhitneyu` devolve `p = nan`, porque a correção de empates zera o
+denominador. Isso não é um teste — mas entrava na família de Holm como se fosse, e o
+multiplicador virava **4 em vez de 3**. Cada métrica na família **encarece todas as
+outras**; uma sem variação cobra pedágio sem contrapartida.
+
+Segundo defeito, silencioso: `_holm` ordenava os p-valores com um `nan` dentro. Toda
+comparação com `nan` é falsa, então a posição dele dependia do algoritmo de ordenação —
+saía certo por sorte.
+
+**Correção.** `_is_degenerate` monta a família pela variância da amostra **conjunta**.
+O critério é objetivo e decidido pelos dados, então é declarável **antes** do teste —
+não é escolha de família feita depois de ver os p-valores, que seria o problema oposto.
+E é a amostra conjunta de propósito: `ga` constante em 5 contra `nsga2` constante em 3
+é a diferença mais forte possível, não degenerescência. A métrica excluída segue
+reportada como **descritiva**, com a nota do porquê; `family_size` e
+`excluded_from_family` vão gravados no artefato. `_holm` passou a **levantar
+`ValueError`** ao receber `nan` — o filtro a montante garante que nunca dispare.
+
+| família | `drift_penalty` (p bruto 0,0257 · Â₁₂ 0,80, efeito grande) |
+|---|---|
+| 4 métricas (antes) | 0,1030 |
+| **3 — a correta, hoje** | **0,0772** |
+| 2 (só os dois objetivos) | 0,0515 |
+
+**O achado NÃO virou significativo, e isso é o ponto.** Nem a família mínima possível
+chega lá: para em 0,0515, acima de α por 0,0015. Não havia prêmio em escolher a família
+menor, o que é exatamente o que torna o conserto defensável — é correção, não resultado.
+
+A leitura para a tese: **efeito grande (Â₁₂ = 0,80), direção consistente, não
+significativo a n = 10 sementes.** O que resolveria é poder amostral — item (7) da
+agenda de calibração, e ele é **aditivo**.
+
+> Correção de registro: o `REVIEW.md` §6 citava `n_hard_counters` saindo com
+> `p_Holm = 0,0495` ("significativo por 0,0005"). Era da bateria **anterior**. Na de
+> 2026-09-16 essa métrica dá `p = 0,968`, Â₁₂ = 0,49, desprezível. O texto foi
+> reescrito com os números de hoje.
+
+Cobertura nova: `src/tests/test_compare_algorithms.py` (**9º smoke test**) — o critério
+de degenerescência ser da amostra conjunta, o `nan` recusado em vez de ordenado por
+sorte, o custo de cada métrica na família, e o fato de que filtrar não fabrica
+significância.
+
+> **Nota de ambiente:** o `.venv` tinha `numpy`/`numba`/`matplotlib` mas **não**
+> `scipy`, que está pinado no `requirements.txt` e é o que o `compare_algorithms`
+> importa. Instalado nesta sessão (`scipy==1.18.1`). Se o ambiente for recriado, o
+> `setup.ps1` cobre.
+
 ## 2. A leitura macro do modelo — 4 eixos, 1 ainda incoerente
 
 | eixo | do que é feito | estado |
@@ -396,13 +449,13 @@ por omissão. O levantamento completo, com a evidência de cada uma, está em
    sensibilidade no evoluído põe `speed` e `stun` **abaixo** do piso medido.
 6. **Escala dos pesos comportamentais** — no Turtle, **55%** do drift de pesos mede algo
    que o simulador não enxerga (só a razão entre os pesos afeta o combate).
-7. **`MULTI_RUN_N_SEEDS = 10`** — e o item (F) está **apagando o único achado**: o
-   NSGA-II tem drift menor com efeito grande (Â₁₂ = 0,80, p bruto **0,026**), mas o Holm
-   sobre 4 métricas — duas sem informação nenhuma, uma delas com `p = nan` — leva isso a
-   0,103.
+7. **`MULTI_RUN_N_SEEDS = 10`** — com o (F) fechado, o único achado da bateria (NSGA-II
+   com drift menor, Â₁₂ = 0,80, p bruto **0,026**) melhorou para p_Holm **0,0772** e
+   **ainda não é significativo**. Mesmo a família mínima para em 0,0515. O gargalo é
+   poder amostral, e subir sementes é **aditivo**: as 10 atuais continuam valendo.
 
-**O item (F) não exige regenerar nada:** é consertar o `compare_algorithms` e re-rodá-lo,
-segundos. É o passo 8 da ordem e o de maior retorno imediato.
+O passo 8 (item **F**) está **fechado** — ver §1b. Não regenerou nada: só o
+`comparison_ga_vs_nsga2.json` mudou.
 
 ## 4. Itens menores ainda abertos
 

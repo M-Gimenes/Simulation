@@ -282,9 +282,25 @@ nada**: lê os dois artefatos do `multi_run` e aplica sobre as amostras por seme
 - **Â₁₂ de Vargha-Delaney** como tamanho de efeito — `P(execução do AG > execução do
   NSGA-II)`, com 0.5 = sem efeito. Um p pequeno diz que a diferença existe; o Â₁₂ diz
   se ela é grande o bastante para importar;
-- **Holm-Bonferroni** sobre as 4 métricas testadas (`dominance_penalty`,
-  `drift_penalty`, hard-counters por execução, bonecos em banda por execução) — sem
-  correção, 4 testes a α=0.05 inflam a chance de falso positivo.
+- **Holm-Bonferroni** sobre a **família** de métricas testadas — sem correção, k
+  testes a α=0.05 inflam a chance de falso positivo. A família é montada por
+  `_is_degenerate`: entram as métricas cuja amostra **conjunta** (2·n execuções)
+  varia; ficam de fora as constantes, onde Mann-Whitney é indefinido (`nan`, porque a
+  correção de empates zera o denominador). O critério é da amostra conjunta, não de
+  cada uma — `ga` constante em 5 contra `nsga2` constante em 3 é a diferença mais
+  forte possível, não degenerescência. Sendo objetivo e decidido pelos dados, vale
+  como regra declarada **antes** do teste: não é escolha de família feita depois de
+  ver os p-valores. A métrica excluída segue na tabela como descritiva, e
+  `family_size` / `excluded_from_family` vão gravados no artefato.
+
+  Isso importa porque cada métrica na família **encarece todas as outras**: uma sem
+  variação não é teste, mas cobra pedágio. Medido na bateria de 2026-09-16, o mesmo
+  p bruto de `drift_penalty` (0,0257) sai 0,1030 numa família de 4 · **0,0772** na de
+  3 (a correta, hoje) · 0,0515 na de 2.
+
+> Para o **porquê** de cada peça — o que a correção de Holm resolve, como o
+> procedimento funciona passo a passo e como ler o resultado — ver
+> [12-statistical-testing.md](12-statistical-testing.md).
 
 Além dos testes, imprime e grava a **decomposição do `dominance_penalty`**: mediana
 dos três termos lado a lado, com o peso de cada um. É **descritiva** e fica

@@ -19,6 +19,10 @@
   "validation_seed": 9999,
   "sims_per_matchup": 200,
   "nsga2_representative": "best_dominance",
+  "family_size": 3,
+  "excluded_from_family": [
+    "n_chars_balanced"
+  ],
   "metrics": [
     {
       "metric": "dominance_penalty",
@@ -30,7 +34,8 @@
       "p_value": 0.3074894566186813,
       "a12_ga_vs_nsga2": 0.64,
       "better": "nsga2",
-      "p_holm": 0.922468369856044,
+      "degenerate": false,
+      "p_holm": 0.6149789132373626,
       "significant": false,
       "effect_magnitude": "médio"
     },
@@ -44,7 +49,8 @@
       "p_value": 0.025748080821108063,
       "a12_ga_vs_nsga2": 0.8,
       "better": "nsga2",
-      "p_holm": 0.10299232328443225,
+      "degenerate": false,
+      "p_holm": 0.07724424246332419,
       "significant": false,
       "effect_magnitude": "grande"
     },
@@ -58,7 +64,8 @@
       "p_value": 0.9682596548128651,
       "a12_ga_vs_nsga2": 0.49,
       "better": "nsga2",
-      "p_holm": 1.0,
+      "degenerate": false,
+      "p_holm": 0.9682596548128651,
       "significant": false,
       "effect_magnitude": "desprezível"
     },
@@ -68,13 +75,14 @@
       "better_is": "higher",
       "median_ga": 5.0,
       "median_nsga2": 5.0,
-      "u_statistic": 50.0,
-      "p_value": NaN,
+      "u_statistic": null,
+      "p_value": null,
       "a12_ga_vs_nsga2": 0.5,
       "better": "empate",
-      "p_holm": 1.0,
-      "significant": false,
-      "effect_magnitude": "desprezível"
+      "degenerate": true,
+      "effect_magnitude": "desprezível",
+      "p_holm": null,
+      "significant": false
     }
   ],
   "dominance_decomposition": {

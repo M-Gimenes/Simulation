@@ -12,8 +12,10 @@ para comparação de algoritmos estocásticos (Derrac et al. 2011; Arcuri & Bria
     exato), e a única válida para as métricas inteiras, que empatam muito;
   • **Â₁₂ de Vargha-Delaney** — tamanho de efeito: probabilidade de uma execução
     do AG produzir valor maior que uma execução do NSGA-II (0.5 = sem efeito);
-  • **correção de Holm-Bonferroni** sobre as métricas testadas — sem ela, testar
-    4 métricas a α=0.05 infla a chance de um falso positivo.
+  • **correção de Holm-Bonferroni** sobre a família de métricas testadas — sem
+    ela, testar k métricas a α=0.05 infla a chance de um falso positivo. A
+    família exclui métricas **degeneradas** (amostra conjunta sem variação): elas
+    não são teste, e deixá-las dentro encareceria as demais de graça.
 
 Não roda nada: lê os dois artefatos do `multi_run`. Se eles não compartilham
 sementes, semente de validação e sims/matchup, a comparação não é pareada em
@@ -111,8 +113,30 @@ def _effect_magnitude(a12: float) -> str:
     return "grande"
 
 
+def _is_degenerate(sample_ga: List[float], sample_nsga2: List[float]) -> bool:
+    """Amostra **conjunta** sem variação alguma — as 2·n execuções deram o mesmo
+    valor. Mann-Whitney é indefinido aí (devolve `nan`, porque a correção de
+    empates zera o denominador): não existe teste a corrigir, e manter a métrica
+    na família de Holm encareceria as outras sem contrapartida.
+
+    O critério é a amostra conjunta, não cada uma: `ga` constante em 5 contra
+    `nsga2` constante em 3 é a diferença mais forte possível, não degenerescência.
+    Sendo objetivo e decidido pelos dados, vale como regra declarada antes do
+    teste — não é escolha de família feita depois de ver os p-valores."""
+    return len(set(sample_ga + sample_nsga2)) == 1
+
+
 def _holm(p_values: List[float]) -> List[float]:
-    """p ajustado por Holm-Bonferroni, preservando a ordem de entrada."""
+    """p ajustado por Holm-Bonferroni, preservando a ordem de entrada.
+
+    Exige p-valores válidos: um `nan` aqui corrompe a ordenação **em silêncio**,
+    porque toda comparação com `nan` é falsa e a posição dele passa a depender do
+    algoritmo de ordenação. Métricas degeneradas têm de ser filtradas antes."""
+    if any(p != p for p in p_values):
+        raise ValueError(
+            "_holm recebeu `nan` — filtre as métricas degeneradas com "
+            "`_is_degenerate` antes de montar a família."
+        )
     n = len(p_values)
     order = sorted(range(n), key=lambda i: p_values[i])
     adjusted = [0.0] * n
@@ -131,9 +155,13 @@ def compare(ga: dict, nsga2: dict) -> dict:
     for key, label, direction in METRICS:
         sample_ga = _samples(ga, key)
         sample_nsga2 = _samples(nsga2, key)
-        statistic, p_value = mannwhitneyu(
-            sample_ga, sample_nsga2, alternative="two-sided", method="auto"
-        )
+        degenerate = _is_degenerate(sample_ga, sample_nsga2)
+        if degenerate:
+            statistic = p_value = None
+        else:
+            statistic, p_value = mannwhitneyu(
+                sample_ga, sample_nsga2, alternative="two-sided", method="auto"
+            )
         median_ga, median_nsga2 = _median(sample_ga), _median(sample_nsga2)
 
         if median_ga == median_nsga2:
@@ -149,16 +177,22 @@ def compare(ga: dict, nsga2: dict) -> dict:
             "better_is": direction,
             "median_ga": median_ga,
             "median_nsga2": median_nsga2,
-            "u_statistic": float(statistic),
-            "p_value": float(p_value),
+            "u_statistic": None if degenerate else float(statistic),
+            "p_value": None if degenerate else float(p_value),
             "a12_ga_vs_nsga2": _a12(sample_ga, sample_nsga2),
             "better": better,
+            "degenerate": degenerate,
         })
 
-    for test, p_adjusted in zip(tests, _holm([t["p_value"] for t in tests])):
+    family = [t for t in tests if not t["degenerate"]]
+    for test, p_adjusted in zip(family, _holm([t["p_value"] for t in family])):
         test["p_holm"] = p_adjusted
         test["significant"] = p_adjusted < ALPHA
+    for test in tests:
         test["effect_magnitude"] = _effect_magnitude(test["a12_ga_vs_nsga2"])
+        if test["degenerate"]:
+            test["p_holm"] = None
+            test["significant"] = False
 
     return {
         "test": "Mann-Whitney U (bicaudal)",
@@ -170,6 +204,8 @@ def compare(ga: dict, nsga2: dict) -> dict:
         "validation_seed": ga["validation_seed"],
         "sims_per_matchup": ga["sims_per_matchup"],
         "nsga2_representative": nsga2.get("nsga2_representative"),
+        "family_size": len(family),
+        "excluded_from_family": [t["metric"] for t in tests if t["degenerate"]],
         "metrics": tests,
         "dominance_decomposition": _decomposition(ga, nsga2),
     }
@@ -201,19 +237,23 @@ def print_report(result: dict) -> None:
           f"{result['validation_seed']} com {result['sims_per_matchup']} sims/matchup")
     print(f"  NSGA-II representado por: {result['nsga2_representative']}")
     print(f"  {result['test']} + {result['effect_size']} + {result['correction']} "
-          f"(alfa={result['alpha']})")
+          f"(alfa={result['alpha']}, família de {result['family_size']})")
     print("=" * 78)
     print(f"  {'métrica':<32}{'mediana AG':>12}{'mediana NSGA2':>15}"
           f"{'p (Holm)':>11}{'A12':>8}")
     print("  " + "-" * 76)
     for test in result["metrics"]:
+        p_holm = "—" if test["degenerate"] else f"{test['p_holm']:.4f}"
         print(f"  {test['label']:<32}{test['median_ga']:>12.4f}"
-              f"{test['median_nsga2']:>15.4f}{test['p_holm']:>11.4f}"
+              f"{test['median_nsga2']:>15.4f}{p_holm:>11}"
               f"{test['a12_ga_vs_nsga2']:>8.2f}")
     print("  " + "-" * 76)
     print("")
     for test in result["metrics"]:
-        if test["significant"]:
+        if test["degenerate"]:
+            verdict = ("amostra conjunta constante — Mann-Whitney indefinido; "
+                       "fora da família")
+        elif test["significant"]:
             winner = "AG escalar" if test["better"] == "ga" else "NSGA-II"
             verdict = (f"diferença significativa — {winner} melhor "
                        f"(efeito {test['effect_magnitude']})")
@@ -224,6 +264,13 @@ def print_report(result: dict) -> None:
     print("")
     print("    A12 = P(uma execução do AG dar valor MAIOR que uma do NSGA-II); "
           "0.5 = sem efeito.")
+    excluded = result["excluded_from_family"]
+    if excluded:
+        plural = "s" if len(excluded) > 1 else ""
+        print(f"    Fora da família de Holm (sem variação nas 2×{n} execuções, logo "
+              f"sem teste a corrigir):")
+        print(f"      {', '.join(excluded)} — segue{plural} acima "
+              f"como descritiva{plural}.")
     print("")
     print("  Decomposição do dominance_penalty (descritiva — não entra na bateria "
           "de testes):")

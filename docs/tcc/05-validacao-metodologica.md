@@ -64,9 +64,13 @@ ferramenta está em [`../reference/08-tools.md`](../reference/08-tools.md).
 - **Como** (`compare_algorithms`): sobre as amostras por semente já gravadas,
   **Mann-Whitney U** bicaudal (não-paramétrico, não assume normalidade) +
   **Â₁₂ de Vargha-Delaney** (tamanho de efeito — o `p` diz se a diferença existe, o Â₁₂
-  diz se ela importa) + **Holm-Bonferroni** nas 4 métricas comparadas. Fontes: Derrac
+  diz se ela importa) + **Holm-Bonferroni** na família de métricas comparadas —
+  hoje 3, porque "bonecos em banda" dá 5/5 nas 20 execuções e Mann-Whitney é
+  indefinido em amostra conjunta constante. Fontes: Derrac
   et al. 2011; Arcuri & Briand 2011; Vargha & Delaney 2000 (limiares do Â₁₂).
   **Nenhuma das três está em `bibliografia.bib` ainda** — adicionar ao redigir.
+  Explicação do aparato, do zero:
+  [`../reference/12-statistical-testing.md`](../reference/12-statistical-testing.md).
 - **Para que serve na tese:** é o que separa "o AG escalar deu média menor" de "o AG
   escalar é melhor nessa métrica". Ressalva a declarar: o NSGA-II devolve uma
   fronteira, então a comparação depende de **qual ponto** a representa — o artefato

@@ -78,7 +78,7 @@ achados de seed única (ex.: um par travado) como estruturais ou amostrais.
 As duas tabelas do `multi_run` colocam os algoritmos lado a lado, mas "média X <
 média Y" não é resultado: com 10 execuções por algoritmo, a diferença pode ser
 amostragem. O `compare_algorithms` fecha isso — **Mann-Whitney U** bicaudal,
-**Â₁₂ de Vargha-Delaney** (tamanho de efeito) e **Holm-Bonferroni** (4 métricas
+**Â₁₂ de Vargha-Delaney** (tamanho de efeito) e **Holm-Bonferroni** (3 métricas
 testadas), sobre as mesmas sementes reavaliadas sob a mesma condição de validação.
 
 O que reportar: por métrica, mediana de cada algoritmo, `p` corrigido e Â₁₂ — e a

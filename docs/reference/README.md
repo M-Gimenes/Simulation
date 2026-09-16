@@ -20,6 +20,7 @@ tese fica em [`../tcc/`](../tcc/README.md).
 | [09-reproducibility.md](09-reproducibility.md) | Execução, ambiente e reprodutibilidade (seeds) |
 | [10-known-issues.md](10-known-issues.md) | Pontos em aberto: calibração pendente, limites estruturais do método, estado dos artefatos |
 | [11-combat-review.md](11-combat-review.md) | Revisão da representação do combate e veredito |
+| [12-statistical-testing.md](12-statistical-testing.md) | Didático: Mann-Whitney, Â₁₂ e a correção de Holm-Bonferroni |
 
 ## Convenção
 

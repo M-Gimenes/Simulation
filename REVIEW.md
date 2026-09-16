@@ -32,7 +32,7 @@ etapa onde está detalhado.
 | **B** | "O AG vence em `dominance_penalty`" não é "o AG equilibra melhor" — a diferença está no **piso de decisividade**, e o NSGA-II é melhor no termo primário | §4 | ✅ resolvido 2026-09-16 (piso rebaixado + decomposição reportada) |
 | **C** | O ponto do AG escalar **não está** na fronteira do NSGA-II: ele a **domina**, justamente no representante usado em toda a comparação | §5 | ✅ resolvido 2026-09-16 (causa: seed canônico imortal no NSGA-II; a dominância some ao removê-lo) |
 | **E** | O gate de convergência é inalcançável **por construção** (o termo é quantizado), não só na prática | §4 | ✅ resolvido 2026-09-16 (gate = o próprio critério; confirmação em stream independente) |
-| **F** | Holm roda sobre 4 métricas, uma delas degenerada (`p = nan`) — infla a correção nas outras três | §6 | aberto |
+| **F** | Holm roda sobre 4 métricas, uma delas degenerada (`p = nan`) — infla a correção nas outras três | §6 | ✅ resolvido 2026-09-16 (família por variância da amostra conjunta; `_holm` recusa `nan`) |
 | **G** | A sensibilidade usa dois critérios de corte incompatíveis na mesma saída, e o piso de ruído está subdimensionado | §4 | ✅ resolvido 2026-09-16 (piso medido, critério único, `--evolved`) |
 | **H** | O ciclo canônico não é realizado nem pelo próprio canônico (5/10 = nível de acaso) — o baseline não distingue preservação de sorte | §3 | ✅ resolvido 2026-09-16 (o problema era geral: **nenhuma** métrica tinha piso) |
 | **R** | **Eixo Recurso sem counter:** DEFEND não tem custo nem quebra de guarda, e o grab ausente é ao mesmo tempo a identidade do Grappler e uma aresta do ciclo | §2 | ✅ resolvido 2026-09-16 (`grab_power`, 8º atributo) |
@@ -728,15 +728,39 @@ corrigidos; o quadro macro do modelo ficou registrado abaixo.
 - [ ] **10 sementes é suficiente?** `MULTI_RUN_N_SEEDS = 10`. Com Mann-Whitney e n=10 o
   SciPy usa a aproximação assintótica (conservadora). *Pergunta:* subir para 20-30
   mudaria as conclusões, e o custo é aceitável (~3,8 min por execução)?
-- [ ] **🟡 (F) Holm roda sobre 4 métricas, uma delas degenerada.** *Fato novo:*
-  `n_chars_balanced` é **5/5 nas 20 execuções** (10 por algoritmo) — amostras idênticas,
-  e `mannwhitneyu` devolve `p = nan`. Esse "teste" entra na família de Holm como se fosse
-  um, e o multiplicador vira **4 em vez de 3**. Efeito concreto: `n_hard_counters` sai
-  com `p_Holm = 0,0495` — significativo por 0,0005; com a família correta de 3 métricas
-  seria **0,033**. Além disso `_holm` ordena os p-valores com um `nan` dentro;
-  comparações com `nan` são sempre falsas, então a ordenação só saiu certa por sorte do
-  algoritmo de ordenação. *Pergunta:* descartar métricas degeneradas da família (e do
-  relatório) antes de aplicar Holm, e tratar `nan` explicitamente.
+- [x] **(F) Holm rodava sobre 4 métricas, uma delas degenerada.** *Fato:*
+  `n_chars_balanced` é **5/5 nas 20 execuções** (10 por algoritmo) — amostra conjunta
+  constante, e `mannwhitneyu` devolve `p = nan` porque a correção de empates zera o
+  denominador. Esse "teste" entrava na família de Holm como se fosse um, e o
+  multiplicador virava **4 em vez de 3**. Além disso `_holm` ordenava os p-valores com um
+  `nan` dentro; comparações com `nan` são sempre falsas, então a ordenação só saía certa
+  por sorte do algoritmo de ordenação.
+
+  **Corrigido em 2026-09-16.** `_is_degenerate` monta a família pela variância da
+  amostra **conjunta** — critério objetivo, decidido pelos dados, declarável antes do
+  teste (não é escolha de família feita depois de ver os p-valores). Note que é a
+  conjunta: `ga` constante em 5 contra `nsga2` constante em 3 é a diferença mais forte
+  possível, não degenerescência. A métrica excluída segue reportada como **descritiva**,
+  com a nota do porquê, e `family_size` / `excluded_from_family` vão no artefato.
+  `_holm` passou a **levantar `ValueError`** ao receber `nan`, em vez de ordenar por
+  sorte — o filtro a montante garante que nunca dispare. Cobertura em
+  `src/tests/test_compare_algorithms.py` (9º smoke test).
+
+  *Efeito medido na bateria de 2026-09-16* (o número de `n_hard_counters` citado antes
+  era da bateria anterior; hoje essa métrica sai com `p = 0,968`, Â₁₂ = 0,49,
+  desprezível). O que a família inflada apagava é o **drift**:
+
+  | família | `drift_penalty` (p bruto 0,0257 · Â₁₂ 0,80, efeito grande) |
+  |---|---|
+  | 4 métricas (antes) | 0,1030 |
+  | **3 — a correta** | **0,0772** |
+  | 2 (só os dois objetivos) | 0,0515 |
+
+  **Nenhuma família torna o achado significativo** — nem a mínima, que para em 0,0515,
+  acima de α por 0,0015. Isso é o que garante que o conserto é de **correção** e não de
+  resultado: não havia prêmio em escolher a família menor. A leitura honesta segue
+  sendo *efeito grande, direção consistente, não significativo a n = 10*. O que
+  resolveria é poder amostral — item (7) da §9, aditivo.
 - [ ] **Referências de estatística fora do `.bib`.** Derrac et al. 2011, Arcuri & Briand
   2011 e Vargha & Delaney 2000 são citadas nos docs e no código, mas **não estão** em
   `overleaf/TCC/bibliografia.bib`.
@@ -808,8 +832,8 @@ tudo o que muda número tem de ser resolvido **antes** de uma única regeneraç�
 | 5 | **H** — modelos nulos (era "recalibrar canônicos p/ o ciclo existir") | o ciclo não podia ser evidência; o que faltava era piso em toda métrica | ✅ 2026-09-16 |
 | 6 | **R** — guard break / grab | decisão registrada: só depois de A–C | ✅ 2026-09-16 |
 | 7 | **bateria completa** — regenerar `results/` | um corte único, com tudo estabilizado | ✅ 2026-09-16 |
-| 8 | **F**, ~~**G**~~ | camada de análise: não exigem re-rodar o AG. **G** ✅ 2026-09-16; falta **F** | **próximo** |
-| 9 | **§7 menores** + docs + `values.tex` | limpeza e sincronização final | |
+| 8 | **F**, **G** | camada de análise: não exigem re-rodar o AG | ✅ 2026-09-16 |
+| 9 | **§7 menores** + docs + `values.tex` | limpeza e sincronização final | **próximo** |
 
 > Fechado o passo 7, a decisão seguinte não é um item desta tabela e sim a
 > **[agenda de calibração (§9)](#9-agenda-de-calibração--as-constantes-provisórias-com-evidência)**:
@@ -924,23 +948,24 @@ o drift dos pesos sobre a razão, ou declarar a limitação explicitamente.
 
 **Evidência do teste:**
 
-| métrica | p bruto | p Holm | Â₁₂ | efeito |
+| métrica | p bruto | p Holm (família 3) | Â₁₂ | efeito |
 |---|---|---|---|---|
-| `dominance_penalty` | 0,3075 | 0,9225 | 0,64 | médio |
-| `drift_penalty` | **0,0257** | **0,1030** | **0,80** | **grande** |
-| hard-counters/execução | 0,9683 | 1,0000 | 0,49 | desprezível |
-| bonecos em banda/execução | **nan** | 1,0000 | 0,50 | desprezível |
+| `dominance_penalty` | 0,3075 | 0,6150 | 0,64 | médio |
+| `drift_penalty` | **0,0257** | **0,0772** | **0,80** | **grande** |
+| hard-counters/execução | 0,9683 | 0,9683 | 0,49 | desprezível |
+| bonecos em banda/execução | — | — (fora da família) | 0,50 | desprezível |
 
-*Leitura, em duas partes:*
-- **(F) não é teórico.** A única diferença real da bateria — o NSGA-II tem drift menor,
-  efeito **grande** (Â₁₂ = 0,80), p bruto **0,026** — é apagada pelo Holm aplicado sobre
-  quatro métricas das quais **duas não carregam informação** ("bonecos em banda" deu
-  `p = nan` porque os 10 seeds dão 5/5 nos dois algoritmos). Corrigir F **não exige
-  re-rodar a bateria**: é re-rodar o `compare_algorithms`, segundos.
-- **Poder amostral.** Com n = 10 × 10 e correção sobre 4 métricas, um efeito grande não
-  alcança significância. *Decidir:* subir `MULTI_RUN_N_SEEDS` (aditivo — as 10 sementes
-  atuais continuam valendo, só se acrescentam novas) e/ou reduzir a família de testes
-  para as métricas que carregam informação.
+*Leitura, depois de fechado o (F):* a única diferença real da bateria — o NSGA-II tem
+drift menor, efeito **grande** (Â₁₂ = 0,80), p bruto **0,026** — melhorou de 0,1030 para
+**0,0772** com a família correta, mas **segue não significativa**. E não é questão de
+apertar mais a família: mesmo a mínima possível (2 métricas, só os dois objetivos do
+Pareto) para em **0,0515**, acima de α por 0,0015. O gargalo é **poder amostral**, não
+correção.
+
+*Decidir:* subir `MULTI_RUN_N_SEEDS`. É **aditivo** — as 10 sementes atuais continuam
+valendo, só se acrescentam novas — e é o único caminho que pode levar esse achado à
+significância. Com n = 10 × 10 e correção sobre 3 métricas, um efeito grande não
+alcança α.
 
 ### O que NÃO exige regenerar a bateria
 
