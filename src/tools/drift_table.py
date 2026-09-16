@@ -2,11 +2,12 @@
 Tabela de drift — decompõe o `drift_penalty` por personagem e por gene.
 
 Para cada personagem mostra, gene a gene, o valor canônico vs o evoluído, o Δ
-absoluto e o Δ normalizado. A normalização é a **mesma do fitness**: atributos
-divididos pelo máximo do bound, pesos crus (já em [0, 1]). O desvio por
-personagem (`deviation_i`) é obtido de `fitness._archetype_deviation` — portanto
-idêntico ao que entra no `drift_penalty` — e a média dos 5 é o próprio
-`drift_penalty`.
+absoluto, o Δ normalizado e o peso do gene no drift. A normalização é a **mesma do
+fitness** (`fitness.gene_drift`): fração do range do bound, `(x − lo) / (hi − lo)`.
+Genes marcados com ★ são os `defining_genes` do arquétipo e pesam
+`DRIFT_DEFINING_WEIGHT`× no desvio. O desvio por personagem (`deviation_i`) vem de
+`fitness._archetype_deviation` — portanto idêntico ao que entra no `drift_penalty`
+— e a média dos 5 é o próprio `drift_penalty`.
 
 Uso:
     py -m src.tools.drift_table              # canônico (sanity — drift ≈ 0)
@@ -21,12 +22,14 @@ import math
 from typing import List, Tuple
 
 from src.engine.archetypes import ARCHETYPE_ORDER, ARCHETYPES
-from src.engine.config import ATTRIBUTE_BOUNDS, ATTRIBUTE_NAMES, WEIGHT_NAMES
-from src.engine.fitness import _archetype_deviation  # single source do deviation_i
+from src.engine.config import GENE_BOUNDS, GENE_NAMES
+from src.engine.fitness import (  # single source do deviation_i e da normalização
+    _archetype_deviation,
+    canonical_genes,
+    drift_weights,
+    gene_drift,
+)
 from src.engine.individual import Individual
-
-# Mesma referência de normalização usada em fitness._archetype_deviation.
-_ATTR_MAXES: List[float] = [hi for _, hi in ATTRIBUTE_BOUNDS]
 
 
 def _load_individual(args: argparse.Namespace) -> Tuple[Individual, str]:
@@ -43,8 +46,8 @@ def _bar(v: float, w: int = 20, vmax: float = 0.5) -> str:
 
 
 def _norm_genes(char) -> List[float]:
-    """Vetor de genes normalizados (mesma convenção do drift: atributos /máx, pesos crus)."""
-    return [a / m for a, m in zip(char.attributes, _ATTR_MAXES)] + list(char.weights)
+    """Vetor de genes normalizados pelo range do bound — mesma convenção do drift."""
+    return [(g - lo) / (hi - lo) for g, (lo, hi) in zip(char.genes(), GENE_BOUNDS)]
 
 
 def _mean_pairwise_distance(ind: Individual) -> float:
@@ -67,7 +70,7 @@ def _build_argparser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--nsga2", metavar="REP", nargs="?", const="knee_point",
         help="Usa representante do NSGA-II "
-             "(knee_point|best_dominance|best_drift|ideal_point). Default: knee_point",
+             "(knee_point|best_dominance|best_drift|ideal_point|scalar_optimum). Default: knee_point",
     )
     return parser
 
@@ -75,27 +78,26 @@ def _build_argparser() -> argparse.ArgumentParser:
 def print_drift_report(ind: Individual, label: str) -> None:
     print("\n" + "═" * 72)
     print(f"  TABELA DE DRIFT — {label}")
-    print("  Δ norm: atributos por /máx do bound, pesos crus (idêntico ao drift_penalty)")
+    print("  Δ norm: fração do range do bound;  ★ = gene definidor (pesa mais no drift)")
     print("═" * 72)
 
     deviations: List[float] = []
     for aid in ARCHETYPE_ORDER:
-        char          = ind.get(aid)
-        canon_attrs   = list(char.archetype.initial_attributes)
-        canon_weights = list(char.archetype.initial_weights)
-        dev           = _archetype_deviation(char)
+        char    = ind.get(aid)
+        dev     = _archetype_deviation(char)
+        weights = drift_weights(char.archetype)
         deviations.append(dev)
 
         print(f"\n  {ARCHETYPES[aid].name}")
-        print(f"    {'gene':18}{'canônico':>10}{'evoluído':>10}{'Δ':>10}{'Δ norm':>9}")
-        print(f"    {'─' * 57}")
-        for name, c, e, m in zip(ATTRIBUTE_NAMES, canon_attrs, char.attributes, _ATTR_MAXES):
-            d = e - c
-            print(f"    {name:18}{c:>10.2f}{e:>10.2f}{d:>+10.2f}{d / m:>+9.3f}")
-        for name, c, e in zip(WEIGHT_NAMES, canon_weights, char.weights):
-            d = e - c
-            print(f"    {name:18}{c:>10.2f}{e:>10.2f}{d:>+10.2f}{d:>+9.3f}")
-        print(f"    {'─' * 57}")
+        print(f"    {'gene':18}{'canônico':>10}{'evoluído':>10}{'Δ':>10}{'Δ norm':>9}{'peso':>7}")
+        print(f"    {'─' * 64}")
+        for i, (name, c, e, w) in enumerate(
+            zip(GENE_NAMES, canonical_genes(char.archetype), char.genes(), weights)
+        ):
+            mark = "★" if name in char.archetype.defining_genes else " "
+            print(f"    {mark} {name:16}{c:>10.2f}{e:>10.2f}{e - c:>+10.2f}"
+                  f"{gene_drift(e, c, i):>+9.3f}{w:>7.1f}")
+        print(f"    {'─' * 64}")
         print(f"    desvio (deviation_i): {dev:.4f}")
 
     print("\n" + "═" * 72)

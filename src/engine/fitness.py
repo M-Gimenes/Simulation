@@ -6,6 +6,10 @@ Fitness do AG via round-robin completo (C(5,2)=10 matchups × SIMS_PER_MATCHUP).
 
 Os mesmos dois termos do NSGA-II — lá como objetivos de Pareto (sem ponderação),
 aqui como soma ponderada. O escalar é um ponto do trade-off que o NSGA-II mapeia.
+
+`drift_penalty` mede identidade ESTRUTURAL (os genes continuam reconhecíveis). A
+identidade FUNCIONAL — como o personagem joga — e o ciclo de vantagens ficam fora
+do fitness, como métricas post-hoc independentes.
 """
 
 from __future__ import annotations
@@ -17,11 +21,14 @@ from itertools import combinations
 from typing import Dict, List, Optional, Tuple
 
 from .combat import seed_combat, simulate_combat
+from .archetypes import ArchetypeDefinition, ArchetypeID
 from .config import (
-    ATTRIBUTE_BOUNDS,
     DOMINANCE_CAP_WEIGHT,
     DOMINANCE_DECIS_WEIGHT,
     DOMINANCE_GLOBAL_WEIGHT,
+    DRIFT_DEFINING_WEIGHT,
+    GENE_BOUNDS,
+    GENE_NAMES,
     GLOBAL_CONVERGENCE_THRESHOLD,
     LAMBDA_DOMINANCE,
     LAMBDA_DRIFT,
@@ -33,7 +40,8 @@ from .config import (
 )
 from .individual import Individual
 
-_ATTR_MAXES: List[float] = [hi for _, hi in ATTRIBUTE_BOUNDS]
+_GENE_RANGES: List[float] = [hi - lo for lo, hi in GENE_BOUNDS]
+_DRIFT_WEIGHTS: Dict[ArchetypeID, List[float]] = {}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -64,6 +72,31 @@ def get_seed_base() -> Optional[int]:
 
 
 @dataclass
+class DominanceTerms:
+    """Os três sinais que compõem o `dominance_penalty`, guardados separados.
+    O composto sozinho esconde de onde vem a diferença entre dois indivíduos —
+    um pode perder no termo primário e outro num secundário com metade do peso."""
+    global_term: float
+    cap_term:    float
+    decis_term:  float
+
+    @property
+    def total(self) -> float:
+        return (
+            DOMINANCE_GLOBAL_WEIGHT * self.global_term
+            + DOMINANCE_CAP_WEIGHT   * self.cap_term
+            + DOMINANCE_DECIS_WEIGHT * self.decis_term
+        )
+
+    def as_dict(self) -> Dict[str, float]:
+        return {
+            "global_term": self.global_term,
+            "cap_term":    self.cap_term,
+            "decis_term":  self.decis_term,
+        }
+
+
+@dataclass
 class FitnessDetail:
     fitness:                float
     winrates:               List[float]
@@ -73,6 +106,7 @@ class FitnessDetail:
     matchup_scores:         Dict[Tuple[int, int], float] = field(default_factory=dict)
     matchup_decisiveness:   Dict[Tuple[int, int], float] = field(default_factory=dict)
     dominance_penalty:      float = 0.0
+    dominance_terms:        Optional[DominanceTerms] = None
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -80,17 +114,44 @@ class FitnessDetail:
 # ─────────────────────────────────────────────────────────────────────────────
 
 
+def drift_weights(archetype: ArchetypeDefinition) -> List[float]:
+    """Peso de cada um dos 10 genes no drift do arquétipo: DRIFT_DEFINING_WEIGHT
+    para os `defining_genes`, 1.0 para o resto. Cacheado por arquétipo."""
+    cached = _DRIFT_WEIGHTS.get(archetype.id)
+    if cached is None:
+        defining = set(archetype.defining_genes)
+        cached = [
+            DRIFT_DEFINING_WEIGHT if name in defining else 1.0
+            for name in GENE_NAMES
+        ]
+        _DRIFT_WEIGHTS[archetype.id] = cached
+    return cached
+
+
+def canonical_genes(archetype: ArchetypeDefinition) -> List[float]:
+    """Os 10 genes canônicos na ordem de `Character.genes()`."""
+    return list(archetype.initial_attributes) + list(archetype.initial_weights)
+
+
+def gene_drift(value: float, canonical: float, gene_index: int) -> float:
+    """Desvio normalizado de um gene: fração do RANGE do bound, com sinal.
+    Normalizar por `(hi − lo)` e não por `hi` evita subestimar genes de `lo` alto
+    (HP vai de 250 a 450: mover 162 é 81% do range, não 36% do máximo)."""
+    return (value - canonical) / _GENE_RANGES[gene_index]
+
+
 def _archetype_deviation(char) -> float:
-    attr_sq = sum(
-        ((a - c) / m) ** 2
-        for a, c, m in zip(char.attributes, char.archetype.initial_attributes, _ATTR_MAXES)
-    )
-    weight_sq = sum(
-        (w - c) ** 2
-        for w, c in zip(char.weights, char.archetype.initial_weights)
-    )
-    n_genes = len(char.attributes) + len(char.weights)
-    return math.sqrt((attr_sq + weight_sq) / n_genes)
+    """Identidade ESTRUTURAL do personagem: RMS ponderada dos desvios normalizados
+    em relação ao canônico. Os `defining_genes` do arquétipo pesam mais — mover o
+    que torna o personagem reconhecível custa mais que mover o resto."""
+    weights = drift_weights(char.archetype)
+    num = 0.0
+    for i, (g, c, w) in enumerate(
+        zip(char.genes(), canonical_genes(char.archetype), weights)
+    ):
+        d = gene_drift(g, c, i)
+        num += w * d * d
+    return math.sqrt(num / sum(weights))
 
 
 def _fight_score(result, hp_max_i: float, hp_max_j: float) -> float:
@@ -113,8 +174,8 @@ def _dominance_penalty(
     winrates: List[float],
     matchup_winrates: Dict[Tuple[int, int], float],
     matchup_decisiveness: Dict[Tuple[int, int], float],
-) -> float:
-    """Soma ponderada de três sinais cegos à direção (formulação C2). Nenhum codifica
+) -> DominanceTerms:
+    """Três sinais cegos à direção (formulação C2). Nenhum codifica
     QUEM deveria vencer cada par — o ciclo de vantagens segue métrica post-hoc.
 
     PRIMÁRIO — balanço GLOBAL por personagem (`global_excess = |WR − 0.5| / 0.5`, RMS
@@ -124,8 +185,10 @@ def _dominance_penalty(
     MATCHUP_WR_CAP, RMS sobre os 10): mantém as arestas do ciclo como vantagens, não
     como counters esmagadores (ex.: 100×0).
     SECUNDÁRIO (qualidade) — decisividade por luta fora da banda
-    [MATCHUP_FLOOR, MATCHUP_THRESHOLD] (RMS sobre os 10): guarda contra blowout (toda
-    luta um massacre, mesmo com WR equilibrada)."""
+    [MATCHUP_FLOOR, MATCHUP_THRESHOLD] (RMS sobre os 10). O TETO guarda contra blowout
+    (toda luta um massacre, mesmo com WR equilibrada). O PISO é só guarda de
+    degenerescência — fica abaixo da faixa do espelho puro e não morde em operação
+    normal: empurrar contra luta apertada seria empurrar contra o termo primário."""
     global_excesses = [abs(wr - 0.5) / 0.5 for wr in winrates]
     global_term = math.sqrt(sum(e * e for e in global_excesses) / len(global_excesses))
 
@@ -143,11 +206,7 @@ def _dominance_penalty(
     cap_term   = math.sqrt(sum(e * e for e in cap_excesses) / len(cap_excesses))
     decis_term = math.sqrt(sum(e * e for e in decis_excesses) / len(decis_excesses))
 
-    return (
-        DOMINANCE_GLOBAL_WEIGHT * global_term
-        + DOMINANCE_CAP_WEIGHT   * cap_term
-        + DOMINANCE_DECIS_WEIGHT * decis_term
-    )
+    return DominanceTerms(global_term, cap_term, decis_term)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -167,6 +226,20 @@ def is_hard_counter(matchup_wr: float) -> bool:
     counter esmagador, não vantagem de ciclo. Dentro do teto, o par é uma aresta
     de ciclo permitida."""
     return abs(matchup_wr - 0.5) > MATCHUP_WR_CAP
+
+
+def roster_balanced(detail: "FitnessDetail") -> bool:
+    """Critério de equilíbrio C2 sobre UMA avaliação: nenhum boneco domina o roster
+    (WR global dentro de `GLOBAL_CONVERGENCE_THRESHOLD` de 50%) **e** nenhum par é
+    counter duro (`|WR_par − 0.5| ≤ MATCHUP_WR_CAP`). NÃO exige cada par a 50% —
+    arestas de ciclo são permitidas, e é justamente esse o espaço em que o ciclo vive.
+
+    É a definição de equilíbrio do projeto, em um lugar só: `ga.run` usa como gate de
+    convergência e como confirmação, e o `multi_run` como veredito por semente."""
+    return (
+        all(character_balanced(wr) for wr in detail.winrates)
+        and not any(is_hard_counter(wr) for wr in detail.matchup_winrates.values())
+    )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -239,7 +312,8 @@ def evaluate_detail_n(individual: Individual, sims: int) -> FitnessDetail:
 
     archetype_deviations = [_archetype_deviation(c) for c in chars]
     drift_penalty        = sum(archetype_deviations) / n
-    dominance_pen        = _dominance_penalty(winrates, matchup_winrates, matchup_decisiveness)
+    dominance_terms      = _dominance_penalty(winrates, matchup_winrates, matchup_decisiveness)
+    dominance_pen        = dominance_terms.total
 
     fitness = -(
         LAMBDA_DRIFT     * drift_penalty
@@ -255,6 +329,7 @@ def evaluate_detail_n(individual: Individual, sims: int) -> FitnessDetail:
         matchup_scores=matchup_scores,
         matchup_decisiveness=matchup_decisiveness,
         dominance_penalty=dominance_pen,
+        dominance_terms=dominance_terms,
     )
 
 

@@ -109,6 +109,7 @@ class CombatTrace:
     stun_applied:    np.ndarray  # (T, 2) float — sub-ticks de stun aplicados pelo atacante
     knockback_dealt: np.ndarray  # (T, 2) float — knockback aplicado pelo atacante
     forced_defend:   np.ndarray  # (T, 2) int   — 1 = DEFEND por encurralamento (RECUAR sem espaço)
+    guard_broken:    np.ndarray  # (T, 2) float — dano extra arrancado pela guarda do alvo (agarrão)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -256,10 +257,12 @@ def _simulate_combat_jit(
 ):
     a_hp_max = a_attrs[0]; a_dmg = a_attrs[1]; a_cd = a_attrs[2]
     a_range = a_attrs[3]; a_speed = a_attrs[4]; a_stun = a_attrs[5]; a_kb = a_attrs[6]
+    a_grab = a_attrs[7]
     a_wret = a_w[0]; a_wdef = a_w[1]; a_wagg = a_w[2]
 
     b_hp_max = b_attrs[0]; b_dmg = b_attrs[1]; b_cd = b_attrs[2]
     b_range = b_attrs[3]; b_speed = b_attrs[4]; b_stun = b_attrs[5]; b_kb = b_attrs[6]
+    b_grab = b_attrs[7]
     b_wret = b_w[0]; b_wdef = b_w[1]; b_wagg = b_w[2]
 
     hp_a = a_hp_max
@@ -324,7 +327,13 @@ def _simulate_combat_jit(
         if stance_a >= 0 and stance_a != 2 and cd_rem_a == 0 and distance <= a_range:
             dmg = a_dmg
             if stance_b == 2:
-                dmg *= defend_red
+                # AGARRÃO: contra alvo em guarda o multiplicador do dano é
+                # `defend_red + grab_power`. Em 0 a guarda dá a redução cheia (0.6×); no
+                # ponto neutro `1 − defend_red` (= 0.4) ela é anulada (1.0×); acima disso
+                # ela vira DESVANTAGEM — no teto, 1.6×. É o counter canônico ao bloqueio:
+                # contra um agarrador, defender é pior que não defender.
+                # Só existe contra quem ESTÁ defendendo — contra os demais, nada muda.
+                dmg *= defend_red + a_grab
             stun_t = a_stun * a_cd * tick_scale  # fração × cooldown em sub-ticks; < cooldown por bound
 
             hp_b = hp_b - dmg
@@ -344,7 +353,7 @@ def _simulate_combat_jit(
         if stance_b >= 0 and stance_b != 2 and cd_rem_b == 0 and distance <= b_range:
             dmg = b_dmg
             if stance_a == 2:
-                dmg *= defend_red
+                dmg *= defend_red + b_grab
             stun_t = b_stun * b_cd * tick_scale  # fração × cooldown em sub-ticks; < cooldown por bound
 
             hp_a = hp_a - dmg
@@ -392,10 +401,12 @@ def _simulate_combat_traced_jit(
 ):
     a_hp_max = a_attrs[0]; a_dmg = a_attrs[1]; a_cd = a_attrs[2]
     a_range = a_attrs[3]; a_speed = a_attrs[4]; a_stun = a_attrs[5]; a_kb = a_attrs[6]
+    a_grab = a_attrs[7]
     a_wret = a_w[0]; a_wdef = a_w[1]; a_wagg = a_w[2]
 
     b_hp_max = b_attrs[0]; b_dmg = b_attrs[1]; b_cd = b_attrs[2]
     b_range = b_attrs[3]; b_speed = b_attrs[4]; b_stun = b_attrs[5]; b_kb = b_attrs[6]
+    b_grab = b_attrs[7]
     b_wret = b_w[0]; b_wdef = b_w[1]; b_wagg = b_w[2]
 
     hp_a = a_hp_max
@@ -418,6 +429,7 @@ def _simulate_combat_traced_jit(
     stun_dealt   = np.zeros((max_ticks, 2), dtype=np.float64)
     kb_dealt     = np.zeros((max_ticks, 2), dtype=np.float64)
     forced_def   = np.zeros((max_ticks, 2), dtype=np.int64)  # 1 = DEFEND por encurralamento
+    guard_broken = np.zeros((max_ticks, 2), dtype=np.float64)  # dano extra pela guarda
 
     end_tick = max_ticks
 
@@ -454,8 +466,11 @@ def _simulate_combat_traced_jit(
 
         if stance_a >= 0 and stance_a != 2 and cd_rem_a == 0 and distance <= a_range:
             dmg = a_dmg
+            broke = 0.0
             if stance_b == 2:
-                dmg *= defend_red
+                guarded = a_dmg * defend_red
+                dmg     = a_dmg * (defend_red + a_grab)
+                broke   = dmg - guarded      # dano extra arrancado através da guarda
             stun_t = a_stun * a_cd * tick_scale
 
             hp_b = hp_b - dmg
@@ -475,11 +490,15 @@ def _simulate_combat_traced_jit(
             dmg_dealt[tick, 0]  = dmg
             stun_dealt[tick, 0] = applied
             kb_dealt[tick, 0]   = a_kb
+            guard_broken[tick, 0] = broke
 
         if stance_b >= 0 and stance_b != 2 and cd_rem_b == 0 and distance <= b_range:
             dmg = b_dmg
+            broke = 0.0
             if stance_a == 2:
-                dmg *= defend_red
+                guarded = b_dmg * defend_red
+                dmg     = b_dmg * (defend_red + b_grab)
+                broke   = dmg - guarded
             stun_t = b_stun * b_cd * tick_scale
 
             hp_a = hp_a - dmg
@@ -498,6 +517,7 @@ def _simulate_combat_traced_jit(
             attacked_arr[tick, 1] = 1
             dmg_dealt[tick, 1]  = dmg
             stun_dealt[tick, 1] = applied
+            guard_broken[tick, 1] = broke
             kb_dealt[tick, 1]   = b_kb
 
         # ── Decremento de timers stale ───────────────────────────────────────
@@ -532,6 +552,7 @@ def _simulate_combat_traced_jit(
         stun_dealt[:end_tick],
         kb_dealt[:end_tick],
         forced_def[:end_tick],
+        guard_broken[:end_tick],
     )
 
 
@@ -576,7 +597,8 @@ def simulate_combat(char_a: Character, char_b: Character) -> CombatResult:
 def simulate_combat_traced(char_a: Character, char_b: Character) -> CombatTrace:
     """Roda o combate registrando estado tick-a-tick. Mais lento que
     `simulate_combat` por causa das alocações de array — usar apenas em tools."""
-    winner, end_tick, ko, pos, hp, stance, attacked, cd, stun, dmg, stun_d, kb, forced = (
+    (winner, end_tick, ko, pos, hp, stance, attacked, cd, stun, dmg, stun_d, kb,
+     forced, guard_broken) = (
         _simulate_combat_traced_jit(
             np.asarray(char_a.attributes, dtype=np.float64),
             np.asarray(char_a.weights,    dtype=np.float64),
@@ -602,6 +624,7 @@ def simulate_combat_traced(char_a: Character, char_b: Character) -> CombatTrace:
         stun_applied=stun_d,
         knockback_dealt=kb,
         forced_defend=forced,
+        guard_broken=guard_broken,
     )
 
 

@@ -2,8 +2,11 @@
 NSGA-II — variante multi-objetivo do AG (Deb et al., 2002).
 
 Otimiza simultaneamente (dominance_penalty, drift_penalty) sem ponderação,
-produzindo Pareto front e extraindo 4 representantes (best_dominance,
-best_drift, knee_point, ideal_point).
+produzindo Pareto front e extraindo 5 representantes (best_dominance, best_drift,
+knee_point, ideal_point, scalar_optimum).
+
+A busca ignora os `LAMBDA_*` — eles entram **só** em `scalar_optimum`, que é um
+comparável de reporting: o ponto da fronteira que o AG escalar deveria ter encontrado.
 """
 from __future__ import annotations
 
@@ -20,7 +23,13 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
 from .combat import seed_combat
-from .config import N_WORKERS, NSGA2_GENERATIONS, NSGA2_POP_SIZE
+from .config import (
+    LAMBDA_DOMINANCE,
+    LAMBDA_DRIFT,
+    N_WORKERS,
+    NSGA2_GENERATIONS,
+    NSGA2_POP_SIZE,
+)
 from .fitness import evaluate_objectives, get_seed_base, set_seed_base
 from .individual import Individual
 from .operators import crossover, mutate, nsga2_binary_tournament
@@ -129,10 +138,23 @@ def _euclidean_norm(objs) -> float:
     return math.sqrt(sum(o * o for o in objs))
 
 
+def scalar_objective(objs) -> float:
+    """O objetivo do AG escalar aplicado a um ponto da fronteira:
+    `LAMBDA_DOMINANCE·dominance + LAMBDA_DRIFT·drift`. É a ÚNICA coisa no NSGA-II que
+    olha os `LAMBDA_*`, e é reporting, não busca — serve para extrair o ponto
+    comparável ao que o escalar otimiza."""
+    dominance, drift = objs
+    return LAMBDA_DOMINANCE * dominance + LAMBDA_DRIFT * drift
+
+
 def select_representatives(front: List[Individual]) -> dict:
+    """Cinco pontos que resumem a fronteira. Os quatro primeiros são geométricos
+    (extremos, joelho e mínima norma L2); `scalar_optimum` é o comparável do AG
+    escalar — ver `scalar_objective`."""
     best_dominance = _best_in(front, 0)
     best_drift     = _best_in(front, 1)
     ideal          = min(front, key=lambda ind: _euclidean_norm(ind.objectives))
+    scalar_opt     = min(front, key=lambda ind: scalar_objective(ind.objectives))
 
     p1        = best_dominance.objectives
     p2        = best_drift.objectives
@@ -154,6 +176,10 @@ def select_representatives(front: List[Individual]) -> dict:
         "best_drift":     best_drift,
         "knee_point":     knee,
         "ideal_point":    ideal,
+        # Comparável direto do AG escalar: o ponto da fronteira que minimiza a MESMA
+        # soma ponderada que o escalar otimiza. Sem ele a comparação entre os dois
+        # algoritmos usa `ideal_point`, que minimiza a norma L2 — outro ponto.
+        "scalar_optimum": scalar_opt,
     }
 
 
@@ -262,9 +288,19 @@ def run(
 
     t_start = time.time()
 
-    population = [Individual.from_canonical()] + [
-        Individual.random() for _ in range(pop_size - 1)
-    ]
+    # População inicial 100% ALEATÓRIA — sem o seed canônico que o AG escalar usa.
+    # Motivo: `drift = 0` é o mínimo global do objetivo e o canônico o atinge de graça
+    # na geração 0. Dominá-lo exigiria `drift < 0`, que não existe — então ele e sua
+    # vizinhança ficam IMORTAIS no rank 0 por pior que seja o equilíbrio deles. Medido
+    # (pop 120, 60 gerações, seed 42): 40 dos 78 pontos da fronteira final ficavam com
+    # `dominance >= 1.0` (tão desequilibrados quanto o canônico intocado), ocupando um
+    # terço da população e um terço do esforço reprodutivo; o min dominance estagnava em
+    # 0,2233. E o crowding não limpa: ele só poda quando um front TRANSBORDA a população,
+    # e front0 (78) nunca passou de 120. Sem o seed: min dominance 0,0896, ainda caindo
+    # na geração 50, e 1 de 44 pontos na região inútil.
+    # No AG escalar o mesmo seed AJUDA (fitness é um número só, ele é ruim nele e some
+    # depois de doar genes), então lá ele fica. A assimetria é deliberada.
+    population = [Individual.random() for _ in range(pop_size)]
     _evaluate_population(population)
     _assign_rank_and_crowding(population)
 

@@ -9,11 +9,19 @@ NSGA-II (`--nsga2 [rep]`).
 **Um comando** que compõe os tools de avaliação num relatório único: cabeçalho de
 fitness (fitness, drift_penalty, dominance_penalty) + matchups (equilíbrio) + drift
 de genes + diferenciação (homogeneização) + fingerprint (comportamento) + validador
-(estrutura). Não duplica lógica — chama as funções dos outros tools.
+(estrutura) + **modelos nulos** (piso, teto e posição de cada métrica). Não duplica
+lógica — chama as funções dos outros tools.
+
+A seção de modelos nulos vem por último de propósito: ela é o que dá sentido às
+anteriores. Valor cru de identidade não diz nada sem o piso, e os pisos deste projeto
+estão longe de zero. Os rosters de referência são **recalculados a cada execução**
+(~2s) e nunca lidos de cache — baseline silenciosamente obsoleto é exatamente o erro
+que o dossiê existe para evitar.
 
 ```bash
-py -m src.tools.report --evolved    # dossiê completo do melhor do AG
-py -m src.tools.report --nsga2 best_dominance
+py -m src.tools.report --evolved              # dossiê completo do melhor do AG
+py -m src.tools.report --nsga2 scalar_optimum
+py -m src.tools.report --evolved --n-random 20   # mais nulos = mais resolução no p
 ```
 
 Os tools abaixo continuam rodando isolados (pra quando você quer só um ângulo), e
@@ -51,8 +59,10 @@ headline **C2**):
 ## `drift_table`
 
 Decompõe o `drift_penalty` por personagem e por gene: canônico vs evoluído, Δ
-absoluto e Δ normalizado (mesma normalização do fitness — atributos por máximo do
-bound, pesos crus). O desvio por personagem (`deviation_i`) vem de
+absoluto, Δ normalizado e o **peso do gene no drift**. Mesma normalização do fitness
+(`fitness.gene_drift`): fração do range do bound, `(x − lo)/(hi − lo)`. Genes
+marcados com ★ são os `defining_genes` do arquétipo e pesam `DRIFT_DEFINING_WEIGHT`.
+O desvio por personagem (`deviation_i`) vem de
 `fitness._archetype_deviation`, então é idêntico ao que entra no `drift_penalty`;
 a média dos 5 é o próprio `drift_penalty`. Mostra **o preço pago** pela evolução —
 a visão que faltava do trade-off central da tese.
@@ -90,25 +100,85 @@ py -m src.tools.fingerprint --evolved    # evoluído vs canônico
 py -m src.tools.fingerprint --nsga2 knee_point
 ```
 
+## `baselines` — modelos nulos: o piso de cada métrica
+
+Toda métrica de identidade do projeto vinha sendo lida contra o **teto** (o canônico),
+como se o piso fosse zero. Nenhuma tem piso zero, e isso invalidava as leituras:
+
+| métrica | piso medido | teto | o que `8/21` parecia | o que era |
+|---|---|---|---|---|
+| validador (L1-L3) | **~6,8/21**, com nulo chegando a **12/21** | 21/21 | "38% preservado" | no acaso |
+| `drift_penalty` | **~0,33** (espelho) · ~0,41 (aleatório) | 0,000 | — | 0,04 separa "preservado" de aniquilado |
+| arestas do ciclo | **5/10** (cada aresta é cara-ou-coroa) | 10/10 | — | sem sinal possível |
+
+Ler `8/21` como "38% da identidade sobreviveu" é o mesmo erro de ler 20% numa prova de
+cinco alternativas como "sabe 20% da matéria".
+
+Rosters de referência que o tool monta e mede:
+
+- **canônico** — identidade intacta, equilíbrio terrível. O teto de identidade.
+- **espelho** (5 cópias do mesmo arquétipo, um roster por arquétipo) — equilíbrio
+  perfeito por simetria, identidade zero por construção. É a **solução trivial** do
+  problema de equilíbrio, e portanto a resposta numérica à objeção *"por que não deixar
+  os cinco iguais?"*, que até aqui não tinha resposta medida.
+- **aleatório** (N rosters) — sem projeto nenhum. O chão absoluto.
+
+Saída: cada métrica como `posição = (valor − piso) / (teto − piso)`, o **pior nulo** (o
+melhor resultado que um roster sem estrutura alcançou) e um **p-valor empírico** — a
+fração dos nulos que igualam ou superam o observado. O piso é uma **distribuição**, não
+um ponto: com 13 nulos a resolução do p é 1/13, então `p = 0` afirma apenas `p < 0,08`.
+
+```bash
+py -m src.tools.baselines                      # só os rosters de referência
+py -m src.tools.baselines --evolved            # + posiciona o melhor do AG
+py -m src.tools.baselines --nsga2 scalar_optimum
+py -m src.tools.baselines --n-random 20 --sims 200   # mais nulos = mais resolução no p
+```
+
+Também reporta **tríades circulares** (Kendall & Babington Smith 1940) como medida de
+estrutura **sem autoria**: `C(n,3) − Σ C(dᵢ,2)`, na escala 0 (ordem estrita) · 2,5
+(acaso) · 5 (máximo em 5 personagens). O máximo é exatamente o torneio **regular**, que
+é o mesmo que equilíbrio global perfeito — um roster estritamente transitivo teria WRs
+100/75/50/25/0, incompatível com todos perto de 50%. Por isso **equilíbrio global não é
+achatamento: ele força estrutura não-transitiva**. A contagem só significa algo com
+arestas *decididas*, então o espalhamento das WR por par vem sempre ao lado.
+
+> **Por que o ciclo canônico não pode ser um achado.** Ele é um torneio regular (cada
+> arquétipo vence 2 e perde 2) e existem **24** torneios regulares rotulados em 5
+> vértices — acertar o rótulo específico é 1/24. O que sobrevive à troca de rótulos é a
+> estrutura, não a atribuição; por isso `circular_triads` mede algo e
+> `cycle_edges_kept` não.
+
 ## `archetype_validator`
 
 Asserções de identidade em 3 camadas (rank ordinal entre os 5):
 
-- **Layer 1 — estrutural inter (12):** rankings de genes entre os 5 personagens
+- **Layer 1 — estrutural inter (13):** rankings de genes entre os 5 personagens
   (Rushdown tem maior speed e menor cooldown, Zoner tem maior range/knockback/
-  w_retreat, Combo Master tem maior stun, Grappler tem maior damage, Turtle tem
-  maior hp e cooldown, menor speed, maior w_defend).
+  w_retreat, Combo Master tem maior stun, Grappler tem maior damage e maior
+  `grab_power`, Turtle tem maior hp e cooldown, menor speed, maior w_defend).
 - **Layer 2 — estrutural intra (5):** comparações normalizadas dentro de um
   personagem (`norm(range) > norm(speed)` no Zoner, etc.). Normalização = fração do
-  máximo `x/hi` (mesma convenção do `fitness`).
-- **Layer 3 — comportamental (4):** identidade **funcional** (como o personagem
+  range do bound `(x − lo)/(hi − lo)` (mesma convenção do `fitness`).
+- **Layer 3 — comportamental (5):** identidade **funcional** (como o personagem
   *joga*), sobre o `behavioral_profile` (roda combate, estocástico). Uma asserção
   primária por arquétipo: Zoner = maior `mean_dist`; Rushdown = maior `atk_landed`;
   Turtle = maior `def_chosen` (guarda escolhido, não encurralado); Combo Master =
-  maior `stun_inflicted`. **Grappler não recebe asserção** — o combate não modela
-  grab/throw, então sua identidade não tem expressão comportamental distinta
-  (fica fora do denominador, marcado no relatório). Achado honesto: 4 de 5
-  identidades se expressam funcionalmente.
+  maior `stun_inflicted`; Grappler = maior `guard_break` (dano arrancado pela guarda
+  alheia).
+
+  Até 2026-09-16 a Layer 3 tinha **4 asserções para 5 arquétipos**: sem a mecânica de
+  agarrão, a identidade do Grappler não tinha expressão comportamental distinta do
+  corpo-a-corpo do Rushdown. A entrada do `grab_power` fechou a lacuna — e não por
+  acaso: era a mesma lacuna que o deixava com um único gene definidor e que deixava a
+  aresta "Grappler vence Turtle" do ciclo sem mecanismo no motor.
+
+> **Independência dos instrumentos.** As Layers 1-2 medem identidade **estrutural** —
+> o mesmo eixo que o `drift_penalty` otimiza, já que os `defining_genes` de cada
+> arquétipo espelham as asserções da Layer 1. São, portanto, **parcialmente
+> endógenas**: um score alto ali em parte reflete a penalidade ter funcionado. A
+> Layer 3 mede identidade **funcional** e nada no fitness referencia comportamento —
+> é ela, com o ciclo de vantagens, que sustenta a leitura post-hoc de identidade.
 
 Layers 1-2 são **ranking ordinal** de genes; resolvem rápido, sem combate. Por que
 a Layer 3 importa: as estruturais não detectam quando os genes certos **não se
@@ -122,6 +192,26 @@ py -m src.tools.archetype_validator --n 0    # só estrutural (Layers 1-2)
 ```
 
 ## `sensitivity_analysis`
+
+> **Atualizado em 2026-09-16.** O piso de ruído deixou de ser estimado analiticamente e
+> passou a ser **medido**, e a classificação inteira sai dele — antes havia dois
+> critérios incompatíveis na mesma tabela (limiares fixos de 5%/3% na classificação, e um
+> piso binomial impresso que não entrava nela). O piso analítico também era o desvio de
+> **uma** proporção, enquanto o número classificado é uma **diferença** entre duas WRs.
+>
+> O piso medido é o `|Δ WR|` entre **duas avaliações do mesmo roster, sem perturbação
+> nenhuma**, sob seeds diferentes (`--null-reps`): o Δ verdadeiro ali é zero, então tudo
+> que aparece é ruído. Seeds diferentes são necessárias — com a mesma seed e perturbação
+> zero as avaliações são bit-idênticas e o Δ sai exatamente 0. Quebrar o pareamento dá um
+> piso **conservador**, já que a medição real usa CRN pareado e tem menos ruído.
+>
+> Critério único: `≤ piso` neutro · `≤ 2× piso` borderline · acima, visível.
+>
+> Ganhou também `--evolved` / `--nsga2`. Importa: **no canônico o roster é saturado**
+> (Rushdown ~100%, Turtle ~0%), e com a WR presa no teto perturbar um gene não muda nada
+> — quase tudo sai "neutro" por efeito de teto, não por neutralidade. A afirmação "o AG
+> enxerga o cromossomo" precisa ser medida num roster equilibrado.
+
 
 Para cada (arquétipo, atributo), perturba o gene em ±σ e mede `Δ WR`. Atributos
 com `|Δ|` médio abaixo do piso binomial são genes "neutros" (drift por random
@@ -161,7 +251,10 @@ não um ponto — qual ponto representa a execução é uma escolha explícita
 (`--nsga2-representative`, default `best_dominance`), gravada no artefato como
 `nsga2_representative`. Saídas agregadas (impressas + salvas em `results/multi_run/multi_run_<algo>.json`):
 
-- **média ± desvio** de `dominance_penalty` e `drift_penalty`;
+- **média ± desvio** de `dominance_penalty` — **decomposto** nos três termos
+  (`global_term`, `cap_term`, `decis_term`, gravados por semente e agregados) — e de
+  `drift_penalty`. O composto sozinho não distingue perder no termo primário
+  (peso 1,0) de perder num secundário (peso 0,5);
 - **WR global por personagem** (média ± desvio) + **fração de sementes em que cada
   boneco fica equilibrado** (WR global em `[0.40, 0.60]`, via `character_balanced`);
 - **hard-counters por execução** (média ± desvio; pares fora de `[0.35, 0.65]`);
@@ -192,6 +285,13 @@ nada**: lê os dois artefatos do `multi_run` e aplica sobre as amostras por seme
 - **Holm-Bonferroni** sobre as 4 métricas testadas (`dominance_penalty`,
   `drift_penalty`, hard-counters por execução, bonecos em banda por execução) — sem
   correção, 4 testes a α=0.05 inflam a chance de falso positivo.
+
+Além dos testes, imprime e grava a **decomposição do `dominance_penalty`**: mediana
+dos três termos lado a lado, com o peso de cada um. É **descritiva** e fica
+deliberadamente **fora** da bateria inferencial — somar métricas ao Mann-Whitney
+infla a correção de Holm sobre as que já estão lá (item F da revisão). Serve para ler
+de **onde** vem a diferença: o termo primário é o `global_term`, e é ele que diz quem
+equilibra o roster melhor.
 
 ```bash
 py -m src.tools.multi_run --algorithm both   # gera os dois artefatos

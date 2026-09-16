@@ -236,10 +236,28 @@ def test_representatives_knee_is_interior():
     assert reps["knee_point"] is front[1]
 
 
-def test_representatives_all_four_keys():
+def test_representatives_all_keys():
     front = [_ind_with_obj([0.1 * i, 0.9 - 0.1 * i]) for i in range(5)]
     reps = select_representatives(front)
-    assert set(reps.keys()) == {"best_dominance", "best_drift", "knee_point", "ideal_point"}
+    assert set(reps.keys()) == {
+        "best_dominance", "best_drift", "knee_point", "ideal_point", "scalar_optimum",
+    }
+
+
+def test_representatives_scalar_optimum_minimizes_weighted_sum():
+    """`scalar_optimum` é o comparável do AG escalar: minimiza a MESMA soma ponderada
+    que o escalar otimiza. Com LAMBDA iguais isso é o mínimo L1 — que não coincide com
+    o `ideal_point` (mínimo L2), e é essa distinção que o representante existe para
+    tornar mensurável."""
+    front = [
+        _ind_with_obj([0.10, 0.50]),   # L1 = 0.60   L2 = 0.510
+        _ind_with_obj([0.30, 0.30]),   # L1 = 0.60   L2 = 0.424  ← ideal (L2)
+        _ind_with_obj([0.05, 0.50]),   # L1 = 0.55   L2 = 0.502  ← scalar (L1)
+    ]
+    reps = select_representatives(front)
+    assert reps["scalar_optimum"] is front[2], "scalar_optimum deve minimizar a soma ponderada"
+    assert reps["ideal_point"]    is front[1], "ideal_point continua sendo o mínimo L2"
+    assert reps["scalar_optimum"] is not reps["ideal_point"]
 
 
 from src.engine.nsga2 import run
@@ -250,7 +268,9 @@ def test_run_smoke_small_config():
     assert len(result.pareto_front) > 0
     assert all(ind.rank == 0 for ind in result.pareto_front)
     assert all(ind.objectives is not None for ind in result.pareto_front)
-    assert set(result.representatives.keys()) == {"best_dominance", "best_drift", "knee_point", "ideal_point"}
+    assert set(result.representatives.keys()) == {
+        "best_dominance", "best_drift", "knee_point", "ideal_point", "scalar_optimum",
+    }
     assert len(result.history) == 3
 
 
@@ -274,7 +294,7 @@ def test_save_results_produces_valid_json():
     assert "genes" in first and "objectives" in first
     assert len(first["genes"]) == 5
     assert len(first["objectives"]) == 2
-    for key in ("best_dominance", "best_drift", "knee_point", "ideal_point"):
+    for key in ("best_dominance", "best_drift", "knee_point", "ideal_point", "scalar_optimum"):
         assert key in data["representatives"]
     os.unlink(path)
 
@@ -325,7 +345,8 @@ if __name__ == "__main__":
     test_representatives_identifies_extremes()
     test_representatives_ideal_closest_to_origin()
     test_representatives_knee_is_interior()
-    test_representatives_all_four_keys()
+    test_representatives_all_keys()
+    test_representatives_scalar_optimum_minimizes_weighted_sum()
     test_run_smoke_small_config()
     test_save_results_produces_valid_json()
     test_save_results_roundtrip_genes()

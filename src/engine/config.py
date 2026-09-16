@@ -25,11 +25,30 @@ WEIGHT_MUTATION_SIGMA = 0.025    # idem para os pesos (menor = mais inércia)
 SIMS_PER_MATCHUP = 150         # simulações por matchup no round-robin
 SIMS_CONVERGENCE_CHECK = 200   # simulações extras para confirmar convergência
 
+# Deslocamento do stream de RNG usado na CONFIRMAÇÃO de convergência do AG.
+# O laço avalia todo indivíduo sob o mesmo stream (Common Random Numbers), o que é
+# correto para SELEÇÃO — a diferença de fitness reflete genes, não sorteio. Mas
+# reavaliar no mesmo stream não confirma nada: mede a MESMA realização do RNG com mais
+# amostras, e o gate não pode discordar da confirmação. Somando este offset à semente
+# de treino, cada execução é confirmada contra o próprio hold-out independente.
+# Escolhido para não colidir com nenhuma outra família de sementes do projeto
+# (treino 42+, MULTI_RUN_VALIDATION_SEED 9999, EXTERNAL_VALIDATION_SEED_START 10000+).
+CONVERGENCE_SEED_OFFSET = 100000
+
 # ── Fitness: pesos do AG escalar ─────────────────────────────────────────────
 # fitness = -(LAMBDA_DRIFT·drift_penalty + LAMBDA_DOMINANCE·dominance_penalty).
 
 LAMBDA_DRIFT = 1.0       # peso do desvio arquetípico (drift_penalty)
 LAMBDA_DOMINANCE = 1.0   # peso do desbalanço de matchups (dominance_penalty)
+
+# ── Fitness: identidade estrutural (drift) ───────────────────────────────────
+# O drift é uma RMS PONDERADA dos desvios normalizados por range do bound. Genes
+# listados em `ArchetypeDefinition.defining_genes` pesam DRIFT_DEFINING_WEIGHT× os
+# demais: mover o range do Zoner custa mais que mover o stun dele. É declaração de
+# PREMISSA (o que o arquétipo é), não de resposta — o fitness segue cego a quem
+# vence quem. Peso 1.0 desliga a ponderação e volta ao drift uniforme.
+
+DRIFT_DEFINING_WEIGHT = 3.0
 
 # ── Fitness: dominância ──────────────────────────────────────────────────────
 # dominance_penalty = GLOBAL·global + CAP·cap + DECIS·decis (máx 2.0). 
@@ -44,9 +63,22 @@ DOMINANCE_DECIS_WEIGHT = 0.5
 # Meia-banda do hard-counter: (|X - 0.5|) < WR < (|X + 0.5|)
 MATCHUP_WR_CAP = 0.15
 
-# Banda de decisividade, em margem |score − 0.5| 
+# Banda de decisividade, em margem |score − 0.5|.
+#
+# O TETO é o guarda real: acima dele toda luta do par é massacre (vencedor fecha
+# ~40% de HP), o que passa despercebido pelo termo global se os massacres se
+# alternam entre os dois lados.
+#
+# O PISO é só guarda de DEGENERESCÊNCIA, e por isso mora bem abaixo da faixa de
+# operação. Com o motor reformado toda luta termina em KO (medido: 100% em 70
+# pares, incluindo rosters aleatórios), então D baixo não é "luta que não
+# aconteceu" — é KO no fio, que é a melhor luta possível, não um defeito. Faixas
+# medidas: roster degenerado (dano mín/HP máx/GUARDA, 0% KO, timeout com HP
+# idêntico) D ≤ 0.008; espelho puro dos 5 canônicos D 0.020–0.033; pares reais
+# D ≥ 0.045. O piso fica na base da faixa do espelho: abaixo dela um par de
+# personagens DISTINTOS decide menos que dois personagens idênticos.
 
-MATCHUP_FLOOR = 0.10       # piso: abaixo é quase-empate (vencedor fecha ~20% HP)
+MATCHUP_FLOOR = 0.02       # piso: guarda de degenerescência (não morde em operação normal)
 MATCHUP_THRESHOLD = 0.20   # teto: acima é blowout (vencedor fecha ~40% HP)
 
 # ── Paralelismo ──────────────────────────────────────────────────────────────
@@ -71,7 +103,7 @@ DEFEND_DAMAGE_REDUCTION = 1 - 0.4     # multiplicador no dano recebido ao defend
 ACTION_PERSISTENCE_SUBTICKS = 10  # sub-ticks que uma intenção sorteada é mantida (inércia/momentum)
 
 # ── Bounds e nomes dos genes ─────────────────────────────────────────────────
-# 7 atributos + 3 pesos por personagem; todos contínuos. Semântica e calibração
+# 8 atributos + 3 pesos por personagem; todos contínuos. Semântica e calibração
 
 ATTRIBUTE_BOUNDS = [
     (250.0, 450.0),  # hp
@@ -81,6 +113,8 @@ ATTRIBUTE_BOUNDS = [
     (1.0, 5.0),      # speed
     (0.0, 0.6),      # stun — fração do cooldown do atacante; bound < 1 garante stun < cooldown
     (0.0, 3.0),      # knockback
+    (0.0, 1.0),      # grab_power — soma ao multiplicador de dano contra alvo em guarda
+                     # (0.6+grab): 0 = guarda plena, 0.4 = guarda anulada, 1.0 = guarda punida (1.6×)
 ]
 
 WEIGHT_BOUNDS = [
@@ -89,8 +123,14 @@ WEIGHT_BOUNDS = [
     (0.0, 1.0),  # w_aggressiveness
 ]
 
-ATTRIBUTE_NAMES = ["hp", "damage", "attack_cooldown", "range", "speed", "stun", "knockback"]
+ATTRIBUTE_NAMES = ["hp", "damage", "attack_cooldown", "range", "speed", "stun", "knockback",
+                   "grab_power"]
 WEIGHT_NAMES = ["w_retreat", "w_defend", "w_aggressiveness"]
+
+# Os 10 genes do personagem na ordem de `Character.genes()` — fonte única para
+# quem precisa percorrer genes por nome/bound (drift, tabela de drift, validador).
+GENE_NAMES = ATTRIBUTE_NAMES + WEIGHT_NAMES
+GENE_BOUNDS = ATTRIBUTE_BOUNDS + WEIGHT_BOUNDS
 
 # ── NSGA-II ──────────────────────────────────────────────────────────────────
 

@@ -9,13 +9,82 @@
 O fitness escalar tem **dois termos** — exatamente os dois objetivos do NSGA-II,
 aqui como soma ponderada: `fitness = -(LAMBDA_DRIFT·drift + LAMBDA_DOMINANCE·dominance)`.
 
-## `drift_penalty` — a operacionalização de "identidade"
+## A linha que separa o que o fitness pode codificar
 
-Distância euclidiana normalizada de cada personagem ao seu perfil canônico (sobre os
-10 genes). **É a tradução numérica de "preservação de identidade"** — o eixo que a
-pergunta de pesquisa coloca em tensão com o equilíbrio — e o **verdadeiro mecanismo
-anti-homogeneização** (puxa cada personagem para um canônico distinto). Com
+Antes dos termos, a regra que organiza todos eles — e o argumento que responde à
+objeção mais óbvia ao trabalho ("se a identidade está no fitness, você não está
+forçando o resultado?"):
+
+> **O fitness pode codificar a PREMISSA, nunca a RESPOSTA.**
+
+- **Premissa:** o que cada arquétipo **é** — os valores canônicos e os genes que o
+  definem. É dado de entrada, vindo da FGC, anterior e independente da pergunta de
+  equilíbrio. "O Zoner é o personagem definido por alcance" é premissa.
+- **Resposta:** quem vence quem, e se equilíbrio e identidade são sequer compatíveis.
+  "O Zoner deve vencer o Grappler" é resposta. Codificá-la responderia a pergunta com
+  ela mesma.
+
+Daí a assimetria do projeto: **identidade é termo do fitness, o ciclo de vantagens não
+é**. Três razões sustentam isso:
+
+1. A pergunta é de **trade-off**, não de emergência espontânea: "dá para equilibrar
+   *sem* destruir as identidades?" é uma pergunta sobre **compatibilidade** entre dois
+   objetivos. Responder exige procurar pontos que satisfaçam os dois — caso contrário
+   só se demonstra que otimizar um sozinho não entrega o outro, que é uma afirmação
+   bem mais fraca e quase óbvia.
+2. **Penalidade não é restrição.** O AG é livre para destruir a identidade se o
+   equilíbrio pagar mais — e foi exatamente o que aconteceu: com `LAMBDA_DRIFT = 1.0`
+   ligado o run inteiro, o melhor indivíduo do AG escalar ficou em 8/21 no validador de
+   identidade. O termo existe e pode perder; ter o termo não pré-determina a resposta.
+3. O conteúdo não-trivial da tese nunca foi "a identidade sobreviveu" — é **o preço**:
+   quanto de equilíbrio se compra por unidade de drift. Esse é o formato da fronteira
+   de Pareto, que é achado empírico, não suposição. E uma fronteira precisa de dois
+   objetivos: sem drift no fitness, o braço NSGA-II inteiro deixa de existir.
+
+## As duas réguas de identidade
+
+O erro que a auditoria de 2026-09-16 encontrou não foi "identidade no fitness" — foi os
+dois instrumentos do projeto **discordarem sobre o que a palavra significa**. O
+`drift_penalty` dava 0,261 para o melhor do AG ("preservada") enquanto o validador dava
+8/21 ("destruída"). Não era homogeneização: era **troca de papéis** (o Turtle virou o de
+menor HP e maior dano, o Rushdown virou defensivo, o Zoner virou o de menor alcance).
+Distância euclidiana é cega a **ranking**, que é o que identidade significa
+operacionalmente aqui.
+
+A solução mantém uma régua de cada lado da linha:
+
+| régua | o que mede | onde vive | papel na tese |
+|---|---|---|---|
+| identidade **estrutural** | os genes continuam reconhecíveis | `drift_penalty`, **no fitness** | premissa: "continue sendo você" |
+| identidade **funcional** | o personagem continua *jogando* como ele mesmo | Layer 3 do validador + ciclo, **post-hoc** | resposta: é o que a tese descobre |
+
+A pergunta de pesquisa diz literalmente *"functional identities"* — comportamento, não
+valor de gene. Nada no fitness referencia comportamento, então a Layer 3 é instrumento
+independente. (Ressalva a declarar no texto: é métrica *held-out*, não causalmente
+isolada — comportamento é downstream dos genes que o fitness move.) Em contrapartida, as
+Layers 1-2 do validador medem o mesmo eixo estrutural que o fitness otimiza e passam a
+ser **parcialmente endógenas**: um score alto ali em parte reflete a penalidade ter
+funcionado, e o texto precisa dizer isso.
+
+## `drift_penalty` — a operacionalização de "identidade estrutural"
+
+**RMS ponderada** dos desvios normalizados de cada personagem ao seu perfil canônico
+(sobre os 10 genes). **É a tradução numérica de "preservação de identidade estrutural"**
+— o eixo que a pergunta de pesquisa coloca em tensão com o equilíbrio — e o **verdadeiro
+mecanismo anti-homogeneização** (puxa cada personagem para um canônico distinto). Com
 `LAMBDA_DRIFT = LAMBDA_DOMINANCE`, identidade e equilíbrio pesam na mesma escala.
+
+Duas escolhas de medição que o texto precisa justificar:
+
+- **Normalização pelo range do bound**, `(x − lo)/(hi − lo)`, e não pelo máximo `x/hi`.
+  Dividir por `hi` subestima sistematicamente genes de `lo` alto: o HP vai de 250 a 450,
+  então mover 162 pontos é 81% do range e apenas 36% do máximo. É a correção que
+  conserta a **ordenação** dos indivíduos por identidade — sob `x/hi` o melhor do AG
+  (8/21) aparecia como *menos* deslocado que o `best_dominance` do NSGA-II (11/21).
+- **Ponderação pelos genes definidores** (`DRIFT_DEFINING_WEIGHT = 3.0`): mover o alcance
+  do Zoner custa 3× mover o stun dele. Os genes definidores são declarados por arquétipo
+  e espelham as asserções de ranking do validador. Isso alarga a margem entre indivíduos
+  de identidade diferente (gap de 0,017 para 0,043), sem virar restrição dura.
 
 ## `dominance_penalty` — balanço global + teto de hard-counter + decisividade (C2)
 
@@ -53,14 +122,27 @@ arestas do ciclo como **vantagens** (um par pode ter favorito), barrando apenas 
 Regularizador de **qualidade de luta**. Score por-luta contínuo: KO contribui
 `0.5 + 0.5·(HP_frac do vencedor)` (esmaga → ~1.0; ganha no fio → ~0.5); timeout, a
 fração de HP%. Decisividade do matchup `D = média(|score − 0.5|)`, com excesso fora da
-**banda `[0.10, 0.20]`** (vencedor fecha com ~20-40% de HP de folga).
+**banda `[0.02, 0.20]`**. O **teto** (0.20) é o regularizador de verdade: acima dele o
+vencedor fecha com mais de 40% de HP de folga, isto é, todo confronto do par é massacre.
+O **piso** (0.02) é apenas guarda de degenerescência.
 
 - **Por que mantê-lo?** Guarda contra o **blowout-coinflip**: 55% A-esmaga / 45%
   B-esmaga ⇒ WR global ~50% (primário satisfeito) mas toda luta é um massacre. A
   decisividade por-luta — `média(|score−0.5|)`, não `|média(score)−0.5|` — detecta
   isso (todo blowout dá margem ~0.5).
-- **Por que uma banda, não "quanto menor melhor"?** Uma luta decidida por 1% é instável
-  (parece coin-flip); a banda penaliza os **dois** extremos: blowout e fina demais.
+- **Por que o piso é tão baixo?** Ele já foi 0.10, e nessa altura punia lutas
+  *apertadas demais* — empurrando na direção **oposta** ao termo primário, já que
+  equilibrar aproxima as lutas. A justificativa original ("luta decidida por 1% parece
+  coin-flip") não sobrevive à medição no motor atual: **100% das lutas terminam em KO**,
+  então decisividade baixa não é "a luta não aconteceu", é KO no fio — a melhor luta
+  possível. O piso ficou em 0.02, a base da faixa que um **espelho puro** produz
+  (0.020–0.033): abaixo do que dois personagens idênticos geram, o par não está lutando.
+  Na prática penaliza 0 dos 10 pares em operação normal, contra 3–5 quando era 0.10.
+- **Por que isso importa para a comparação entre algoritmos.** Enquanto o piso mordia,
+  era ele — um termo secundário de peso 0,5 — quem decidia AG × NSGA-II: decomposto, o
+  NSGA-II era **melhor no termo primário** e perdia no piso. "O AG vence em
+  `dominance_penalty`" estava certo como número e errado como leitura. Por isso os três
+  termos passaram a ser reportados **separados** nos artefatos.
 
 ### Propriedades comuns
 - **RMS** (sobre os 5 bonecos no global, sobre os 10 pares nos secundários): extremos
@@ -81,10 +163,11 @@ o que **emerge sem ser codificado**.
 | Métrica | Otimizada? | Onde aparece |
 |---|---|---|
 | `dominance_penalty` (global por personagem + teto de hard-counter + decisividade) | **sim** | Fitness e NSGA-II |
-| `drift_penalty` (distância ao canônico) | **sim** | Fitness e NSGA-II |
+| `drift_penalty` (identidade **estrutural**: distância ponderada ao canônico) | **sim** | Fitness e NSGA-II |
 | WR **global** por personagem (alvo 50%) | **sim** (termo primário do dominance) | Fitness, relatório, convergência |
 | WR **por-matchup** exata (cada par a 50%) | **não** (só o teto de hard-counter) | Relatório post-hoc |
 | Diferenciação entre personagens (homogeneização) | não | Métrica post-hoc (`drift_table`) |
+| Identidade **funcional** (Layer 3: como o personagem joga) | **não** | Relatório post-hoc — régua independente |
 | Preservação do ciclo canônico | **não** | Relatório post-hoc apenas |
 | Sensibilidade dos genes | não | Validação metodológica ([05](05-validacao-metodologica.md)) |
 

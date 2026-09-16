@@ -20,6 +20,7 @@ _REP_STYLE = {
     "best_drift":     {"marker": "o", "color": "tab:blue",   "label": "Melhor drift"},
     "knee_point":     {"marker": "^", "color": "black",      "label": "Knee point"},
     "ideal_point":    {"marker": "*", "color": "tab:orange", "label": "Ideal point"},
+    "scalar_optimum": {"marker": "D", "color": "tab:green",  "label": "Ótimo escalar"},
 }
 
 

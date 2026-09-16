@@ -16,21 +16,51 @@ população inicial e baseline de medição de drift. O AG diverge livremente.
 
 ## Valores canônicos (semente inicial)
 
-São **7 atributos** por personagem (`defense` e `recovery` foram removidos do
+São **8 atributos** por personagem (`defense` e `recovery` foram removidos do
 modelo — ver [04-combat-model.md](04-combat-model.md)). `stun` é uma **fração do
-cooldown do atacante** (∈ [0, 0.6]), não mais um valor absoluto.
+cooldown do atacante** (∈ [0, 0.6]) e `grab_power` é a **fração da guarda quebrada**
+(∈ [0, 1]), ambos relativos, não absolutos.
 
-> **Fonte única:** `src/engine/archetypes.py` → `ARCHETYPES` (hoje ~L70). A tabela
+> **Fonte única:** `src/engine/archetypes.py` → `ARCHETYPES`. A tabela
 > espelha o código; **em divergência, o código vence** — ao mudar um canônico,
 > atualize lá e só reflita aqui.
 
-| Classe | HP | Dmg | Cooldown | Range | Speed | Stun | Knockback |
-|---|---|---|---|---|---|---|---|
-| Zoner | 300 | 20 | 4 | 18 | 2.5 | 0.10 | 2.0 |
-| Rushdown | 320 | 16 | 1 | 10 | 5.0 | 0.10 | 1.0 |
-| Combo Master | 350 | 18 | 3 | 10 | 3.0 | 0.55 | 0.5 |
-| Grappler | 400 | 27 | 4 | 8 | 2.0 | 0.30 | 0.5 |
-| Turtle | 450 | 15 | 5 | 13 | 1.5 | 0.20 | 1.0 |
+| Classe | HP | Dmg | Cooldown | Range | Speed | Stun | Knockback | Grab |
+|---|---|---|---|---|---|---|---|---|
+| Zoner | 300 | 20 | 4 | 18 | 2.5 | 0.10 | 2.0 | 0.05 |
+| Rushdown | 320 | 16 | 1 | 10 | 5.0 | 0.10 | 1.0 | 0.20 |
+| Combo Master | 350 | 18 | 3 | 10 | 3.0 | 0.55 | 0.5 | 0.30 |
+| Grappler | 400 | 27 | 4 | 8 | 2.0 | 0.30 | 0.5 | **0.90** |
+| Turtle | 450 | 15 | 5 | 13 | 1.5 | 0.20 | 1.0 | 0.15 |
+
+O `grab_power` do Grappler é o valor que realiza, no motor, a justificativa FGC da
+aresta "Grappler vence Turtle" da tabela do ciclo: *"grab é o counter canônico ao
+bloqueio"*. Até 2026-09-16 essa justificativa não tinha mecanismo nenhum.
+
+### Genes definidores
+
+Além dos valores, cada arquétipo declara em `ArchetypeDefinition.defining_genes` os
+genes nos quais ele ocupa um **extremo por design** — o que o torna reconhecível.
+Espelham as asserções inter-personagem da Layer 1 do validador (fonte única da
+premissa) e pesam `DRIFT_DEFINING_WEIGHT` no `drift_penalty`.
+
+| Classe | genes definidores |
+|---|---|
+| Zoner | `range`, `knockback`, `w_retreat` |
+| Rushdown | `speed`, `attack_cooldown`, `w_aggressiveness` |
+| Combo Master | `stun` |
+| Grappler | `damage`, `grab_power` |
+| Turtle | `hp`, `attack_cooldown`, `speed`, `w_defend` |
+
+A assimetria é informativa e não acidental. O **Combo Master** tem um gene definidor só
+(`stun`). O **Grappler** tinha só `damage` até a entrada do agarrão (2026-09-16), que lhe
+deu `grab_power` como segundo gene definidor **e** a assinatura comportamental que
+faltava na Layer 3 — as duas lacunas eram a mesma coisa.
+
+É declaração de **premissa** (o que o arquétipo é), nunca de resposta (quem vence
+quem — `beats`, que o fitness jamais referencia). Consequência: as Layers 1-2 do
+validador passam a medir o mesmo eixo que o fitness otimiza, e são **parcialmente
+endógenas**; a leitura post-hoc de identidade fica com a **Layer 3** e o ciclo.
 
 ### Pesos comportamentais canônicos
 

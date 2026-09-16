@@ -68,8 +68,10 @@ Smoke tests rodam como módulo a partir da raiz:
 
 ```powershell
 py -m src.tests.test_base
+py -m src.tests.test_baselines
 py -m src.tests.test_combat
 py -m src.tests.test_fitness
+py -m src.tests.test_ga
 py -m src.tests.test_operators
 py -m src.tests.test_nsga2
 py -m src.tests.test_archetype_validator

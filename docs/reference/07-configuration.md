@@ -5,11 +5,11 @@ constantes espalhadas.
 
 ## Bounds dos genes (`ATTRIBUTE_BOUNDS`, `WEIGHT_BOUNDS`)
 
-São **7 atributos** + 3 pesos = 10 genes por personagem (`defense` e `recovery`
+São **8 atributos** + 3 pesos = 11 genes por personagem (`defense` e `recovery`
 foram removidos do modelo — ver [04-combat-model.md](04-combat-model.md)).
 
 > **Fonte única:** `src/engine/config.py` → `ATTRIBUTE_BOUNDS` / `WEIGHT_BOUNDS`
-> (hoje ~L68–L82). A tabela abaixo espelha o código; **em divergência, o código
+> A tabela abaixo espelha o código; **em divergência, o código
 > vence** — ao mudar um bound, atualize lá e só reflita aqui.
 
 | Atributo | Mín | Máx | Semântica |
@@ -64,13 +64,15 @@ foi removido).
 | `WEIGHT_MUTATION_SIGMA` | 0.025 | sigma como fração do range (pesos) — inércia |
 | `SIMS_PER_MATCHUP` | 150 | simulações por matchup (~4% std binomial @ 50% WR) |
 | `SIMS_CONVERGENCE_CHECK` | 200 | sims extras para confirmar convergência |
+| `CONVERGENCE_SEED_OFFSET` | 100000 | deslocamento do stream de RNG da **confirmação** de convergência. O laço usa CRN (correto para seleção); reavaliar no mesmo stream não confirma nada — mede a mesma realização do RNG com mais amostras. Somado à semente de treino, dá a cada execução um hold-out próprio. Não colide com treino 42+, `MULTI_RUN_VALIDATION_SEED` 9999 nem `EXTERNAL_VALIDATION_SEED_START` 10000+ |
 | `LAMBDA_DRIFT` | 1.0 | peso da drift_penalty (só AG escalar) — igual ao dominance; trade-off central |
+| `DRIFT_DEFINING_WEIGHT` | 3.0 | peso dos `defining_genes` de cada arquétipo no drift (demais genes = 1.0). Mede identidade **estrutural**: mover o alcance do Zoner custa mais que mover o stun dele. `1.0` volta ao drift uniforme. Calibrado medindo a concordância com o validador — ver [05-genetic-algorithm.md](05-genetic-algorithm.md) |
 | `LAMBDA_DOMINANCE` | 1.0 | peso da dominance_penalty (só AG escalar) |
 | `MATCHUP_THRESHOLD` | 0.20 | teto da banda de decisividade (vencedor fecha ~40% HP — acima = blowout) |
-| `MATCHUP_FLOOR` | 0.10 | piso da banda de decisividade (vencedor fecha ~20% HP — abaixo = fino demais) |
+| `MATCHUP_FLOOR` | 0.02 | piso da banda de decisividade — **guarda de degenerescência**, não banda de qualidade. Não morde em operação normal (0/10 pares). Era 0.10, que penalizava 5/10 pares e decidia a comparação AG × NSGA-II. Faixas medidas: degenerado `≤ 0,008`, espelho puro `0,020–0,033`, pares reais `≥ 0,045` |
 | `DOMINANCE_GLOBAL_WEIGHT` | 1.0 | peso do termo **primário** (balanço global por personagem) do dominance_penalty |
 | `DOMINANCE_CAP_WEIGHT` | 0.5 | peso do teto de hard-counter (excesso de `\|WR−0.5\|` acima de `MATCHUP_WR_CAP`) |
-| `DOMINANCE_DECIS_WEIGHT` | 0.5 | peso do termo de decisividade — guarda contra blowout-coinflip |
+| `DOMINANCE_DECIS_WEIGHT` | 0.5 | peso do termo de decisividade — o teto guarda contra blowout-coinflip; o piso, contra degenerescência |
 | `MATCHUP_WR_CAP` | 0.15 | meia-banda do hard-counter: par é counter duro se `\|WR−0.5\| > 0.15` (fora de [0.35, 0.65]). **Provisório — calibrar** |
 | `N_WORKERS` | 8 | processos na avaliação paralela (None = todos os núcleos; 1 = serial). **Não é só gosto:** o pool é recriado a cada geração, então o custo de spawn escala com o nº de workers — medido nesta máquina, 8 workers é ~2,2× mais rápido que 28, e 28 estourava o limite de commit do Windows. Não afeta o resultado (CRN propagado aos workers) |
 | `FIELD_SIZE` | 100 | tamanho do campo |

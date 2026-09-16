@@ -124,9 +124,36 @@ contador é **zerado** no impasse (que força ADVANCE) e quando o personagem é 
   modificador é a postura `DEFEND` do alvo. (Não existe gene `defense`.)
 - **DEFEND:** multiplica o dano recebido por `DEFEND_DAMAGE_REDUCTION = 0.6`
   (`= 1 − 0.4` em `config.py`) — o defensor recebe 60% do dano, i.e. **40% de
-  redução**. Defender **não tem custo** além do golpe abdicado: não há chip damage,
-  guard break nem stamina, e por isso o eixo de recurso não tem counter à defesa —
-  ver o item de guard break em [`../../REVIEW.md`](../../REVIEW.md) §2.
+  redução** —, **menos o que o agarrão do atacante quebrar**.
+- <a name="grab"></a>**Agarrão (`grab_power`):** contra alvo em `DEFEND`, o
+  multiplicador do dano vira **`defend_red + grab_power`**. O gene `grab_power ∈ [0, 1]`
+  é o quanto o agarrão **soma** a esse multiplicador:
+
+  | `grab_power` | multiplicador | leitura |
+  |---|---|---|
+  | 0,00 | 0,60× | guarda dá a redução cheia |
+  | **0,40** | **1,00×** | **ponto neutro** — guarda exatamente anulada |
+  | 0,90 (Grappler) | 1,50× | guarda vira desvantagem |
+  | 1,00 | 1,60× | teto |
+
+  O ponto neutro é `1 − defend_red`. Abaixo dele defender ainda compensa; acima,
+  **defender é pior que não defender**. Nos canônicos **só o Grappler passa do neutro** —
+  é essa a mecânica que o diferencia dos outros quatro e que realiza, no motor, a
+  justificativa da aresta "Grappler vence Turtle" do ciclo.
+
+  Duas propriedades completam o desenho como **counter à guarda**:
+  1. **Só existe contra quem está defendendo.** Contra um alvo em `ADVANCE` ou
+     `RETREAT`, `grab_power` não faz absolutamente nada. É uma leitura condicional —
+     vale contra quem bloqueia, é peso morto contra quem pressiona.
+  2. **Não é uma ação escolhida.** É uma condicional na resolução do ataque, então o
+     modelo de dois canais fica intacto — não há um `w_grab` nem uma quarta postura,
+     e o espaço de política não muda.
+
+  Com isso o eixo de **recurso** ganhou contrapartida. Medido em `test_combat`, alvo
+  sempre em guarda: dano por golpe **16,2** com `grab_power = 0` contra **43,2** com
+  `1.0`, exatamente o golpe limpo no neutro 0,40, e diferença **exatamente zero** contra
+  alvo que não defende. O `CombatTrace` expõe o canal `guard_broken` (dano extra
+  arrancado pela guarda), que é a assinatura comportamental do Grappler na Layer 3.
 - <a name="stun"></a>**Stun:** `stun_t = stun × attack_cooldown × TICK_SCALE`, em
   ponto flutuante. O gene `stun ∈ [0.0, 0.6]` é uma **fração do próprio cooldown do
   atacante** (em sub-ticks), não um valor absoluto.

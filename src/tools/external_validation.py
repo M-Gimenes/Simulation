@@ -193,7 +193,7 @@ def parse_args():
     )
     parser.add_argument("--evolved", action="store_true", help="melhor do AG (results.json)")
     parser.add_argument("--nsga2", metavar="REP", nargs="?", const="best_dominance",
-                        help="representante do NSGA-II (best_dominance|knee_point|best_drift|ideal_point)")
+                        help="representante do NSGA-II (best_dominance|knee_point|best_drift|ideal_point|scalar_optimum)")
     parser.add_argument("--n-seeds", type=int, default=EXTERNAL_VALIDATION_N_SEEDS,
                         help=f"nº de condições de avaliação (default: {EXTERNAL_VALIDATION_N_SEEDS})")
     parser.add_argument("--seed-start", type=int, default=EXTERNAL_VALIDATION_SEED_START,

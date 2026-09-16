@@ -10,7 +10,7 @@
 │   │   ├── paths.py           # PROJECT_ROOT + paths derivados — single source
 │   │   ├── config.py          # todos os hiperparâmetros
 │   │   ├── archetypes.py      # definições canônicas (frozen) + ciclo de vantagens
-│   │   ├── character.py       # representação de genes (7 atributos + 3 pesos)
+│   │   ├── character.py       # representação de genes (8 atributos + 3 pesos)
 │   │   ├── individual.py      # 5 personagens por indivíduo
 │   │   ├── combat.py          # simulação tick a tick (JIT)
 │   │   ├── fitness.py         # avaliação round-robin
@@ -53,7 +53,7 @@ ArchetypeDefinition (frozen)        Character (mutável)            Individual
 
 - **`ArchetypeDefinition`** — valores canônicos congelados; baseline de drift e
   semente. Ver [03-archetypes.md](03-archetypes.md).
-- **`Character`** — 10 genes mutáveis (7 atributos + 3 pesos), todos contínuos.
+- **`Character`** — 11 genes mutáveis (8 atributos + 3 pesos), todos contínuos.
   `clip()` aplica os bounds.
 - **`Individual`** — lista de 5 `Character` + caches de avaliação. Construtores:
   `from_canonical()` (semente), `random()`, `from_results()` (melhor do AG),

@@ -5,7 +5,12 @@ Rode com: py -m src.tests.test_base
 
 from src.engine.archetypes import ARCHETYPES, ARCHETYPE_ORDER, ArchetypeID
 from src.engine.character import Character, Attr, WIdx
+from src.engine.config import ATTRIBUTE_BOUNDS, WEIGHT_BOUNDS
 from src.engine.individual import Individual
+
+
+# Derivado das tabelas — não repetir a aridade, que muda a cada gene novo.
+N_GENES = len(ATTRIBUTE_BOUNDS) + len(WEIGHT_BOUNDS)
 
 
 def separator(title: str) -> None:
@@ -29,7 +34,7 @@ separator("Personagem canônico (Grappler)")
 g = Character.from_archetype(ARCHETYPES[ArchetypeID.GRAPPLER])
 print(f"  HP={g.hp} | Damage={g.damage} | Speed={g.speed} | Stun={g.stun}")
 print(f"  Weights: ret={g.w_retreat} | def={g.w_defend} | agg={g.w_aggressiveness}")
-print(f"  Genes totais: {len(g.genes())} ({'OK' if len(g.genes()) == 10 else 'ERRO'})")
+print(f"  Genes totais: {len(g.genes())} ({'OK' if len(g.genes()) == N_GENES else 'ERRO'})")
 
 
 # ── 3. Personagem aleatório ───────────────────────────────────────────────────
@@ -61,9 +66,10 @@ print("  ✓ Clone isolado + clip funcionando")
 separator("Indivíduo canônico (5 personagens)")
 ind = Individual.from_canonical()
 assert len(ind) == 5
-assert len(ind.characters[0].genes()) == 10, "char deve ter 10 genes"
+assert len(ind.characters[0].genes()) == N_GENES, f"char deve ter {N_GENES} genes"
 total_genes = sum(len(c.genes()) for c in ind.characters)
-assert total_genes == 50, f"Esperado 50 genes, got {total_genes}"
+expected_total = N_GENES * len(ind.characters)
+assert total_genes == expected_total, f"Esperado {expected_total} genes, got {total_genes}"
 print(f"  Personagens: {[c.name for c in ind.characters]}")
 print(f"  Total de genes: {total_genes} ({'OK' if total_genes == 50 else 'ERRO'})")
 

@@ -31,6 +31,11 @@ from typing import List, Tuple
 
 from scipy.stats import mannwhitneyu
 
+from src.engine.config import (
+    DOMINANCE_CAP_WEIGHT,
+    DOMINANCE_DECIS_WEIGHT,
+    DOMINANCE_GLOBAL_WEIGHT,
+)
 from src.engine.paths import (
     MULTI_RUN_COMPARISON_PATH,
     MULTI_RUN_GA_PATH,
@@ -66,6 +71,13 @@ def _check_comparable(ga: dict, nsga2: dict) -> None:
                 f"Os dois multi_run divergem em '{field}' "
                 f"({ga[field]} vs {nsga2[field]}) — não são comparáveis. "
                 f"Regenere ambos com os mesmos parâmetros."
+            )
+    for label, run in (("ga", ga), ("nsga2", nsga2)):
+        if "dominance_terms" not in run["per_seed"][0]:
+            raise ValueError(
+                f"O multi_run de '{label}' não traz `dominance_terms` — foi gerado "
+                f"antes da decomposição do dominance. Rode "
+                f"`py -m src.tools.multi_run --algorithm both` de novo."
             )
 
 
@@ -159,6 +171,25 @@ def compare(ga: dict, nsga2: dict) -> dict:
         "sims_per_matchup": ga["sims_per_matchup"],
         "nsga2_representative": nsga2.get("nsga2_representative"),
         "metrics": tests,
+        "dominance_decomposition": _decomposition(ga, nsga2),
+    }
+
+
+def _decomposition(ga: dict, nsga2: dict) -> dict:
+    """Medianas dos três termos do `dominance_penalty` lado a lado. É DESCRITIVO,
+    não entra na bateria de testes: somar métricas ao Mann-Whitney infla a correção
+    de Holm sobre as que já estão lá. Serve para ler de ONDE vem a diferença no
+    composto — perder no termo primário (peso 1.0) e perder num secundário (peso
+    0.5) são leituras opostas do mesmo número total."""
+    return {
+        term: {
+            "median_ga":    _median([r["dominance_terms"][term] for r in ga["per_seed"]]),
+            "median_nsga2": _median([r["dominance_terms"][term] for r in nsga2["per_seed"]]),
+            "weight":       weight,
+        }
+        for term, weight in (("global_term", DOMINANCE_GLOBAL_WEIGHT),
+                             ("cap_term", DOMINANCE_CAP_WEIGHT),
+                             ("decis_term", DOMINANCE_DECIS_WEIGHT))
     }
 
 
@@ -193,6 +224,18 @@ def print_report(result: dict) -> None:
     print("")
     print("    A12 = P(uma execução do AG dar valor MAIOR que uma do NSGA-II); "
           "0.5 = sem efeito.")
+    print("")
+    print("  Decomposição do dominance_penalty (descritiva — não entra na bateria "
+          "de testes):")
+    print(f"    {'termo':<14}{'peso':>6}{'mediana AG':>13}{'mediana NSGA2':>15}  melhor")
+    print("    " + "-" * 60)
+    for term, d in result["dominance_decomposition"].items():
+        better = ("AG" if d["median_ga"] < d["median_nsga2"]
+                  else "NSGA-II" if d["median_nsga2"] < d["median_ga"] else "empate")
+        print(f"    {term:<14}{d['weight']:>6.1f}{d['median_ga']:>13.4f}"
+              f"{d['median_nsga2']:>15.4f}  {better}")
+    print("    O termo primário é `global_term` — é ele que diz quem equilibra o "
+          "roster melhor.")
 
 
 def main() -> None:

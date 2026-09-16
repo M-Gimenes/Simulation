@@ -24,43 +24,43 @@
       "metric": "dominance_penalty",
       "label": "dominance_penalty",
       "better_is": "lower",
-      "median_ga": 0.06573947415049029,
-      "median_nsga2": 0.12906774407827787,
-      "u_statistic": 12.0,
-      "p_value": 0.004586392080253494,
-      "a12_ga_vs_nsga2": 0.12,
-      "better": "ga",
-      "p_holm": 0.018345568321013975,
-      "significant": true,
-      "effect_magnitude": "grande"
+      "median_ga": 0.07014058894416712,
+      "median_nsga2": 0.0541169456620218,
+      "u_statistic": 64.0,
+      "p_value": 0.3074894566186813,
+      "a12_ga_vs_nsga2": 0.64,
+      "better": "nsga2",
+      "p_holm": 0.922468369856044,
+      "significant": false,
+      "effect_magnitude": "médio"
     },
     {
       "metric": "drift_penalty",
       "label": "drift_penalty",
       "better_is": "lower",
-      "median_ga": 0.26649006520485335,
-      "median_nsga2": 0.25220921506560784,
-      "u_statistic": 62.0,
-      "p_value": 0.3846730627355087,
-      "a12_ga_vs_nsga2": 0.62,
+      "median_ga": 0.25902203916062083,
+      "median_nsga2": 0.2002529307644721,
+      "u_statistic": 80.0,
+      "p_value": 0.025748080821108063,
+      "a12_ga_vs_nsga2": 0.8,
       "better": "nsga2",
-      "p_holm": 0.7693461254710174,
+      "p_holm": 0.10299232328443225,
       "significant": false,
-      "effect_magnitude": "pequeno"
+      "effect_magnitude": "grande"
     },
     {
       "metric": "n_hard_counters",
       "label": "hard-counters por execução",
       "better_is": "lower",
-      "median_ga": 0.0,
-      "median_nsga2": 3.0,
-      "u_statistic": 19.0,
-      "p_value": 0.016508509318717685,
-      "a12_ga_vs_nsga2": 0.19,
-      "better": "ga",
-      "p_holm": 0.04952552795615306,
-      "significant": true,
-      "effect_magnitude": "grande"
+      "median_ga": 1.0,
+      "median_nsga2": 0.5,
+      "u_statistic": 49.0,
+      "p_value": 0.9682596548128651,
+      "a12_ga_vs_nsga2": 0.49,
+      "better": "nsga2",
+      "p_holm": 1.0,
+      "significant": false,
+      "effect_magnitude": "desprezível"
     },
     {
       "metric": "n_chars_balanced",
@@ -76,5 +76,22 @@
       "significant": false,
       "effect_magnitude": "desprezível"
     }
-  ]
+  ],
+  "dominance_decomposition": {
+    "global_term": {
+      "median_ga": 0.053665164640889815,
+      "median_nsga2": 0.04606162260303608,
+      "weight": 1.0
+    },
+    "cap_term": {
+      "median_ga": 0.02145831269399974,
+      "median_nsga2": 0.009035079029052534,
+      "weight": 0.5
+    },
+    "decis_term": {
+      "median_ga": 0.0,
+      "median_nsga2": 0.0,
+      "weight": 0.5
+    }
+  }
 }

@@ -28,12 +28,22 @@ agregar N execuções e `compare_algorithms` para o teste estatístico
 
 Na mesma prateleira, e nunca feito: o **sweep de `LAMBDA_DRIFT`**. É ele que
 demonstraria que o AG escalar é *um ponto* do trade-off que o NSGA-II mapeia — hoje
-isso é afirmado, não medido. Ressalva de método: o AG escalar com
-`LAMBDA_DRIFT = LAMBDA_DOMINANCE = 1.0` minimiza a **soma** (L1) dos dois objetivos,
-enquanto o representante `ideal_point` da fronteira minimiza a **norma euclidiana**
-(L2). São pontos diferentes da mesma fronteira; ao comparar escalar × NSGA-II, o
-representante usado precisa ser declarado (o `multi_run` grava
+isso é afirmado, não medido.
+
+A ressalva de método que existia aqui — "o escalar minimiza a soma (L1) enquanto o
+`ideal_point` minimiza a norma euclidiana (L2), são pontos diferentes" — **virou código
+em 2026-09-16**: `select_representatives` passou a extrair `scalar_optimum`, o mínimo de
+`LAMBDA_DOMINANCE·dominance + LAMBDA_DRIFT·drift`, que é o comparável correto. O
+`ideal_point` (L2) continua lá, agora como um ponto geométrico entre outros. Ao comparar
+escalar × NSGA-II o representante usado ainda precisa ser declarado (o `multi_run` grava
 `nsga2_representative`, default `best_dominance`).
+
+Medição mais recente, orçamentos iguais (pop 120, 150 gerações, 80 sims, seed 42): o
+escalar chega a `dominance` 0,0088 / drift 0,2856 (L1 0,2945) e o `scalar_optimum` da
+fronteira a 0,0481 / 0,1634 (L1 **0,2115**) — o NSGA-II vence na função que o escalar
+otimiza, e o ponto do escalar fica **fora** da fronteira, abaixo do extremo de dominance
+dela. Nenhum dos dois domina o outro de forma relevante (o escalar domina 3 de 49
+pontos; nenhum ponto o domina).
 
 ## 2. 🟡 Limites estruturais do método (decisões, não bugs)
 
@@ -53,14 +63,15 @@ Precisam aparecer explicitamente na Discussão, não só em Trabalhos Futuros.
 - **Round-robin uniforme.** Todos os 10 pares pesam igual. Não modela matchmaking
   real (jogadores escolhendo matchups favoráveis), então "equilíbrio" aqui é
   equilíbrio sob confronto uniforme.
-- **Grappler sem asserção comportamental — e o eixo Recurso sem counter.** A Layer 3
-  do validador tem 4 asserções para 5 arquétipos: o combate não modela grab/throw, então
-  a identidade do Grappler não tem expressão comportamental distinta do corpo-a-corpo do
-  Rushdown. A auditoria de 2026-09-10 mostrou que isso **não é um achado isolado**: o
-  DEFEND não tem custo nem quebra de guarda, e o grab é ao mesmo tempo o counter que
-  falta ao eixo Recurso, a assinatura que falta ao Grappler e a aresta "Grappler vence
-  Turtle" do ciclo canônico. Escopo e esboços de desenho no item **R** de
-  [`../../REVIEW.md`](../../REVIEW.md) §2 — decidido entrar, depois de fechar A, B e C.
+- ~~**Grappler sem asserção comportamental — e o eixo Recurso sem counter.**~~
+  **Resolvido em 2026-09-16** pelo gene `grab_power` (ver
+  [04-combat-model.md](04-combat-model.md#grab)). Era uma lacuna só produzindo quatro
+  sintomas: o eixo Recurso sem contrapartida (DEFEND não tinha custo), a Layer 3 com 4
+  asserções para 5 arquétipos, a aresta "Grappler vence Turtle" sem mecanismo, e o
+  Grappler com um único gene definidor. O validador vai a **23/23** no canônico.
+  *Fica em aberto:* que o AG realize a aresta do ciclo **por mérito** — no canônico o
+  Grappler vence o Turtle em 100%, mas já vencia antes, porque o Turtle canônico perde
+  para todos.
 - **A política é cega ao estado.** A intenção não depende de HP, distância, cooldown
   do oponente nem de o oponente estar stunado: "estratégia" no modelo é uma mistura fixa
   de três posturas, mantida por `ACTION_PERSISTENCE_SUBTICKS`. É o commitment pretendido,

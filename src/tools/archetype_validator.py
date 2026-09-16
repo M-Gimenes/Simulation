@@ -1,13 +1,20 @@
 """
-Diagnóstico de identidade de arquétipo — 21 asserções: 17 estruturais
-(12 inter + 5 intra, Layers 1-2, determinísticas nos genes) + 4 comportamentais
+Diagnóstico de identidade de arquétipo — 23 asserções: 18 estruturais
+(13 inter + 5 intra, Layers 1-2, determinísticas nos genes) + 5 comportamentais
 (Layer 3, roda combate; `--n 0` desliga e deixa só as estruturais).
+
+**Independência dos instrumentos.** As Layers 1-2 medem identidade ESTRUTURAL — o
+mesmo eixo que o `drift_penalty` otimiza (os `defining_genes` de cada arquétipo
+espelham as asserções inter da Layer 1), então elas são parcialmente endógenas: um
+score alto aqui em parte reflete a penalidade ter funcionado. A Layer 3 mede
+identidade FUNCIONAL — como o personagem joga — e nada no fitness referencia
+comportamento: é ela, com o ciclo de vantagens, que sustenta a leitura post-hoc.
 
 Uso:
     py -m src.tools.archetype_validator
     py -m src.tools.archetype_validator --evolved
-    py -m src.tools.archetype_validator --nsga2 [knee_point|best_dominance|best_drift|ideal_point]
-    py -m src.tools.archetype_validator --n 0    # só estrutural (17 asserções)
+    py -m src.tools.archetype_validator --nsga2 [knee_point|best_dominance|best_drift|ideal_point|scalar_optimum]
+    py -m src.tools.archetype_validator --n 0    # só estrutural (18 asserções)
 """
 
 from __future__ import annotations
@@ -17,7 +24,7 @@ from typing import Dict, List, Tuple
 
 from src.engine.archetypes import ARCHETYPE_ORDER, ArchetypeID
 from src.engine.combat import seed_combat
-from src.engine.config import ATTRIBUTE_BOUNDS
+from src.engine.config import ATTRIBUTE_BOUNDS, ATTRIBUTE_NAMES
 from src.engine.individual import Individual
 from src.tools.analyze_matchups import behavioral_profile
 
@@ -76,6 +83,7 @@ _INTER_ASSERTIONS: List[Tuple] = [
     (ArchetypeID.ZONER,        "w_retreat",         1, "w_retreat = highest (kites when threatened)"),
     (ArchetypeID.COMBO_MASTER, "stun",              1, "stun = highest (lockdown — chains combos)"),
     (ArchetypeID.GRAPPLER,     "damage",            1, "damage = highest (burst punish at close range)"),
+    (ArchetypeID.GRAPPLER,     "grab_power",        1, "grab_power = highest (grab is the canonical counter to blocking)"),
     (ArchetypeID.TURTLE,       "speed",             5, "speed = lowest (slowest — compensates with durability)"),
     (ArchetypeID.TURTLE,       "attack_cooldown",   1, "attack_cooldown = highest (patient, punishes mistakes)"),
     (ArchetypeID.TURTLE,       "hp",                1, "hp = highest (living wall)"),
@@ -106,17 +114,19 @@ def _check_structural_inter(chars) -> List[ArchetypeCheck]:
 # Layer 2 — Structural intra-character (normalized)
 # ─────────────────────────────────────────────────────────────────────────────
 
-_ATTR_BOUNDS: Dict[str, Tuple[float, float]] = dict(zip(
-    ["hp", "damage", "attack_cooldown", "range_", "speed", "stun", "knockback"],
-    ATTRIBUTE_BOUNDS,
-))
+# `range` é `range_` como propriedade do Character (evita a keyword).
+_ATTR_BOUNDS: Dict[str, Tuple[float, float]] = {
+    (f"{name}_" if name == "range" else name): bounds
+    for name, bounds in zip(ATTRIBUTE_NAMES, ATTRIBUTE_BOUNDS)
+}
 
 
 def _norm(char, attr_name: str) -> float:
-    # Mesma convenção do fitness (_archetype_deviation): fração do máximo do bound.
-    # Unifica o "normalizado" do projeto numa única convenção (C3).
-    _, hi = _ATTR_BOUNDS[attr_name]
-    return getattr(char, attr_name) / hi
+    # Mesma convenção do fitness (fitness.gene_drift): fração do RANGE do bound,
+    # não do máximo — normalizar por `hi` subestima genes de `lo` alto. Convenção
+    # única do projeto para "normalizado".
+    lo, hi = _ATTR_BOUNDS[attr_name]
+    return (getattr(char, attr_name) - lo) / (hi - lo)
 
 
 _INTRA_ASSERTIONS: List[Tuple] = [
@@ -159,14 +169,14 @@ _BEHAVIORAL_ASSERTIONS: List[Tuple] = [
     (ArchetypeID.RUSHDOWN,     "atk_landed",     1, "atk_landed = highest (mais ataques conectados/luta)"),
     (ArchetypeID.TURTLE,       "def_chosen",     1, "def_chosen = highest (absorve por opção, não encurralado)"),
     (ArchetypeID.COMBO_MASTER, "stun_inflicted", 1, "stun_inflicted = highest (lockdown do oponente)"),
+    (ArchetypeID.GRAPPLER,     "guard_break",    1, "guard_break = highest (arranca dano pela guarda alheia)"),
 ]
 
-# Sem asserção comportamental: o combate não modela grab/throw, então a identidade do
-# Grappler não tem expressão comportamental distinta (sobrepõe ao corpo-a-corpo do
-# Rushdown). Registrado no relatório, fora do denominador da Layer 3.
-_BEHAVIORAL_NO_ASSERTION: Dict[ArchetypeID, str] = {
-    ArchetypeID.GRAPPLER: "sem assinatura comportamental — mecânica de grab ausente",
-}
+# Todos os 5 arquétipos têm asserção comportamental desde que o agarrão entrou no motor
+# (2026-09-16). Antes o Grappler ficava de fora: sem grab, sua identidade não tinha
+# expressão distinta do corpo-a-corpo do Rushdown. O dicionário permanece como ponto de
+# extensão — arquétipo sem assinatura fica registrado no relatório e fora do denominador.
+_BEHAVIORAL_NO_ASSERTION: Dict[ArchetypeID, str] = {}
 
 
 def _check_behavioral(profile: Dict[ArchetypeID, Dict[str, float]]) -> List[ArchetypeCheck]:
@@ -280,7 +290,7 @@ if __name__ == "__main__":
     parser.add_argument("--evolved", action="store_true",
                         help="Usa o melhor indivíduo salvo em results.json (default: canônico)")
     parser.add_argument("--nsga2", metavar="REP", nargs="?", const="knee_point",
-                        help="Usa representante do NSGA-II (knee_point|best_dominance|best_drift|ideal_point)")
+                        help="Usa representante do NSGA-II (knee_point|best_dominance|best_drift|ideal_point|scalar_optimum)")
     parser.add_argument("--n", type=int, default=200,
                         help="Sims/matchup da Layer 3 comportamental (0 = só estrutural)")
     parser.add_argument("--seed", type=int, default=42, help="Semente do combate da Layer 3")

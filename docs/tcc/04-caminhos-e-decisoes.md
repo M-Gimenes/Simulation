@@ -122,3 +122,120 @@ Cada item: **problema → mudança → resultado.**
   não tem. Mudança: removido. Resultado: o AG escalar otimiza **os mesmos dois eixos do
   NSGA-II**; "os 5 ainda são distintos?" virou métrica **post-hoc** (diferenciação
   par-a-par), não termo forçado — coerente com a não-circularidade do ciclo.
+
+## A régua de identidade (2026-09-16)
+
+O ponto de partida foi uma objeção do próprio autor, levantada no início do projeto e
+retomada na auditoria: *"o AG não devia ter influência em preservar identidade, senão a
+pergunta central fica ambígua — eu estaria forçando a preservação."*
+
+- **Problema:** a objeção é válida como princípio, mas mirava o alvo errado. O projeto já
+  tinha identidade no fitness por decisão explícita, e a não-circularidade estava
+  garantida em outro lugar — no ciclo de vantagens, que nunca entrou em penalidade
+  nenhuma. O que faltava era **nomear a linha**: o fitness pode codificar a **premissa**
+  (o que cada arquétipo é), nunca a **resposta** (quem vence quem; se os dois objetivos
+  são compatíveis). O argumento que fecha é empírico: com a penalidade ligada o run
+  inteiro, o AG **mesmo assim** trocou identidade por equilíbrio (8/21 no validador) —
+  penalidade não
+  é restrição, e ter o termo não pré-determinou nada.
+- **O defeito real:** os dois medidores de identidade do projeto discordavam. O
+  `drift_penalty` dava 0,261 ("preservada") onde o validador dava 8/21 ("destruída"),
+  porque distância euclidiana é cega a **ranking** — e o que aconteceu não foi
+  homogeneização, foi **troca de papéis**.
+- **Mudança:** duas réguas, uma de cada lado da linha. Identidade **estrutural** no
+  fitness (drift normalizado pelo range do bound e ponderado pelos genes definidores de
+  cada arquétipo); identidade **funcional** post-hoc (Layer 3 comportamental + ciclo),
+  que nada no fitness referencia. Contrapartida declarada: as Layers 1-2 do validador
+  ficaram **parcialmente endógenas**.
+- **Resultado:** a ordenação por drift passou a bater com a do validador, e a margem
+  entre indivíduos de identidade diferente dobrou. Mas a resposta em
+  λ_drift = λ_dom = 1,0 **não mudou** — o AG continua trocando identidade por
+  equilíbrio, com as falhas caindo exatamente sobre os genes definidores. Isso é o
+  achado, não o bug: é o que empurra a resposta da tese para o **mapa do trade-off**
+  (fronteira do NSGA-II) em vez de um ponto único.
+
+## O piso de decisividade (2026-09-16)
+
+- **Problema:** `MATCHUP_FLOOR = 0,10` punia lutas *apertadas demais*, empurrando na
+  direção oposta ao termo primário — equilibrar aproxima as lutas. Pior, era ele quem
+  decidia a comparação AG × NSGA-II: decomposto, o NSGA-II era **melhor no termo
+  primário** e perdia no piso. "O AG vence em `dominance_penalty`" estava correto como
+  número e errado como leitura.
+- **Mudança:** piso para 0,02, virando guarda de **degenerescência**. A premissa original
+  ("abaixo do piso é quase-empate, luta que não aconteceu") não vale no motor reformado:
+  100% das lutas terminam em KO, então decisividade baixa é KO no fio — a melhor luta
+  possível, não um defeito. O valor veio de medição: roster degenerado dá `D ≤ 0,008`,
+  espelho puro dá 0,020–0,033, pares reais dão ≥ 0,045.
+- **Resultado:** o piso deixou de morder (0/10 pares contra 5/10 antes) e a comparação
+  entre algoritmos voltou para o termo primário. Em paralelo, os três termos do dominance
+  passaram a ser reportados **separados** nos artefatos — o composto sozinho não
+  distingue perder no primário de perder num secundário de metade do peso.
+
+## O critério de parada do AG (2026-09-16)
+
+- **Problema:** o gate de convergência era `dominance_penalty <= 1e-9`, insatisfazível
+  **por construção** — o termo primário é uma RMS sobre contagens discretas, cujo menor
+  valor não-nulo é ~0,0015, então `1e-9` significava *exatamente zero*. `converged` era
+  sempre `False` e todo o ramo de confirmação era código morto descrito na metodologia.
+  Pior: a "reavaliação independente" rodava no **mesmo stream de RNG** do treino, então
+  não podia discordar do gate.
+- **Mudança:** o gate virou o próprio critério (`roster_balanced`, agora fonte única da
+  definição de equilíbrio do projeto), e a confirmação passou a rodar num stream que o AG
+  nunca viu (`seed + CONVERGENCE_SEED_OFFSET`).
+- **Resultado:** convergir passou a significar *"o equilíbrio sobrevive a uma amostra que
+  o AG não otimizou"*. Em 60 gerações o gate dispara 16× e a confirmação rejeita as 16 —
+  o ajuste ao stream, quantificado; em 150 gerações o AG converge de fato. O headline "X%
+  das execuções convergiram" cai, mas passa a significar alguma coisa.
+
+## A população inicial do NSGA-II (2026-09-16)
+
+- **Problema:** os dois algoritmos iniciavam com `[canônico] + aleatórios`. No NSGA-II
+  isso é patológico, por uma assimetria entre os objetivos: `drift` tem piso 0 **e o piso
+  é alcançável** (o canônico *é* a referência), enquanto o de `dominance` não é. Dominar
+  o canônico exigiria `drift < 0` — impossível —, então ele é **imortal no rank 0** por
+  pior que seja seu equilíbrio, e a vizinhança de drift ~0 herda quase a mesma imunidade.
+  Medido: 40 dos 78 pontos da fronteira eram rosters tão desequilibrados quanto o canônico
+  intocado, ocupando um terço da população e do esforço reprodutivo; o min `dominance`
+  estagnava em 0,2233 e a fronteira nunca alcançava a região onde moram as soluções
+  equilibradas.
+- **Mudança:** NSGA-II inicia 100% aleatório. O AG escalar **mantém** o seed, porque lá
+  ele ajuda: o fitness é um número só, o canônico é ruim nele e some depois de doar genes
+  (com seed drift 0,2874, sem 0,3365, mesmo dominance). Assimetria deliberada, declarada.
+- **Resultado:** min `dominance` 0,0896 em 60 gerações e 0,0346 em 150, sem nuvem
+  (0/49 pontos com `dominance ≥ 1.0`). Com isso o **mapa do trade-off passou a existir**
+  — e a leitura da comparação inverteu: o NSGA-II agora vence o AG escalar na função que
+  o *escalar* otimiza (L1 0,2115 contra 0,2945), enquanto o escalar alcança um extremo de
+  `dominance` (0,0088) abaixo de toda a faixa da fronteira. Não é que um domine o outro:
+  cada um alcança uma parte diferente do trade-off.
+- **Ponto de método associado:** `select_representatives` ganhou `scalar_optimum`, o
+  mínimo da soma ponderada que o escalar otimiza. A comparação vinha usando
+  `ideal_point`, que minimiza a norma L2 — outro ponto da mesma fronteira.
+
+## O agarrão / quebra de guarda (2026-09-16)
+
+- **Problema:** `DEFEND` reduzia 40% do dano e **não tinha custo** — sem chip damage,
+  quebra de guarda ou stamina. Três sintomas que o projeto tratava como problemas
+  separados eram a mesma lacuna: (i) o eixo de **recurso** sem contrapartida; (ii) a
+  **Layer 3 do validador com 4 asserções para 5 arquétipos**, porque sem grab o Grappler
+  não tinha comportamento distinto do corpo-a-corpo do Rushdown; (iii) a aresta
+  **"Grappler vence Turtle"** do ciclo canônico, cuja justificativa é literalmente *"grab
+  é o counter canônico ao bloqueio"*, sem mecanismo no motor. Some-se um quarto, vindo da
+  decisão (A): o Grappler tinha um **único** gene definidor.
+- **Mudança:** `grab_power` como 8º atributo, ∈ [0, 1], a **fração da guarda quebrada**.
+  Contra alvo em `DEFEND` o multiplicador vira `defend_red + grab_power·(1 − defend_red)`.
+  Três escolhas de desenho, todas deliberadas: mesmo alcance e mesmo cooldown do ataque
+  normal; **efeito nenhum contra quem não defende**; e nunca supera um golpe limpo.
+- **Por que essas escolhas:** é o "efeito nenhum contra quem não defende" que faz do
+  agarrão um **counter** em vez de um golpe superior — ele é uma leitura condicional, que
+  vale contra quem bloqueia e é peso morto contra quem pressiona. E por ser uma
+  condicional na *resolução* e não uma ação escolhida, o modelo de dois canais (postura
+  escolhida, ataque por regra) fica intacto: nada de `w_grab` ou quarta postura, que
+  teriam mexido de uma vez no espaço de política, na degenerescência de escala dos pesos
+  e no drift dos pesos.
+- **Resultado:** dano por golpe contra alvo em guarda vai de 16,2 (`grab=0`) a 27,0
+  (`grab=1`), exatamente 1,67× = `1/0.6`; diferença zero contra alvo que não defende. O
+  validador canônico vai a **23/23**, com os cinco arquétipos tendo assinatura
+  comportamental pela primeira vez. Ressalva honesta sobre o sintoma (iii): a aresta
+  Grappler×Turtle sai em 100%, mas já saía antes — o Turtle canônico perde para todos
+  (WR global 0%). O que mudou é que agora **existe o mecanismo** para ele vencer por
+  mérito; se o ciclo emerge disso é pergunta para a bateria.

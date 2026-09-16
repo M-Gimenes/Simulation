@@ -5,7 +5,9 @@ Um EA é estocástico, então uma seed é uma *amostra*, não um resultado (Eibe
 reavalia o melhor indivíduo de cada execução sob um stream de RNG independente do
 treino (Common Random Numbers entre execuções) e agrega (headline C2):
 
-  • média ± desvio de `dominance_penalty` / `drift_penalty`;
+  • média ± desvio de `dominance_penalty` — **decomposto nos três termos**, porque o
+    composto sozinho esconde de onde vem a diferença entre algoritmos — e de
+    `drift_penalty`;
   • WR global média ± desvio por personagem + fração de sementes em que cada boneco
     fica equilibrado (WR global em [0.40, 0.60]);
   • número de hard-counters (pares fora de [0.35, 0.65]) por execução;
@@ -29,10 +31,13 @@ import argparse
 import json
 import statistics
 from itertools import combinations
-from typing import Dict, List, Tuple
+from typing import Dict, List
 
 from src.engine.archetypes import ARCHETYPE_ORDER, ARCHETYPES
 from src.engine.config import (
+    DOMINANCE_CAP_WEIGHT,
+    DOMINANCE_DECIS_WEIGHT,
+    DOMINANCE_GLOBAL_WEIGHT,
     HYPERVOLUME_REFERENCE,
     MULTI_RUN_N_SEEDS,
     MULTI_RUN_SEED_START,
@@ -44,6 +49,7 @@ from src.engine.fitness import (
     character_balanced,
     evaluate_detail_n,
     is_hard_counter,
+    roster_balanced,
     set_seed_base,
 )
 from src.engine.ga import run as run_ga
@@ -114,12 +120,13 @@ def _seed_record(detail: FitnessDetail, seed: int, front_objectives) -> dict:
     record = {
         "seed": seed,
         "dominance_penalty": detail.dominance_penalty,
+        "dominance_terms": detail.dominance_terms.as_dict(),
         "drift_penalty": detail.drift_penalty,
         "characters": characters,
         "matchups": matchups,
         "n_chars_balanced": n_chars_balanced,
         "n_hard_counters": n_hard_counters,
-        "roster_balanced": n_chars_balanced == len(CHAR_NAMES) and n_hard_counters == 0,
+        "roster_balanced": roster_balanced(detail),
     }
     if front_objectives is not None:
         record["front_size"] = len(front_objectives)
@@ -139,6 +146,10 @@ def _aggregate(records: List[dict]) -> dict:
 
     agg = {
         "dominance_penalty": mean_std([r["dominance_penalty"] for r in records]),
+        "dominance_terms": {
+            term: mean_std([r["dominance_terms"][term] for r in records])
+            for term in ("global_term", "cap_term", "decis_term")
+        },
         "drift_penalty": mean_std([r["drift_penalty"] for r in records]),
         "characters": {
             name: {
@@ -211,6 +222,11 @@ def _print_summary(result: dict) -> None:
     dom = agg["dominance_penalty"]
     drift = agg["drift_penalty"]
     print(f"    dominance_penalty:  {dom['mean']:.4f} ± {dom['std']:.4f}")
+    for term, weight in (("global_term", DOMINANCE_GLOBAL_WEIGHT),
+                         ("cap_term", DOMINANCE_CAP_WEIGHT),
+                         ("decis_term", DOMINANCE_DECIS_WEIGHT)):
+        t = agg["dominance_terms"][term]
+        print(f"      └ {term:<12} {t['mean']:.4f} ± {t['std']:.4f}   (peso {weight})")
     print(f"    drift_penalty:      {drift['mean']:.4f} ± {drift['std']:.4f}")
 
     if "hypervolume" in agg:
@@ -265,7 +281,8 @@ def parse_args():
     parser.add_argument("--sims", type=int, default=MULTI_RUN_SIMS,
                         help=f"Sims/matchup na reavaliação independente (default: {MULTI_RUN_SIMS})")
     parser.add_argument("--nsga2-representative", default="best_dominance",
-                        choices=["best_dominance", "best_drift", "knee_point", "ideal_point"],
+                        choices=["best_dominance", "best_drift", "knee_point", "ideal_point",
+                                 "scalar_optimum"],
                         help="Ponto da fronteira que representa cada execução do NSGA-II "
                              "(default: best_dominance)")
     return parser.parse_args()

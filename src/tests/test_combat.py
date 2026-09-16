@@ -192,4 +192,88 @@ assert mismatches == 0, f"{mismatches} divergências entre fitness-JIT e traced-
 print("  ✓ as duas variantes do JIT produzem desfecho idêntico")
 
 
+# ── Agarrão: counter à guarda, não golpe melhor ─────────────────────────────
+
+separator("Agarrão — quebra de guarda proporcional a grab_power")
+
+from src.engine.character import Attr, WIdx
+from src.engine.config import DEFEND_DAMAGE_REDUCTION
+
+
+def _fighter(aid: ArchetypeID, **genes) -> Character:
+    """Cópia de um canônico com genes sobrescritos, para isolar a mecânica."""
+    char = _canon_char(aid).clone()
+    for name, value in genes.items():
+        if name.startswith("w_"):
+            char.weights[getattr(WIdx, name[2:].upper())] = value
+        else:
+            char.attributes[getattr(Attr, name.upper())] = value
+    return char
+
+
+def _hit_profile(attacker: Character, defender: Character, seed: int = 7):
+    """(dano médio POR GOLPE, dano total arrancado pela guarda).
+
+    Por golpe, não total: a luta termina em KO, então o dano total fica limitado
+    pelo HP do alvo e esconde o efeito da mecânica."""
+    seed_combat(seed)
+    trace = simulate_combat_traced(attacker, defender)
+    dealt = trace.damage_dealt[:, 0]
+    hits  = dealt[dealt > 0]
+    assert hits.size > 0, "o atacante precisa conectar ao menos um golpe"
+    return float(hits.mean()), float(trace.guard_broken[:, 0].sum())
+
+
+# Alvo que SEMPRE defende; atacante que sempre avança. Isola o efeito da guarda.
+GUARDING = dict(w_retreat=0.0, w_defend=1.0, w_aggressiveness=0.0)
+PRESSING = dict(w_retreat=0.0, w_defend=0.0, w_aggressiveness=1.0)
+
+blocker  = _fighter(ArchetypeID.TURTLE,   **GUARDING)
+no_grab  = _fighter(ArchetypeID.GRAPPLER, grab_power=0.0, **PRESSING)
+max_grab = _fighter(ArchetypeID.GRAPPLER, grab_power=1.0, **PRESSING)
+
+hit_none, broke_none = _hit_profile(no_grab,  blocker)
+hit_full, broke_full = _hit_profile(max_grab, blocker)
+
+assert broke_none == 0.0, "sem grab_power não se arranca nada pela guarda"
+assert broke_full > 0.0, "com grab_power máximo a guarda tem de ser quebrada"
+
+expected_none = no_grab.damage * DEFEND_DAMAGE_REDUCTION
+expected_full = max_grab.damage * (DEFEND_DAMAGE_REDUCTION + 1.0)
+assert abs(hit_none - expected_none) < 1e-6, f"grab 0 deve dar {expected_none:.2f}"
+assert abs(hit_full - expected_full) < 1e-6, f"grab 1 deve dar {expected_full:.2f}"
+print(f"  contra alvo em GUARDA, dano por golpe: grab 0.0 → {hit_none:.1f} "
+      f"({DEFEND_DAMAGE_REDUCTION:.2f}×), grab 1.0 → {hit_full:.1f} "
+      f"({DEFEND_DAMAGE_REDUCTION + 1.0:.2f}×)")
+
+# O ponto NEUTRO — onde a guarda deixa de compensar — é `1 − defend_red`. Abaixo dele
+# defender ainda vale; acima, defender é pior que não defender. É a régua que separa
+# o Grappler (0.90) dos outros quatro arquétipos (todos abaixo de 0.40).
+neutral = 1.0 - DEFEND_DAMAGE_REDUCTION
+hit_neutral, _ = _hit_profile(_fighter(ArchetypeID.GRAPPLER, grab_power=neutral, **PRESSING), blocker)
+assert abs(hit_neutral - max_grab.damage) < 1e-6, (
+    f"em grab={neutral:.2f} a guarda deve ser exatamente anulada "
+    f"({max_grab.damage}), deu {hit_neutral:.2f}"
+)
+print(f"  ✓ ponto neutro em grab={neutral:.2f}: guarda anulada (dano = golpe limpo)")
+assert hit_full > max_grab.damage, "acima do neutro, a guarda tem de virar desvantagem"
+print(f"  ✓ acima do neutro a guarda PUNE: {hit_full:.1f} > {max_grab.damage:.0f} do golpe limpo")
+
+# O invariante que faz do agarrão um COUNTER: contra quem não defende, ele não existe.
+aggressive = _fighter(ArchetypeID.TURTLE, **PRESSING)
+hit_a, broke_a = _hit_profile(_fighter(ArchetypeID.GRAPPLER, grab_power=0.0, **PRESSING), aggressive)
+hit_b, broke_b = _hit_profile(_fighter(ArchetypeID.GRAPPLER, grab_power=1.0, **PRESSING), aggressive)
+assert broke_a == 0.0 and broke_b == 0.0, "sem guarda não há o que quebrar"
+assert abs(hit_a - hit_b) < 1e-9, (
+    f"grab_power não pode mudar nada contra quem não defende: {hit_a:.4f} vs {hit_b:.4f}"
+)
+print("  ✓ contra quem NÃO defende, grab_power não muda nada — é counter, não golpe melhor")
+
+# Só o Grappler canônico passa do ponto neutro: é isso que o diferencia dos outros.
+_canon_ind = Individual.from_canonical()
+above = [c.name for c in _canon_ind.characters if c.grab_power > neutral]
+assert above == ["Grappler"], f"só o Grappler deve punir a guarda, mas {above} passam do neutro"
+print(f"  ✓ nos canônicos, só o Grappler passa do ponto neutro — os outros 4 ficam abaixo")
+
+
 separator("Todos os testes de combate passaram ✓")

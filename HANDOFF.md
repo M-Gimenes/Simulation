@@ -1,10 +1,11 @@
-# Retomada — estado do projeto em 2026-09-10 (fim do dia)
+# Retomada — estado do projeto em 2026-09-16
 
-Este arquivo é o retrato do **agora**. O levantamento original (2026-09-09) e a rodada
-de correções de metodologia estão no histórico do git; o que segue é o estado depois da
-**auditoria de coerência** e da **reforma do motor de combate**.
+Este arquivo é o retrato do **agora**. O histórico (levantamento de 2026-09-09, rodada
+de metodologia, auditoria de coerência e reforma do combate de 2026-09-10) está no git;
+o que segue é o estado depois de fechar os **passos 2 a 7 da ordem** — itens A, B, E, C, H, R
+e a **bateria completa**, com `results/` regenerado.
 
-- Pauta da auditoria, com tudo o que foi verificado e o que segue aberto: [`REVIEW.md`](REVIEW.md).
+- Pauta da auditoria, com o que foi verificado e o que segue aberto: [`REVIEW.md`](REVIEW.md).
 - **Ordem de execução do que falta:** [`REVIEW.md` §8](REVIEW.md).
 - Auditoria do combate, com os números antes/depois: [`docs/reference/11-combat-review.md`](docs/reference/11-combat-review.md).
 - Pontos em aberto do sistema: [`docs/reference/10-known-issues.md`](docs/reference/10-known-issues.md).
@@ -15,53 +16,337 @@ de correções de metodologia estão no histórico do git; o que segue é o esta
 ## 0. Comece por aqui
 
 1. **O ambiente não sobe sozinho.** `.venv/` é gitignored e o Python do sistema (3.14)
-   não tem `numpy`/`numba`/`scipy`. Rode `.\setup.ps1` antes de qualquer coisa.
-2. **`results/` está OBSOLETO.** Todo artefato lá descreve o motor anterior à reforma de
-   2026-09-10. Não cite número nenhum de `results/`, e não regenere a bateria ainda — ela
-   só deve rodar no passo 7 da ordem, com o fitness e a calibração já fechados.
-3. **O próximo passo é o 2 da ordem: A + B**, e ele começa com uma decisão do usuário
-   (ver §3 abaixo). Não é código: é definir a régua de identidade e a de equilíbrio.
+   não tem `numpy`/`numba`/`scipy`. Rode `setup.ps1` antes de qualquer coisa.
+2. **`results/` está ATUAL** — bateria completa de 2026-09-16, sob o motor e o fitness
+   de hoje. É a primeira vez desde 2026-09-10 que os artefatos podem ser citados. Mas
+   veja o item 3: eles congelam por omissão sete constantes ainda provisórias.
+3. **O próximo passo não é um item da ordem — é a agenda de calibração
+   ([`REVIEW.md` §9](REVIEW.md)):** sete constantes ainda rotuladas "provisório", agora
+   com a evidência que a bateria produziu. Todas mudam número, então fechar qualquer uma
+   obriga a regenerar `results/` de novo. Resumo em §3.
 
-## 1. O que foi feito em 2026-09-10
+## 1. O que foi feito em 2026-09-16 — passos 2 a 7 (A, B, E, C, H, R + bateria)
 
-### Auditoria de coerência (`REVIEW.md`)
+### (A) Identidade: duas réguas, uma de cada lado da linha premissa/resposta
 
-A pauta foi percorrida inteira. Cada item ganhou uma linha `**Verificado:**` com a
-medição que sustenta ou derruba o que estava só afirmado, e o §0 virou um sumário de
-incongruências com estado. Oito achados **novos**, que não estavam na pauta original —
-os quatro de combate foram corrigidos no mesmo dia, os outros seguem abertos.
+A discussão que destravou o item foi conceitual, não de código: *"o AG não devia ter
+influência em preservar identidade, senão a pergunta do TCC fica circular"*. A
+preocupação é válida como princípio mas mirava o alvo errado — e a resposta virou a
+**linha que organiza o projeto inteiro**, agora registrada no topo do `CLAUDE.md`:
 
-### Reforma do motor de combate
+> **O fitness pode codificar a PREMISSA, nunca a RESPOSTA.**
+> "O Zoner é definido por alcance" é premissa (dado da FGC, anterior à pergunta de
+> equilíbrio). "O Zoner deve vencer o Grappler" é resposta. Daí a assimetria: identidade
+> **é** termo do fitness, o ciclo de vantagens **não é**.
 
-A preocupação era "o combate está quebrado em algum sentido?" — não havia dado nenhum
-sobre isso. Havia. Detalhe completo com tabelas em
-[`11-combat-review.md`](docs/reference/11-combat-review.md); em resumo:
+Três argumentos fecham a questão: (i) o projeto já tinha identidade no fitness por
+decisão explícita (`LAMBDA_DRIFT = 1.0`, *"penalized but never hard-constrained"*);
+(ii) penalidade não é restrição — com ela ligada o run inteiro, o AG **mesmo assim**
+destruiu a identidade (8/21 no validador), então ter o termo não pré-determina a
+resposta; (iii) tirar drift do fitness mataria o braço NSGA-II inteiro, porque uma
+fronteira de Pareto precisa de dois objetivos.
 
-| | antes | depois |
+O problema real era outro: **os dois instrumentos discordavam sobre o que "identidade"
+significa**. Arquitetura adotada:
+
+| régua | o que mede | onde vive |
 |---|---|---|
-| **M1** intenção sobrescrita por ADVANCE forçado fora do alcance | zoner perde **100%** com *qualquer* range (5→20) e *qualquer* knockback (0→3); `knockback` com derivada **negativa** | intenção vale sempre; `range` no corpo neutro Δ=46,8% → **Δ=90,5%** |
-| **M1b** ataque exclusivo com o movimento | recuar = forfeit de dano; zonear não existia como jogada | dois canais: postura escolhida, ataque por regra. zoner×rusher 0,0% → **49,0%**; `knockback` no contexto Δ=0,1% → **Δ=44,3% ↑** |
-| **M2** corpos se atravessando | **134 atravessamentos/luta** | colisão, movimento simultâneo, A sempre à esquerda |
-| **M3** stun arredondado | **4 níveis efetivos** com `cooldown=1`; amplitude ±1σ = 6,8% | timer contínuo; Δ 17,2% → **53,5%**, amplitude **17,4%** |
-| **D** desempate por HP% igual | espelho do Rushdown **54,90%** para o lado A | empate como 3º desfecho (`winner = -1`, meia vitória); espelhos ~50% |
-| impasse | com M1 sozinho: Zoner×Turtle **100% de timeout** | ADVANCE imposto só quando ninguém alcança ninguém → **0% de timeout** |
+| identidade **estrutural** | os genes continuam reconhecíveis | `drift_penalty`, **no fitness** |
+| identidade **funcional** | o personagem continua *jogando* como ele mesmo | Layer 3 + ciclo, **post-hoc** |
 
-Sobre a ressalva de que o atravessamento existia para evitar encurralamento: medido
-depois da colisão, **o canto não virou armadilha automática** — quem é encurralado perde
-entre 55% e 100% conforme o par, e o knockback de quem está preso empurra o agressor.
-Manter sob observação na recalibração.
+Mudanças no código:
+- **Normalização pelo range do bound**, `(x − lo)/(hi − lo)` em vez de `x/hi`, no fitness,
+  na Layer 2 do validador e no `drift_table` — uma definição só de "normalizado".
+- **`ArchetypeDefinition.defining_genes`** (campo congelado novo): os genes em que cada
+  arquétipo ocupa um extremo por design, espelhando as asserções inter da Layer 1. Pesam
+  `DRIFT_DEFINING_WEIGHT = 3.0` no drift contra 1.0 dos demais.
+- O `drift_table` marca os definidores com ★ e mostra o peso por gene; o validador
+  declara na própria docstring que as Layers 1-2 ficaram **parcialmente endógenas**.
+- `test_fitness` ganhou cobertura do drift: canônico zera, definidor pesa exatamente
+  3× (razão dos quadrados), desvio fica em [0,1], nomes em `defining_genes` são válidos.
 
-**O que isso destravou.** Um AG curto (pop 120, 25 gerações, 80 sims/par) leva o
-`dominance_penalty` de 1,236 a 0,250, com os 5 bonecos em WR global [48,7%, 52,0%] e
-**espalhamento real por par**: 22% · 34% · 36% · 48% · 50% · 50% · 58% · 64% · 70% · 71%.
-No motor antigo o evoluído ficava achatado em [43,5%, 58%]. **Agora existe espaço para o
-ciclo de vantagens viver** — que é a condição para a pergunta de pesquisa fazer sentido.
+**O que isso conserta, medido.** A ordenação por drift agora bate com a do validador —
+e quem conserta é a **normalização**: sob `x/hi` o AG dava 0,2607, *abaixo* do
+`best_dominance` (0,2709), invertendo 8/21 contra 11/21. A ponderação alarga a margem
+(scores do validador re-medidos após a correção — a Layer 2 usa a mesma normalização, e
+a auditoria de 2026-09-10 registrou 20/16/13/7 sob a convenção antiga):
 
-Código tocado: `src/engine/combat.py` (três helpers `@njit` compartilhados agora —
-`_decide_action`, `_apply_movement`, `_decide_winner`), `src/engine/fitness.py` (empate
-no round-robin e no score por-luta), `analyze_matchups`, `viewer`, `web_viewer`, e os dois
-testes que codificavam o modelo antigo. `Action` deixou de ter `ATTACK`: virou postura de
-três valores, e o `CombatTrace` ganhou o canal `attacked`. Os 6 smoke tests passam.
+| variante | knee (19/21) | ideal (16/21) | best_dom (11/21) | AG (8/21) | ordem bate? |
+|---|---|---|---|---|---|
+| `x/hi` uniforme | 0,0885 | 0,1554 | 0,2709 | 0,2607 | **não** |
+| range, uniforme | 0,1302 | 0,2062 | 0,3245 | 0,3417 | sim |
+| range, ponderada | 0,1279 | 0,2054 | 0,3150 | 0,3579 | sim |
+
+### (B) Equilíbrio: o piso de decisividade virou guarda de degenerescência
+
+`MATCHUP_FLOOR` foi de **0,10 para 0,02**. A premissa por trás do piso ("abaixo dele é
+quase-empate, luta que não aconteceu") **não vale no motor reformado**: medido, **100%
+das lutas terminam em KO** em 70 pares, incluindo rosters aleatórios. `D` baixo nunca é
+"a luta não aconteceu" — é KO no fio, a melhor luta possível. O piso punia exatamente o
+desfecho que o projeto quer, e empurrava contra o termo primário.
+
+| regime | `D` |
+|---|---|
+| degenerado (HP máx / dano mín / GUARDA total; 0% KO, timeout com HP idêntico) | ≤ 0,008 |
+| espelho puro dos 5 canônicos (par equilibrado por construção) | 0,020 – 0,033 |
+| pares reais (70 pares medidos) | ≥ 0,045 |
+
+0,02 é a base da faixa do espelho — abaixo do que dois personagens **idênticos**
+produzem. Efeito isolado: a 0,10 o piso penalizava 5/10, 5/10 e 3/10 pares nos três
+indivíduos evoluídos; a 0,02 penaliza **0/10 em todos**.
+
+Segunda metade do item: `_dominance_penalty` devolve um **`DominanceTerms`**
+(`global_term`, `cap_term`, `decis_term`) guardado no `FitnessDetail`. O `multi_run`
+grava os três por semente e agregados; o `compare_algorithms` imprime a decomposição
+lado a lado. É **descritiva** e fica fora da bateria de Mann-Whitney de propósito —
+acrescentar métricas ali inflaria a correção de Holm (item F).
+
+### O achado que sobrevive a tudo isso
+
+AG curto sob o fitness novo (pop 120, 25 gerações, 80 sims/par, seed 42, serial):
+
+```
+dominance = 0,0896   (global 0,0816 | cap 0,0160 | decis 0,0000)
+drift     = 0,2973
+WR global [43,7% … 56,1%]          WR por par: 34% … 66%
+decisividade por par: 0,045 … 0,072
+validador: estrutural 7/17 · completo 10/21
+```
+
+O piso parou de morder (`decis_term` = 0,0000 exato). O `cap_term` **voltou a morder**
+(0,0160) — a reforma do combate abriu espaço para vantagem par-a-par, que é o que o cap
+regula; o sweep de `MATCHUP_WR_CAP` voltou a fazer sentido, fica para a calibração (H).
+
+E o principal: **o AG continua trocando identidade por equilíbrio**, com as falhas
+caindo exatamente sobre os genes definidores (os 3 do Rushdown, os 3 do Zoner, 3 dos 4
+do Turtle). A régua ficou afiada; a resposta em λ_drift = λ_dom = 1,0 **não mudou**.
+Isso é o achado, não o bug — e é a evidência de que o termo de identidade não
+pré-determina nada. O mapa do trade-off (fronteira do NSGA-II, e possivelmente um sweep
+de `LAMBDA_DRIFT`) é onde a resposta da tese vive.
+
+> Ressalva: run curto, uma semente. Não é resultado publicável — é sanity do fitness
+> novo. Os números da tese saem da bateria do passo 7.
+
+### (E) Convergência: o gate virou o próprio critério, e a confirmação virou real
+
+Duas correções no mesmo item.
+
+**O gate era insatisfazível por construção.** `dominance_penalty <= 1e-9`, sendo que
+`global_term` é uma RMS sobre contagens discretas — com 600 lutas por personagem, o
+menor valor não-nulo é `(1/600)/0,5/√5 ≈ 0,0015`. Não há continuum entre 0 e isso, então
+`1e-9` significava **exatamente zero**. `converged` era `False` sempre e todo o ramo de
+confirmação era código morto descrito na metodologia. Agora o gate é
+`roster_balanced(best_detail)` — o mesmo predicado da confirmação, sobre a avaliação que
+já está em mãos. Subir para um escalar calibrado manteria uma versão branda do defeito:
+o composto inclui o `decis_term`, que **não faz parte da definição de convergência**.
+
+`roster_balanced` é novo em `fitness.py` e virou a fonte única da definição de
+equilíbrio do projeto — consumida pela convergência do AG e pelo veredito por semente do
+`multi_run`, que tinha uma cópia inline.
+
+**Achado novo: a confirmação não confirmava nada.** `ga.run` fazia `set_seed_base(seed)`
+e `evaluate_detail_n` resseta ao mesmo base — a "reavaliação independente" rodava 200
+sims em vez de 150 **no mesmo stream de RNG**. CRN é o certo para *seleção* e errado
+para *validação*. Medido no indivíduo que convergia:
+
+| stream | equilibrado? | bonecos em banda | counters duros |
+|---|---|---|---|
+| treino (42) — o que a confirmação usava | **sim** | 5/5 | 0 |
+| 9999 / 10000 / 10001 / 10002 | não | 5/5 | 1–2 |
+
+O que quebra é sempre o par-a-par, nunca a WR global. A confirmação passou a usar
+`seed + CONVERGENCE_SEED_OFFSET` (100000). **Convergir agora significa que o equilíbrio
+sobrevive a um stream que o AG nunca viu**, e o `best_detail` devolvido é medição fora da
+amostra. Efeito medido no mesmo run curto: o gate dispara **16×** em 60 gerações e a
+confirmação rejeita **as 16** — o ajuste ao stream, quantificado.
+
+Cobertura nova: `src/tests/test_ga.py` (7º smoke test) fecha o contrato — as réguas do
+`roster_balanced`, o fato de arestas de ciclo não reprovarem, e a confirmação usando
+stream diferente e restaurando o base do treino.
+
+### (C) NSGA-II: o seed canônico era imortal e comia metade da fronteira
+
+O diagnóstico anterior ("colapso de pressão seletiva no front0") **estava errado**. A
+causa é uma assimetria entre os dois objetivos: **`drift` tem piso 0 e o piso é
+alcançável** — o canônico *é* a referência, drift exatamente 0,0000 — enquanto o piso de
+`dominance` não é. Dominar `(1,2418, 0,0000)` exigiria `drift < 0`, que não existe. O
+seed canônico é portanto **imortal no rank 0**, por pior que seja o equilíbrio dele, e a
+mesma proteção vale para a vizinhança de drift ~0. O crowding não limpa: ele só poda
+quando um front **transborda** a população, e front0 (78) nunca passou de 120.
+
+Medido, única diferença sendo a população inicial (pop 120, 60 gerações, 80 sims, seed 42):
+
+| | com seed canônico | sem seed canônico |
+|---|---|---|
+| min `dominance` da fronteira | 0,2233 (estagnado) | **0,0896** (ainda caindo) |
+| pontos com `dominance ≥ 1.0` | **40/78** | 1/44 |
+| front0 na geração 50 | 89/120 | 31/120 |
+| drift coberto | [0,000, 0,161] | [0,124, 0,300] |
+
+Metade da fronteira eram rosters tão desequilibrados quanto o canônico intocado, comendo
+um terço da população **e um terço do esforço reprodutivo** — e a fronteira nunca chegava
+na faixa de drift ~0,29 onde moram as soluções equilibradas.
+
+**Correção:** o NSGA-II inicia com população 100% aleatória. No **AG escalar o mesmo seed
+ajuda e fica** — lá o fitness é um número só, o canônico é ruim nele e some depois de
+doar genes (medido: com seed drift 0,2874, sem 0,3365, mesmo dominance). A assimetria é
+deliberada e está declarada.
+
+**Verificado no orçamento real (150 gerações):** a nuvem **não reaparece** — 0/49 pontos
+com `dominance ≥ 1.0`, nenhum imortal. O min drift desce sozinho (0,2934 → 0,0804),
+porque o NSGA-II seleciona por drift baixo, mas os pontos chegam lá **com dominance
+razoável**. O acúmulo vinha do seed, não da dinâmica: nenhum mecanismo novo é preciso. Se
+reaparecer em outro regime, a ordem de intervenção é supressão de duplicatas →
+ε-dominância (Laumanns et al. 2002) → NSGA-II com restrições (Deb 2002 §VI).
+
+**Novo representante `scalar_optimum`** (parte (c) do item): mínimo de
+`LAMBDA_DOMINANCE·dominance + LAMBDA_DRIFT·drift`, a mesma função que o escalar otimiza.
+A comparação usava `ideal_point`, que minimiza a norma **L2** — comparável errado. É o
+único ponto do NSGA-II que lê os `LAMBDA_*`, e é reporting, não busca.
+
+**Resultado final, orçamentos iguais** (pop 120, 150 gerações, 80 sims, seed 42):
+
+| | dominance | drift | L1 |
+|---|---|---|---|
+| AG escalar | **0,0088** | 0,2856 | 0,2945 |
+| `scalar_optimum` da fronteira | 0,0481 | 0,1634 | **0,2115** |
+
+A alegação "o ponto do escalar domina a fronteira" **caiu**: ele domina 3 de 49 pontos,
+nenhum o domina, e o NSGA-II agora vence o escalar **na própria função que o escalar
+otimiza**. A frase "o escalar é *um ponto* do trade-off que o NSGA-II mapeia" segue não
+sendo literalmente verdadeira, mas por outro motivo: o escalar alcança dominance 0,0088,
+**abaixo de toda a faixa da fronteira**, então fica *além* da ponta dela — não fora por
+sub-convergência. Cada um alcança uma parte diferente do trade-off, nenhum sub-convergido.
+
+E um bônus para o item (E): nessa mesma rodada de 150 gerações o AG **parou por
+convergência**, com o critério confirmado num stream que ele nunca viu. O critério novo é
+alcançável — só exige convergência de verdade.
+
+### (H) Nenhuma métrica do projeto tinha piso
+
+O item era "recalibrar os canônicos para o ciclo existir". Ele **não é isso** — e o
+diagnóstico vale para muito além do ciclo.
+
+**Por que calibrar o ciclo é perseguir uma loteria.** O ciclo canônico é um torneio
+**regular**: cada arquétipo vence exatamente 2 e perde 2. Existem **24** torneios
+regulares rotulados em 5 vértices, então acertar o rótulo específico é 1/24 ≈ 4,2%; e
+como cada aresta é cara-ou-coroa, o acaso já entrega 5/10. O alvo é inatingível **como
+evidência**, independentemente de ser atingível como valor.
+
+**O achado maior.** Todas as métricas de identidade eram lidas contra o **teto**, como se
+o piso fosse zero. Medido com 13 rosters nulos (5 espelhos + 8 aleatórios):
+
+| métrica | piso médio | pior nulo | teto |
+|---|---|---|---|
+| validador (L1-L3) | ~6,8/21 | **12/21** | 21/21 |
+| `drift_penalty` | 0,408 aleatório · 0,326 espelho | 0,326 | 0,000 |
+| arestas do ciclo | 5/10 | 8/10 | 10/10 |
+
+Um roster **aleatório** tirou 12/21 no validador. Cinco personagens **idênticos** tiram
+7–10/21, porque asserção de ranking com empate se resolve por ordem de índice. E entre
+drift 0,287 (evoluído) e 0,326 (todos idênticos) há **0,04** — a régua central da tese
+quase não distingue preservação de aniquilação.
+
+**Ferramenta nova:** `src/tools/baselines.py` monta canônico + 5 espelhos + N aleatórios
+e reporta cada métrica como `posição = (valor − piso)/(teto − piso)`, com o **pior nulo**
+e um **p-valor empírico**. O piso é distribuição, não ponto. Cobertura em
+`src/tests/test_baselines.py` (8º smoke test).
+
+**Veredito nos indivíduos existentes:**
+
+| indivíduo | identidade | equilíbrio |
+|---|---|---|
+| `results.json` (motor antigo) | **no piso** — p = 0,46 / 0,38 / 0,23; ciclo 4/10 abaixo do acaso | — |
+| AG sob motor/fitness novos | **~30% acima do piso**, p ≈ 0,08 (sugestivo, não estabelecido) | **99%** do trivialmente alcançável |
+
+**O espelho responde à objeção que estava em aberto.** Cinco idênticos são a solução
+trivial de equilíbrio e equilibram *melhor* que o evoluído (dominance 0,02–0,05 contra
+0,049). "Por que não deixar todos iguais?" agora tem resposta numérica, e os cantos
+degenerados podem ser marcados no gráfico da fronteira.
+
+**O que substitui o ciclo:** tríades circulares (Kendall & Babington Smith 1940), escala
+0 (ordem estrita) · 2,5 (acaso) · 5 (máximo). O máximo **é** o torneio regular, que **é**
+equilíbrio global perfeito — um roster estritamente transitivo teria WRs 100/75/50/25/0,
+incompatível com todos perto de 50%. Logo **equilíbrio global não é achatamento: ele
+força não-transitividade**. Demonstrável, sem depender de autoria. O AG novo dá 3,0
+tríades com pares em 34%–66% (arestas decididas). Coberto por teste: o ciclo **invertido**
+dá 0/10 arestas e ainda 5 tríades — a estrutura sobrevive à troca de rótulos, que é
+exatamente por que o rótulo não é o achado.
+
+**Os canônicos não precisam de recalibração.** Eles não precisam realizar o ciclo nem ser
+equilibrados — serem desequilibrados é o ponto de partida do problema. O que faltava era
+piso contra o qual lê-los.
+
+### (R) O agarrão: um gene fechou três lacunas
+
+`grab_power`, 8º atributo, ∈ [0, 1] — a **fração da guarda quebrada**. Contra alvo em
+`DEFEND` o multiplicador do dano vira `defend_red + grab_power·(1 − defend_red)`.
+
+Três escolhas de desenho, todas deliberadas:
+- **mesmo alcance e mesmo cooldown** do ataque normal;
+- **efeito nenhum contra quem não está defendendo** — é isso que o torna um *counter* e
+  não um golpe superior: vale contra quem bloqueia, é peso morto contra quem pressiona;
+- **nunca supera um golpe limpo** — no teto apenas iguala. Anula a vantagem de defender,
+  não a inverte.
+
+E por ser uma **condicional na resolução** em vez de uma ação escolhida, o modelo de dois
+canais fica intacto: nada de `w_grab` nem quarta postura.
+
+**A régua é o ponto neutro.** O multiplicador do dano contra quem defende é
+`defend_red + grab_power`, então o neutro fica em `1 − defend_red = 0,40`: abaixo dele
+defender ainda compensa, acima **defender é pior que não defender**.
+
+| arquétipo | `grab_power` | multiplicador |
+|---|---|---|
+| Zoner | 0,05 | 0,65× |
+| Turtle | 0,15 | 0,75× |
+| Rushdown | 0,20 | 0,80× |
+| Combo Master | 0,30 | 0,90× |
+| **Grappler** | **0,90** | **1,50×** — único acima do neutro |
+
+**Medido** (`test_combat`, alvo sempre em guarda): dano por golpe **16,2 → 43,2** ao
+varrer `grab_power` de 0 a 1, exatamente o golpe limpo no neutro 0,40, e diferença
+**exatamente zero** contra alvo que não defende.
+
+| sintoma | estado |
+|---|---|
+| eixo Recurso sem contrapartida | ✅ defender deixou de ser grátis |
+| Layer 3 com 4 asserções para 5 arquétipos | ✅ Grappler ganhou `guard_break`; validador **23/23** no canônico |
+| aresta "Grappler vence Turtle" sem mecanismo | ⚠️ parcial — ver abaixo |
+| Grappler com um único gene definidor | ✅ agora `damage` + `grab_power` |
+
+**A ressalva honesta:** o Grappler vence o Turtle em 100% no canônico, mas **já vencia
+antes** do agarrão — o Turtle canônico perde para todo mundo (WR global 0%). A mecânica
+agora existe e dá ao AG uma alavanca para realizar a aresta **por mérito**; se o ciclo
+emerge disso é pergunta para a bateria, não coisa fechada aqui. O contador de arestas
+segue em 5/10 no canônico, que é o piso do acaso — ver (H).
+
+O item que mais ganhou com isso foi o (A): a Layer 3 é **a régua independente de
+identidade** do projeto, e ela estava incompleta.
+
+**Custo pago:** 8º atributo propagado por bounds, canônicos, drift, validador, viewers e
+testes. Os testes que repetiam a aridade (`== 10 genes`, `== 12 asserções`) passaram a
+**derivar das tabelas** — o próximo gene não os quebra.
+
+### Critério de parada: os dois algoritmos param por orçamento
+
+O AG **não para mais cedo**. `converged_at` e `stagnated_at` viraram eventos registrados
+e a execução vai sempre até `MAX_GENERATIONS`.
+
+O NSGA-II não tem como parar pelo critério do escalar: *"o roster está equilibrado?"* não
+se pergunta a uma **fronteira**, que de propósito contém pontos desequilibrados e fiéis —
+e perguntar a um representante faz a resposta depender de escolha arbitrária. Parar o
+escalar mais cedo tornaria a comparação ambígua: "melhor" ficaria indistinguível de "usou
+menos orçamento".
+
+Com os dois em orçamento fixo ganha-se duas coisas: a comparação vira **qualidade sob
+orçamento igual**, e `converged_at` vira um segundo eixo, de **velocidade**, que não
+existia. Na primeira execução completa com o motor novo (seed 42): **convergiu na geração
+11**, estagnou na 106, rodou as 150.
+
+Custo medido da mudança: 1 geração ≈ 1,18s na config real (pop 300, 150 sims, 8 workers),
+então uma execução do AG ≈ 3 min, do NSGA-II ≈ 6 min, e a bateria de 10 sementes × 2
+algoritmos ≈ 90 min.
 
 ## 2. A leitura macro do modelo — 4 eixos, 1 ainda incoerente
 
@@ -69,74 +354,89 @@ três valores, e o `CombatTrace` ganhou o canal `attacked`. Os 6 smoke tests pas
 |---|---|---|
 | **Espaço** | range, speed, knockback, posição, campo, colisão | ✅ coerente após M1+M1b+M2 |
 | **Tempo** | cooldown, stun, persistência da intenção | ✅ coerente após M3. Ressalva: a persistência (10 sub-ticks) é **maior que o cooldown mínimo** (5), então quem tem `cooldown=1` e sorteia GUARDA abre mão de duas janelas de ataque |
-| **Recurso** | hp, damage, DEFEND | ❌ **sem counter** — ver §4 |
+| **Recurso** | hp, damage, DEFEND, grab_power | ✅ coerente após (R) — o agarrão é o counter da guarda |
 | **Política** | 3 pesos, amostragem proporcional | contínua, mas **cega ao estado** (não olha HP, distância nem se o oponente está stunado) e com degenerescência de escala (só a razão importa) |
 
-## 3. Próximo passo: A + B (passo 2 da ordem)
+## 3. Resultados da bateria e o que decidir agora
 
-Não começa com código. Começa com duas decisões:
+A bateria completa rodou em 2026-09-16: AG e NSGA-II na seed 42, `multi_run` com 10
+sementes × 2 algoritmos, `compare_algorithms`, `external_validation` e `baselines` com
+30 rosters nulos. `results/` está atual.
 
-**(A) Qual é a régua de identidade que o fitness otimiza?** O `drift_penalty` dá 0,261
-para o melhor do AG e 0,271 para o `best_dominance` do NSGA-II — praticamente empatados —
-enquanto o validador de identidade dá **7/21 contra 13/21**. A diferenciação par-a-par
-dá 0,92 ("preservada"). Os dois medidores que o projeto usa não enxergam o que
-aconteceu: não foi homogeneização, foi **troca de papéis** (o Turtle virou o boneco de
-menor HP e maior dano, o Rushdown virou defensivo, o Zoner virou o de menor alcance).
-Drift é distância euclidiana cega a **ranking**; diferenciação mede espalhamento, não
-correspondência. Opções na mesa: incorporar a estrutura de ranking do validador ao eixo
-de identidade, ponderar o drift pelos genes definidores de cada arquétipo, ou manter e
-declarar. Detalhe em [`REVIEW.md`](REVIEW.md) §3.
+**Agregado (10 sementes, reavaliação independente):**
 
-**(B) O `dominance_penalty` continua sendo um número composto, e o piso de decisividade
-continua no fitness?** Decomposto, o NSGA-II é **melhor que o AG no termo primário**
-(global 0,0327 vs 0,0406); ele perde por um hard-counter e sobretudo pelo **piso de
-decisividade**. Ou seja "o AG vence em `dominance_penalty`" é verdade como número e falso
-como leitura. Some-se a isso um fato novo do motor reformado: no AG curto, os 10 pares
-deram decisividade entre 0,05 e 0,13 contra `MATCHUP_FLOOR = 0,10` — o piso passou a
-morder em quase todo par. Detalhe em [`REVIEW.md`](REVIEW.md) §4.
+| | dominance | drift | global | cap | decis | counters/exec | roster eq. |
+|---|---|---|---|---|---|---|---|
+| AG escalar | 0,0666 ± 0,0265 | 0,2535 ± 0,0354 | 0,0537 | 0,0259 | **0,0000** | 0,90 ± 0,7 | 30% |
+| NSGA-II | 0,0567 ± 0,0255 | 0,2038 ± 0,0486 | 0,0461 | 0,0201 | **0,0000** | 1,30 ± 1,6 | 50% |
 
-Depois vêm, nesta ordem: **E** (gate de convergência), **C** (sub-convergência do
-NSGA-II), **H** (recalibrar canônicos), **R** (grab), bateria completa, **F** e **G**,
-menores e docs. A tabela está em [`REVIEW.md` §8](REVIEW.md).
+Os 5 bonecos ficam em banda em **100% das sementes** nos dois algoritmos.
 
-## 4. O grab / quebra de guarda (item R) — anotado para quando chegar a vez
+**Contra os modelos nulos** (melhor do AG, 30 nulos): a identidade fica acima de **todos**
+os rosters sem estrutura nos três eixos — validador 13/23 (`p < 0,03`), 11/18
+(`p < 0,03`), drift 0,254 (`p < 0,03`); equilíbrio em **94%** do trivialmente alcançável;
+ciclo em 5/10, exatamente o acaso (`p = 0,71`). Tríades circulares **4,0** com pares em
+27%–62% — arestas decididas, contagem válida.
 
-**Decisão registrada: entra no escopo, mas só depois de fechar A, B e C.**
+### O que decidir: a agenda de calibração (`REVIEW.md` §9)
 
-DEFEND reduz 40% do dano e **não tem custo** — não há chip damage, quebra de guarda nem
-stamina. O counter canônico ao bloqueio, em qualquer jogo de luta, é o grab: exatamente a
-mecânica ausente do Grappler. A mesma lacuna produz três sintomas hoje tratados como
-problemas separados:
+Sete constantes seguem rotuladas "provisório", e a bateria congelou os valores de hoje
+por omissão. O levantamento completo, com a evidência de cada uma, está em
+[`REVIEW.md` §9](REVIEW.md). Em uma linha cada:
 
-1. o eixo Recurso sem contrapartida — defender indefinidamente não é punível;
-2. a Layer 3 do validador com 4 asserções para 5 arquétipos (o Grappler não tem
-   assinatura comportamental distinta do Rushdown);
-3. a aresta "Grappler vence Turtle" do ciclo canônico — cuja justificativa na tabela do
-   `CLAUDE.md` é literalmente *"grab é o counter canônico ao bloqueio"* — sem realização
-   no motor.
+1. **`DOMINANCE_DECIS_WEIGHT`** — o termo saiu **0,0000 em 10/10 sementes nos dois
+   algoritmos**. Está morto: é guarda, não um dos três eixos do objetivo.
+2. **`MATCHUP_WR_CAP = 0.15`** — voltou a morder (7/10 e 5/10 sementes) e é ele que
+   decide a taxa de "roster equilibrado". Não há justificativa escrita para 15 p.p.
+3. **`SIMS_PER_MATCHUP = 150`** — o ajuste ao stream é de **21×** (0,0039 dentro do laço
+   contra 0,0804 fora), e `Zoner × Turtle` sai em 28,2% ± 1,9% fora do laço: um counter
+   sistemático que 150 sims não enxergaram. Veredito externo: **FRÁGIL**.
+4. **Canônicos** — nenhuma evidência pede mudança. Declarar finais, ou dizer o que falta.
+5. **`ACTION_PERSISTENCE_SUBTICKS = 10`** — maior que o cooldown mínimo (5); a
+   sensibilidade no evoluído põe `speed` e `stun` **abaixo** do piso medido.
+6. **Escala dos pesos comportamentais** — no Turtle, **55%** do drift de pesos mede algo
+   que o simulador não enxerga (só a razão entre os pesos afeta o combate).
+7. **`MULTI_RUN_N_SEEDS = 10`** — e o item (F) está **apagando o único achado**: o
+   NSGA-II tem drift menor com efeito grande (Â₁₂ = 0,80, p bruto **0,026**), mas o Holm
+   sobre 4 métricas — duas sem informação nenhuma, uma delas com `p = nan` — leva isso a
+   0,103.
 
-Quatro esboços de desenho e as perguntas a responder antes de escolher (alcance próprio?
-cooldown próprio? efeito contra quem **não** defende?) estão em
-[`REVIEW.md`](REVIEW.md) §2, item R. Nenhum decidido.
+**O item (F) não exige regenerar nada:** é consertar o `compare_algorithms` e re-rodá-lo,
+segundos. É o passo 8 da ordem e o de maior retorno imediato.
+
+## 4. Itens menores ainda abertos
+
+- **(C)** assimetria dos critérios de parada entre os dois algoritmos (acima).
+- **(H)** resolução do p-valor empírico nos baselines (acima).
+- **§5** degenerescência de escala nos pesos comportamentais: a intenção é sorteada
+  proporcionalmente a `(w_agg, w_ret, w_def)`, então só a **razão** importa para o
+  combate — mas o drift mede os valores absolutos. Parte do eixo de identidade mede algo
+  que o simulador não enxerga.
+- **§2** a persistência da intenção (10 sub-ticks) é maior que o cooldown mínimo (5), então
+  quem tem `cooldown = 1` e sorteia GUARDA abre mão de duas janelas de ataque.
+- **§5** a política é **cega ao estado**: não olha HP, distância nem se o oponente está
+  stunado.
 
 ## 5. Aberto — redação
 
-Sem mudança desde a rodada anterior, e agora com um agravante: a reforma do motor tornou
-**todos** os números publicados obsoletos.
-
 A monografia (`overleaf/TCC/`) está várias gerações de modelo atrás — `metodologia.tex`
-descreve 9 atributos, `defense`/`recovery`, indivíduo de 60 genes, decisão por prioridade,
-`specialization_penalty` e a formulação pré-C2 do `dominance_penalty`. `main.tex` promete
-seis capítulos e existem quatro arquivos, com `conclusao.tex` em branco. Decisão anterior:
-recomeçar do zero a partir de `overleaf/artigo-SBC/main.tex`, que descreve o modelo
-melhor — **mas mesmo ele agora descreve um motor que não existe mais** (ação única em vez
-de dois canais, sem colisão, sem empate).
+descreve 9 atributos, `defense`/`recovery`, indivíduo de 60 genes, decisão por
+prioridade, `specialization_penalty` e a formulação pré-C2 do `dominance_penalty`.
+`main.tex` promete seis capítulos e existem quatro arquivos, com `conclusao.tex` em
+branco. Decisão anterior: recomeçar do zero a partir de `overleaf/artigo-SBC/main.tex`,
+que descreve o modelo melhor — **mas mesmo ele descreve um motor que não existe mais**
+(ação única em vez de dois canais, sem colisão, sem empate).
 
-O `values.tex` (idêntico nos dois artigos) já estava stale (`\\aggDomMean`, `\\aggDriftMean`,
-`\\aggHvMean`, `\\hcPerSeed`, `\\domCanExt`) e agora está inteiramente obsoleto. Registrado
-também em [`REVIEW.md`](REVIEW.md) §6: `\\domAg` usa o número **dentro** do laço enquanto as
-outras três células da mesma linha coincidem com os de fora — a única célula com vantagem
-de proveniência é justamente a do AG.
+O `values.tex` (idêntico nos dois artigos) está inteiramente obsoleto. Registrado também
+em [`REVIEW.md`](REVIEW.md) §6: a macro do dominance do AG usa o número **dentro** do
+laço enquanto as outras três células da mesma linha coincidem com os de fora — a única
+célula com vantagem de proveniência é justamente a do AG.
 
-Bibliografia: Derrac et al. 2011, Arcuri & Briand 2011 e Vargha & Delaney 2000 são citadas
-nos docs e no código e **não estão** em nenhum dos três `.bib`.
+Ponto novo para o texto: a macro `valAg = 7` assume o validador como resultado de
+identidade enquanto o `drift_penalty` do mesmo indivíduo era lido como "identidade
+preservada a 0,26". Com as duas réguas nomeadas (estrutural no fitness, funcional
+post-hoc) a contradição some — mas o texto precisa ser reescrito com essa distinção
+explícita.
+
+Bibliografia: Derrac et al. 2011, Arcuri & Briand 2011 e Vargha & Delaney 2000 são
+citadas nos docs e no código e **não estão** em nenhum dos três `.bib`.

@@ -25,24 +25,61 @@ C(5,2) = 10 matchups × `SIMS_PER_MATCHUP = 150` simulações.
 
 | Termo | Peso | Penaliza |
 |---|---|---|
-| `drift_penalty` | 1.0 | distância ao perfil canônico — preservação de identidade |
+| `drift_penalty` | 1.0 | distância ponderada ao perfil canônico — identidade **estrutural** |
 | `dominance_penalty` | 1.0 | balanço global por personagem (primário) + teto de hard-counter + decisividade fora da banda, RMS |
 
-### `drift_penalty`
+### `drift_penalty` — identidade estrutural ponderada
 
-Distância euclidiana normalizada ao perfil canônico, sobre os 10 genes
+**RMS ponderada** dos desvios normalizados ao perfil canônico, sobre os 10 genes
 (atributos e pesos juntos) (`fitness._archetype_deviation`):
 
 ```
-deviation_i = sqrt( ( Σ ((attr−canon)/attr_max)²  +  Σ (w−w_canon)² ) / 10 )
+d_g         = (gene_g − canon_g) / (hi_g − lo_g)                 # fração do RANGE do bound
+w_g         = DRIFT_DEFINING_WEIGHT  se g ∈ defining_genes  senão  1.0
+deviation_i = sqrt( Σ_g w_g · d_g²  /  Σ_g w_g )
 drift_penalty = mean_i(deviation_i)
 ```
 
-Atributos são normalizados pelo **máximo do bound** (`/hi`); pesos entram crus
-(já em `[0,1]`). `LAMBDA_DRIFT = 1.0`, igual a `LAMBDA_DOMINANCE` — pesa equilíbrio
-e preservação de identidade na mesma escala, reflexo do trade-off central da tese.
-O AG escalar dá **um** ponto desse trade-off; o mapa completo vem do NSGA-II. (Era
-6.0, que prendia o AG no canônico — ver [10-known-issues.md](10-known-issues.md) V1.)
+**Normalização pelo range, não pelo máximo.** `(x − lo)/(hi − lo)` em vez de `x/hi`:
+dividir por `hi` subestima sistematicamente genes de `lo` alto — o HP vai de 250 a
+450, então mover 162 é **81% do range** e apenas 36% do máximo. O efeito medido no
+indivíduo evoluído é de 1,3× no `drift_penalty` (0,2607 → 0,3417) e de 1,6× no
+personagem mais deslocado (Turtle 0,2894 → 0,4535). A mesma convenção vale na Layer 2
+do validador e no `drift_table` — "normalizado" tem uma definição só no projeto.
+
+**Ponderação pelos genes definidores.** `ArchetypeDefinition.defining_genes` (campo
+congelado) lista os genes em que o arquétipo ocupa um extremo por design, espelhando
+as asserções inter da Layer 1 do validador — Zoner: `range`/`knockback`/`w_retreat`;
+Rushdown: `speed`/`attack_cooldown`/`w_aggressiveness`; Combo Master: `stun`;
+Grappler: `damage`; Turtle: `hp`/`attack_cooldown`/`speed`/`w_defend`. Eles pesam
+`DRIFT_DEFINING_WEIGHT = 3.0` contra 1.0 dos demais: mover o alcance do Zoner custa
+mais que mover o stun dele.
+
+É **declaração de premissa** (o que o arquétipo é), não de resposta (quem vence quem)
+— ver a linha premissa/resposta no `CLAUDE.md`. Consequência de bookkeeping: as
+Layers 1-2 do validador medem o mesmo eixo que o fitness otimiza e por isso são
+**parcialmente endógenas**; quem sustenta a leitura post-hoc de identidade é a
+**Layer 3** (comportamental) somada ao ciclo de vantagens, que nada no fitness toca.
+
+**Medido nos quatro indivíduos de referência** (drift ascendente deve bater com o
+validador descendente — `knee_point` 19/21 > `ideal_point` 16/21 >
+`best_dominance` 11/21 > AG escalar 8/21; scores re-medidos após a correção, já que a
+Layer 2 do validador usa a mesma normalização):
+
+| variante | knee (19/21) | ideal (16/21) | best_dom (11/21) | AG (8/21) | ordem bate? | gap AG−best_dom |
+|---|---|---|---|---|---|---|
+| `x/hi` uniforme (antiga) | 0,0885 | 0,1554 | 0,2709 | 0,2607 | **não** (AG e best_dom invertidos) | −0,010 |
+| range, uniforme | 0,1302 | 0,2062 | 0,3245 | 0,3417 | sim | 0,017 |
+| range, ponderada (atual) | 0,1279 | 0,2054 | 0,3150 | 0,3579 | sim | **0,043** |
+
+Ou seja: a **normalização** conserta a ordenação; a **ponderação** alarga a margem. O
+peso satura (0,055 em 5,0; 0,073 em 12,0) e pesos altos tornam os genes não-definidores
+quase gratuitos — 3,0 mantém os dois lados com preço.
+
+`LAMBDA_DRIFT = 1.0`, igual a `LAMBDA_DOMINANCE` — pesa equilíbrio e preservação de
+identidade na mesma escala, reflexo do trade-off central da tese. O AG escalar dá
+**um** ponto desse trade-off; o mapa completo vem do NSGA-II. (Era 6.0, que prendia o
+AG no canônico — ver [10-known-issues.md](10-known-issues.md) V1.)
 
 ### `dominance_penalty` — balanço global primário + teto de hard-counter + decisividade (formulação C2)
 
@@ -79,9 +116,11 @@ Com `DOMINANCE_GLOBAL_WEIGHT = 1.0`, `DOMINANCE_CAP_WEIGHT = 0.5`,
   (`_fight_score`): em KO, `score = 0.5 + 0.5·(HP_frac do vencedor)` — esmaga →
   ~1.0, ganha no fio → ~0.5; em timeout, a fração de HP%. `D = média(|score_luta −
   0.5|) ∈ [0, 0.5]`, com excesso fora da **banda** `[MATCHUP_FLOOR, MATCHUP_THRESHOLD]`.
-  Guarda contra **blowout-coinflip** — 55% A-esmaga / 45% B-esmaga ⇒ WR global
-  ~50% mas toda luta é um massacre; a decisividade por-luta pega isso (todo blowout
-  dá margem ~0.5). Banda saudável `[0.10, 0.20]`: vencedor fecha com ~20-40% de HP.
+  O **teto** (`MATCHUP_THRESHOLD = 0.20`) é o guarda que trabalha: pega
+  **blowout-coinflip** — 55% A-esmaga / 45% B-esmaga ⇒ WR global ~50% mas toda luta
+  é um massacre (todo blowout dá margem ~0.5). O **piso**
+  (`MATCHUP_FLOOR = 0.02`) é só guarda de **degenerescência** e fica bem abaixo da
+  faixa de operação — ver abaixo.
 
 ```
 global_excess = |WR_global − 0.5| / 0.5
@@ -90,6 +129,25 @@ decis_excess  = max(0, D − MATCHUP_THRESHOLD)/(0.5 − MATCHUP_THRESHOLD)   # 
               + max(0, MATCHUP_FLOOR − D)/MATCHUP_FLOOR                    # fino demais
 ```
 
+- **Por que o piso é tão baixo:** ele já foi `0.10`, e nessa altura empurrava
+  **contra** o termo primário — equilibrar aproxima as lutas, e o piso punia
+  exatamente isso. Medido, penalizava 5/10, 5/10 e 3/10 pares nos três indivíduos
+  evoluídos, e era ele — um termo secundário de peso 0,5 — que decidia a comparação
+  AG × NSGA-II. A premissa por trás dele ("abaixo do piso é quase-empate, luta que
+  não aconteceu") **não vale no motor reformado**: toda luta termina em KO (100% em
+  70 pares medidos, inclusive rosters aleatórios), então `D` baixo é KO no fio — a
+  melhor luta possível. Faixas medidas: roster degenerado (dano mín / HP máx /
+  GUARDA total, 0% de KO, timeout com HP idêntico) `D ≤ 0,008`; espelho puro dos 5
+  canônicos `D ∈ [0,020, 0,033]`; pares reais `D ≥ 0,045`. O piso em **0,02** fica na
+  base da faixa do espelho — abaixo do que dois personagens **idênticos** produzem —
+  e por isso penaliza 0/10 pares em operação normal.
+- **Os três termos são reportados separados:** `_dominance_penalty` devolve um
+  `DominanceTerms` (`global_term`, `cap_term`, `decis_term`), guardado no
+  `FitnessDetail`. O `multi_run` grava os três por semente e agregados; o
+  `compare_algorithms` imprime a decomposição lado a lado, de forma **descritiva** —
+  eles não entram na bateria de Mann-Whitney para não inflar a correção de Holm sobre
+  as métricas que já estão lá. Perder no termo primário (peso 1,0) e perder num
+  secundário (peso 0,5) são leituras opostas do mesmo composto.
 - **Por que global, e não por-matchup:** o termo primário antigo (WR por-matchup)
   tinha como ótimo *todo par a 50%* — equilíbrio plano, que por construção é
   **incompatível com o ciclo** (um ciclo exige que pares tenham vencedor). Sob C2 o
@@ -130,22 +188,77 @@ escala bruta. Mudar qualquer `LAMBDA_*` não afeta o NSGA-II.
 
 ## Critérios de convergência e parada
 
-O AG escalar para por **convergência** quando o gate dispara e a confirmação
-(com `SIMS_CONVERGENCE_CHECK = 200` simulações extras) vale. Sob C2 o critério é o
-equilíbrio **global**, não "todo par a 50%":
+O AG escalar **roda sempre `MAX_GENERATIONS` gerações**. Convergência e estagnação são
+**eventos registrados** (`converged_at`, `stagnated_at`), não paradas.
 
-1. **Gate:** `dominance_penalty ≤ 1e-9` no melhor indivíduo;
-2. **Confirmação (a):** cada personagem com WR **global** dentro de
-   `GLOBAL_CONVERGENCE_THRESHOLD (0.10)` de 50% — ninguém domina o roster;
-3. **Confirmação (b):** nenhum par é counter duro — todo `|wr_par − 0.5| ≤
-   MATCHUP_WR_CAP (0.15)`. **Não** exige cada par a 50% (arestas de ciclo são ok).
+> **Por que orçamento fixo nos dois algoritmos.** O NSGA-II não tem como parar pelo
+> critério do escalar: *"o roster está equilibrado?"* não se pergunta a uma **fronteira**,
+> que de propósito contém pontos desequilibrados e fiéis — e perguntar a um representante
+> faz a resposta depender de uma escolha arbitrária. Parar o escalar mais cedo tornaria a
+> comparação ambígua: "melhor" ficaria indistinguível de "usou menos orçamento". Com os
+> dois em orçamento fixo, a comparação é de **qualidade sob orçamento igual**, e
+> `converged_at` vira um segundo eixo — **velocidade** — que antes não existia.
 
-Os predicados `(a)` e `(b)` vivem em `fitness.py` (`character_balanced` e
-`is_hard_counter`) e são a **fonte única** consumida tanto pela convergência do AG
-quanto pelas tools de reporting.
+Convergência é o mesmo predicado valendo duas vezes: no laço (gate) e numa reavaliação
+independente com `SIMS_CONVERGENCE_CHECK = 200` simulações extras (confirmação). Sob C2 o
+critério é o equilíbrio **global**, não "todo par a 50%":
 
-Outras paradas: `STAGNATION_LIMIT = 30` gerações sem melhoria > 0.001, ou
-`MAX_GENERATIONS = 150`.
+```
+roster_balanced(detail) =
+      todo personagem com WR global dentro de GLOBAL_CONVERGENCE_THRESHOLD (0.10) de 50%
+  E   nenhum par com |WR_par − 0.5| > MATCHUP_WR_CAP (0.15)
+```
+
+1. **Gate:** `roster_balanced(best_detail)` — sobre a avaliação do laço, que já está
+   em mãos; custo zero.
+2. **Confirmação:** `roster_balanced(confirmed)` — 200 sims/matchup num stream de RNG
+   **que o AG nunca viu** (`seed + CONVERGENCE_SEED_OFFSET`, via
+   `ga._confirm_convergence`, que restaura o base do treino ao sair).
+
+`roster_balanced` vive em `fitness.py`, ao lado de `character_balanced` e
+`is_hard_counter`, e é a **fonte única** consumida pela convergência do AG, pelo
+veredito por semente do `multi_run` e pelas tools de reporting. **Não** exige cada par
+a 50% — arestas de ciclo são permitidas, e é esse o espaço em que o ciclo vive.
+
+### Por que o gate não é um limiar escalar
+
+O gate era `dominance_penalty ≤ 1e-9`, e isso era insatisfazível **por construção**,
+não só na prática. `global_term` é uma RMS sobre **contagens discretas**: com
+4 × `SIMS_PER_MATCHUP` = 600 lutas por personagem, o menor valor não-nulo possível é
+`(1/600)/0.5/√5 ≈ 0.0015`. Não existe continuum entre 0 e 0.0015, então `1e-9`
+significava **exatamente zero** — os 5 personagens com WR exatamente 300/600 na mesma
+avaliação. `converged` era `False` sempre, e todo o ramo de confirmação era **código
+morto** descrito na metodologia.
+
+Subir o limiar para um escalar calibrado manteria uma versão mais branda do mesmo
+defeito: o composto inclui o `decis_term`, que **não faz parte da definição de
+convergência**. Um roster genuinamente convergido (todos em banda, zero counters
+duros) mas com lutas decisivas teria dominance alto e seria barrado pelo gate. Testar
+o predicado direto não tem essa lacuna.
+
+### Por que a confirmação roda fora do stream do treino
+
+O laço avalia todo indivíduo sob o mesmo stream (Common Random Numbers) — correto para
+**seleção**, porque a diferença de fitness passa a refletir genes e não sorteio. Mas
+reavaliar nesse mesmo stream não confirma nada: mede a mesma realização do RNG com mais
+amostras, e a confirmação **não pode discordar do gate**. Medido num indivíduo que
+passou: equilibrado sob a semente de treino (5/5 em banda, 0 counters duros) e **não
+equilibrado sob quatro streams independentes** (5/5 em banda, mas 1-2 counters duros em
+cada). O que quebra é sempre o par-a-par, nunca a WR global — o ajuste ao stream se
+concentra ali.
+
+Por isso a confirmação resseta para `seed + CONVERGENCE_SEED_OFFSET` (100000, escolhido
+para não colidir com treino 42+, `MULTI_RUN_VALIDATION_SEED` 9999 nem
+`EXTERNAL_VALIDATION_SEED_START` 10000+) e devolve o base do treino ao sair. Convergir
+passa a significar **"o equilíbrio sobrevive a um stream que o AG nunca viu"**, e o
+`best_detail` devolvido pelo AG vira uma medição fora da amostra. Consequência esperada
+e aceita: convergência fica bem mais rara — medido num run curto (pop 120, 60 gerações,
+seed 42), o gate disparou **16 vezes** e a confirmação fora do stream rejeitou **as 16**.
+É o ajuste ao stream quantificado.
+
+A confirmação é testada **só até o primeiro sucesso**: o que interessa é *quando*
+convergiu, e cada disparo custa `SIMS_CONVERGENCE_CHECK` simulações extras.
+`STAGNATION_LIMIT = 30` gerações sem melhoria > 0.001 também vira evento registrado.
 
 > Nota: o melhor indivíduo é re-avaliado estocasticamente a cada geração, então o
 > `best_fitness` reportado e o contador de estagnação operam sobre fitness

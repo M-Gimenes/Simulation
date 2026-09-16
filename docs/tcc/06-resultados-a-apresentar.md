@@ -102,6 +102,27 @@ Apresentar junto do dossiê do indivíduo, como sua *sustentação de robustez*.
   resultados de um indivíduo. Ver [05](05-validacao-metodologica.md).
 - **Reprodutibilidade**: reportar o seed usado em cada experimento.
 
+## Artefatos novos a apresentar (auditoria de 2026-09-16)
+
+Quatro números/figuras que passaram a existir e que a redação deve usar:
+
+- **Decomposição do `dominance_penalty` nos três termos** (`global` / `cap` / `decis`),
+  por semente e agregada — o `multi_run` grava, o `compare_algorithms` imprime lado a
+  lado. Sem ela a frase "o algoritmo X vence em `dominance_penalty`" é ambígua: perder no
+  termo primário (peso 1,0) e perder num secundário (peso 0,5) são leituras opostas do
+  mesmo composto. **Nunca citar o composto sozinho numa comparação.**
+- **Contagem de rejeições da confirmação de convergência.** O gate dispara N vezes e a
+  confirmação fora do stream rejeita M delas — é o ajuste ao stream de RNG quantificado,
+  em uma linha. Medido em 60 gerações: 16 disparos, 16 rejeições; em 150 gerações o AG
+  converge de fato.
+- **A fronteira do NSGA-II com e sem o seed canônico**, lado a lado. É a figura que
+  mostra que um detalhe de inicialização consumia metade da fronteira — e serve de aviso
+  metodológico na Discussão.
+- **O representante `scalar_optimum` marcado na fronteira.** É o comparável correto do AG
+  escalar (mínimo da soma ponderada que ele otimiza); o `ideal_point` minimiza a norma L2
+  e é outro ponto. Ao comparar escalar × NSGA-II, dizer qual representante está sendo
+  usado — sempre.
+
 ## O fio condutor dos Resultados
 
 1. Estabelecer o **baseline** (canônico) e mostrar que o ciclo não é trivialmente

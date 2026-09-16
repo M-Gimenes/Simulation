@@ -1,6 +1,6 @@
 """
-Personagem do AG: 7 atributos numéricos + 3 pesos comportamentais (10 genes).
-Indivíduo é composto por 5 personagens, um por arquétipo (50 genes total).
+Personagem do AG: 8 atributos numéricos + 3 pesos comportamentais (11 genes).
+Indivíduo é composto por 5 personagens, um por arquétipo (55 genes total).
 """
 
 from __future__ import annotations
@@ -25,6 +25,7 @@ class Attr:
     SPEED           = 4
     STUN            = 5
     KNOCKBACK       = 6
+    GRAB_POWER      = 7
 
 class WIdx:
     RETREAT       = 0
@@ -58,6 +59,8 @@ class Character:
     def stun(self)            -> float: return self.attributes[Attr.STUN]
     @property
     def knockback(self)       -> float: return self.attributes[Attr.KNOCKBACK]
+    @property
+    def grab_power(self)      -> float: return self.attributes[Attr.GRAB_POWER]
 
     @property
     def w_retreat(self)        -> float: return self.weights[WIdx.RETREAT]
@@ -107,9 +110,11 @@ class Character:
         return self.attributes + self.weights
 
     def load_genes(self, genes: List[float]) -> None:
-        assert len(genes) == 10, f"Esperado 10 genes, recebido {len(genes)}"
-        self.attributes = list(genes[:7])
-        self.weights    = list(genes[7:])
+        n_attrs = len(ATTRIBUTE_BOUNDS)
+        expected = n_attrs + len(WEIGHT_BOUNDS)
+        assert len(genes) == expected, f"Esperado {expected} genes, recebido {len(genes)}"
+        self.attributes = list(genes[:n_attrs])
+        self.weights    = list(genes[n_attrs:])
 
     def clip(self) -> None:
         for i, (lo, hi) in enumerate(ATTRIBUTE_BOUNDS):
@@ -121,7 +126,7 @@ class Character:
         attrs = ", ".join(
             f"{n}={v:.1f}"
             for n, v in zip(
-                ["hp","dmg","cd","rng","spd","stun","kb"],
+                ["hp","dmg","cd","rng","spd","stun","kb","grab"],
                 self.attributes,
             )
         )

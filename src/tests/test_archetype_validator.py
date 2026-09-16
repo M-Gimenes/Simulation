@@ -71,17 +71,16 @@ print("OK")
 # ── Task 3 ────────────────────────────────────────────────────────────────────
 
 def test_structural_inter_canonical():
-    from src.tools.archetype_validator import _check_structural_inter
-    from src.engine.archetypes import ArchetypeID
+    from src.tools.archetype_validator import _INTER_ASSERTIONS, _check_structural_inter
     from src.engine.individual import Individual
 
     canon = Individual.from_canonical()
     checks = _check_structural_inter(canon.characters)
 
-    assert len(checks) == 12
+    assert len(checks) == len(_INTER_ASSERTIONS)
     assert all(c.layer == "structural_inter" for c in checks)
 
-    # All 12 pass on current canonical values
+    # Todas passam nos valores canônicos atuais
     failed = [c for c in checks if not c.passed]
     assert failed == [], f"Unexpected failures: {[(c.archetype, c.description) for c in failed]}"
 
@@ -92,16 +91,16 @@ print("OK")
 # ── Task 4 ────────────────────────────────────────────────────────────────────
 
 def test_structural_intra_canonical():
-    from src.tools.archetype_validator import _check_structural_intra
+    from src.tools.archetype_validator import _INTRA_ASSERTIONS, _check_structural_intra
     from src.engine.individual import Individual
 
     canon = Individual.from_canonical()
     checks = _check_structural_intra(canon.characters)
 
-    assert len(checks) == 5
+    assert len(checks) == len(_INTRA_ASSERTIONS)
     assert all(c.layer == "structural_intra" for c in checks)
 
-    # All 5 pass on canonical values (verified analytically in design spec)
+    # Todas passam nos valores canônicos
     failed = [c for c in checks if not c.passed]
     assert failed == [], f"Unexpected failures: {[c.description for c in failed]}"
 
@@ -112,14 +111,17 @@ print("OK")
 # ── Task 5 ────────────────────────────────────────────────────────────────────
 
 def test_run_validation_canonical():
-    from src.tools.archetype_validator import run_validation
+    from src.tools.archetype_validator import (
+        _INTER_ASSERTIONS, _INTRA_ASSERTIONS, run_validation,
+    )
     from src.engine.individual import Individual
 
     canon  = Individual.from_canonical()
     report = run_validation(canon)
 
-    assert report.total == 17
-    assert report.passed == 17  # todas as asserções estruturais passam no canônico
+    n_structural = len(_INTER_ASSERTIONS) + len(_INTRA_ASSERTIONS)
+    assert report.total == n_structural
+    assert report.passed == n_structural  # todas as estruturais passam no canônico
     assert 0.0 <= report.score <= 1.0
     assert len(report.failures()) == report.total - report.passed
 

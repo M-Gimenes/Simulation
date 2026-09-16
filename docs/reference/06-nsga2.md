@@ -38,9 +38,48 @@ Implementação padrão de Deb 2002:
 Roda `NSGA2_GENERATIONS = 150` gerações fixas (fronteiras de Pareto não
 "convergem" para um ponto — não há critério de parada antecipada).
 
+### População inicial: aleatória, sem o seed canônico
+
+Aqui o NSGA-II **diverge do AG escalar de propósito**. O escalar inicia com
+`[canônico] + 299 aleatórios`; o NSGA-II inicia com `pop_size` aleatórios.
+
+O motivo é uma assimetria entre os dois objetivos: **`drift` tem piso 0 e o piso é
+alcançável** (o canônico *é* a referência, drift exatamente 0,0000), enquanto o piso de
+`dominance` não é. Dominar `(dominance 1,2418, drift 0,0000)` exigiria `drift < 0`, que
+não existe — então o canônico é **imortal no rank 0**, por pior que seja o equilíbrio
+dele, e a mesma proteção se estende à vizinhança de drift ~0. O crowding não corrige:
+ele só poda quando um front **transborda** a população, e `front0` (78) nunca passou de
+120 na medição.
+
+Medido (pop 120, 60 gerações, seed 42, 80 sims/par), única diferença é a população
+inicial:
+
+| | com seed canônico | sem seed canônico |
+|---|---|---|
+| min `dominance` da fronteira | 0,2233 (estagnado) | **0,0896** (ainda caindo na gen 50) |
+| pontos com `dominance ≥ 1.0` | 40/78 (51%) | **1/44 (2%)** |
+| `front0` na geração 50 | 89/120 | **31/120** |
+| drift coberto pela fronteira | [0,000, 0,161] | [0,124, 0,300] |
+| queda do min dominance | 1ª metade −0,3970 · 2ª metade −0,0338 | monótona, sem platô |
+
+Metade da fronteira eram rosters tão desequilibrados quanto o canônico intocado,
+consumindo um terço da população **e um terço do esforço reprodutivo**.
+
+No **AG escalar o mesmo seed ajuda** e por isso fica: lá o fitness é um número só
+(`-(drift + dominance) = −1,2418`), o canônico é ruim nele e some da população depois de
+doar genes por crossover. Medido: com seed o escalar termina em drift 0,2874, sem seed em
+0,3365 — mesmo dominance.
+
+> **Ressalva.** Isto remove a causa aguda (drift = 0 de graça na geração 0), não a
+> assimetria estrutural: o NSGA-II seleciona por drift baixo, então a população marcha
+> para lá sozinha e o acúmulo pode reaparecer em horizontes longos. Se reaparecer, a
+> lista de remédios em ordem de intervenção é: supressão de duplicatas → ε-dominância
+> (Laumanns et al. 2002, um ponto por célula da grade de objetivos) → NSGA-II com
+> restrições (Deb 2002 §VI, `dominance` acima de um limiar como inviável).
+
 ## Representantes da fronteira
 
-`select_representatives` extrai 4 pontos da Pareto front final:
+`select_representatives` extrai 5 pontos da Pareto front final:
 
 - **`best_dominance`** — mínimo em `dominance_penalty` (mais equilibrado, pode ter
   drift alto).
@@ -48,7 +87,16 @@ Roda `NSGA2_GENERATIONS = 150` gerações fixas (fronteiras de Pareto não
   desbalanceado).
 - **`knee_point`** — ponto de máxima curvatura: mais distante (perpendicular) da
   reta que liga os dois extremos. O "melhor compromisso".
-- **`ideal_point`** — mais próximo da utopia `(0, 0)` em distância euclidiana.
+- **`ideal_point`** — mais próximo da utopia `(0, 0)` em distância euclidiana (L2).
+- **`scalar_optimum`** — mínimo de `LAMBDA_DOMINANCE·dominance + LAMBDA_DRIFT·drift`,
+  isto é, o ponto da fronteira que **o AG escalar deveria ter encontrado**. É o único
+  lugar do NSGA-II que olha os `LAMBDA_*`, e é reporting, não busca.
+
+  Por que ele existe: a afirmação "o escalar é *um ponto* do trade-off que o NSGA-II
+  mapeia" só é testável contra o ponto que minimiza a **mesma** função que o escalar
+  otimiza. O `ideal_point` minimiza a norma **L2**, que é outro ponto — com os LAMBDA
+  iguais, `scalar_optimum` é o mínimo **L1**. Sem esse representante a comparação entre
+  os dois algoritmos estava usando um comparável errado.
 
 ## Métricas de qualidade da fronteira (item 1.2 da metodologia)
 

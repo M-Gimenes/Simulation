@@ -105,6 +105,7 @@ def record_combat(char_a: Character, char_b: Character) -> dict:
             "speed": round(char.speed, 1),
             "stun": round(char.stun, 2),
             "knockback": round(char.knockback, 1),
+            "grab_power": round(char.grab_power, 2),
         }
 
     return {
@@ -432,6 +433,7 @@ async function runCombat() {
     ['Velocidade',    'speed',           v => v.toFixed(1)],
     ['Stun (×cooldown)', 'stun',         v => v.toFixed(2)],
     ['Knockback',     'knockback',       v => v.toFixed(1)],
+    ['Grab (quebra guarda)', 'grab_power',  v => v.toFixed(2)],
   ];
   const tbody = document.getElementById('stats-tbody');
   tbody.innerHTML = '';
@@ -693,7 +695,7 @@ def main():
     parser.add_argument("--evolved", action="store_true",
                         help="Usa o melhor indivíduo salvo em results.json (default: canônico)")
     parser.add_argument("--nsga2", metavar="REP", nargs="?", const="knee_point",
-                        help="Usa representante do NSGA-II (knee_point|best_dominance|best_drift|ideal_point). Default: knee_point")
+                        help="Usa representante do NSGA-II (knee_point|best_dominance|best_drift|ideal_point|scalar_optimum). Default: knee_point")
     args = parser.parse_args()
 
     if args.nsga2:

@@ -305,6 +305,7 @@ def _render_vs(char_a: Character, char_b: Character, delay: float = 1.5) -> None
             f"Dano  = {char.damage:.0f}   CD = {char.attack_cooldown:.0f}t",
             f"Vel   = {char.speed:.0f}   Alcance= {char.range_:.0f}",
             f"Stun  = {char.stun:.2f} (×cd)   Knock = {char.knockback:.1f}",
+            f"Grab  = {char.grab_power:.2f} (quebra de guarda)",
         ]
 
     print(CL, end="")
@@ -452,7 +453,7 @@ def main() -> None:
                         help="Usa personagens do último AG (results.json)")
     parser.add_argument("--nsga2", metavar="REP", nargs="?", const="knee_point",
                         help="Usa representante do NSGA-II "
-                             "(knee_point|best_dominance|best_drift|ideal_point). "
+                             "(knee_point|best_dominance|best_drift|ideal_point|scalar_optimum). "
                              "Default: knee_point")
     parser.add_argument("--results", default=str(GA_RESULTS_PATH),
                         help="Caminho para o arquivo de resultados do AG")

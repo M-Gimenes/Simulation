@@ -19,5 +19,7 @@ MULTI_RUN_COMPARISON_PATH = MULTI_RUN_DIR / "comparison_ga_vs_nsga2.json"
 
 EXTERNAL_VALIDATION_DIR = RESULTS_DIR / "external_validation"
 
+BASELINES_PATH = RESULTS_DIR / "baselines.json"
+
 SENSITIVITY_DIR = RESULTS_DIR / "sensitivity"
 SENSITIVITY_PATH = SENSITIVITY_DIR / "sensitivity_analysis.json"

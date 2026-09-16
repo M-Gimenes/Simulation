@@ -44,6 +44,7 @@ NUMERIC_FIELDS: Tuple[str, ...] = (
     "damage_dealt",
     "stun_applied",
     "stun_ticks_applied",
+    "guard_break_dmg",
     "ticks_stunned",
     "ticks_in_cooldown",
     "ticks_out_of_range",
@@ -68,6 +69,7 @@ class FighterStats:
     damage_dealt: float = 0.0
     stun_applied: float = 0.0
     stun_ticks_applied: float = 0.0
+    guard_break_dmg: float = 0.0   # dano extra arrancado pela guarda do alvo (agarrão)
     ticks_stunned: float = 0.0
     ticks_in_cooldown: float = 0.0
     ticks_out_of_range: float = 0.0
@@ -168,6 +170,8 @@ def analyze_combat(char_a: Character, char_b: Character) -> MatchupResult:
         stun_applied = trace.stun_applied[:, i]
         stats[i].stun_applied = float((stun_applied > 0).sum())
         stats[i].stun_ticks_applied = float(stun_applied.sum())
+
+        stats[i].guard_break_dmg = float(trace.guard_broken[:, i].sum())
 
         stats[i].defend_forced = float(trace.forced_defend[:, i].sum())
 
@@ -284,6 +288,7 @@ BEHAVIORAL_KEYS: Tuple[str, ...] = (
     "adv", "ret", "def_chosen", "def_forced",      # mix de ações (fração de ações)
     "oor", "stunned",                              # fração de ticks
     "atk_landed", "mean_dist", "stun_inflicted",   # por luta / distância média
+    "guard_break",                                 # dano arrancado pela guarda (agarrão)
 )
 
 
@@ -319,6 +324,7 @@ def behavioral_profile(
                 m["atk_landed"]     += s.hits_landed
                 m["mean_dist"]      += r.avg_distance
                 m["stun_inflicted"] += s.stun_ticks_applied
+                m["guard_break"]    += s.guard_break_dmg
                 m["_n"]             += 1
 
     for aid in ids:
@@ -680,7 +686,7 @@ def _build_argparser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--nsga2", metavar="REP", nargs="?", const="knee_point",
         help="Usa representante do NSGA-II "
-             "(knee_point|best_dominance|best_drift|ideal_point). Default: knee_point",
+             "(knee_point|best_dominance|best_drift|ideal_point|scalar_optimum). Default: knee_point",
     )
     parser.add_argument(
         "--n", type=int, default=ANALYZE_SIMS, metavar="N",
