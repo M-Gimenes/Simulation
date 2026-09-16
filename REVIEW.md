@@ -775,11 +775,15 @@ corrigidos; o quadro macro do modelo ficou registrado abaixo.
 - [ ] **`results/` não tem versionamento parcial.** Mexer em `config.py`, nos canônicos
   ou no motor invalida tudo de uma vez. *Pergunta:* vale gravar um snapshot da config
   dentro de cada artefato, para que um JSON antigo se denuncie sozinho?
-- [x] **Checkup dos artefatos: reproduzem.** *Verificado:* re-avaliar o `best_individual`
-  do `results/results.json` sob seed-base 42 com 150 sims devolve `fitness = −0,268325`,
-  `dom = 0,007601`, `drift = 0,260724` — **idêntico ao gravado**. Os números do
-  `HANDOFF.md` conferem com os JSONs (`multi_run`, `comparison`, `external_validation`).
-  Nada stale em `results/`.
+- [x] **Checkup dos artefatos: reproduzem.** *Re-verificado em 2026-09-16, sob o motor
+  atual:* re-avaliar o `best_individual` do `results/results.json` sob seed-base 42 com
+  `SIMS_PER_MATCHUP` devolve `fitness = −0,257714` (gravado:
+  `−0,25771363889712734`), `dom = 0,003863`, `drift = 0,253851` — **idêntico ao
+  gravado**. Os números do `HANDOFF.md` conferem com os JSONs (`multi_run`,
+  `comparison`, `external_validation`). Nada stale em `results/`.
+  (A verificação de 2026-09-10 registrava `−0,268325 / 0,007601 / 0,260724`; eram do
+  motor **anterior** à reforma do combate e ao `grab_power`, e do `results.json` que
+  aquela bateria produziu. Não são comparáveis com os de hoje.)
 - [ ] **🟡 `values.tex` mistura proveniências na célula que mais depende disso.** *Fato
   novo:* além do stale já registrado no `HANDOFF` (`\aggDomMean` 0,19 → 0,1403;
   `\aggDriftMean` 0,23 → 0,2450; `\aggHvMean` 1,75 → 1,8084; `\hcPerSeed` 2,1 → 2,7;
@@ -850,23 +854,73 @@ cada constante ainda rotulada "provisório" seja decidida com dado e não com in
 Todas elas mudam número: fechar qualquer uma obriga a **regenerar `results/`**. A bateria
 atual congela os valores de hoje por omissão.
 
-> Ordem sugerida: **(1) e (2) primeiro** — são os que mais claramente pedem mudança e
-> não dependem de nada. **(3)** depende de decidir quanto ruído se aceita. **(4) a (7)**
-> podem ser declarados como estão, com justificativa.
+> Estado: **(1) e (2) fechados em 2026-09-16** — ambos **mantidos no valor atual**, com
+> justificativa escrita, então **nada precisou ser regenerado**. Restam (3) a (7);
+> **(3)** depende de decidir quanto ruído se aceita, e **(4) a (7)** podem ser
+> declarados como estão, com justificativa.
 
-### (1) `DOMINANCE_DECIS_WEIGHT = 0.5` — o termo está morto
+### (1) ✅ `DOMINANCE_DECIS_WEIGHT = 0.5` — **fechado 2026-09-16: mantido, o termo não está morto**
 
-**Evidência:** `decis_term` saiu **exatamente 0,0000 em 10/10 sementes nos dois
-algoritmos**. Depois que o piso caiu para 0,02 (item B), nenhum par do roster evoluído
-sai da banda em nenhuma execução.
+**A premissa deste item estava errada, e o erro era de amostra.** `decis_term` sai
+0,0000 em 10/10 sementes nos dois algoritmos — mas isso é medido **só nos indivíduos
+finais**. Uma guarda que lê 0 no fim é uma guarda que funcionou: a busca saiu da região
+ruim. Medido agora em **18 rosters × 10 pares = 180 pares** (sims = `MULTI_RUN_SIMS`,
+seed = `MULTI_RUN_VALIDATION_SEED`):
 
-*Leitura:* o terceiro termo do `dominance_penalty` não contribui com nada hoje — o
-composto é efetivamente `global + 0,5·cap`. Ele segue valendo como **guarda** (impede
-blowout, que é o que o teto pega), mas um termo que nunca dispara precisa ser declarado
-como guarda, não apresentado como um dos três eixos do objetivo. *Decidir:* manter como
-guarda declarada, ou remover e simplificar o objetivo para dois termos.
+| roster | `decis_term` | pares fora da banda |
+|---|---|---|
+| **canônico** — que *é* a geração 0 do AG escalar | **0,2834** | 5/10 acima do TETO |
+| 8 aleatórios | 0,1005 – 0,6596 | 3–9/10 acima do TETO |
+| espelho do Zoner — a solução trivial | 0,1282 | **10/10 abaixo do PISO** |
+| 4 evoluídos (AG + 3 representantes do NSGA-II) | 0,0000 | 0/10 |
 
-### (2) `MATCHUP_WR_CAP = 0.15` — voltou a morder, e é o que separa os algoritmos
+57/180 pares estouram o teto, e o `D` observado chega a **0,4903** contra um teto de
+0,20 — a guarda opera bem **dentro** da faixa real, não fora dela.
+
+*Decisão:* **manter em 0,5, declarado como guarda.** As duas metades pegam coisas
+distintas e ambas disparam: o teto pega blowout (canônico, aleatórios), o piso pega
+degenerescência (o espelho — a solução trivial de equilíbrio contra a qual a tese
+argumenta). Justificativa gravada no comentário do `config.py`.
+
+*Ressalva honesta:* a evidência sustenta que o **termo existe e opera**; ela não
+calibra o **peso** 0,5 contra alternativas. Isso seria um sweep, e não há evidência
+pedindo um.
+
+*Correção de registro colhida junto:* o comentário do `MATCHUP_FLOOR` afirmava que 0,02
+fica "abaixo do que dois personagens idênticos produzem". Falso — o espelho do Zoner dá
+`D ∈ [0,016, 0,019]`. A faixa dos espelhos é bem mais larga do que estava registrado
+(Zoner 0,016–0,019 · Turtle 0,027–0,032 · Rushdown 0,030–0,035 · CM 0,045–0,052 ·
+Grappler 0,074–0,088). O piso é abaixo de todo par de personagens **distintos**, e morde
+0/10 nos quatro evoluídos — o comentário foi corrigido.
+
+### (2) ✅ `MATCHUP_WR_CAP = 0.15` — **fechado 2026-09-16: mantido, com âncora de domínio**
+
+**Decisão:** manter 0,15 e apagar o rótulo "provisório". A justificativa que faltava é a
+grade de matchup da FGC, que é dita em inteiros — 5-5, 6-4, 7-3, 8-2, ou seja
+`|WR − 0.5|` de 0,00 · 0,10 · 0,20 · 0,30. O consenso de domínio é que **6-4 é vantagem
+saudável** (existe em todo jogo) e **7-3 é counter**, então o cap tem de permitir 0,10 e
+barrar 0,20.
+
+O que decide entre os candidatos é o **ruído de medição**: um limiar colado num ponto da
+grade vira cara-ou-coroa. Com σ ≈ 0,040 em p = 0,6 e `SIMS_PER_MATCHUP`:
+
+| cap | limiar | 6-4 real dispara à toa | 7-3 real é capturado |
+|---|---|---|---|
+| 0,10 | 0,60 | **50,0%** | 99,6% |
+| **0,15** | 0,65 | **10,6%** | **90,9%** |
+| 0,20 | 0,70 | 0,6% | **50,0%** |
+
+0,15 é o ponto médio da única lacuna que importa e o único valor que não reprova
+sistematicamente um 6-4 legítimo nem deixa passar metade dos 7-3. Subir `SIMS_PER_MATCHUP`
+(item 3) estreita as duas caudas **sem mover o cap** — os dois itens são independentes.
+
+*Não houve sweep, e a razão é substantiva:* um sweep escolheria o cap pelo que o motor
+produz, e o cap é justamente a definição de "counter duro" — defini-lo pelo resultado
+seria a mesma circularidade que mantém o ciclo de vantagens fora do fitness.
+
+<details>
+<summary>Levantamento original do item (o que motivou a revisão)</summary>
+
 
 **Evidência:** no motor antigo o `cap_term` era **exatamente 0** (não mordia nunca).
 Agora: AG 0,0259 ± 0,0254, mordendo em **7/10** sementes; NSGA-II 0,0201 ± 0,0232,
@@ -880,6 +934,8 @@ formalidade: a 0,20 a taxa de roster equilibrado subiria muito; a 0,10, despenca
 *Decidir:* justificar 0,15 por domínio (FGC: que WR ainda é "vantagem" e não
 "counter"?) ou fazer um sweep e escolher pelo que o motor produz. Hoje não há
 justificativa escrita para 15 pontos percentuais.
+
+</details>
 
 ### (3) `SIMS_PER_MATCHUP = 150` — o ajuste ao stream é de 21×
 

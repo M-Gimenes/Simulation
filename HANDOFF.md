@@ -401,6 +401,59 @@ significância.
 > importa. Instalado nesta sessão (`scipy==1.18.1`). Se o ambiente for recriado, o
 > `setup.ps1` cobre.
 
+## 1c. Agenda de calibração — itens (1) e (2) fechados, sem mudar número
+
+Os dois foram **mantidos**, com a justificativa que faltava escrita no `config.py`.
+Como nenhum valor mudou, **`results/` continua válido**.
+
+### (1) `DOMINANCE_DECIS_WEIGHT = 0.5` — a premissa do item estava errada
+
+"O termo está morto" vinha de `decis_term = 0,0000` em 10/10 sementes — mas isso é
+medido **só nos indivíduos finais**. Uma guarda que lê 0 no fim é uma guarda que
+funcionou: a busca saiu da região ruim. Medido em 18 rosters × 10 pares:
+
+| roster | `decis_term` | pares fora da banda |
+|---|---|---|
+| **canônico** — que *é* a geração 0 do AG escalar | **0,2834** | 5/10 acima do TETO |
+| 8 aleatórios | 0,1005 – 0,6596 | 3–9/10 acima do TETO |
+| espelho do Zoner — a solução trivial | 0,1282 | **10/10 abaixo do PISO** |
+| 4 evoluídos | 0,0000 | 0/10 |
+
+57/180 pares estouram o teto; `D` chega a **0,4903** contra teto 0,20. As duas metades
+disparam e pegam coisas distintas: o teto pega blowout, o piso pega a **solução
+trivial** — o espelho, exatamente o roster contra o qual a tese argumenta.
+
+> Ressalva: a evidência sustenta que o termo **opera**; não calibra o peso 0,5 contra
+> alternativas. Isso seria um sweep, e nada pede um.
+
+**Correção de registro colhida junto:** o comentário do `MATCHUP_FLOOR` afirmava que
+0,02 fica "abaixo do que dois personagens idênticos produzem". Falso — o espelho do
+Zoner dá `D ∈ [0,016, 0,019]`, e a faixa dos espelhos é bem mais larga do que estava
+registrado (Zoner 0,016–0,019 · Turtle 0,027–0,032 · Rushdown 0,030–0,035 · CM
+0,045–0,052 · Grappler 0,074–0,088). O piso é abaixo de todo par de personagens
+**distintos**, e morde 0/10 nos quatro evoluídos. Comentário corrigido.
+
+### (2) `MATCHUP_WR_CAP = 0.15` — âncora de domínio + margem de ruído
+
+A grade de matchup da FGC é dita em inteiros: 5-5, 6-4, 7-3, 8-2 — em `|WR − 0.5|`,
+0,00 · 0,10 · 0,20 · 0,30. **6-4 é vantagem saudável, 7-3 é counter**, então o cap tem
+de permitir 0,10 e barrar 0,20.
+
+O que decide entre os candidatos é o ruído: limiar colado num ponto da grade vira
+cara-ou-coroa. Com σ ≈ 0,040 em p = 0,6:
+
+| cap | limiar | 6-4 real dispara à toa | 7-3 real é capturado |
+|---|---|---|---|
+| 0,10 | 0,60 | **50,0%** | 99,6% |
+| **0,15** | 0,65 | **10,6%** | **90,9%** |
+| 0,20 | 0,70 | 0,6% | **50,0%** |
+
+0,15 é o ponto médio da única lacuna que importa. Subir `SIMS_PER_MATCHUP` (item 3)
+estreita as duas caudas **sem mover o cap** — os itens são independentes.
+
+Não houve sweep de propósito: o cap **é** a definição de "counter duro", e defini-lo
+pelo que o motor produz seria a mesma circularidade que mantém o ciclo fora do fitness.
+
 ## 2. A leitura macro do modelo — 4 eixos, 1 ainda incoerente
 
 | eixo | do que é feito | estado |
@@ -437,10 +490,10 @@ Sete constantes seguem rotuladas "provisório", e a bateria congelou os valores 
 por omissão. O levantamento completo, com a evidência de cada uma, está em
 [`REVIEW.md` §9](REVIEW.md). Em uma linha cada:
 
-1. **`DOMINANCE_DECIS_WEIGHT`** — o termo saiu **0,0000 em 10/10 sementes nos dois
-   algoritmos**. Está morto: é guarda, não um dos três eixos do objetivo.
-2. **`MATCHUP_WR_CAP = 0.15`** — voltou a morder (7/10 e 5/10 sementes) e é ele que
-   decide a taxa de "roster equilibrado". Não há justificativa escrita para 15 p.p.
+1. ✅ **`DOMINANCE_DECIS_WEIGHT`** — **fechado, mantido em 0,5.** A premissa ("o termo
+   está morto") era erro de amostra: 0,0000 é medido só nos indivíduos **finais**. Ver §1c.
+2. ✅ **`MATCHUP_WR_CAP = 0.15`** — **fechado, mantido.** Âncora: ponto médio entre 6-4
+   (vantagem) e 7-3 (counter) na grade da FGC. Ver §1c.
 3. **`SIMS_PER_MATCHUP = 150`** — o ajuste ao stream é de **21×** (0,0039 dentro do laço
    contra 0,0804 fora), e `Zoner × Turtle` sai em 28,2% ± 1,9% fora do laço: um counter
    sistemático que 150 sims não enxergaram. Veredito externo: **FRÁGIL**.
@@ -455,7 +508,8 @@ por omissão. O levantamento completo, com a evidência de cada uma, está em
    poder amostral, e subir sementes é **aditivo**: as 10 atuais continuam valendo.
 
 O passo 8 (item **F**) está **fechado** — ver §1b. Não regenerou nada: só o
-`comparison_ga_vs_nsga2.json` mudou.
+`comparison_ga_vs_nsga2.json` mudou. Os itens **(1) e (2)** da agenda também fecharam —
+ambos **mantidos no valor atual**, então `results/` segue válido (§1c).
 
 ## 4. Itens menores ainda abertos
 

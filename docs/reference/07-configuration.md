@@ -72,8 +72,8 @@ foi removido).
 | `MATCHUP_FLOOR` | 0.02 | piso da banda de decisividade — **guarda de degenerescência**, não banda de qualidade. Não morde em operação normal (0/10 pares). Era 0.10, que penalizava 5/10 pares e decidia a comparação AG × NSGA-II. Faixas medidas: degenerado `≤ 0,008`, espelho puro `0,020–0,033`, pares reais `≥ 0,045` |
 | `DOMINANCE_GLOBAL_WEIGHT` | 1.0 | peso do termo **primário** (balanço global por personagem) do dominance_penalty |
 | `DOMINANCE_CAP_WEIGHT` | 0.5 | peso do teto de hard-counter (excesso de `\|WR−0.5\|` acima de `MATCHUP_WR_CAP`) |
-| `DOMINANCE_DECIS_WEIGHT` | 0.5 | peso do termo de decisividade — o teto guarda contra blowout-coinflip; o piso, contra degenerescência |
-| `MATCHUP_WR_CAP` | 0.15 | meia-banda do hard-counter: par é counter duro se `\|WR−0.5\| > 0.15` (fora de [0.35, 0.65]). **Provisório — calibrar** |
+| `DOMINANCE_DECIS_WEIGHT` | 0.5 | peso do termo de decisividade — o teto guarda contra blowout-coinflip; o piso, contra degenerescência. **Fechado 2026-09-16:** é guarda, e guarda ativa — dispara no canônico (0.2834) e nos aleatórios, zera nos evoluídos |
+| `MATCHUP_WR_CAP` | 0.15 | meia-banda do hard-counter: par é counter duro se `\|WR−0.5\| > 0.15` (fora de [0.35, 0.65]). **Fechado 2026-09-16:** ponto médio entre 6-4 (0.10, vantagem) e 7-3 (0.20, counter) na grade da FGC — justificativa e tabela de ruído no comentário do `config.py` |
 | `N_WORKERS` | 8 | processos na avaliação paralela (None = todos os núcleos; 1 = serial). **Não é só gosto:** o pool é recriado a cada geração, então o custo de spawn escala com o nº de workers — medido nesta máquina, 8 workers é ~2,2× mais rápido que 28, e 28 estourava o limite de commit do Windows. Não afeta o resultado (CRN propagado aos workers) |
 | `FIELD_SIZE` | 100 | tamanho do campo |
 | `INITIAL_DISTANCE` | 50 | distância inicial entre lutadores (> todos os `range`, então a luta começa em impasse) |

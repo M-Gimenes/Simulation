@@ -60,7 +60,40 @@ DOMINANCE_GLOBAL_WEIGHT = 1.0
 DOMINANCE_CAP_WEIGHT = 0.5
 DOMINANCE_DECIS_WEIGHT = 0.5
 
-# Meia-banda do hard-counter: (|X - 0.5|) < WR < (|X + 0.5|)
+# O `decis_term` sai 0.0000 nos indivíduos FINAIS das 10 sementes, nos dois
+# algoritmos — o que NÃO quer dizer que o termo seja morto. Ele é uma GUARDA, e uma
+# guarda que lê 0 no fim é uma guarda que funcionou: a busca saiu da região ruim.
+# Medido em 18 rosters (canônico + 5 espelhos + 8 aleatórios + 4 evoluídos), 180 pares:
+#
+#   canônico (= geração 0 do AG escalar)   decis 0.2834   5/10 pares acima do TETO
+#   8 aleatórios                           decis 0.10–0.66  3–9/10 acima do TETO
+#   espelho Zoner (solução trivial)        decis 0.1282  10/10 abaixo do PISO
+#   4 evoluídos                            decis 0.0000   0/10
+#
+# 57/180 pares estouram o teto e o D observado chega a 0.49, contra teto 0.20 — a
+# guarda opera bem dentro da faixa real, não fora dela. E as duas metades pegam coisas
+# distintas: o teto pega blowout (canônico, aleatórios), o piso pega degenerescência
+# (o espelho, que é a solução trivial de equilíbrio).
+
+# Meia-banda do hard-counter: par é counter duro se |WR − 0.5| > MATCHUP_WR_CAP.
+#
+# ANCORADO NA GRADE DA FGC. Matchup chart de jogo de luta é dito em inteiros —
+# 5-5, 6-4, 7-3, 8-2 — que em |WR − 0.5| são 0.00, 0.10, 0.20, 0.30. O consenso de
+# domínio é que 6-4 é vantagem saudável (existe em todo jogo) e 7-3 é counter. Logo
+# o cap tem de PERMITIR 0.10 e BARRAR 0.20.
+#
+# O valor não pode cair EM CIMA de um ponto da grade: com ruído binomial de medição,
+# um limiar colado num valor legítimo vira cara-ou-coroa. Medido (n = SIMS_PER_MATCHUP,
+# σ ≈ 0.040 em p = 0.6):
+#
+#   cap    limiar   6-4 real dispara à toa   7-3 real é capturado
+#   0.10    0.60            50.0%                    99.6%
+#   0.15    0.65            10.6%                    90.9%
+#   0.20    0.70             0.6%                    50.0%
+#
+# 0.15 é o ponto médio da única lacuna que importa (entre 6-4 e 7-3) e o único valor
+# que não reprova sistematicamente um 6-4 legítimo nem deixa passar metade dos 7-3.
+# Subir sims estreita as duas caudas sem mover o cap — ver SIMS_PER_MATCHUP.
 MATCHUP_WR_CAP = 0.15
 
 # Banda de decisividade, em margem |score − 0.5|.
@@ -69,14 +102,23 @@ MATCHUP_WR_CAP = 0.15
 # ~40% de HP), o que passa despercebido pelo termo global se os massacres se
 # alternam entre os dois lados.
 #
-# O PISO é só guarda de DEGENERESCÊNCIA, e por isso mora bem abaixo da faixa de
+# O PISO é só guarda de DEGENERESCÊNCIA, e por isso mora abaixo da faixa de
 # operação. Com o motor reformado toda luta termina em KO (medido: 100% em 70
 # pares, incluindo rosters aleatórios), então D baixo não é "luta que não
-# aconteceu" — é KO no fio, que é a melhor luta possível, não um defeito. Faixas
-# medidas: roster degenerado (dano mín/HP máx/GUARDA, 0% KO, timeout com HP
-# idêntico) D ≤ 0.008; espelho puro dos 5 canônicos D 0.020–0.033; pares reais
-# D ≥ 0.045. O piso fica na base da faixa do espelho: abaixo dela um par de
-# personagens DISTINTOS decide menos que dois personagens idênticos.
+# aconteceu" — é KO no fio, que é a melhor luta possível, não um defeito.
+#
+# Faixas medidas (2026-09-16, sims=MULTI_RUN_SIMS, seed=MULTI_RUN_VALIDATION_SEED):
+#   roster degenerado (dano mín/HP máx/GUARDA, 0% KO, timeout com HP idêntico) ≤ 0.008
+#   espelhos dos 5 canônicos   Zoner 0.016–0.019 · Rushdown 0.030–0.035 ·
+#                              Turtle 0.027–0.032 · CM 0.045–0.052 · Grappler 0.074–0.088
+#   rosters evoluídos          0.044–0.178
+#
+# O piso morde 10/10 pares no espelho do Zoner e 0/10 em todo o resto — inclusive
+# 0/10 nos quatro rosters evoluídos. É o comportamento pretendido: dois Zoners
+# idênticos se afastando é o caso MENOS decidido que o motor produz, e o espelho é
+# justamente a solução trivial de equilíbrio (identidade zero) contra a qual a tese
+# argumenta. Não é "abaixo de todo espelho" — é abaixo de todo par de personagens
+# DISTINTOS.
 
 MATCHUP_FLOOR = 0.02       # piso: guarda de degenerescência (não morde em operação normal)
 MATCHUP_THRESHOLD = 0.20   # teto: acima é blowout (vencedor fecha ~40% HP)
