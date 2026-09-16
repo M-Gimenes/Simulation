@@ -454,6 +454,61 @@ estreita as duas caudas **sem mover o cap** — os itens são independentes.
 Não houve sweep de propósito: o cap **é** a definição de "counter duro", e defini-lo
 pelo que o motor produz seria a mesma circularidade que mantém o ciclo fora do fitness.
 
+## 1d. Agenda — item (4) fechado; (6) e (7) medidos, execução em bundle
+
+### (4) Canônicos — **finais**
+
+"Melhor valor" não existe aqui por construção: os canônicos são a **premissa**, não uma
+variável a otimizar. Ajustá-los para "ficarem melhores" seria mexer na premissa para obter
+a resposta. O critério só pode ser **coerência** — e o que faltava era escrevê-lo:
+
+| # | exigência | medido |
+|---|---|---|
+| 1 | internamente coerentes | validador **23/23** |
+| 2 | distintos entre si | 10 distâncias par-a-par ≥ **0,3221** (mín. CM × Grappler) |
+| 3 | desequilibrados — o ponto de partida | `dominance` **1,2690**; Turtle 0,0%, Rushdown 99,6% |
+
+E o que **não** se exige, com a razão: realizar o ciclo (loteria de 1/24 — item H) e ser
+equilibrado (seria o problema resolvido de graça).
+
+**Duas limitações declaradas.** (a) **5 dos 55 genes estão colados no bound, 4 deles
+definidores** — Rushdown `attack_cooldown` = 1,0 e `speed` = 5,0; Turtle `hp` = 450,
+`attack_cooldown` = 5,0 e `damage` = 15,0. É intencional, mas esses genes **só podem
+driftar para dentro**: a identidade do Rushdown e da Turtle é assimetricamente protegida
+num sentido e erodível no outro, e o `drift_penalty` não distingue os casos. (b) Os
+canônicos **são** a referência do drift — mudá-los invalidaria todo número de drift já
+medido, o que por si é razão forte para congelar agora que passam.
+
+### (6) Escala dos pesos — 7,5%, não 55%
+
+O número antes registrado (55% no Turtle) vinha de uma conta **confundida por escala**:
+comparava distância no espaço bruto com distância no normalizado. Medição exata — escalar
+os 3 pesos por `k > 0` não muda nada no combate, então o drift que some ao escolher o
+melhor `k` é cobrança por diferença indistinguível:
+
+| arquétipo | drift real | drift mín(k) | k ótimo | % desperdiçado |
+|---|---|---|---|---|
+| **Rushdown** | 0,3302 | 0,2804 | 0,654 | **15,1%** |
+| Combo Master | 0,2957 | 0,2694 | 0,581 | 8,9% |
+| Turtle | 0,3560 | 0,3394 | 0,702 | 4,7% |
+| Grappler | 0,2516 | 0,2498 | 1,193 | 0,7% |
+| Zoner | 0,0356 | 0,0356 | 0,992 | 0,2% |
+| **MÉDIA** | **0,2539** | **0,2349** | | **7,5%** |
+
+Os `k` ótimos de 0,58–0,70 dizem o que houve: o AG **inflou a escala dos pesos** e o drift
+cobrou pela inflação. Atenua em parte que o artefato afeta também os modelos nulos, então
+cancela na leitura de *posição*; não cancela no drift absoluto.
+
+### (7) Sementes — **n = 20**
+
+Poder medido (4000 réplicas, dois normais separados por 1,190σ = Â₁₂ 0,80, critério
+`3 × p < 0,05`): **n=10 → 44,4%** · n=15 → 73,1% · **n=20 → 85,9%** · n=30 → 97,3%.
+
+n = 20 é o menor que passa de 80%. Com os 10 atuais o experimento tem **menos de 50%** de
+chance de detectar um efeito grande que provavelmente existe — "não significativo" ali diz
+mais sobre a amostra que sobre os algoritmos. "Aditivo" vale no sentido estatístico (as
+sementes 42–51 são determinísticas), **não** no de compute: `multi_run` não tem resume.
+
 ## 2. A leitura macro do modelo — 4 eixos, 1 ainda incoerente
 
 | eixo | do que é feito | estado |
@@ -496,20 +551,27 @@ por omissão. O levantamento completo, com a evidência de cada uma, está em
    (vantagem) e 7-3 (counter) na grade da FGC. Ver §1c.
 3. **`SIMS_PER_MATCHUP = 150`** — o ajuste ao stream é de **21×** (0,0039 dentro do laço
    contra 0,0804 fora), e `Zoner × Turtle` sai em 28,2% ± 1,9% fora do laço: um counter
-   sistemático que 150 sims não enxergaram. Veredito externo: **FRÁGIL**.
-4. **Canônicos** — nenhuma evidência pede mudança. Declarar finais, ou dizer o que falta.
+   sistemático que 150 sims não enxergaram. Veredito externo: **FRÁGIL**. **Aberto.**
+4. ✅ **Canônicos** — **fechado: declarados finais.** Critério de aceitação escrito
+   (coerentes 23/23 · distintos ≥ 0,32 · desequilibrados = o ponto de partida), e o que
+   NÃO se exige, com a razão. Duas limitações declaradas — ver §1d.
 5. **`ACTION_PERSISTENCE_SUBTICKS = 10`** — maior que o cooldown mínimo (5); a
-   sensibilidade no evoluído põe `speed` e `stun` **abaixo** do piso medido.
-6. **Escala dos pesos comportamentais** — no Turtle, **55%** do drift de pesos mede algo
-   que o simulador não enxerga (só a razão entre os pesos afeta o combate).
-7. **`MULTI_RUN_N_SEEDS = 10`** — com o (F) fechado, o único achado da bateria (NSGA-II
+   sensibilidade no evoluído põe `speed` e `stun` **abaixo** do piso medido. **Aberto** —
+   exige uma rodada de sensibilidade para decidir.
+6. 📏 **Escala dos pesos comportamentais** — **medido: 7,5%** do drift médio é cobrado por
+   diferença behaviouralmente nula (não os "55%" antes registrados — aquela conta estava
+   confundida por escala). Pior caso Rushdown 15,1%. Conserto exige regenerar → **bundle
+   com (3)**. Ver §1d.
+7. 📏 **`MULTI_RUN_N_SEEDS = 10`** — com o (F) fechado, o único achado da bateria (NSGA-II
    com drift menor, Â₁₂ = 0,80, p bruto **0,026**) melhorou para p_Holm **0,0772** e
    **ainda não é significativo**. Mesmo a família mínima para em 0,0515. O gargalo é
    poder amostral, e subir sementes é **aditivo**: as 10 atuais continuam valendo.
 
 O passo 8 (item **F**) está **fechado** — ver §1b. Não regenerou nada: só o
-`comparison_ga_vs_nsga2.json` mudou. Os itens **(1) e (2)** da agenda também fecharam —
-ambos **mantidos no valor atual**, então `results/` segue válido (§1c).
+`comparison_ga_vs_nsga2.json` mudou. Os itens **(1), (2) e (4)** da agenda fecharam sem
+mudar número, então `results/` segue válido (§1c, §1d). Os itens **(3), (5), (6) e (7)**
+seguem abertos e **os três primeiros mudam número** — devem ser executados numa
+regeneração só.
 
 ## 4. Itens menores ainda abertos
 

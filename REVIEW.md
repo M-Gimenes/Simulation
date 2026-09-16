@@ -956,16 +956,39 @@ a bateria de 90 min viraria ~180 min a 300 sims). *Decidir:* subir `SIMS_PER_MAT
 ou aceitar e **sempre reportar o número de fora do laço** como headline (o que já é a
 recomendação registrada em §4).
 
-### (4) Canônicos re-tunados — provisórios desde a reforma
+### (4) ✅ Canônicos — **fechado 2026-09-16: declarados finais**
 
-**Evidência:** não precisam realizar o ciclo (item H mostrou que o alvo é uma loteria de
-1/24) nem ser equilibrados — serem desequilibrados é o ponto de partida do problema. O
-validador dá 23/23 neles, então são internamente coerentes. E o `grab_power` do Grappler
-(0,90) é o único acima do ponto neutro 0,40, que é o que o diferencia.
+**"Melhor valor" não existe aqui, por construção.** Os canônicos são a **premissa** do
+trabalho — o que cada arquétipo *é*, dado pela FGC e anterior à pergunta de equilíbrio —
+não uma variável a otimizar. Ajustá-los para "ficarem melhores" (mais equilibrados, ou
+realizando o ciclo) seria mexer na premissa para obter a resposta. O único critério
+admissível é **coerência**, e ele precisa ser declarado antes.
 
-*Leitura:* não há evidência pedindo mudança. *Decidir:* **declarar finais** e apagar o
-rótulo "provisório", ou apontar qual propriedade específica ainda falta. Manter
-"provisório" sem critério de aceitação é o pior dos mundos para a banca.
+**Critério de aceitação** (o que estava faltando, mais do que os valores):
+
+| # | exigência | medido |
+|---|---|---|
+| 1 | **internamente coerentes** — cada arquétipo ocupa os extremos que o definem e tem assinatura comportamental própria | validador **23/23** (L1 inter + L2 intra + L3 behavioral) |
+| 2 | **distintos entre si** — nenhum par é quase-cópia | as 10 distâncias par-a-par ≥ **0,3221** (mín.: CM × Grappler) |
+| 3 | **desequilibrados** — é o ponto de partida do problema, não defeito | `dominance` **1,2690**; Turtle 0,0%, Rushdown 99,6% |
+
+E o que **não** se exige, com a razão: realizar o ciclo (item H — é loteria de 1/24, não
+pode ser evidência) e ser equilibrado (seria o problema já resolvido de graça).
+
+Os três passam. *Decisão:* **finais**; rótulo "provisório" apagado.
+
+**Duas limitações declaradas junto** — não motivam mudança, mas têm de aparecer no texto:
+
+- **5 dos 55 genes estão colados no bound, e 4 são genes definidores:** Rushdown
+  `attack_cooldown` = 1,0 (piso) e `speed` = 5,0 (teto); Turtle `hp` = 450 e
+  `attack_cooldown` = 5,0 (tetos) e `damage` = 15,0 (piso). É intencional — o Rushdown
+  *é* o mais rápido, a Turtle *é* a mais lenta e resistente — mas a consequência é real:
+  esses genes **só podem driftar para dentro**. A identidade do Rushdown e da Turtle é
+  assimetricamente protegida num sentido e livremente erodível no outro, e o
+  `drift_penalty` não distingue os dois casos.
+- **Os canônicos SÃO a referência do drift.** Qualquer mudança neles invalida todo número
+  de drift já medido no projeto — o que é, por si, uma razão forte para congelá-los agora
+  que passam no critério.
 
 ### (5) `TICK_SCALE = 5` e `ACTION_PERSISTENCE_SUBTICKS = 10`
 
@@ -995,10 +1018,45 @@ indivíduo evoluído, a fração da distância de pesos que o simulador **não e
 | Grappler | 1,20 | 1,01 | 0,381 | 0,302 | 21% |
 | Turtle | 1,30 | 2,29 | 0,801 | 0,358 | **55%** |
 
-*Leitura:* no Turtle, **mais da metade** do drift de pesos mede algo invisível ao
-simulador. Parte do eixo de identidade da tese está contando deslocamento que não tem
-efeito nenhum no jogo. *Decidir:* normalizar os pesos (simplex) na representação, medir
-o drift dos pesos sobre a razão, ou declarar a limitação explicitamente.
+> ⚠️ **A tabela acima está confundida por escala** e superestima o problema. Ela compara
+> distância no espaço bruto com distância no espaço normalizado — dois espaços de escalas
+> diferentes —, então parte da "redução" é só reescala, não invisibilidade. Medição exata
+> abaixo.
+
+**Medição exata (2026-09-16).** Escalar os três pesos por uma constante `k > 0` não muda
+**nada** no combate — a intenção é sorteada proporcionalmente. Logo a parcela do drift que
+desaparece ao escolher o melhor `k` é penalidade cobrada por diferença que o simulador não
+consegue distinguir. Sem ambiguidade de escala: mesma métrica, mesmos bounds, um único
+grau de liberdade comprovadamente nulo.
+
+| arquétipo | drift real | drift mín(k) | k ótimo | desperdiçado | % do total |
+|---|---|---|---|---|---|
+| Zoner | 0,0356 | 0,0356 | 0,992 | 0,0001 | 0,2% |
+| **Rushdown** | 0,3302 | 0,2804 | 0,654 | 0,0499 | **15,1%** |
+| Combo Master | 0,2957 | 0,2694 | 0,581 | 0,0263 | 8,9% |
+| Grappler | 0,2516 | 0,2498 | 1,193 | 0,0018 | 0,7% |
+| Turtle | 0,3560 | 0,3394 | 0,702 | 0,0166 | 4,7% |
+| **MÉDIA** | **0,2539** | **0,2349** | | **0,0189** | **7,5%** |
+
+*Leitura:* **7,5% do drift médio** é cobrado por diferença behaviouralmente nula — muito
+menos que os "55%" que este item registrava, mas não desprezível: 0,0189 contra os ~0,04
+que separam "identidade preservada" de "todos idênticos" (item H). Concentra-se no
+Rushdown (15,1%) e no Combo Master (8,9%), e os `k` ótimos de 0,58–0,70 dizem o que
+aconteceu — o AG **inflou a escala dos pesos** e o drift cobrou pela inflação.
+
+Atenuante: o artefato afeta também os **modelos nulos** (um espelho tem escala de pesos
+igualmente arbitrária), então cancela em parte na leitura de *posição entre piso e teto*.
+Não cancela na leitura do drift absoluto.
+
+*Decidir — duas formas de consertar, ambas exigem regenerar:*
+- **na métrica** (mais estreito): `_archetype_deviation` normaliza os pesos no simplex
+  antes de comparar. Poucas linhas, cirúrgico.
+- **na representação** (mais principista): se só a razão importa, o indivíduo não deveria
+  carregar o grau de liberdade extra. Mais limpo, mas mexe na semântica de mutação e
+  crossover.
+
+**Bundling:** o conserto custa uma regeneração, e o item (3) já custa uma. Decidir os dois
+juntos paga uma regeneração em vez de duas.
 
 ### (7) `MULTI_RUN_N_SEEDS = 10` — e o item (F) está apagando o único achado
 
@@ -1018,10 +1076,30 @@ apertar mais a família: mesmo a mínima possível (2 métricas, só os dois obj
 Pareto) para em **0,0515**, acima de α por 0,0015. O gargalo é **poder amostral**, não
 correção.
 
-*Decidir:* subir `MULTI_RUN_N_SEEDS`. É **aditivo** — as 10 sementes atuais continuam
-valendo, só se acrescentam novas — e é o único caminho que pode levar esse achado à
-significância. Com n = 10 × 10 e correção sobre 3 métricas, um efeito grande não
-alcança α.
+**Poder amostral medido (2026-09-16).** Simulação com 4000 réplicas por `n`: dois normais
+separados por 1,190σ (a separação que produz exatamente Â₁₂ = 0,80), critério
+`3 × p < 0,05` (Holm com a família de 3 já corrigida):
+
+| n por algoritmo | poder |
+|---|---|
+| **10 — o atual** | **44,4%** |
+| 15 | 73,1% |
+| **20** | **85,9%** |
+| 25 | 94,3% |
+| 30 | 97,3% |
+| 40 | 99,7% |
+
+*Decisão:* **n = 20.** É o menor valor que passa do patamar convencional de 80% de poder.
+Com os 10 atuais o experimento tem menos de 50% de chance de detectar um efeito
+**grande** que provavelmente existe — é subdimensionado, e dizer "não significativo" a
+partir dele diz mais sobre a amostra que sobre os algoritmos.
+
+*Ressalva sobre "aditivo":* vale no sentido **estatístico** — as sementes 42–51 são
+determinísticas e produzem resultado idêntico sob a mesma config, então nada do que já
+foi medido se perde. **Não** vale no de compute: `multi_run` não tem resume, então
+`--n-seeds 20` re-roda as 20 (~180 min em vez de +90).
+
+**Bundling:** junto com (3) e (6), numa regeneração só.
 
 ### O que NÃO exige regenerar a bateria
 
