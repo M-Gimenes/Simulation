@@ -283,7 +283,9 @@ piso contra o qual lê-los.
 ### (R) O agarrão: um gene fechou três lacunas
 
 `grab_power`, 8º atributo, ∈ [0, 1] — a **fração da guarda quebrada**. Contra alvo em
-`DEFEND` o multiplicador do dano vira `defend_red + grab_power·(1 − defend_red)`.
+`DEFEND` o multiplicador do dano vira `defend_red + grab_power` (soma simples — ver o
+bloco do agarrão em `combat.py`): 0,6× em `grab = 0`, 1,0× no ponto neutro 0,40 e
+**1,6× no teto**.
 
 Três escolhas de desenho, todas deliberadas:
 - **mesmo alcance e mesmo cooldown** do ataque normal;

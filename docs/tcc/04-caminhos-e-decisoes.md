@@ -123,6 +123,46 @@ Cada item: **problema → mudança → resultado.**
   NSGA-II**; "os 5 ainda são distintos?" virou métrica **post-hoc** (diferenciação
   par-a-par), não termo forçado — coerente com a não-circularidade do ciclo.
 
+## A reforma do combate (2026-09-10)
+
+Quatro incongruências fechadas de uma vez. Todas mudaram número, e é daqui em diante
+que os artefatos do projeto descrevem o motor atual.
+
+- **Recuar era forfeit de dano (M1).** Problema: o ataque era uma *ação escolhida*
+  concorrente com a postura, então recuar significava não atacar. Consequência medida: o
+  `knockback` tinha derivada **negativa** — empurrar o oponente para longe só piorava — e
+  o Zoner perdia 100% independentemente de `range` e `knockback`, ou seja, os dois genes
+  que o **definem** eram inúteis. Mudança: **dois canais de ação** — a intenção sorteada
+  governa só a *postura* (`FRENTE`/`RECUAR`/`GUARDA`), e o ataque virou **regra de
+  resolução**: dispara sempre que o cooldown está pronto, o alvo está em alcance e a
+  postura não é `GUARDA`. Resultado: avançar e recuar **ambos acertam**; só a guarda
+  abdica do golpe. É isso que torna controle de espaço uma estratégia (zoning = atacar
+  mantendo distância) e dá ao `knockback` inclinação positiva.
+- **Os corpos se atravessavam (M2).** Problema: sem colisão, os personagens se cruzavam
+  **134× por luta**, o que anulava `range` no clinch — um Zoner "preso" simplesmente
+  atravessava para o outro lado. Mudança: `_apply_movement` desloca os dois a partir das
+  posições do início do sub-tick (simultâneo, ninguém chega "primeiro") e os para no
+  ponto de encontro. Resultado: A é sempre o lado esquerdo, o que elimina os casos de
+  borda de direção em distância zero, e **encurralamento** passa a existir como
+  consequência geométrica — `RECUAR` sem espaço cai para `DEFEND`.
+- **O `stun` era categórico (M3).** Problema: o timer era arredondado para inteiro, o que
+  deixava o gene com **4 níveis efetivos** para um atacante de `cooldown = 1` — um gene
+  contínuo se comportando como categórico. Mudança: timer **contínuo** (float,
+  decrementado de 1,0 por sub-tick). Resultado: a amplitude do gene a ±1σ de mutação
+  passou de 6,8% para **17,4%**.
+- **O empate não existia (D).** Problema: KO duplo ou timeout com HP idêntico caíam
+  sempre para o lado A — e no round-robin o lado A é **sempre o arquétipo de índice
+  menor**. Era viés sistemático na métrica exata que o fitness otimiza. Medido num
+  espelho do Rushdown canônico: **54,90%** para o lado A, com 10,3% de KOs duplos.
+  Mudança: `_decide_winner` devolve `-1` no empate, que o round-robin conta como meia
+  vitória para cada lado. Resultado: o espelho volta a 50%.
+- **A regra do impasse.** Problema colhido junto: com o ataque virando regra de
+  resolução, dois personagens passivos recuavam para paredes opostas e o tempo esgotava
+  sem um golpe. Mudança: quando `distância > alcance de ambos` — ninguém alcança ninguém
+  — `ADVANCE` é **imposto**. Resultado: o impasse se resolve sem tornar a regra
+  explorável, porque um personagem **sob ameaça** (o oponente alcança) segue livre para
+  recuar; kiting fica intacto.
+
 ## A régua de identidade (2026-09-16)
 
 O ponto de partida foi uma objeção do próprio autor, levantada no início do projeto e
@@ -222,7 +262,8 @@ pergunta central fica ambígua — eu estaria forçando a preservação."*
   é o counter canônico ao bloqueio"*, sem mecanismo no motor. Some-se um quarto, vindo da
   decisão (A): o Grappler tinha um **único** gene definidor.
 - **Mudança:** `grab_power` como 8º atributo, ∈ [0, 1], a **fração da guarda quebrada**.
-  Contra alvo em `DEFEND` o multiplicador vira `defend_red + grab_power·(1 − defend_red)`.
+  Contra alvo em `DEFEND` o multiplicador vira `defend_red + grab_power` — soma simples,
+  então o teto **inverte** a vantagem de defender em vez de apenas anulá-la.
   Três escolhas de desenho, todas deliberadas: mesmo alcance e mesmo cooldown do ataque
   normal; **efeito nenhum contra quem não defende**; e nunca supera um golpe limpo.
 - **Por que essas escolhas:** é o "efeito nenhum contra quem não defende" que faz do
@@ -232,10 +273,131 @@ pergunta central fica ambígua — eu estaria forçando a preservação."*
   escolhida, ataque por regra) fica intacto: nada de `w_grab` ou quarta postura, que
   teriam mexido de uma vez no espaço de política, na degenerescência de escala dos pesos
   e no drift dos pesos.
-- **Resultado:** dano por golpe contra alvo em guarda vai de 16,2 (`grab=0`) a 27,0
-  (`grab=1`), exatamente 1,67× = `1/0.6`; diferença zero contra alvo que não defende. O
+- **Resultado:** dano por golpe contra alvo em guarda vai de 16,2 (`grab = 0`, ou seja
+  0,6×) a **43,2** (`grab = 1`, 1,6×), passando exatamente pelo golpe limpo de 27,0 no
+  ponto neutro 0,40; diferença zero contra alvo que não defende. O
   validador canônico vai a **23/23**, com os cinco arquétipos tendo assinatura
   comportamental pela primeira vez. Ressalva honesta sobre o sintoma (iii): a aresta
   Grappler×Turtle sai em 100%, mas já saía antes — o Turtle canônico perde para todos
   (WR global 0%). O que mudou é que agora **existe o mecanismo** para ele vencer por
   mérito; se o ciclo emerge disso é pergunta para a bateria.
+
+## Os modelos nulos: nenhuma métrica do projeto tinha piso (2026-09-16)
+
+Este item entrou na pauta como *"recalibrar os canônicos para o ciclo existir"* e o
+diagnóstico saiu **muito maior** que o item.
+
+- **Problema:** todas as métricas de identidade estavam sendo lidas contra o **teto**,
+  como se o piso fosse zero. Medido com 13 rosters nulos (5 espelhos + 8 aleatórios): o
+  piso de acaso do validador é ~6,8/21 e um roster **aleatório** chegou a **12/21** — as
+  asserções de ranking resolvem empate por ordem de índice, então algumas passam por
+  acidente. O `drift_penalty` lê ~0,33 num **espelho** (cinco personagens idênticos,
+  identidade zero por construção) e ~0,41 num aleatório: só **0,04** separam "identidade
+  cuidadosamente preservada" de aniquilação total. E o ciclo canônico tem piso **5/10**,
+  porque cada aresta é cara-ou-coroa.
+- **Por que isso importa:** ler `8/21` como "38% da identidade sobreviveu" é o mesmo erro
+  que ler 20% numa prova de múltipla escolha de cinco opções como "sabe 20% da matéria".
+- **Mudança:** `src/tools/baselines.py` monta canônico + 5 espelhos + N aleatórios e
+  reporta cada métrica como `posição = (valor − piso)/(teto − piso)`, com o **pior nulo**
+  e um **p-valor empírico** — o piso é uma *distribuição*, não um ponto.
+- **Resultado, e duas consequências que entram na tese.** Primeira: o **espelho é a
+  solução trivial** de equilíbrio (equilíbrio perfeito, identidade zero) e é a resposta
+  numérica à objeção óbvia *"por que não deixar os cinco iguais?"* — medido, o roster
+  evoluído alcança 99% do equilíbrio do espelho ficando ~30% acima do piso de identidade.
+  Segunda, e mais forte: **o ciclo autoral não pode ser resultado.** Ele é um torneio
+  *regular* (cada arquétipo vence exatamente 2), e existem **24** torneios regulares
+  rotulados em 5 vértices — acertar o rótulo específico é loteria de 1/24 enquanto o
+  acaso já dá 5/10. O que **é** resultado, e não depende de autoria, é a
+  **não-transitividade em si**: equilíbrio global e pedra-papel-tesoura são a mesma
+  estrutura, porque um roster estritamente transitivo teria WRs 100/75/50/25/0,
+  incompatível com todos perto de 50%. Medida por `circular_triads` (Kendall & Babington
+  Smith 1940), escala 0 (ordem estrita) · 2,5 (acaso) · 5 (máximo = equilíbrio perfeito).
+
+## A família de testes estatísticos (2026-09-16)
+
+- **Problema:** a comparação AG × NSGA-II aplicava Holm-Bonferroni sobre **4 métricas**,
+  e uma delas — "bonecos em banda" — dava **5/5 nas 20 execuções**. Amostra conjunta
+  constante: Mann-Whitney é indefinido ali (devolve `nan`, porque a correção de empates
+  zera o denominador). Não é um teste que deu "sem diferença"; é a **ausência** de um
+  teste. Mas entrava na família como se fosse um, e o multiplicador virava 4 em vez de 3.
+  Cada métrica na família **encarece todas as outras**. Havia ainda um defeito silencioso:
+  `_holm` ordenava com um `nan` dentro, e como toda comparação com `nan` é falsa, a
+  ordenação saía certa por sorte do algoritmo de ordenação.
+- **Mudança:** a família passou a ser montada por um critério **objetivo e declarável
+  antes do teste** — variância da amostra **conjunta**. É a conjunta de propósito: `ga`
+  constante em 5 contra `nsga2` constante em 3 é a diferença mais forte possível, não
+  degenerescência. A métrica excluída segue reportada como **descritiva**, e `_holm`
+  passou a recusar `nan` com exceção em vez de ordenar por acaso.
+- **Por que o critério tinha de ser objetivo:** escolher a família *depois* de ver os
+  p-valores é p-hacking, mesmo quando cada corte parece razoável isoladamente. Um
+  critério que os dados decidem não tem esse problema.
+- **Resultado:** o único achado da bateria — NSGA-II com drift menor, efeito **grande**
+  (Â₁₂ = 0,80), p bruto 0,0257 — foi de p_Holm 0,1030 para **0,0772**. **Continua não
+  significativo**, e é isso que torna a correção defensável: nem a família mínima
+  concebível (2 métricas) o levaria abaixo de α, pois para em 0,0515. Não havia prêmio em
+  escolher a família menor. A leitura honesta é *efeito grande, direção consistente, não
+  significativo a n = 10* — e o gargalo é poder amostral, não correção. Explicação
+  didática do aparato em
+  [`../reference/12-statistical-testing.md`](../reference/12-statistical-testing.md).
+
+## As constantes provisórias, fechadas com evidência (2026-09-16)
+
+A bateria completa deixou sete constantes rotuladas "provisório". Fechá-las exigiu
+separar duas classes, e essa separação é ela própria uma decisão metodológica:
+
+> Constantes que **definem** o que é equilíbrio (o cap, a banda, os pesos do objetivo)
+> **não podem** ser escolhidas por desempenho — seria definir "counter duro" pelo que o
+> motor produz, a mesma circularidade que mantém o ciclo de vantagens fora do fitness.
+> Elas precisam de **âncora externa**. Constantes de **medição e motor** (sims,
+> persistência, sementes) podem e devem ser escolhidas por desempenho, porque ali
+> "melhor" é bem definido sem tocar na resposta.
+
+- **`MATCHUP_WR_CAP = 0.15` — mantido, com âncora de domínio.** Problema: não havia
+  justificativa escrita para 15 pontos percentuais, e o cap decide se uma execução conta
+  como "roster equilibrado". Âncora: a grade de matchup da FGC é dita em inteiros —
+  5-5, 6-4, 7-3, 8-2, ou seja `|WR − 0,5|` de 0,00 · 0,10 · 0,20 · 0,30 — e o consenso é
+  que **6-4 é vantagem saudável** e **7-3 é counter**. Logo o cap deve permitir 0,10 e
+  barrar 0,20. O que decide **entre** os candidatos é o ruído de medição: um limiar
+  colado num ponto da grade vira cara-ou-coroa. Com σ ≈ 0,040, o cap a 0,10 reprova um
+  6-4 legítimo em **50%** das vezes e o cap a 0,20 deixa passar **50%** dos 7-3; a 0,15 —
+  ponto médio da única lacuna que importa — são 10,6% e 90,9%.
+- **`DOMINANCE_DECIS_WEIGHT = 0.5` — mantido; a premissa do item estava errada.** O item
+  dizia "o termo está morto" porque `decis_term` sai 0,0000 em 10/10 sementes. Mas isso é
+  medido só nos indivíduos **finais**, e uma guarda que lê 0 no fim é uma guarda que
+  **funcionou** — a busca saiu da região ruim. Medido em 18 rosters × 10 pares: o
+  canônico, que *é* a geração 0 do AG escalar, dá **0,2834** com 5/10 pares acima do
+  teto; 8 aleatórios dão 0,10–0,66; o espelho do Zoner — a solução trivial — dá 0,1282
+  com **10/10 abaixo do piso**. 57/180 pares estouram o teto e o `D` observado chega a
+  0,49 contra teto 0,20. As duas metades disparam e pegam coisas distintas: o teto pega
+  blowout, o piso pega degenerescência.
+- **Canônicos — declarados finais.** "Melhor valor" não existe aqui **por construção**:
+  são a *premissa*, não variável a otimizar; ajustá-los para "ficarem melhores" seria
+  mexer na premissa para obter a resposta. O que faltava era o **critério de aceitação**
+  escrito: internamente coerentes (validador 23/23), distintos entre si (as 10 distâncias
+  par-a-par ≥ 0,3221) e **desequilibrados** (`dominance` 1,2690 — o ponto de partida do
+  problema, não defeito). E o que **não** se exige, com a razão: realizar o ciclo (loteria
+  de 1/24) e ser equilibrado (seria o problema resolvido de graça). Duas limitações
+  declaradas junto: **5 dos 55 genes estão colados no bound e 4 deles são definidores**
+  (Rushdown `attack_cooldown`/`speed`, Turtle `hp`/`attack_cooldown`/`damage`), então só
+  podem driftar **para dentro** — a identidade desses dois é assimetricamente protegida
+  num sentido e erodível no outro, e o `drift_penalty` não distingue os casos; e os
+  canônicos **são** a referência do drift, logo mudá-los invalidaria todo número de drift
+  já medido.
+- **Escala dos pesos comportamentais — medido em 7,5%, não nos 55% registrados.** Só a
+  **razão** entre `(w_agg, w_ret, w_def)` afeta o combate (a intenção é sorteada
+  proporcionalmente), mas o drift mede valores absolutos. O número antes registrado vinha
+  de uma conta **confundida por escala** — comparava distância no espaço bruto com
+  distância no normalizado, dois espaços de escalas diferentes. Formulação exata: escalar
+  os três pesos por `k > 0` não muda **nada** no combate, então o drift que some ao
+  escolher o melhor `k` é cobrança por diferença indistinguível. Dá **7,5%** do drift
+  médio (pior caso Rushdown 15,1%), e os `k` ótimos de 0,58–0,70 dizem o que houve: o AG
+  **inflou a escala dos pesos** e o drift cobrou pela inflação. Atenua em parte que o
+  artefato afeta também os modelos nulos, cancelando na leitura de *posição*; não cancela
+  no drift absoluto.
+- **`MULTI_RUN_N_SEEDS` 10 → 20.** Aqui "melhor valor" **é** bem definido, e foi medido
+  por simulação de poder (4000 réplicas, dois normais separados por 1,190σ = Â₁₂ 0,80,
+  critério `3 × p < 0,05`): **n=10 dá 44,4%** de poder, n=15 dá 73,1%, **n=20 dá 85,9%**,
+  n=30 dá 97,3%. n = 20 é o menor que passa do patamar convencional de 80%. Com os 10
+  atuais o experimento tem **menos de 50%** de chance de detectar um efeito grande que
+  provavelmente existe — dizer "não significativo" a partir dali diz mais sobre a amostra
+  que sobre os algoritmos.
