@@ -17,6 +17,12 @@ MULTI_RUN_GA_PATH = MULTI_RUN_DIR / "multi_run_ga.json"
 MULTI_RUN_NSGA2_PATH = MULTI_RUN_DIR / "multi_run_nsga2.json"
 MULTI_RUN_COMPARISON_PATH = MULTI_RUN_DIR / "comparison_ga_vs_nsga2.json"
 
+# Braços do sweep de λ ficam FORA dos paths acima: o braço do λ default é a bateria
+# principal (e alimenta o `compare_algorithms`), os demais são pontos da curva. Misturá-los
+# no mesmo diretório faria o próximo leitor agregar pontos de λ diferentes como se fossem
+# repetições da mesma configuração.
+LAMBDA_SWEEP_DIR = MULTI_RUN_DIR / "lambda_sweep"
+
 EXTERNAL_VALIDATION_DIR = RESULTS_DIR / "external_validation"
 
 BASELINES_PATH = RESULTS_DIR / "baselines.json"

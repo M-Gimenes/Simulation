@@ -41,6 +41,7 @@ from .config import (
     WEIGHT_NAMES,
 )
 from .individual import Individual
+from .provenance import override as _register_override
 
 _GENE_RANGES: List[float] = [hi - lo for lo, hi in GENE_BOUNDS]
 N_WEIGHT_GENES: int = len(WEIGHT_NAMES)
@@ -67,6 +68,41 @@ def set_seed_base(seed: Optional[int]) -> None:
 
 def get_seed_base() -> Optional[int]:
     return _SEED_BASE
+
+
+# Pesos do escalar como ESTADO DE PROCESSO, e não constantes lidas direto do módulo.
+# Motivo: o sweep de LAMBDA_DRIFT varia o peso entre execuções, e um `from .config import
+# LAMBDA_DRIFT` congela o valor no import. Mesmo padrão do `_SEED_BASE`, inclusive na
+# parte que mais importa — a propagação aos workers (ver `_init_worker`): no Windows o
+# pool nasce por spawn e re-importa o módulo, então sem propagar explicitamente os
+# workers avaliariam com o λ do `config.py` enquanto o pai usa o do braço, e a divergência
+# sairia como resultado em vez de como erro.
+# `set_lambdas` registra o override no carimbo de proveniência, para que o artefato do
+# braço não afirme o λ do arquivo.
+
+_LAMBDA_DRIFT:     float = LAMBDA_DRIFT
+_LAMBDA_DOMINANCE: float = LAMBDA_DOMINANCE
+
+
+def set_lambdas(drift: float, dominance: float) -> None:
+    """Define os pesos do escalar neste processo. Chamado pelo sweep e pelo initializer
+    dos workers — pelos workers SEM registrar override (quem carimba é o pai)."""
+    global _LAMBDA_DRIFT, _LAMBDA_DOMINANCE
+    _LAMBDA_DRIFT, _LAMBDA_DOMINANCE = drift, dominance
+
+
+def set_lambdas_override(drift: float, dominance: float) -> None:
+    """Como `set_lambdas`, e registra no carimbo. É o ponto de entrada das tools."""
+    set_lambdas(drift, dominance)
+    _register_override("LAMBDA_DRIFT", drift)
+    _register_override("LAMBDA_DOMINANCE", dominance)
+
+
+def get_lambdas() -> Tuple[float, float]:
+    """`(drift, dominance)` em vigor — fonte única, consumida também pelo
+    `nsga2.scalar_objective`, senão o representante comparável sairia de um λ e o
+    escalar de outro."""
+    return _LAMBDA_DRIFT, _LAMBDA_DOMINANCE
 
 
 def generation_seed(base: int, generation: int) -> int:
@@ -357,8 +393,8 @@ def evaluate_detail_n(individual: Individual, sims: int) -> FitnessDetail:
     dominance_pen        = dominance_terms.total
 
     fitness = -(
-        LAMBDA_DRIFT     * drift_penalty
-        + LAMBDA_DOMINANCE * dominance_pen
+        _LAMBDA_DRIFT     * drift_penalty
+        + _LAMBDA_DOMINANCE * dominance_pen
     )
 
     return FitnessDetail(
@@ -395,6 +431,14 @@ def _eval_worker(ind: Individual) -> float:
     return evaluate_detail(ind).fitness
 
 
+def _init_worker(seed_base: Optional[int], lambdas: Tuple[float, float]) -> None:
+    """Estado de processo que o worker NÃO herda por spawn. Os dois têm de vir juntos:
+    propagar só um deixaria o pool avaliando sob uma configuração diferente da do pai,
+    e o resultado sairia como número plausível em vez de erro."""
+    set_seed_base(seed_base)
+    set_lambdas(*lambdas)
+
+
 def evaluate_population(population: List[Individual]) -> None:
     unevaluated = [ind for ind in population if not ind.is_evaluated]
     if not unevaluated:
@@ -406,7 +450,8 @@ def evaluate_population(population: List[Individual]) -> None:
         return
 
     with ProcessPoolExecutor(
-        max_workers=N_WORKERS, initializer=set_seed_base, initargs=(_SEED_BASE,)
+        max_workers=N_WORKERS, initializer=_init_worker,
+        initargs=(_SEED_BASE, get_lambdas())
     ) as executor:
         fitnesses = list(executor.map(_eval_worker, unevaluated))
 

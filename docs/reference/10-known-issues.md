@@ -18,10 +18,18 @@ escopo declarado e não pendência.
 
 | Experimento | Estado |
 |---|---|
-| **Sweep de `LAMBDA_DRIFT`** | nunca feito; o mais urgente da lista |
+| **Sweep de `LAMBDA_DRIFT`** + **`MULTI_RUN_N_SEEDS` n = 20** | **instrumentados e roteirizados** (`run_lambda_sweep.ps1`), não executados — ~10h |
 | **Pesos 1,0 / 0,5 / 0,5 dos três termos do dominance** | nunca variados |
-| **`MULTI_RUN_N_SEEDS`: n = 20** | **decidido** com curva de poder, rodando em 10 |
 | **Elitismo 10% + torneio 3** | nunca variados ("valores usuais") |
+
+> **Os dois primeiros são um experimento só**, e a razão é estrutural: a **fronteira do
+> NSGA-II é λ-independente** — `nsga2.scalar_objective` é a única coisa no algoritmo que
+> lê os `LAMBDA_*`, e é *reporting*, não busca. Uma execução do NSGA-II serve todos os
+> braços do sweep: o `scalar_optimum` de cada λ se re-deriva da fronteira já salva, sem
+> re-rodar a busca. Além disso a célula λ=1,0 com 20 sementes **é** a bateria principal.
+> Separados, o sweep teria de re-rodar o NSGA-II (+4h42) ou comparar contra uma fronteira
+> de outro estado de código. Grade decidida: λ_drift ∈ {0,25 · 0,5 · **1,0** · 2,0 · 4,0},
+> com 20 sementes em λ=1,0 (o teste estatístico) e 5 nos demais (a curva é descritiva).
 
 O **sweep de `LAMBDA_DRIFT`** é o que sustentaria a afirmação de que o AG escalar é *um
 ponto* do trade-off que o NSGA-II mapeia — hoje isso é afirmado, não medido. E a medição
@@ -45,9 +53,15 @@ comparável correto para o escalar é o `scalar_optimum`, não o `ideal_point` (
 réplicas, dois normais separados por 1,190σ (a separação que produz Â₁₂ = 0,80), critério
 Holm com família 3, dá **44,4%** de poder a n = 10 contra **85,9%** a n = 20. Com os 10
 atuais o experimento tem menos de 50% de chance de detectar um efeito **grande** que
-provavelmente existe. Não foi executado por custo: `multi_run` **não tem resume**, então
-`--n-seeds 20` re-roda as 20 (~180 min, não +90). É aditivo no sentido estatístico — as
-sementes 42–51 são determinísticas e nada do que já foi medido se perde.
+provavelmente existe. É aditivo no sentido estatístico — as sementes 42–51 são
+determinísticas e nada do que já foi medido se perde —, mas **não** no de compute:
+`multi_run` não tem resume, então `--n-seeds 20` re-roda as 20.
+
+> ⚠️ **A estimativa de custo antiga (~180 min) está obsoleta.** Ela é anterior à rotação
+> do stream por geração, que custou ~1,8× no escalar e ~2× no NSGA-II. Medido nos
+> artefatos atuais: **AG 7,2 min/execução, NSGA-II 14,1 min**, o que põe o n = 20 dos dois
+> algoritmos em **~7h06**, e a bateria unificada inteira (com os braços do sweep e as
+> métricas post-hoc) em **~10h17**. `run_lambda_sweep.ps1 -WhatIf` imprime a conta.
 
 ### 1.2 Instrumentação
 
@@ -134,7 +148,15 @@ py -m src.tools.sensitivity_analysis --evolved          # sensitivity_analysis.j
 py -m src.tools.baselines --evolved                     # baselines.json
 ```
 
-Levou 1h24 na última vez.
+Levou 1h24 na última vez (10 sementes). **`run_lambda_sweep.ps1` é essa mesma bateria com
+n = 20 e os braços do sweep**, em passos retomáveis (`-From N`) — cada passo salva seu
+artefato, porque o `multi_run` não tem resume e a bateria de 2026-09-16 morreu no meio por
+estouro de commit do Windows. `-WhatIf` lista os passos e o custo sem executar.
+
+**Verificação pós-bateria:** `py -m src.tests.test_provenance` lista o estado de cada
+artefato. Os braços do sweep devem sair como *braço de experimento*, o resto como *atual*;
+qualquer *obsoleto* significa que algo mudou no meio da bateria e aquele artefato precisa
+ser refeito.
 
 > ⚠️ **A pegadinha que já mordeu.** A `external_validation` regenera **só o rótulo que
 > recebe**. Na primeira passada da bateria de 2026-09-17 só `_nsga2_best_dominance` foi

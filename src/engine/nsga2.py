@@ -24,15 +24,15 @@ from typing import Dict, List, Optional, Tuple
 
 from .combat import seed_combat
 from .config import (
-    LAMBDA_DOMINANCE,
-    LAMBDA_DRIFT,
     N_WORKERS,
     NSGA2_GENERATIONS,
     NSGA2_POP_SIZE,
 )
 from .fitness import (
+    _init_worker,
     evaluate_objectives,
     generation_seed,
+    get_lambdas,
     get_seed_base,
     set_seed_base,
 )
@@ -146,11 +146,17 @@ def _euclidean_norm(objs) -> float:
 
 def scalar_objective(objs) -> float:
     """O objetivo do AG escalar aplicado a um ponto da fronteira:
-    `LAMBDA_DOMINANCE·dominance + LAMBDA_DRIFT·drift`. É a ÚNICA coisa no NSGA-II que
-    olha os `LAMBDA_*`, e é reporting, não busca — serve para extrair o ponto
-    comparável ao que o escalar otimiza."""
+    `λ_dominance·dominance + λ_drift·drift`. É a ÚNICA coisa no NSGA-II que olha os
+    `LAMBDA_*`, e é reporting, não busca — serve para extrair o ponto comparável ao que
+    o escalar otimiza.
+
+    Consequência que o sweep de λ usa: a FRONTEIRA é λ-independente, só a escolha do
+    `scalar_optimum` não é. Uma execução do NSGA-II serve todos os braços do sweep —
+    basta re-derivar este mínimo sob cada λ, sem re-rodar a busca. Por isso lê
+    `fitness.get_lambdas()` (o λ em vigor) e não a constante do `config.py`."""
     dominance, drift = objs
-    return LAMBDA_DOMINANCE * dominance + LAMBDA_DRIFT * drift
+    lambda_drift, lambda_dominance = get_lambdas()
+    return lambda_dominance * dominance + lambda_drift * drift
 
 
 def select_representatives(front: List[Individual]) -> dict:
@@ -230,7 +236,8 @@ def _evaluate_population(pop: List[Individual]) -> None:
             evaluate_objectives(ind)
         return
     with ProcessPoolExecutor(
-        max_workers=N_WORKERS, initializer=set_seed_base, initargs=(get_seed_base(),)
+        max_workers=N_WORKERS, initializer=_init_worker,
+        initargs=(get_seed_base(), get_lambdas())
     ) as executor:
         results = list(executor.map(_objectives_worker, unevaluated))
     for ind, objs in zip(unevaluated, results):

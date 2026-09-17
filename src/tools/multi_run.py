@@ -31,6 +31,7 @@ import argparse
 import json
 import statistics
 from itertools import combinations
+from pathlib import Path
 from typing import Dict, List
 
 from src.engine.archetypes import ARCHETYPE_ORDER, ARCHETYPES
@@ -39,6 +40,8 @@ from src.engine.config import (
     DOMINANCE_DECIS_WEIGHT,
     DOMINANCE_GLOBAL_WEIGHT,
     HYPERVOLUME_REFERENCE,
+    LAMBDA_DOMINANCE,
+    LAMBDA_DRIFT,
     MULTI_RUN_N_SEEDS,
     MULTI_RUN_SEED_START,
     MULTI_RUN_SIMS,
@@ -48,14 +51,17 @@ from src.engine.fitness import (
     FitnessDetail,
     character_balanced,
     evaluate_detail_n,
+    get_lambdas,
     is_hard_counter,
     roster_balanced,
+    set_lambdas_override,
     set_seed_base,
 )
 from src.engine.ga import run as run_ga
 from src.engine.nsga2 import run as run_nsga2
 from src.engine.pareto_metrics import hypervolume_2d, spacing
 from src.engine.paths import (
+    LAMBDA_SWEEP_DIR,
     MULTI_RUN_DIR,
     MULTI_RUN_GA_PATH,
     MULTI_RUN_NSGA2_PATH,
@@ -297,9 +303,22 @@ def _print_summary(result: dict) -> None:
         print(f"      {label:<28s} WR {wr['mean']:.0%}±{wr['std']:.0%}   counter em {rate_hc:.0%}{flag}")
 
 
+def _artifact_path(algorithm: str, lambdas) -> Path:
+    """Onde o artefato deste braço é gravado.
+
+    O braço do λ DEFAULT grava nos caminhos principais — ele É a bateria, e é dele que o
+    `compare_algorithms` lê. Os demais vão para `lambda_sweep/`, nomeados pelo λ, porque
+    são pontos de uma curva e não repetições da mesma configuração: juntá-los ao principal
+    convidaria o próximo leitor a agregar λ diferentes como se fossem a mesma coisa."""
+    if lambdas == (LAMBDA_DRIFT, LAMBDA_DOMINANCE):
+        return MULTI_RUN_GA_PATH if algorithm == "ga" else MULTI_RUN_NSGA2_PATH
+    drift, dominance = lambdas
+    return LAMBDA_SWEEP_DIR / f"multi_run_{algorithm}_drift{drift:g}_dom{dominance:g}.json"
+
+
 def _save(result: dict, algorithm: str) -> None:
-    MULTI_RUN_DIR.mkdir(parents=True, exist_ok=True)
-    path = MULTI_RUN_GA_PATH if algorithm == "ga" else MULTI_RUN_NSGA2_PATH
+    path = _artifact_path(algorithm, get_lambdas())
+    path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8") as fh:
         json.dump({"provenance": stamp(), **result}, fh, indent=2, ensure_ascii=False)
     print(f"\n  Salvo em {path.relative_to(PROJECT_ROOT)}")
@@ -322,6 +341,12 @@ def parse_args():
                         help=f"Primeira semente (default: {MULTI_RUN_SEED_START})")
     parser.add_argument("--sims", type=int, default=MULTI_RUN_SIMS,
                         help=f"Sims/matchup na reavaliação independente (default: {MULTI_RUN_SIMS})")
+    parser.add_argument("--lambda-drift", type=float, default=LAMBDA_DRIFT,
+                        help=f"Peso do drift no fitness escalar (default: {LAMBDA_DRIFT}). "
+                             f"Braço do sweep de λ — grava em results/multi_run/lambda_sweep/ "
+                             f"quando difere do default")
+    parser.add_argument("--lambda-dominance", type=float, default=LAMBDA_DOMINANCE,
+                        help=f"Peso do dominance no fitness escalar (default: {LAMBDA_DOMINANCE})")
     parser.add_argument("--nsga2-representative", default="best_dominance",
                         choices=["best_dominance", "best_drift", "knee_point", "ideal_point",
                                  "scalar_optimum"],
@@ -334,6 +359,18 @@ def main():
     args = parse_args()
     seeds = list(range(args.seed_start, args.seed_start + args.n_seeds))
     algorithms = ["ga", "nsga2"] if args.algorithm == "both" else [args.algorithm]
+
+    # Antes de qualquer execução: o λ vale para o processo inteiro (e é propagado aos
+    # workers), e fica registrado no carimbo de proveniência do artefato.
+    set_lambdas_override(args.lambda_drift, args.lambda_dominance)
+    if (args.lambda_drift, args.lambda_dominance) != (LAMBDA_DRIFT, LAMBDA_DOMINANCE):
+        print(f"\n  BRAÇO DO SWEEP — λ_drift={args.lambda_drift:g} "
+              f"λ_dominance={args.lambda_dominance:g} "
+              f"(config: {LAMBDA_DRIFT:g} / {LAMBDA_DOMINANCE:g})")
+        if "nsga2" in algorithms:
+            print("  ⚠ A FRONTEIRA do NSGA-II é λ-independente: rodá-la por braço é "
+                  "desperdício.\n    Rode o NSGA-II uma vez no λ default e re-derive o "
+                  "`scalar_optimum` por λ.")
 
     for algorithm in algorithms:
         result = aggregate_algorithm(algorithm, seeds, args.sims, args.nsga2_representative)

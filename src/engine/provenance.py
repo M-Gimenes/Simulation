@@ -50,6 +50,38 @@ _DIGEST_LEN = 12
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Overrides de tempo de execução
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# Um experimento que VARIA uma constante (o sweep de LAMBDA_DRIFT) quebraria o carimbo
+# silenciosamente: `config.py` continuaria dizendo 1.0 enquanto a execução usa 4.0, e o
+# artefato mentiria sobre a própria origem — exatamente a classe de falha que este módulo
+# existe para impedir. Por isso o override é REGISTRADO aqui, na mesma fonte que carimba,
+# em vez de ser um argumento que cada tool lembraria (ou não) de repassar.
+#
+# Efeito: `config_values()` devolve o valor EM USO, então o `fingerprint` de cada braço do
+# sweep é distinto por construção, e um artefato de λ=4.0 lido sob a config padrão acusa
+# `LAMBDA_DRIFT: 4.0 → 1.0`. É a leitura correta: ele foi produzido sob outra premissa.
+
+_OVERRIDES: Dict[str, Any] = {}
+
+
+def override(name: str, value: Any) -> None:
+    """Registra que `name` está valendo `value` nesta execução, e não o de `config.py`."""
+    if not hasattr(config, name):
+        raise AttributeError(f"'{name}' não é constante de config.py — override recusado")
+    _OVERRIDES[name] = value
+
+
+def overrides() -> Dict[str, Any]:
+    return dict(_OVERRIDES)
+
+
+def clear_overrides() -> None:
+    _OVERRIDES.clear()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Coleta
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -68,12 +100,13 @@ def _normalized(value: Any) -> Any:
 
 
 def config_values() -> Dict[str, Any]:
-    """Toda constante pública de `config.py` que seja representável em JSON."""
+    """Toda constante pública de `config.py` que seja representável em JSON, **com os
+    overrides aplicados** — o valor que a execução de fato usou, não o do arquivo."""
     values: Dict[str, Any] = {}
     for name in sorted(dir(config)):
         if not name.isupper() or name.startswith("_") or name in _CONFIG_EXCLUDED:
             continue
-        normalized = _normalized(getattr(config, name))
+        normalized = _normalized(_OVERRIDES.get(name, getattr(config, name)))
         if normalized is not None:
             values[name] = normalized
     return values
@@ -127,13 +160,21 @@ def fingerprint() -> str:
 
 def stamp() -> Dict[str, Any]:
     """O carimbo a gravar dentro de cada artefato."""
-    return {
+    data: Dict[str, Any] = {
         "generated_at": datetime.now().astimezone().isoformat(timespec="seconds"),
         "fingerprint": fingerprint(),
         "engine_digest": engine_digest(),
         "archetypes_digest": archetypes_digest(),
         "config": config_values(),
     }
+    if _OVERRIDES:
+        # Redundante com `config` de propósito: ali o valor está misturado com as outras
+        # 44 constantes, aqui fica dito que ESTE artefato é de um braço de experimento.
+        data["overrides"] = {
+            name: {"usado": value, "config": _normalized(getattr(config, name))}
+            for name, value in sorted(_OVERRIDES.items())
+        }
+    return data
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -148,12 +189,32 @@ class Divergence:
     engine_changed:     bool                  = False
     archetypes_changed: bool                  = False
     config_changed:     Dict[str, Any]        = field(default_factory=dict)  # nome → (gravado, atual)
+    overridden:         Dict[str, Any]        = field(default_factory=dict)  # os que o artefato declarou variar
     generated_at:       Optional[str]         = None
 
     @property
     def is_current(self) -> bool:
         return not (self.missing or self.engine_changed
                     or self.archetypes_changed or self.config_changed)
+
+    @property
+    def is_experiment_arm(self) -> bool:
+        """Divergência **inteiramente explicada** pelos overrides que o próprio artefato
+        declarou: é um braço de experimento (um λ do sweep), não um artefato obsoleto.
+
+        A distinção existe porque um sweep gera artefatos que divergem do `config.py` **de
+        propósito**. Sem ela o alarme dispararia em todos eles e viraria ruído — e um
+        alarme que dispara à toa deixa de ser lido, que é a premissa do módulo inteiro.
+        A regra é estrita: qualquer divergência FORA do que foi declarado (motor,
+        canônicos, ou outra constante) faz o artefato voltar a ser obsoleto.
+        """
+        return (
+            bool(self.overridden)
+            and not self.missing
+            and not self.engine_changed
+            and not self.archetypes_changed
+            and set(self.config_changed) <= set(self.overridden)
+        )
 
     def describe(self) -> List[str]:
         """Uma linha por divergência, em ordem de gravidade."""
@@ -165,7 +226,8 @@ class Divergence:
         if self.archetypes_changed:
             lines.append("os CANÔNICOS mudaram — todo número de drift está inválido")
         for name, (recorded, current) in sorted(self.config_changed.items()):
-            lines.append(f"{name}: {recorded!r} → {current!r}")
+            marca = " (variação declarada do experimento)" if name in self.overridden else ""
+            lines.append(f"{name}: {recorded!r} → {current!r}{marca}")
         return lines
 
 
@@ -174,7 +236,10 @@ def compare(recorded: Optional[Dict[str, Any]]) -> Divergence:
     if not recorded or "fingerprint" not in recorded:
         return Divergence(missing=True)
 
-    div = Divergence(generated_at=recorded.get("generated_at"))
+    div = Divergence(
+        generated_at=recorded.get("generated_at"),
+        overridden=dict(recorded.get("overrides", {})),
+    )
     if recorded["fingerprint"] == fingerprint():
         return div
 
@@ -194,6 +259,15 @@ def warn_if_stale(recorded: Optional[Dict[str, Any]], source: str) -> Divergence
     um carimbo que ninguém lê não teria evitado o incidente que o motivou."""
     div = compare(recorded)
     if div.is_current:
+        return div
+
+    if div.is_experiment_arm:
+        variações = ", ".join(
+            f"{name}={info['usado']:g}" if isinstance(info, dict) else f"{name}={info}"
+            for name, info in sorted(div.overridden.items())
+        )
+        print(f"\n  ℹ BRAÇO DE EXPERIMENTO — '{source}' foi gerado com {variações}, "
+              f"e não com a config vigente.\n")
         return div
 
     print(f"\n  ⚠ ARTEFATO OBSOLETO — '{source}' não descreve o sistema atual:")

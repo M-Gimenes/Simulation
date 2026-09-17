@@ -652,3 +652,51 @@ Duas escolhas de agregação que são o conteúdo do item:
 explícito no artefato que ele **não** é uma comparação pareada entre os dois algoritmos, e
 sim uma caracterização do escalar. A medição sobre as N sementes ainda não foi feita: ela
 entra na próxima regeneração da bateria.
+
+## O sweep de lambda e o n = 20 viraram um experimento só (2026-09-17)
+
+**Problema.** Os dois estavam na lista como pendências separadas: subir as sementes de 10
+para 20 (poder estatístico) e varrer `LAMBDA_DRIFT` (demonstrar que o escalar é *um ponto*
+do trade-off). Rodados em sequência, custariam duas regenerações — e a segunda compararia
+seus braços contra uma bateria possivelmente produzida sob outro estado de código.
+
+**Mudança.** Unificar, e a razão é estrutural, não de conveniência:
+
+> **A fronteira do NSGA-II é λ-independente.** `nsga2.scalar_objective` é a única coisa no
+> algoritmo que lê os `LAMBDA_*`, e é *reporting*, não busca: ela escolhe qual ponto da
+> fronteira se chama `scalar_optimum`. A busca — dominância de Pareto e crowding — nunca
+> olha os pesos. Logo **uma** execução do NSGA-II serve todos os braços do sweep: para cada
+> λ, basta re-derivar aquele mínimo da fronteira já salva.
+
+Some-se a isso que a célula λ=1,0 com 20 sementes **é** a bateria principal, e os dois
+experimentos passam a compartilhar tudo o que é caro. Separados, o sweep teria de re-rodar
+o NSGA-II (+4h42) ou aceitar comparar contra uma fronteira de outra proveniência.
+
+O que a unificação exigiu de código: λ deixou de ser constante lida no import e virou
+**estado de processo** (`fitness.set_lambdas` / `get_lambdas`), pelo mesmo motivo e com o
+mesmo cuidado do `_SEED_BASE` — no Windows o pool nasce por *spawn* e re-importa o módulo,
+então sem propagação explícita os workers avaliariam com o λ do `config.py` enquanto o pai
+usa o do braço. Esse é o modo de falha mais caro possível aqui: um braço inteiro medindo o
+λ errado, sem sintoma, saindo como resultado em vez de erro. Está coberto por teste que
+compara o caminho paralelo com o serial sob dois λ.
+
+**Uma consequência que valeu a pena:** o carimbo de proveniência da seção anterior assumia
+`config.py` estático, e um sweep quebra isso — o artefato do braço λ=4,0 gravaria
+`LAMBDA_DRIFT: 1.0`, mentindo sobre a própria origem. A solução foi registrar o override
+**na mesma fonte que carimba** (`provenance.override`), de modo que `config_values()`
+devolve o valor *em uso*. Daí sai de graça o que importa: cada braço tem `fingerprint`
+próprio, e um braço lido sob a config padrão se identifica.
+
+E uma distinção que precisou ser criada junto: um braço **não é** um artefato obsoleto.
+`Divergence.is_experiment_arm` só vale quando a divergência é **inteiramente explicada**
+pelos overrides que o artefato declarou — qualquer diferença fora disso (motor, canônicos,
+outra constante) o devolve à condição de obsoleto. Sem a distinção o alarme dispararia nos
+cinco braços e viraria ruído; com ela frouxa, o override seria salvo-conduto para esconder
+mudança de motor. As duas falhas estão cobertas por teste.
+
+**Resultado.** `run_lambda_sweep.ps1`: 15 passos retomáveis (`-From N`), ordenados para que
+uma interrupção no meio ainda deixe a bateria principal completa e citável. Custo medido —
+e aqui vai uma correção: a estimativa de ~180 min registrada para o n = 20 é **anterior à
+rotação do stream**, que encareceu o escalar em ~1,8× e o NSGA-II em ~2×. Medido nos
+artefatos: AG 7,2 min e NSGA-II 14,1 min por execução, o que põe o n = 20 em ~7h06 e a
+bateria unificada inteira em **~10h17**.

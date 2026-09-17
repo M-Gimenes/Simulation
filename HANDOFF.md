@@ -665,13 +665,17 @@ estagnação reseta por ruído e o evento não dispara.
 Inventário completo e comentado em
 [`docs/reference/10-known-issues.md`](docs/reference/10-known-issues.md); aqui o resumo.
 
-**Experimentos decididos ou levantados, nunca executados** (§1.1 do known-issues):
+**O experimento que falta — instrumentado e roteirizado, não executado:**
 
-- **Sweep de `LAMBDA_DRIFT`** — o mais urgente. É o que transformaria "o escalar é um
-  ponto do trade-off" de afirmação em curva. Hoje, na forma literal, a afirmação é falsa:
-  o ponto do escalar cai **fora** da fronteira, passado o extremo de baixa dominância.
-- **`MULTI_RUN_N_SEEDS`: n = 20 decidido, rodando em 10** — 44,4% de poder contra 85,9%.
-  Não executado por custo (~180 min, sem resume).
+- **`run_lambda_sweep.ps1`** une o sweep de `LAMBDA_DRIFT` e o n = 20 num experimento só.
+  Dá para unir porque a **fronteira do NSGA-II é λ-independente** (`scalar_objective` é o
+  único consumidor de `LAMBDA_*` e é reporting, não busca): uma execução do NSGA-II serve
+  todos os braços, re-derivando o `scalar_optimum` por λ da fronteira salva. E porque a
+  célula λ=1,0 / 20 sementes **é** a bateria principal. Grade: λ_drift ∈
+  {0,25 · 0,5 · **1,0** · 2,0 · 4,0}, 20 sementes em λ=1,0 e 5 nos demais.
+  **15 passos retomáveis (`-From N`), ~10h17.** `-WhatIf` lista sem executar.
+  ⚠️ A estimativa antiga de ~180 min para o n = 20 é anterior à rotação do stream —
+  medido hoje, AG 7,2 min e NSGA-II 14,1 min por execução.
 - **Pesos 1,0 / 0,5 / 0,5 do dominance** e **elitismo 10% / torneio 3** — nunca variados.
 
 **Instrumentação — fechada em 2026-09-17** (§1.2 e §4 do known-issues):
