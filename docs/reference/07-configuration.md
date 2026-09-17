@@ -64,6 +64,7 @@ foi removido).
 | `WEIGHT_MUTATION_SIGMA` | 0.025 | sigma como fração do range (pesos) — inércia |
 | `SIMS_PER_MATCHUP` | 150 | simulações por matchup (~4% std binomial @ 50% WR) |
 | `SIMS_CONVERGENCE_CHECK` | 200 | sims extras para confirmar convergência |
+| `GENERATION_SEED_STRIDE` | 1000 | passo entre os streams de avaliação de gerações consecutivas: `fitness.generation_seed(base, g)` = `base × STRIDE + g`. O CRN vale **dentro** de uma geração; entre gerações o stream muda, para que a busca não possa se ajustar a uma realização do RNG (medido: razão dentro/fora do laço 4,14 → 2,20, 5/5 sementes). Com geração < STRIDE, duas sementes de treino nunca compartilham stream |
 | `CONVERGENCE_SEED_OFFSET` | 100000 | deslocamento do stream de RNG da **confirmação** de convergência. O laço usa CRN (correto para seleção); reavaliar no mesmo stream não confirma nada — mede a mesma realização do RNG com mais amostras. Somado à semente de treino, dá a cada execução um hold-out próprio. Não colide com treino 42+, `MULTI_RUN_VALIDATION_SEED` 9999 nem `EXTERNAL_VALIDATION_SEED_START` 10000+ |
 | `LAMBDA_DRIFT` | 1.0 | peso da drift_penalty (só AG escalar) — igual ao dominance; trade-off central |
 | `DRIFT_DEFINING_WEIGHT` | 3.0 | peso dos `defining_genes` de cada arquétipo no drift (demais genes = 1.0). Mede identidade **estrutural**: mover o alcance do Zoner custa mais que mover o stun dele. `1.0` volta ao drift uniforme. Calibrado medindo a concordância com o validador — ver [05-genetic-algorithm.md](05-genetic-algorithm.md) |
@@ -77,7 +78,7 @@ foi removido).
 | `N_WORKERS` | 8 | processos na avaliação paralela (None = todos os núcleos; 1 = serial). **Não é só gosto:** o pool é recriado a cada geração, então o custo de spawn escala com o nº de workers — medido nesta máquina, 8 workers é ~2,2× mais rápido que 28, e 28 estourava o limite de commit do Windows. Não afeta o resultado (CRN propagado aos workers) |
 | `FIELD_SIZE` | 100 | tamanho do campo |
 | `INITIAL_DISTANCE` | 50 | distância inicial entre lutadores (> todos os `range`, então a luta começa em impasse) |
-| `ACTION_PERSISTENCE_SUBTICKS` | 10 | sub-ticks que uma intenção sorteada é mantida (zerado no impasse e ao ser stunado) |
+| `ACTION_PERSISTENCE_SUBTICKS` | 5 | sub-ticks que uma intenção sorteada é mantida (zerado no impasse e ao ser stunado). **Fechado 2026-09-16:** 5 = 1 tick = cooldown mínimo, então GUARDA custa **uma** janela de ataque e não duas; a 10 a razão sinal/ruído era pior em **8/8** genes, com `speed` e `stun` abaixo do piso |
 | `TICK_SCALE` | 5 | resolução sub-tick de cooldown/stun/movimento |
 | `MAX_TICKS` | 2500 | `500 × TICK_SCALE` — duração máxima de uma luta |
 | `DEFEND_DAMAGE_REDUCTION` | 0.6 (= 1 − 0.4) | multiplicador no dano ao defender (recebe 60% = **40% de redução**) |
@@ -86,7 +87,7 @@ foi removido).
 | `NSGA2_OBJECTIVES` | (dominance, drift) | objetivos do NSGA-II |
 | `HYPERVOLUME_REFERENCE` | (2.0, 1.0) | ponto de referência do hipervolume (piores valores de dominance/drift; dominance vai a 2.0 sob C2) |
 | `MULTI_RUN_SEED_START` | 42 | primeira semente da agregação `multi_run` |
-| `MULTI_RUN_N_SEEDS` | 10 | nº de execuções independentes a agregar — aumentar para escalar |
+| `MULTI_RUN_N_SEEDS` | 10 | nº de execuções independentes a agregar. **Decidido: 20** (poder medido — n=10 dá 44,4%, n=20 dá 85,9% para Â₁₂ = 0,80 com a família de Holm de 3); mantido em 10 por custo, e as sementes 42..51 são determinísticas, então subir depois reproduz estas |
 | `MULTI_RUN_VALIDATION_SEED` | 9999 | semente de validação (reavaliação independente do treino, comum a todas as execuções) |
 | `MULTI_RUN_SIMS` | 200 | sims/matchup na reavaliação independente (= `SIMS_CONVERGENCE_CHECK`) |
 | `EXTERNAL_VALIDATION_SEED_START` | 10000 | primeira semente de avaliação da validação externa (item 3.2) |

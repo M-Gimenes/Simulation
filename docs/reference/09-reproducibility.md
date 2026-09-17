@@ -63,11 +63,33 @@ Como funciona:
 
 - **Semeadura reset-ao-base / Common Random Numbers** (`fitness.set_seed_base`):
   quando há seed, **toda** avaliação reseta o RNG do combate ao mesmo `seed_base`
-  antes do round-robin. Todo indivíduo é avaliado sob o mesmo stream de RNG → a
-  diferença de fitness reflete **genes, não sorteio** (CRN), tornando a seleção
-  menos enganada e a paisagem mais lisa. Reprodutível independente de qual worker
-  a avalia ou do agendamento do `ProcessPoolExecutor` (o seed-base é propagado aos
-  workers via `initializer`).
+  antes do round-robin. Todo indivíduo de uma mesma geração é avaliado sob o mesmo
+  stream de RNG → a diferença de fitness reflete **genes, não sorteio** (CRN),
+  tornando a seleção menos enganada e a paisagem mais lisa. Reprodutível
+  independente de qual worker a avalia ou do agendamento do `ProcessPoolExecutor`
+  (o seed-base é propagado aos workers via `initializer`).
+- **O stream MUDA a cada geração** (`fitness.generation_seed(base, geração)` =
+  `base × GENERATION_SEED_STRIDE + geração`), e é a fonte única do protocolo,
+  consumida pelos **dois** algoritmos. O CRN vale **dentro** da geração, não através
+  delas. Motivo: com `set_seed_base` chamado uma vez só, todas as gerações corriam
+  sobre **uma** realização do RNG, e a população tinha o orçamento inteiro para se
+  ajustar a ela — medido, o `dominance` de dentro do laço saía 4,14× melhor que o de
+  streams inéditos. Com a rotação a razão cai para 2,20 (5/5 sementes, Wilcoxon
+  p = 0,0312) e o roster equilibrado sobrevive a stream inédito em 4,8 de 5 casos
+  contra 2,6 (também 5/5, p = 0,0312). É o mesmo princípio que já governava a
+  confirmação de convergência: CRN serve para **seleção**, não para validação — nem
+  para deixar a busca inteira fitar um stream só.
+  - *Custo:* quem sobrevive foi medido no stream anterior e tem de ser reavaliado —
+    ~1,8× no AG escalar (os elites) e **~2× no NSGA-II**, onde a ordenação por
+    dominância compara pais e filhos no mesmo conjunto combinado e objetivos de
+    streams diferentes não são comparáveis.
+  - *Famílias de sementes, sem colisão:* treino 42+ → streams 42000+; validação do
+    `multi_run` 9999; validação externa 10000+; confirmação de convergência
+    `generation_seed + 100000`.
+  - *Consequência declarada:* o fitness flutua entre gerações por troca de stream,
+    então o contador de estagnação reseta por ruído e **`stagnated_at` fica menos
+    confiável**. `converged_at` não sofre — a convergência testa o predicado
+    `roster_balanced`, não o valor do fitness.
   - *Antes:* `crc32(genes) XOR seed_base` (hash-por-genes). Era reprodutível, mas
     congelava o ruído MC numa função descontínua dos genes — cada indivíduo via um
     stream diferente, anulando a redução de variância do CRN.

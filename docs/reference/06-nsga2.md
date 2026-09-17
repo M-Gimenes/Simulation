@@ -38,6 +38,25 @@ Implementação padrão de Deb 2002:
 Roda `NSGA2_GENERATIONS = 150` gerações fixas (fronteiras de Pareto não
 "convergem" para um ponto — não há critério de parada antecipada).
 
+### O stream de avaliação roda por geração — e aqui custa o dobro
+
+O NSGA-II usa `fitness.generation_seed(seed, g)`, a **mesma** função do AG escalar:
+protocolo de avaliação idêntico nos dois, senão a comparação entre eles confundiria
+"algoritmo" com "forma de avaliar" (justificativa e números em
+[09](09-reproducibility.md) e [05](05-genetic-algorithm.md)).
+
+A diferença é o **custo**. No AG escalar só os elites chegam medidos no stream
+anterior. Aqui, o passo (5) combina pais + filhos e re-ranqueia o conjunto inteiro —
+e **objetivos medidos em streams diferentes não são comparáveis por dominância**: um
+pai pareceria dominar um filho só por ter enfrentado sorteios mais favoráveis. Por
+isso os pais são reavaliados junto no stream novo, **2×pop por geração em vez de
+pop**, contra ~1,8× no escalar.
+
+> Essa reavaliação **não é redundante**. Removê-la parece uma otimização óbvia (os
+> pais "já foram avaliados") e quebraria a validade da fronteira em silêncio — o
+> rank sairia de uma comparação entre medições incomparáveis. Está comentada no
+> código pelo mesmo motivo.
+
 ### População inicial: aleatória, sem o seed canônico
 
 Aqui o NSGA-II **diverge do AG escalar de propósito**. O escalar inicia com

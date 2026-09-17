@@ -837,7 +837,8 @@ tudo o que muda número tem de ser resolvido **antes** de uma única regeneraç�
 | 6 | **R** — guard break / grab | decisão registrada: só depois de A–C | ✅ 2026-09-16 |
 | 7 | **bateria completa** — regenerar `results/` | um corte único, com tudo estabilizado | ✅ 2026-09-16 |
 | 8 | **F**, **G** | camada de análise: não exigem re-rodar o AG | ✅ 2026-09-16 |
-| 9 | **§7 menores** + docs + `values.tex` | limpeza e sincronização final | **próximo** |
+| 9 | **§7 menores** + docs + `values.tex` | limpeza e sincronização final | menores ✅ 2026-09-16; falta `values.tex` + bibliografia |
+| 10 | **agenda de calibração (§9)** + regeneração final | (1)–(7) fechados; bateria regenerada sob o motor final | ✅ 2026-09-16 |
 
 > Fechado o passo 7, a decisão seguinte não é um item desta tabela e sim a
 > **[agenda de calibração (§9)](#9-agenda-de-calibração--as-constantes-provisórias-com-evidência)**:
@@ -854,10 +855,13 @@ cada constante ainda rotulada "provisório" seja decidida com dado e não com in
 Todas elas mudam número: fechar qualquer uma obriga a **regenerar `results/`**. A bateria
 atual congela os valores de hoje por omissão.
 
-> Estado: **(1) e (2) fechados em 2026-09-16** — ambos **mantidos no valor atual**, com
-> justificativa escrita, então **nada precisou ser regenerado**. Restam (3) a (7);
-> **(3)** depende de decidir quanto ruído se aceita, e **(4) a (7)** podem ser
-> declarados como estão, com justificativa.
+> Estado: **os sete fechados em 2026-09-16.** Quatro **mantiveram o valor** com
+> justificativa escrita — (1) `DOMINANCE_DECIS_WEIGHT`, (2) `MATCHUP_WR_CAP`, (4)
+> canônicos e o `SIMS_PER_MATCHUP` do (3). Três **mudaram**: o protocolo de avaliação
+> (3, rotação do stream por geração), (5) `ACTION_PERSISTENCE_SUBTICKS` 10 → 5 e (6) o
+> drift invariante à escala dos pesos. O (7) tem valor decidido (n = 20) e fica em 10
+> nesta rodada por custo. Os três que mudaram obrigaram a **uma** regeneração, feita em
+> conjunto.
 
 ### (1) ✅ `DOMINANCE_DECIS_WEIGHT = 0.5` — **fechado 2026-09-16: mantido, o termo não está morto**
 
@@ -937,7 +941,44 @@ justificativa escrita para 15 pontos percentuais.
 
 </details>
 
-### (3) `SIMS_PER_MATCHUP = 150` — o ajuste ao stream é de 21×
+### (3) ✅ Ajuste ao stream — **fechado 2026-09-16: rotação por geração, `SIMS_PER_MATCHUP` fica em 150**
+
+O item estava formulado como "subir os sims ou aceitar". A medição mostrou que **os
+dois atacavam o sintoma**: o problema não é ruído de amostragem, é que
+`set_seed_base(seed)` era chamado **uma vez** e as `MAX_GENERATIONS` inteiras corriam
+sobre **uma** realização do RNG — a população tinha o orçamento completo para se
+ajustar àquela sequência de sorteios. Dobrar sims reduz o ruído por √2 e deixa a causa
+intacta; e custa 2×.
+
+**Mudança:** `fitness.generation_seed(base, geração)` define o stream de cada geração,
+consumido pelos **dois** algoritmos. CRN preservado **dentro** da geração (seleção
+justa); stream novo **entre** gerações.
+
+**A/B com 5 sementes sob o motor final** (60 gerações, medido em 5 streams inéditos):
+
+| métrica | fixo | rotacionado | melhora em |
+|---|---|---|---|
+| razão dentro/fora do laço | 4,14 | **2,20** | **5/5** (Wilcoxon p = 0,0312) |
+| rosters equilibrados fora (de 5) | 2,6 | **4,8** | **5/5** (Wilcoxon p = 0,0312) |
+| `dominance` fora do laço | 0,0452 | 0,0373 | 3/5 (p = 0,31) |
+| `drift` | 0,2924 | 0,2968 | — (sem custo) |
+
+As duas que melhoram em 5/5 são a que mede o ajuste e a que corresponde ao headline da
+tese. A **magnitude** do ganho em equilíbrio **não** está estabelecida — o que a
+evidência sustenta é que o resultado passou a sobreviver a streams inéditos. Bônus: sob
+stream fixo 2 das 5 sementes **não convergiram**; sob rotação, 5/5.
+
+**Custo:** ~1,8× no escalar, **~2× no NSGA-II** (a ordenação por dominância compara
+pais e filhos no mesmo conjunto, e objetivos de streams diferentes não são comparáveis
+— os pais têm de ser reavaliados).
+
+**`SIMS_PER_MATCHUP` fica em 150**, agora com justificativa: o gargalo era o protocolo,
+não a precisão da medida, e a rotação custa menos que dobrar os sims e resolve mais.
+
+<details>
+<summary>Levantamento original do item</summary>
+
+#### `SIMS_PER_MATCHUP = 150` — o ajuste ao stream é de 21×
 
 **Evidência:** o melhor do AG (seed 42) dá `dominance` **0,0039 dentro do laço** e
 **0,0804 ± 0,0158 fora** (10 condições independentes, 500 sims cada) — degrada **21×**.
@@ -955,6 +996,8 @@ resultado não sobrevive fora dela. Subir os sims é o remédio direto e caro (c
 a bateria de 90 min viraria ~180 min a 300 sims). *Decidir:* subir `SIMS_PER_MATCHUP`,
 ou aceitar e **sempre reportar o número de fora do laço** como headline (o que já é a
 recomendação registrada em §4).
+
+</details>
 
 ### (4) ✅ Canônicos — **fechado 2026-09-16: declarados finais**
 
@@ -990,7 +1033,25 @@ Os três passam. *Decisão:* **finais**; rótulo "provisório" apagado.
   de drift já medido no projeto — o que é, por si, uma razão forte para congelá-los agora
   que passam no critério.
 
-### (5) `TICK_SCALE = 5` e `ACTION_PERSISTENCE_SUBTICKS = 10`
+### (5) ✅ `ACTION_PERSISTENCE_SUBTICKS` — **fechado 2026-09-16: 10 → 5**
+
+Duas frentes convergiram no mesmo valor. **Coerência:** 5 sub-ticks = 1 tick
+(`TICK_SCALE`) = o cooldown mínimo, então quem tem `attack_cooldown = 1` e sorteia
+GUARDA abre mão de **uma** janela de ataque; a 10 abria de duas, por acidente de escala.
+**Medição:** a razão sinal/ruído melhora em **8/8 genes** (600 sims, piso medido em 12
+repetições) — `range` +52% · `attack_cooldown` +37% · `damage` +38% · `hp` +25% ·
+`grab_power` +30% · **`speed` +81%** · **`stun` +80%** · `knockback` +30%.
+
+A hipótese do item ("ver se `speed` e `stun` sobem acima do piso") **confirmou-se**, e a
+razão é mais geral do que se supunha: persistência alta paga **duas vezes** — menos
+decisões independentes por luta dá sinal menor **e** piso de ruído maior (3,5% a 5
+contra 4,9% a 10), então baixá-la melhora numerador e denominador juntos. `knockback`
+segue abaixo do piso e continua como limitação declarada. `TICK_SCALE` fica em 5.
+
+<details>
+<summary>Levantamento original do item</summary>
+
+#### `TICK_SCALE = 5` e `ACTION_PERSISTENCE_SUBTICKS = 10`
 
 **Evidência:** a sensibilidade no indivíduo **evoluído** (piso medido 7,9%) dá 4 genes
 visíveis — `range` 28,7% · `damage` 21,0% · `hp` 18,7% · `attack_cooldown` 18,1% — e 4
@@ -1004,7 +1065,30 @@ escala já registrada: a persistência (10 sub-ticks) é **maior que o cooldown 
 testar `ACTION_PERSISTENCE_SUBTICKS = 5` (igualando ao cooldown mínimo) e ver se `speed`
 e `stun` sobem acima do piso.
 
-### (6) Degenerescência de escala nos pesos comportamentais
+</details>
+
+### (6) ✅ Escala dos pesos — **fechado 2026-09-16: drift invariante a escala**
+
+**Mudança:** `fitness.drift_genes` — os 8 atributos passam intactos, os 3 pesos são
+comparados **reescalados para a soma canônica**. O `drift_table` consome o mesmo helper
+(ele computava o total por uma via e a coluna por gene por outra, e as duas passariam a
+discordar). `drift_penalty` do evoluído: 0,2539 → **0,2413**.
+
+**Sobre o representante:** reescalar para a soma canônica e usar o `k` de mínimos
+quadrados produzem **ambos** uma métrica invariante a escala — que é o requisito —,
+apenas escolhendo representantes diferentes da mesma classe. A soma canônica ganhou por
+ser explicável em uma frase. O resíduo entre as duas (0,2413 contra 0,2349) **não** é
+desperdício remanescente: é diferença genuína de forma sob outra convenção.
+
+**Cobertura** (`test_fitness`), e a segunda asserção é a que importa: escalar os 3 pesos
+por 0,4 / 2,5 / 9,0 não muda o drift; **trocar a razão entre eles muda** (a métrica não
+ficou cega aos pesos, que seria o jeito trivial de passar no primeiro teste); os 8
+atributos passam intactos.
+
+<details>
+<summary>Levantamento original do item</summary>
+
+#### Degenerescência de escala nos pesos comportamentais
 
 **Evidência:** a intenção é sorteada proporcionalmente a `(w_agg, w_ret, w_def)`, então
 só a **razão** afeta o combate — mas o drift mede os valores absolutos. Medido no
@@ -1057,6 +1141,8 @@ Não cancela na leitura do drift absoluto.
 
 **Bundling:** o conserto custa uma regeneração, e o item (3) já custa uma. Decidir os dois
 juntos paga uma regeneração em vez de duas.
+
+</details>
 
 ### (7) `MULTI_RUN_N_SEEDS = 10` — e o item (F) está apagando o único achado
 

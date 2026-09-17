@@ -340,6 +340,146 @@ diagnóstico saiu **muito maior** que o item.
   didática do aparato em
   [`../reference/12-statistical-testing.md`](../reference/12-statistical-testing.md).
 
+## O stream de avaliação: CRN para seleção, rotação entre gerações (2026-09-16)
+
+A decisão mais estrutural do bloco de calibração, e a que mais precisa aparecer na
+Metodologia — ela muda **como o AG é avaliado**, não o que ele otimiza.
+
+### O que é um stream, e por que o projeto usa um só
+
+O combate tem um único nó aleatório: o **sorteio de intenção**. Mas o gerador é
+pseudo-aleatório — uma semente determina toda a sequência de sorteios. Um *stream* é
+essa sequência concreta: com a semente 42, a luta Zoner × Rushdown número 37 tem
+sempre exatamente as mesmas decisões, na mesma ordem.
+
+Avaliar todos os indivíduos de uma geração sob o **mesmo** stream é a técnica de
+**Common Random Numbers**, e é a escolha certa para *seleção*: se cada indivíduo
+enfrentasse sorteios diferentes, um poderia parecer melhor só por sorte, e a seleção
+ficaria enganada. Com CRN, a diferença de fitness entre dois indivíduos só pode vir
+dos **genes** — é dar a mesma prova a todos os candidatos, em vez de uma prova
+diferente para cada um.
+
+### O problema: era a mesma prova 150 vezes
+
+- **Problema:** `set_seed_base(seed)` era chamado **uma única vez**, no início da
+  execução. Toda avaliação, em **todas as gerações**, resetava o RNG para a mesma
+  semente. Não era só "todos fazem a mesma prova" — era **a mesma prova repetida
+  MAX_GENERATIONS vezes**, e a população tinha esse orçamento inteiro para decorá-la.
+  O AG não precisava achar genes que equilibrassem o jogo; bastava achar genes que
+  equilibrassem *aquela sequência de sorteios*. É a diferença entre estudar a matéria
+  e decorar o gabarito de uma prova antiga.
+- **Evidência de que acontecia:** o melhor indivíduo dava `dominance` medido no stream
+  de treino muito melhor que em streams inéditos — razão média **4,14×** sobre 5
+  sementes. O equilíbrio reportado era, em boa parte, sobre aquele gabarito.
+- **Mudança:** `fitness.generation_seed(base, geração)` define o stream de **cada
+  geração**. Dentro da geração, todo mundo continua sob o mesmo stream — **o CRN é
+  preservado e a seleção segue justa**. Entre gerações o stream muda, então genes que
+  só funcionavam contra uma sequência específica são punidos na geração seguinte.
+  O protocolo é o **mesmo nos dois algoritmos**: se só um rotacionasse, a comparação
+  AG × NSGA-II confundiria "algoritmo" com "forma de avaliar".
+- **Resultado** (A/B com 5 sementes, 60 gerações, medido em 5 streams inéditos):
+
+  | métrica | stream fixo | rotacionado | sementes que melhoram |
+  |---|---|---|---|
+  | razão dentro/fora do laço | 4,14 | **2,20** | **5/5** (Wilcoxon p = 0,0312) |
+  | rosters equilibrados fora (de 5) | 2,6 | **4,8** | **5/5** (Wilcoxon p = 0,0312) |
+  | `dominance` fora do laço | 0,0452 | 0,0373 | 3/5 (p = 0,31) |
+  | `drift` | 0,2924 | 0,2968 | — (sem custo) |
+
+  As duas métricas que melhoram em 5/5 são justamente a que mede o ajuste ao stream e
+  a que corresponde ao *headline* da tese ("o roster está equilibrado?"). A
+  **magnitude** do ganho em equilíbrio não está estabelecida (p = 0,31), e isso deve
+  ser dito: o que a evidência sustenta é que o resultado passou a **sobreviver a
+  streams inéditos**, não que o AG ficou 17% melhor. Bônus não previsto: sob stream
+  fixo, 2 das 5 sementes **não convergiram**; sob rotação, 5/5 convergiram — mais
+  tarde (19–36 contra 14–26), o que é o esperado de um critério mais exigente.
+
+### O argumento de princípio, que não depende do tamanho do efeito
+
+O projeto **já tinha tomado essa decisão um nível abaixo**: a *confirmação* de
+convergência foi movida para um stream independente porque "CRN é certo para seleção e
+errado para validação", e na época aceitou-se que isso tornasse a convergência muito
+mais rara. A rotação é o mesmo princípio aplicado à busca: se não se pode **validar**
+no stream de treino, também não se deveria deixar a busca inteira **fitar** um stream
+só. Sem ela, "o AG nunca viu este stream" valia para a confirmação, mas não para a
+otimização que produziu o indivíduo confirmado.
+
+### O custo, e por que ele é assimétrico
+
+Rotacionar obriga a reavaliar quem sobreviveu, porque a nota anterior veio de outra
+prova. No **AG escalar** são os 30 elites (~1,8× medido). No **NSGA-II** é o dobro: a
+ordenação por dominância compara pais e filhos dentro do mesmo conjunto combinado, e
+objetivos medidos em streams diferentes **não são comparáveis** — os pais têm de ser
+reavaliados junto, 2×pop por geração em vez de pop. Isso está comentado no código
+porque é exatamente o tipo de reavaliação que alguém removeria como "redundante",
+quebrando a validade da fronteira em silêncio.
+
+### Consequência colateral a declarar
+
+Sob rotação o fitness flutua entre gerações por troca de stream, então
+`best_fitness_ever` é "melhorado" por ruído e o contador de estagnação reseta sozinho:
+**`stagnated_at` fica menos confiável**. `converged_at` não sofre, porque o critério de
+convergência é o predicado de equilíbrio (`roster_balanced`), não o valor do fitness.
+
+## A persistência da intenção: 10 → 5 sub-ticks (2026-09-16)
+
+- **Problema, em duas frentes que se encontraram.** Coerência: a persistência (10
+  sub-ticks) era **maior que o cooldown mínimo** (5 = `attack_cooldown` 1 × `TICK_SCALE`),
+  então quem tem cooldown 1 e sorteia GUARDA abria mão de **duas** janelas de ataque, não
+  uma — um custo desenhado para uma janela virava dois por acidente de escala. Medição: na
+  análise de sensibilidade, `speed` e `stun` ficavam **abaixo do piso de ruído**, ou seja,
+  o AG não conseguia enxergar dois genes do modelo.
+- **Mudança:** 5 sub-ticks = exatamente **1 tick** (`TICK_SCALE`) = exatamente o cooldown
+  mínimo. A semântica fica limpa: a intenção é mantida por um tick.
+- **Resultado.** A razão sinal/ruído melhora em **8/8 genes** (medido com 600 sims e piso
+  medido em 12 repetições, no indivíduo evoluído):
+
+  | gene | persist = 5 | persist = 10 | ganho |
+  |---|---|---|---|
+  | `range` | 8,86 | 5,82 | +52% |
+  | `attack_cooldown` | 5,80 | 4,22 | +37% |
+  | `damage` | 4,97 | 3,59 | +38% |
+  | `hp` | 4,43 | 3,55 | +25% |
+  | `grab_power` | 2,26 | 1,73 | +30% |
+  | **`speed`** | **2,03** | **1,12** | **+81%** |
+  | **`stun`** | **1,94** | **1,08** | **+80%** |
+  | `knockback` | 0,74 | 0,57 | +30% |
+
+- **Por que melhora tudo, e não só os dois genes visados:** persistência alta paga
+  **duas vezes**. Menos decisões independentes por luta significa menos oportunidades de
+  o gene se expressar (sinal menor) **e** mais variância no desfecho (piso de ruído
+  maior — 3,5% a 5 contra 4,9% a 10). Baixá-la melhora numerador e denominador ao mesmo
+  tempo. `knockback` continua abaixo do piso e segue como limitação declarada.
+
+## O drift deixou de cobrar pela escala dos pesos (2026-09-16)
+
+- **Problema:** a intenção é sorteada **proporcionalmente** a `(w_retreat, w_defend,
+  w_aggressiveness)`, então multiplicar os três por `k > 0` não muda **nada** no combate —
+  é um grau de liberdade behaviouralmente nulo. Mas o `drift_penalty` media os valores
+  **absolutos**, e portanto cobrava identidade por uma diferença que o simulador não
+  consegue distinguir. Parte da régua central da tese media ruído.
+- **Quanto, exatamente:** o número antes registrado ("55% do drift de pesos no Turtle")
+  vinha de uma conta **confundida por escala**, que comparava distância no espaço bruto
+  com distância no normalizado. A formulação exata — quanto do drift desaparece ao
+  escolher o melhor `k` — dá **7,5%** do drift médio, pior caso Rushdown 15,1%. Os `k`
+  ótimos entre 0,58 e 0,70 contam o que acontecia: o AG **inflava a escala dos pesos** e o
+  drift cobrava pela inflação.
+- **Mudança:** `fitness.drift_genes` — os 8 atributos passam intactos e os 3 pesos são
+  comparados **reescalados para a soma canônica**. O `drift_table` consome o mesmo helper:
+  ele calculava o total por uma via e a coluna por gene por outra, e as duas passariam a
+  discordar nos pesos.
+- **Sobre a escolha do representante:** tanto reescalar para a soma canônica quanto usar o
+  `k` de mínimos quadrados produzem uma métrica **invariante à escala**, que é o
+  requisito; elas apenas escolhem representantes diferentes da mesma classe de
+  equivalência. A soma canônica foi preferida por ser explicável em uma frase
+  ("normalizar para o mesmo total"). O resíduo entre as duas (0,2413 contra 0,2349) **não
+  é desperdício remanescente** — é diferença genuína de forma medida sob outra convenção.
+- **Resultado:** `drift_penalty` do indivíduo evoluído vai de 0,2539 para **0,2413**. O
+  contrato ficou coberto por teste com três asserções, e a segunda é a que importa:
+  escalar os três pesos não muda o drift, **trocar a razão entre eles muda** (a métrica
+  não ficou cega aos pesos, que seria o jeito trivial de passar no primeiro teste), e os 8
+  atributos passam intactos.
+
 ## As constantes provisórias, fechadas com evidência (2026-09-16)
 
 A bateria completa deixou sete constantes rotuladas "provisório". Fechá-las exigiu

@@ -236,10 +236,33 @@ convergência**. Um roster genuinamente convergido (todos em banda, zero counter
 duros) mas com lutas decisivas teria dominance alto e seria barrado pelo gate. Testar
 o predicado direto não tem essa lacuna.
 
+### O stream de avaliação roda por geração
+
+`ga.run` define o stream de cada geração com `fitness.generation_seed(seed, g)` —
+mesma função que o NSGA-II usa, para que o protocolo de avaliação seja idêntico nos
+dois e a comparação não confunda "algoritmo" com "forma de avaliar".
+
+**Dentro** da geração todo indivíduo enfrenta o mesmo stream (CRN); **entre** gerações
+o stream muda. Antes, `set_seed_base(seed)` era chamado uma vez e as
+`MAX_GENERATIONS` inteiras corriam sobre uma realização só do RNG — a população tinha
+o orçamento completo para se ajustar àquela sequência de sorteios em vez de ao jogo.
+Medido (5 sementes, 60 gerações, 5 streams inéditos): a razão entre o `dominance` de
+dentro e o de fora do laço cai de **4,14 para 2,20**, melhorando em **5/5** sementes
+(Wilcoxon pareado p = 0,0312), e rosters que continuam equilibrados fora do laço vão
+de 2,6 para **4,8** de 5 (também 5/5, p = 0,0312). A **magnitude** do ganho em
+equilíbrio não está estabelecida (3/5, p = 0,31): o que a evidência sustenta é que o
+resultado passou a sobreviver a streams inéditos.
+
+Como os elites chegam medidos no stream anterior, a geração inteira é reavaliada —
+custo ~1,8× (no NSGA-II é ~2×, ver [06](06-nsga2.md)). E o fitness passa a flutuar
+entre gerações por troca de stream, então **`stagnated_at` fica menos confiável**;
+`converged_at` não sofre, porque testa o predicado `roster_balanced` e não o fitness.
+
 ### Por que a confirmação roda fora do stream do treino
 
-O laço avalia todo indivíduo sob o mesmo stream (Common Random Numbers) — correto para
-**seleção**, porque a diferença de fitness passa a refletir genes e não sorteio. Mas
+O laço avalia todo indivíduo de uma geração sob o mesmo stream (Common Random
+Numbers) — correto para **seleção**, porque a diferença de fitness passa a refletir
+genes e não sorteio. Mas
 reavaliar nesse mesmo stream não confirma nada: mede a mesma realização do RNG com mais
 amostras, e a confirmação **não pode discordar do gate**. Medido num indivíduo que
 passou: equilibrado sob a semente de treino (5/5 em banda, 0 counters duros) e **não

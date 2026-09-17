@@ -95,17 +95,29 @@ na probabilidade da intenção, dando ao AG gradiente contínuo nesses genes. A
 versão antiga (comparação dura `w_aggressiveness > w_retreat AND ...`) tornava os
 pesos *categóricos* — só a ordem importava, magnitudes eram invisíveis à seleção.
 
-> **Degenerescência de escala:** o sorteio é proporcional, então o comportamento
-> depende só da **razão** entre os três pesos. Multiplicar os três por uma constante
-> não muda nada no combate, mas muda o `drift_penalty` — pendência aberta em
-> [`../../REVIEW.md`](../../REVIEW.md) §5.
+> **Degenerescência de escala — resolvida no drift (2026-09-16).** O sorteio é
+> proporcional, então o comportamento depende só da **razão** entre os três pesos:
+> multiplicar os três por uma constante não muda nada no combate. Isso continua
+> valendo no motor (e é propriedade desejada), mas o `drift_penalty` deixou de cobrar
+> por essa diferença invisível — ele compara `fitness.drift_genes`, que reescala os 3
+> pesos para a soma canônica. Medido antes do conserto: 7,5% do drift médio era
+> cobrança por diferença indistinguível, pior caso Rushdown 15,1%.
 
-### Persistência de intenção (`ACTION_PERSISTENCE_SUBTICKS = 10`)
+### Persistência de intenção (`ACTION_PERSISTENCE_SUBTICKS = 5`)
 
-Uma vez sorteada, a intenção é reusada pelos próximos 10 sub-ticks (≈ 2 ticks
-lógicos) antes de re-sortear. Simula commitment/momentum e evita flip-flopping
-patológico (sem isso, o personagem re-sortearia a intenção 5× por tick lógico). O
-contador é **zerado** no impasse (que força ADVANCE) e quando o personagem é stunado.
+Uma vez sorteada, a intenção é reusada pelos próximos 5 sub-ticks — **exatamente 1
+tick lógico** (`TICK_SCALE`) e exatamente o **cooldown mínimo** — antes de re-sortear.
+Simula commitment/momentum e evita flip-flopping patológico (sem isso, o personagem
+re-sortearia a intenção 5× por tick lógico). O contador é **zerado** no impasse (que
+força ADVANCE) e quando o personagem é stunado.
+
+Era 10 até 2026-09-16, o que era **maior que o cooldown mínimo**: quem tem
+`attack_cooldown = 1` e sorteava GUARDA abria mão de **duas** janelas de ataque em vez
+de uma. A medição concordou com o argumento de coerência — a razão sinal/ruído da
+análise de sensibilidade melhora em **8/8 genes** a 5, com `speed` (+81%) e `stun`
+(+80%) saindo de baixo do piso de ruído. Persistência alta paga duas vezes: menos
+decisões independentes por luta dá sinal menor **e** piso de ruído maior (3,5% a 5
+contra 4,9% a 10).
 
 ## Fluxo por sub-tick
 
