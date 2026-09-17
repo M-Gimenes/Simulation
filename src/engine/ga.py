@@ -39,6 +39,7 @@ from .fitness import (
     evaluate_detail,
     evaluate_detail_n,
     evaluate_population,
+    generation_seed,
     get_seed_base,
     roster_balanced,
     set_seed_base,
@@ -154,7 +155,7 @@ def run(
         random.seed(seed)
         np.random.seed(seed)
         seed_combat(seed)
-    set_seed_base(seed)
+    set_seed_base(generation_seed(seed, 0) if seed is not None else None)
 
     _log_header(verbose)
     t_start = time.time()
@@ -215,14 +216,25 @@ def run(
             stagnated_at = gen
 
         population = next_generation(population)
+        if seed is not None:
+            # Stream NOVO para a geração seguinte. Os elites chegam aqui medidos no
+            # stream anterior, então a geração inteira é reavaliada — é o custo do
+            # protocolo, e é o que mantém a comparação DENTRO da geração consistente
+            # (CRN) enquanto impede o ajuste a uma única realização do RNG.
+            set_seed_base(generation_seed(seed, gen + 1))
+            for ind in population:
+                ind.invalidate_fitness()
         evaluate_population(population)
 
+    # O laço produz uma geração a mais que as logadas: `history` cobre
+    # 0..MAX_GENERATIONS-1 e esta população é a de índice MAX_GENERATIONS. Rotulá-la
+    # como MAX_GENERATIONS-1 dava um número que não existe no `history`.
     best_ind    = max(population, key=lambda ind: ind.fitness)
     best_detail = evaluate_detail(best_ind)
     return GAResult(
         best=best_ind,
         best_detail=best_detail,
-        generation=MAX_GENERATIONS - 1,
+        generation=MAX_GENERATIONS,
         converged_at=converged_at,
         stagnated_at=stagnated_at,
         history=history,

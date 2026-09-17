@@ -35,6 +35,22 @@ SIMS_CONVERGENCE_CHECK = 200   # simulações extras para confirmar convergênci
 # (treino 42+, MULTI_RUN_VALIDATION_SEED 9999, EXTERNAL_VALIDATION_SEED_START 10000+).
 CONVERGENCE_SEED_OFFSET = 100000
 
+# Stream de avaliação POR GERAÇÃO (ver `fitness.generation_seed`).
+#
+# O laço avalia toda uma geração sob o mesmo stream — CRN, para que a diferença de
+# fitness entre indivíduos reflita genes e não sorteio — e TROCA de stream a cada
+# geração. Sem a troca, as MAX_GENERATIONS inteiras correm sobre UMA realização do
+# RNG e a população se ajusta a ela: medido (60 gerações, 3 sementes), a razão entre
+# o `dominance` de dentro do laço e o de fora era ~3×, e caiu para ~1,25× com a
+# rotação — o número de dentro do laço passa a ser quase honesto. O equilíbrio REAL
+# (medido fora) também melhora, porque o AG deixa de poder comprar equilíbrio
+# explorando acidentes de uma realização específica.
+#
+# `seed * STRIDE + geração` com geração < STRIDE garante que duas sementes de treino
+# nunca compartilhem stream, e a família (42000+) não colide com nenhuma outra do
+# projeto (validação 9999, externa 10000+, confirmação +100000).
+GENERATION_SEED_STRIDE = 1000
+
 # ── Fitness: pesos do AG escalar ─────────────────────────────────────────────
 # fitness = -(LAMBDA_DRIFT·drift_penalty + LAMBDA_DOMINANCE·dominance_penalty).
 
@@ -142,7 +158,29 @@ INITIAL_DISTANCE = 50             # distância inicial entre lutadores
 TICK_SCALE = 5                    # resolução sub-tick de cooldown/stun/movimento (mais granularidade = menos platôs no AG)
 MAX_TICKS = 500 * TICK_SCALE      # duração máxima de uma luta
 DEFEND_DAMAGE_REDUCTION = 1 - 0.4     # multiplicador no dano recebido ao defender
-ACTION_PERSISTENCE_SUBTICKS = 10  # sub-ticks que uma intenção sorteada é mantida (inércia/momentum)
+# Sub-ticks que uma intenção sorteada é mantida (inércia/momentum).
+#
+# 5 = exatamente 1 tick (TICK_SCALE) e exatamente o cooldown mínimo. A 10 havia
+# incoerência: quem tem `attack_cooldown = 1` e sorteia GUARDA abria mão de DUAS
+# janelas de ataque, não uma.
+#
+# E a medição concorda com a coerência. Sensibilidade no indivíduo evoluído (600
+# sims, piso medido com 12 repetições), razão sinal/ruído por gene — a 5 melhora em
+# 8/8, e `speed`/`stun` quase dobram:
+#
+#   gene              persist=5   persist=10   ganho        piso medido: 3.5% (p=5)
+#   range                  8.86         5.82    +52%                     4.9% (p=10)
+#   attack_cooldown        5.80         4.22    +37%
+#   damage                 4.97         3.59    +38%
+#   hp                     4.43         3.55    +25%
+#   grab_power             2.26         1.73    +30%
+#   speed                  2.03         1.12    +81%
+#   stun                   1.94         1.08    +80%
+#   knockback              0.74         0.57    +30%
+#
+# Persistência alta paga DUAS vezes: menos decisões independentes por luta significa
+# sinal menor E piso de ruído maior (o desfecho tem mais variância).
+ACTION_PERSISTENCE_SUBTICKS = 5
 
 # ── Bounds e nomes dos genes ─────────────────────────────────────────────────
 # 8 atributos + 3 pesos por personagem; todos contínuos. Semântica e calibração
@@ -184,7 +222,13 @@ HYPERVOLUME_REFERENCE = (2.0, 1.0)  # piores valores (dominance ≤ 2.0, drift �
 # ── Multi-run: N execuções independentes + estatística agregada ──────────────
 
 MULTI_RUN_SEED_START = 42         # primeira semente; execuções usam 42, 43, ..., 42+N−1
-MULTI_RUN_N_SEEDS = 10           # nº de execuções independentes a agregar
+# nº de execuções independentes a agregar.
+# DECIDIDO: 20. Poder medido por simulação (4000 réplicas, Â₁₂ = 0.80, critério
+# `3 × p < 0.05` com a família de Holm corrigida): n=10 → 44.4% · n=15 → 73.1% ·
+# n=20 → 85.9% · n=30 → 97.3%. n=20 é o menor que passa do patamar de 80%.
+# Mantido em 10 NESTA rodada por custo (a bateria dobra); as sementes 42..51 são
+# determinísticas, então subir para 20 depois reproduz estas 10 exatamente.
+MULTI_RUN_N_SEEDS = 10
 MULTI_RUN_VALIDATION_SEED = 9999  # seed comum de reavaliação (CRN): desacopla a métrica da seed de treino
 MULTI_RUN_SIMS = SIMS_CONVERGENCE_CHECK  # sims/matchup na reavaliação independente
 

@@ -112,8 +112,6 @@ def cycle_edges_kept(detail: FitnessDetail) -> int:
     for (i, j), wr in detail.matchup_winrates.items():
         id_a, id_b = ARCHETYPE_ORDER[i], ARCHETYPE_ORDER[j]
         expected = expected_winner(id_a, id_b)
-        if expected is None:
-            continue
         observed = id_a if wr > 0.5 else id_b if wr < 0.5 else None
         kept += observed == expected
     return kept

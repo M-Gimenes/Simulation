@@ -30,7 +30,12 @@ from .config import (
     NSGA2_GENERATIONS,
     NSGA2_POP_SIZE,
 )
-from .fitness import evaluate_objectives, get_seed_base, set_seed_base
+from .fitness import (
+    evaluate_objectives,
+    generation_seed,
+    get_seed_base,
+    set_seed_base,
+)
 from .individual import Individual
 from .operators import crossover, mutate, nsga2_binary_tournament
 from .paths import NSGA2_RESULTS_PATH
@@ -191,7 +196,12 @@ def select_representatives(front: List[Individual]) -> dict:
 @dataclass
 class GenerationStats:
     generation:        int
+    # `front_sizes` mede a população COMBINADA (2×pop) — é dela que sai o número de
+    # fronts. `front0_selected` e `front0_ranges` medem a população SELECIONADA (pop),
+    # que é a que sobrevive. Misturar as duas fazia o log imprimir `front0=302` num
+    # pop de 300, ao lado de faixas calculadas sobre outros indivíduos.
     front_sizes:       List[int]
+    front0_selected:   int
     front0_ranges:     List[Tuple[float, float]]
     gen_elapsed_s:     float
     total_elapsed_s:   float
@@ -263,7 +273,7 @@ def _log_generation(stats: GenerationStats, verbose: bool) -> None:
     if not verbose:
         return
     (dom_lo, dom_hi), (drift_lo, drift_hi) = stats.front0_ranges
-    front0 = stats.front_sizes[0]
+    front0 = stats.front0_selected
     n_fronts = len(stats.front_sizes)
     print(
         f"Gen {stats.generation:4d} | "
@@ -284,7 +294,7 @@ def run(
         random.seed(seed)
         np.random.seed(seed)
         seed_combat(seed)
-    set_seed_base(seed)
+    set_seed_base(generation_seed(seed, 0) if seed is not None else None)
 
     t_start = time.time()
 
@@ -316,6 +326,16 @@ def run(
 
     for gen in range(n_generations):
         offspring = _generate_offspring(population, pop_size)
+        if seed is not None:
+            # Stream NOVO. Aqui a rotação custa o dobro do que custa no AG escalar:
+            # a ordenação por dominância compara pais e filhos dentro do MESMO
+            # `combined`, e objetivos medidos em streams diferentes não são
+            # comparáveis — então os pais têm de ser reavaliados junto, 2×pop por
+            # geração em vez de pop.
+            set_seed_base(generation_seed(seed, gen + 1))
+            for ind in population:
+                ind.invalidate_fitness()
+            _evaluate_population(population)
         _evaluate_population(offspring)
 
         combined = population + offspring
@@ -332,6 +352,7 @@ def run(
         stats = GenerationStats(
             generation=gen,
             front_sizes=[len(f) for f in fronts],
+            front0_selected=len(front0),
             front0_ranges=front0_ranges,
             gen_elapsed_s=t_now - t_prev,
             total_elapsed_s=t_now - t_start,
@@ -377,6 +398,7 @@ def save_results(result: NSGAResult, path: Path = NSGA2_RESULTS_PATH) -> None:
             {
                 "gen":             s.generation,
                 "front_sizes":     s.front_sizes,
+                "front0_selected": s.front0_selected,
                 "front0_ranges":   [list(r) for r in s.front0_ranges],
                 "gen_elapsed_s":   round(s.gen_elapsed_s, 3),
                 "total_elapsed_s": round(s.total_elapsed_s, 3),

@@ -5,7 +5,9 @@ Rode com: py -m src.tests.test_fitness
 
 from src.engine.individual import Individual
 from src.engine.fitness import (
+    N_WEIGHT_GENES,
     _archetype_deviation,
+    drift_genes,
     canonical_genes,
     drift_weights,
     evaluate,
@@ -169,3 +171,37 @@ if __name__ == '__main__':
     separator("Todos os testes de fitness passaram ✓")
 else:
     separator("Todos os testes de fitness passaram ✓")
+
+
+# ── Drift: invariância de escala dos pesos comportamentais ──────────────────
+
+separator("drift_genes: escalar os 3 pesos não muda o drift")
+
+_ind = Individual.from_canonical()
+_char = _ind.get(ARCHETYPE_ORDER[1])          # Rushdown: o pior caso medido (15,1%)
+_char.weights = [w * 1.7 + 0.05 for w in _char.weights]   # muda razão E escala
+_base = _archetype_deviation(_char)
+
+for factor in (0.4, 2.5, 9.0):
+    _scaled = _ind.clone().get(ARCHETYPE_ORDER[1])
+    _scaled.weights = [w * factor for w in _char.weights]
+    assert abs(_archetype_deviation(_scaled) - _base) < 1e-9, (
+        f"escalar os pesos por {factor} mudou o drift — a métrica não é invariante"
+    )
+print("  ✓ multiplicar os 3 pesos por 0.4, 2.5 ou 9.0 deixa o drift idêntico")
+
+# A invariância não pode ter vindo de ignorar os pesos: mudar a RAZÃO tem de doer.
+_ratio = _ind.clone().get(ARCHETYPE_ORDER[1])
+_w = list(_char.weights)
+_ratio.weights = [_w[1], _w[0], _w[2]]        # troca dois pesos: mesma soma, outra razão
+assert abs(_archetype_deviation(_ratio) - _base) > 1e-6, (
+    "trocar a razão entre pesos não mexeu no drift — a métrica ficou cega a eles"
+)
+print("  ✓ trocar a RAZÃO entre os pesos muda o drift (não ficou cega a eles)")
+
+# E os atributos passam intactos por `drift_genes` — só os 3 pesos são reescalados.
+_probe = _ind.clone().get(ARCHETYPE_ORDER[1])
+assert drift_genes(_probe)[:-N_WEIGHT_GENES] == list(_probe.attributes)
+print("  ✓ os 8 atributos passam intactos; só os 3 pesos são reescalados")
+
+separator("Todos os testes de fitness passaram ✓")

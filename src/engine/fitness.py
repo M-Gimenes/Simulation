@@ -27,6 +27,7 @@ from .config import (
     DOMINANCE_DECIS_WEIGHT,
     DOMINANCE_GLOBAL_WEIGHT,
     DRIFT_DEFINING_WEIGHT,
+    GENERATION_SEED_STRIDE,
     GENE_BOUNDS,
     GENE_NAMES,
     GLOBAL_CONVERGENCE_THRESHOLD,
@@ -37,10 +38,12 @@ from .config import (
     MATCHUP_WR_CAP,
     N_WORKERS,
     SIMS_PER_MATCHUP,
+    WEIGHT_NAMES,
 )
 from .individual import Individual
 
 _GENE_RANGES: List[float] = [hi - lo for lo, hi in GENE_BOUNDS]
+N_WEIGHT_GENES: int = len(WEIGHT_NAMES)
 _DRIFT_WEIGHTS: Dict[ArchetypeID, List[float]] = {}
 
 
@@ -64,6 +67,18 @@ def set_seed_base(seed: Optional[int]) -> None:
 
 def get_seed_base() -> Optional[int]:
     return _SEED_BASE
+
+
+def generation_seed(base: int, generation: int) -> int:
+    """Stream de avaliação de UMA geração — a fonte única do protocolo, consumida
+    pelo AG escalar e pelo NSGA-II (protocolo igual nos dois, senão a comparação
+    entre eles confundiria algoritmo com forma de avaliar).
+
+    Toda a geração é avaliada sob o mesmo stream (CRN: a diferença de fitness entre
+    indivíduos reflete genes, não sorteio), e o stream MUDA a cada geração. É a troca
+    que impede a população de se ajustar a uma realização específica do RNG — ver o
+    comentário de `GENERATION_SEED_STRIDE` no `config.py` para os números."""
+    return base * GENERATION_SEED_STRIDE + generation
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -140,14 +155,40 @@ def gene_drift(value: float, canonical: float, gene_index: int) -> float:
     return (value - canonical) / _GENE_RANGES[gene_index]
 
 
+def drift_genes(char) -> List[float]:
+    """Os genes do personagem na forma em que o DRIFT os compara: atributos
+    intactos, e os 3 pesos REESCALADOS para a mesma soma dos canônicos.
+
+    Por quê: a intenção é sorteada proporcionalmente a `(w_retreat, w_defend,
+    w_aggressiveness)`, então multiplicar os três por `k > 0` não muda **nada** no
+    combate — é um grau de liberdade behaviouralmente nulo. Sem o reescalonamento o
+    drift cobra por essa diferença invisível. Medido no indivíduo evoluído: **7,5%**
+    do drift médio (pior caso Rushdown 15,1%), com os `k` ótimos entre 0,58 e 0,70 —
+    o AG inflava a escala dos pesos e o drift cobrava pela inflação.
+
+    Fonte única: `_archetype_deviation` e o `drift_table` consomem esta função, senão
+    o total e a coluna por gene discordariam nos pesos."""
+    genes = list(char.genes())
+    canon = canonical_genes(char.archetype)
+    total = sum(genes[-N_WEIGHT_GENES:])
+    if total > 0:
+        scale = sum(canon[-N_WEIGHT_GENES:]) / total
+        for i in range(len(genes) - N_WEIGHT_GENES, len(genes)):
+            genes[i] *= scale
+    # total == 0 não é reescalável e o combate cai para GUARDA: é comportamento
+    # genuinamente distinto, então o desvio cru (grande) é a leitura correta.
+    return genes
+
+
 def _archetype_deviation(char) -> float:
     """Identidade ESTRUTURAL do personagem: RMS ponderada dos desvios normalizados
     em relação ao canônico. Os `defining_genes` do arquétipo pesam mais — mover o
-    que torna o personagem reconhecível custa mais que mover o resto."""
+    que torna o personagem reconhecível custa mais que mover o resto. Compara sobre
+    `drift_genes`, não sobre os genes crus — ver a justificativa lá."""
     weights = drift_weights(char.archetype)
     num = 0.0
     for i, (g, c, w) in enumerate(
-        zip(char.genes(), canonical_genes(char.archetype), weights)
+        zip(drift_genes(char), canonical_genes(char.archetype), weights)
     ):
         d = gene_drift(g, c, i)
         num += w * d * d

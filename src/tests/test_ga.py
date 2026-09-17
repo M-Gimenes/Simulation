@@ -139,10 +139,22 @@ for mod, names in (( _ga, dict(POPULATION_SIZE=8, MAX_GENERATIONS=3,
             setattr(mod, name, value)
 try:
     result = _ga.run(seed=1, verbose=False)
-    assert result.generation + 1 == 3, (
-        f"o AG tem de esgotar o orçamento (3 gerações), parou em {result.generation + 1}"
+    assert len(result.history) == 3, (
+        f"o AG tem de esgotar o orçamento (3 gerações logadas), deu {len(result.history)}"
     )
     print("  ✓ roda as 3 gerações do orçamento mesmo com STAGNATION_LIMIT=1")
+
+    # O laço produz uma população a MAIS que as logadas: `history` cobre 0..2 e o
+    # melhor devolvido vem da população de índice 3. Rotulá-lo 2 (a convenção antiga)
+    # apontava para uma geração que existe no history e não é a dele.
+    assert result.generation == 3, (
+        f"o melhor vem da população pós-laço (índice 3), veio rotulado "
+        f"{result.generation}"
+    )
+    assert result.generation == len(result.history), (
+        "o rótulo tem de ser exatamente o índice seguinte ao último do history"
+    )
+    print("  ✓ o melhor devolvido é rotulado com o índice da população de onde veio")
 
     for field in (result.converged_at, result.stagnated_at):
         assert field is None or 0 <= field < 3, f"evento fora do intervalo: {field}"

@@ -9,6 +9,11 @@ Genes marcados com ★ são os `defining_genes` do arquétipo e pesam
 `fitness._archetype_deviation` — portanto idêntico ao que entra no `drift_penalty`
 — e a média dos 5 é o próprio `drift_penalty`.
 
+Os 3 pesos comportamentais aparecem marcados com `~`: eles são comparados
+**reescalados** para a soma canônica (`fitness.drift_genes`), porque só a razão entre
+eles afeta o combate. A coluna `evoluído` mostra o valor cru; a `Δ norm` sai da forma
+comparada, que é a que soma no `deviation_i`.
+
 Uso:
     py -m src.tools.drift_table              # canônico (sanity — drift ≈ 0)
     py -m src.tools.drift_table --evolved    # melhor indivíduo do AG (results.json)
@@ -24,8 +29,10 @@ from typing import List, Tuple
 from src.engine.archetypes import ARCHETYPE_ORDER, ARCHETYPES
 from src.engine.config import GENE_BOUNDS, GENE_NAMES
 from src.engine.fitness import (  # single source do deviation_i e da normalização
+    N_WEIGHT_GENES,
     _archetype_deviation,
     canonical_genes,
+    drift_genes,
     drift_weights,
     gene_drift,
 )
@@ -88,6 +95,11 @@ def print_drift_report(ind: Individual, label: str) -> None:
         weights = drift_weights(char.archetype)
         deviations.append(dev)
 
+        # `Δ norm` tem de sair de `drift_genes` — a mesma forma que o
+        # `_archetype_deviation` compara — senão a coluna não soma no total: os 3
+        # pesos entram reescalados para a soma canônica (só a razão afeta o combate).
+        compared = drift_genes(char)
+
         print(f"\n  {ARCHETYPES[aid].name}")
         print(f"    {'gene':18}{'canônico':>10}{'evoluído':>10}{'Δ':>10}{'Δ norm':>9}{'peso':>7}")
         print(f"    {'─' * 64}")
@@ -95,9 +107,16 @@ def print_drift_report(ind: Individual, label: str) -> None:
             zip(GENE_NAMES, canonical_genes(char.archetype), char.genes(), weights)
         ):
             mark = "★" if name in char.archetype.defining_genes else " "
+            rescaled = compared[i] != e
             print(f"    {mark} {name:16}{c:>10.2f}{e:>10.2f}{e - c:>+10.2f}"
-                  f"{gene_drift(e, c, i):>+9.3f}{w:>7.1f}")
+                  f"{gene_drift(compared[i], c, i):>+9.3f}{w:>7.1f}"
+                  f"{'  ~' if rescaled else ''}")
         print(f"    {'─' * 64}")
+        raw_sum = sum(char.genes()[-N_WEIGHT_GENES:])
+        if raw_sum > 0:
+            k = sum(canonical_genes(char.archetype)[-N_WEIGHT_GENES:]) / raw_sum
+            print(f"    ~ pesos comparados reescalados por k={k:.3f} (soma canônica);"
+                  f" só a razão afeta o combate")
         print(f"    desvio (deviation_i): {dev:.4f}")
 
     print("\n" + "═" * 72)

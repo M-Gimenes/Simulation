@@ -339,13 +339,22 @@ def behavioral_profile(
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-def expected_winner(id_a: ArchetypeID, id_b: ArchetypeID) -> Optional[ArchetypeID]:
-    """Vencedor canônico do par segundo `beats` em archetypes.py."""
+def expected_winner(id_a: ArchetypeID, id_b: ArchetypeID) -> ArchetypeID:
+    """Vencedor canônico do par segundo `beats` em archetypes.py.
+
+    É **total** sobre os 10 pares: o ciclo canônico é um torneio regular — cada
+    arquétipo vence exatamente 2 e perde 2 — então todo par tem vencedor e não existe
+    "par neutro". Um par descoberto seria incoerência da tabela `beats`, e por isso
+    levanta em vez de devolver `None`: o retorno silencioso criava ramos mortos nos
+    dois consumidores e escondia o defeito em vez de denunciá-lo."""
     if id_b in ARCHETYPES[id_a].beats:
         return id_a
     if id_a in ARCHETYPES[id_b].beats:
         return id_b
-    return None
+    raise ValueError(
+        f"par sem vencedor canônico: {id_a.name} × {id_b.name} — a tabela `beats` "
+        f"deixou de ser um torneio regular"
+    )
 
 
 def wilson_ci(wins: float, n: int, z: float = 1.96) -> Tuple[float, float]:
@@ -392,7 +401,7 @@ class MatchupRecord:
     name_b: str
     wins_a: float
     n_sims: int
-    canonical_id: Optional[ArchetypeID]
+    canonical_id: ArchetypeID
     decisiveness: float = 0.0
 
     @property
@@ -423,8 +432,6 @@ class MatchupRecord:
     def cycle(self) -> Tuple[str, str]:
         """Anotação descritiva post-hoc: o favorito observado concorda com o
         ciclo canônico? Não é pass/fail — o ciclo nunca é alvo do AG."""
-        if self.canonical_id is None:
-            return ("·", "par neutro")
         winner_name = ARCHETYPES[self.canonical_id].name
         loser_id = self.id_b if self.canonical_id == self.id_a else self.id_a
         loser_name = ARCHETYPES[loser_id].name
