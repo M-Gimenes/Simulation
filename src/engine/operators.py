@@ -8,7 +8,7 @@ from typing import List
 from .config import (
     ATTRIBUTE_BOUNDS,
     ATTRIBUTE_MUTATION_SIGMA,
-    ELITE_SIZE,
+    ELITE_RATE,
     MUTATION_RATE,
     TOURNAMENT_SIZE,
     WEIGHT_BOUNDS,
@@ -65,11 +65,24 @@ def mutate(individual: Individual, mutation_rate: float = MUTATION_RATE) -> Indi
 # Geração seguinte
 # ─────────────────────────────────────────────────────────────────────────────
 
+def elite_count(pop_size: int) -> int:
+    """Quantos indivíduos o elitismo preserva numa população deste tamanho.
+
+    Derivado de `ELITE_RATE` sobre o tamanho REAL, e não a constante `ELITE_SIZE` do
+    orçamento default: com a contagem absoluta, uma execução de orçamento reduzido
+    mantinha 30 elites e o elitismo efetivo ia de 10% para 25% (pop 120) ou 100%
+    (pop 30) — aí o `while` abaixo nunca roda e a geração seguinte é só clones, ou
+    seja o AG para de buscar sem dar sinal nenhum.
+
+    Mínimo de 1: uma população pequena demais para 10% ainda preserva o melhor."""
+    return max(1, round(pop_size * ELITE_RATE))
+
+
 def next_generation(population: List[Individual]) -> List[Individual]:
     pop_size = len(population)
     sorted_pop = sorted(population, key=lambda ind: ind.fitness, reverse=True)
 
-    new_gen: List[Individual] = [ind.clone() for ind in sorted_pop[:ELITE_SIZE]]
+    new_gen: List[Individual] = [ind.clone() for ind in sorted_pop[:elite_count(pop_size)]]
 
     while len(new_gen) < pop_size:
         p1 = tournament_selection(population)

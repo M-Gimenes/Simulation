@@ -23,6 +23,13 @@ Uso:
     py -m src.tools.multi_run --algorithm nsga2     # só NSGA-II
     py -m src.tools.multi_run --n-seeds 30          # escala o experimento
     py -m src.tools.multi_run --nsga2-representative knee_point
+    py -m src.tools.multi_run --algorithm ga --pop 120 --generations 60 --n-seeds 5
+    py -m src.tools.multi_run --algorithm ga --lambda-drift 0.25   # braço do sweep
+
+Qualquer desvio do default — em λ ou em orçamento — grava em
+`results/multi_run/exploratory/`, com o nome dizendo o que desviou. Só a execução
+inteiramente no default grava nos caminhos da bateria, que é o que o
+`compare_algorithms` lê.
 """
 
 from __future__ import annotations
@@ -42,10 +49,12 @@ from src.engine.config import (
     HYPERVOLUME_REFERENCE,
     LAMBDA_DOMINANCE,
     LAMBDA_DRIFT,
+    MAX_GENERATIONS,
     MULTI_RUN_N_SEEDS,
     MULTI_RUN_SEED_START,
     MULTI_RUN_SIMS,
     MULTI_RUN_VALIDATION_SEED,
+    POPULATION_SIZE,
 )
 from src.engine.fitness import (
     FitnessDetail,
@@ -61,12 +70,12 @@ from src.engine.ga import run as run_ga
 from src.engine.nsga2 import run as run_nsga2
 from src.engine.pareto_metrics import hypervolume_2d, spacing
 from src.engine.paths import (
-    LAMBDA_SWEEP_DIR,
+    EXPLORATORY_DIR,
     MULTI_RUN_GA_PATH,
     MULTI_RUN_NSGA2_PATH,
     PROJECT_ROOT,
 )
-from src.engine.provenance import stamp
+from src.engine.provenance import override_budget, stamp
 
 CHAR_NAMES: List[str] = [ARCHETYPES[aid].name for aid in ARCHETYPE_ORDER]
 
@@ -87,7 +96,8 @@ def mean_std(values: List[float]) -> Dict[str, float]:
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-def _run_algorithm(algorithm: str, seed: int, nsga2_representative: str):
+def _run_algorithm(algorithm: str, seed: int, nsga2_representative: str,
+                   pop_size: int, n_generations: int):
     """Roda o algoritmo (silencioso) e devolve `(representante, objetivos_da_fronteira,
     marcos)`.
     AG escalar → o melhor indivíduo, sem fronteira (`None`). NSGA-II → o representante
@@ -104,7 +114,8 @@ def _run_algorithm(algorithm: str, seed: int, nsga2_representative: str):
     alguém agregaria sem perceber.
     """
     if algorithm == "ga":
-        result = run_ga(seed=seed, verbose=False)
+        result = run_ga(seed=seed, verbose=False,
+                        pop_size=pop_size, n_generations=n_generations)
         return result.best, None, {
             "converged_at":           result.converged_at,
             "stagnated_at":           result.stagnated_at,
@@ -122,7 +133,8 @@ def _run_algorithm(algorithm: str, seed: int, nsga2_representative: str):
                 for s in result.history
             ],
         }
-    result = run_nsga2(seed=seed, verbose=False)
+    result = run_nsga2(seed=seed, verbose=False,
+                       pop_size=pop_size, n_generations=n_generations)
     front_objectives = [list(ind.objectives) for ind in result.pareto_front]
     return result.representatives[nsga2_representative], front_objectives, {
         # A trajetória do NSGA-II é a da FRONTEIRA, não a de um fitness: amplitude de
@@ -254,7 +266,9 @@ def _aggregate(records: List[dict]) -> dict:
 
 
 def aggregate_algorithm(algorithm: str, seeds: List[int], sims: int,
-                        nsga2_representative: str) -> dict:
+                        nsga2_representative: str,
+                        pop_size: int = POPULATION_SIZE,
+                        n_generations: int = MAX_GENERATIONS) -> dict:
     records: List[dict] = []
     rep_label = f", representante {nsga2_representative}" if algorithm == "nsga2" else ""
     print(f"\n{'═' * 70}")
@@ -265,7 +279,7 @@ def aggregate_algorithm(algorithm: str, seeds: List[int], sims: int,
     for idx, seed in enumerate(seeds, start=1):
         print(f"  [{idx:>2}/{len(seeds)}] seed={seed} ... ", end="", flush=True)
         individual, front_objectives, milestones = _run_algorithm(
-            algorithm, seed, nsga2_representative
+            algorithm, seed, nsga2_representative, pop_size, n_generations
         )
         detail = _evaluate_independent(individual, sims)
         record = _seed_record(detail, individual, seed, front_objectives, milestones)
@@ -279,6 +293,8 @@ def aggregate_algorithm(algorithm: str, seeds: List[int], sims: int,
 
     result = {
         "algorithm": algorithm,
+        "pop_size": pop_size,
+        "n_generations": n_generations,
         "n_seeds": len(seeds),
         "seeds": seeds,
         "validation_seed": MULTI_RUN_VALIDATION_SEED,
@@ -347,21 +363,31 @@ def _print_summary(result: dict) -> None:
         print(f"      {label:<28s} WR {wr['mean']:.0%}±{wr['std']:.0%}   counter em {rate_hc:.0%}{flag}")
 
 
-def _artifact_path(algorithm: str, lambdas) -> Path:
-    """Onde o artefato deste braço é gravado.
+def _artifact_path(algorithm: str, lambdas, pop_size: int, n_generations: int) -> Path:
+    """Onde o artefato desta execução é gravado.
 
-    O braço do λ DEFAULT grava nos caminhos principais — ele É a bateria, e é dele que o
-    `compare_algorithms` lê. Os demais vão para `lambda_sweep/`, nomeados pelo λ, porque
-    são pontos de uma curva e não repetições da mesma configuração: juntá-los ao principal
-    convidaria o próximo leitor a agregar λ diferentes como se fossem a mesma coisa."""
-    if lambdas == (LAMBDA_DRIFT, LAMBDA_DOMINANCE):
+    Só a execução **inteiramente no default** — λ e orçamento — grava nos caminhos
+    principais: ela É a bateria, e é dela que o `compare_algorithms` lê. Qualquer desvio
+    manda o artefato para `exploratory/`, com o nome dizendo o que desviou.
+
+    O sufixo é montado a partir das diferenças reais, e não de um rótulo passado à mão,
+    porque o risco aqui é silencioso nos dois sentidos: um nome fixo faria dois braços
+    diferentes se sobrescreverem, e cair no caminho principal faria uma execução barata
+    **apagar** horas de bateria sem aviso."""
+    partes = []
+    if (pop_size, n_generations) != (POPULATION_SIZE, MAX_GENERATIONS):
+        partes.append(f"pop{pop_size}_gen{n_generations}")
+    if lambdas != (LAMBDA_DRIFT, LAMBDA_DOMINANCE):
+        drift, dominance = lambdas
+        partes.append(f"drift{drift:g}_dom{dominance:g}")
+    if not partes:
         return MULTI_RUN_GA_PATH if algorithm == "ga" else MULTI_RUN_NSGA2_PATH
-    drift, dominance = lambdas
-    return LAMBDA_SWEEP_DIR / f"multi_run_{algorithm}_drift{drift:g}_dom{dominance:g}.json"
+    return EXPLORATORY_DIR / f"multi_run_{algorithm}_{'_'.join(partes)}.json"
 
 
 def _save(result: dict, algorithm: str) -> None:
-    path = _artifact_path(algorithm, get_lambdas())
+    path = _artifact_path(algorithm, get_lambdas(),
+                          result["pop_size"], result["n_generations"])
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8") as fh:
         json.dump({"provenance": stamp(), **result}, fh, indent=2, ensure_ascii=False)
@@ -385,10 +411,15 @@ def parse_args():
                         help=f"Primeira semente (default: {MULTI_RUN_SEED_START})")
     parser.add_argument("--sims", type=int, default=MULTI_RUN_SIMS,
                         help=f"Sims/matchup na reavaliação independente (default: {MULTI_RUN_SIMS})")
+    parser.add_argument("--pop", type=int, default=POPULATION_SIZE,
+                        help=f"Tamanho da população (default: {POPULATION_SIZE}). "
+                             f"Reduzir barateia a execução para experimentos exploratórios; "
+                             f"o elitismo continua sendo 10%% do tamanho real")
+    parser.add_argument("--generations", type=int, default=MAX_GENERATIONS,
+                        help=f"Gerações por execução (default: {MAX_GENERATIONS})")
     parser.add_argument("--lambda-drift", type=float, default=LAMBDA_DRIFT,
                         help=f"Peso do drift no fitness escalar (default: {LAMBDA_DRIFT}). "
-                             f"Braço do sweep de λ — grava em results/multi_run/lambda_sweep/ "
-                             f"quando difere do default")
+                             f"Braço do sweep de λ")
     parser.add_argument("--lambda-dominance", type=float, default=LAMBDA_DOMINANCE,
                         help=f"Peso do dominance no fitness escalar (default: {LAMBDA_DOMINANCE})")
     parser.add_argument("--nsga2-representative", default="best_dominance",
@@ -416,8 +447,19 @@ def main():
                   "desperdício.\n    Rode o NSGA-II uma vez no λ default e re-derive o "
                   "`scalar_optimum` por λ.")
 
+    reduzido = (args.pop, args.generations) != (POPULATION_SIZE, MAX_GENERATIONS)
+    if reduzido:
+        print(f"\n  ORÇAMENTO REDUZIDO — pop={args.pop} × {args.generations} gerações "
+              f"(config: {POPULATION_SIZE} × {MAX_GENERATIONS}), "
+              f"~{args.pop * args.generations / (POPULATION_SIZE * MAX_GENERATIONS):.0%} do custo.")
+        print("  Serve para ORDENAR configurações, não para número citável: a convergência"
+              "\n  não transfere (60 gerações não dizem nada sobre convergir na 39 de 150).")
+
     for algorithm in algorithms:
-        result = aggregate_algorithm(algorithm, seeds, args.sims, args.nsga2_representative)
+        # O orçamento vale por algoritmo — as constantes que cada um lê são distintas.
+        override_budget(args.pop, args.generations, algorithm)
+        result = aggregate_algorithm(algorithm, seeds, args.sims, args.nsga2_representative,
+                                     pop_size=args.pop, n_generations=args.generations)
         _print_summary(result)
         _save(result, algorithm)
 

@@ -135,4 +135,40 @@ print(f"  Elites preservados:      {len(new_evaluated)}/{ELITE_SIZE} ✓")
 print(f"  Filhos sem fitness:      {len(children)} ✓")
 
 
+# ── Elitismo é FRAÇÃO, não contagem ──────────────────────────────────────────
+
+separator("elite_count: elitismo é 10% do tamanho REAL da população")
+
+from src.engine.config import ELITE_RATE
+from src.engine.operators import elite_count
+
+# No orçamento default a fração e a constante derivada têm de coincidir — senão esta
+# mudança teria alterado, sozinha, todo número já medido.
+assert elite_count(POPULATION_SIZE) == ELITE_SIZE, (
+    f"elite_count({POPULATION_SIZE})={elite_count(POPULATION_SIZE)} divergiu de "
+    f"ELITE_SIZE={ELITE_SIZE} — o orçamento default mudou de comportamento"
+)
+print(f"  pop={POPULATION_SIZE} (default): {elite_count(POPULATION_SIZE)} elites == ELITE_SIZE ✓")
+
+# O bug que isto conserta: com a contagem ABSOLUTA (30), uma população reduzida
+# ficava com elitismo de 25% (pop 120) ou 100% (pop 30) — aí a geração seguinte é só
+# clones e o AG para de buscar, em silêncio e produzindo números plausíveis.
+for n in (120, 40, 12):
+    e = elite_count(n)
+    taxa_busca = (n - e) / n
+    assert e < n, f"pop={n}: elitismo tomou a população inteira ({e}/{n})"
+    assert abs(e / n - ELITE_RATE) < 0.05, f"pop={n}: elitismo {e/n:.0%}, esperado ~{ELITE_RATE:.0%}"
+    print(f"  pop={n:>3}: {e:>2} elites -> {n - e:>3} filhos ({taxa_busca:.0%} de busca real) ✓")
+
+# A geração seguinte de uma população reduzida precisa ter filhos DE VERDADE.
+pequena = [Individual.random() for _ in range(12)]
+for i, ind in enumerate(pequena):
+    ind.fitness = -float(i)
+nova = next_generation(pequena)
+filhos = [ind for ind in nova if not ind.is_evaluated]
+assert len(nova) == 12, f"tamanho não preservado: {len(nova)}"
+assert len(filhos) == 12 - elite_count(12), "a população reduzida não gerou filhos"
+print(f"  pop=12 real: {len(filhos)} filhos gerados (com a contagem absoluta seriam 0) ✓")
+
+
 separator("Todos os testes de operadores passaram ✓")

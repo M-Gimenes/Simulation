@@ -6,7 +6,13 @@ Tabela comentada completa e notas de calibração em docs/reference/07-configura
 # ── AG: população e parada ───────────────────────────────────────────────────
 
 POPULATION_SIZE = 300
-ELITE_SIZE = int(POPULATION_SIZE * 0.1)   # 10% preservados por elitismo a cada geração
+# Elitismo é uma FRAÇÃO da população, não uma contagem. A contagem abaixo é só a
+# derivação no orçamento default: `operators.elite_count` recalcula sobre o tamanho real,
+# senão uma execução de orçamento reduzido herdaria 30 elites absolutos e o elitismo
+# efetivo saltaria de 10% para 25% (pop 120) ou 100% (pop 30) — o AG deixaria de buscar,
+# em silêncio e produzindo números plausíveis.
+ELITE_RATE = 0.10
+ELITE_SIZE = round(POPULATION_SIZE * ELITE_RATE)
 MAX_GENERATIONS = 150
 STAGNATION_LIMIT = 30                      # gerações sem melhoria > 0.001 antes de parar
 # Convergência do AG (C2) = balanço global (abaixo) + ausência de hard-counter

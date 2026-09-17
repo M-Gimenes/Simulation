@@ -1,9 +1,10 @@
 """
 Loop principal do AG escalar — inicializa, evolui e retorna o melhor indivíduo.
 
-Roda sempre `MAX_GENERATIONS` gerações. Convergência (roster equilibrado: WR global
-~50% por boneco e nenhum counter duro, confirmado fora do stream de treino) e estagnação
-(`STAGNATION_LIMIT` gerações sem melhoria) são **eventos registrados**, não paradas.
+Roda sempre o orçamento inteiro (`n_generations`, default `MAX_GENERATIONS`).
+Convergência (roster equilibrado: WR global ~50% por boneco e nenhum counter duro,
+confirmado fora do stream de treino) e estagnação (`STAGNATION_LIMIT` gerações sem
+melhoria) são **eventos registrados**, não paradas.
 
 Por quê: o NSGA-II não tem como parar pelo mesmo critério — "o roster está equilibrado?"
 não se pergunta a uma *fronteira*, que de propósito contém pontos desequilibrados e fiéis.
@@ -27,7 +28,6 @@ import numpy as np
 from .combat import seed_combat
 from .config import (
     CONVERGENCE_SEED_OFFSET,
-    ELITE_SIZE,
     MAX_GENERATIONS,
     POPULATION_SIZE,
     SIMS_CONVERGENCE_CHECK,
@@ -45,7 +45,7 @@ from .fitness import (
     set_seed_base,
 )
 from .individual import Individual
-from .operators import next_generation
+from .operators import elite_count, next_generation
 from .paths import GA_RESULTS_PATH
 from .provenance import stamp
 
@@ -98,7 +98,7 @@ class GAResult:
         if self.stagnated_at is not None:
             marks.append(f"estagnou na geração {self.stagnated_at}")
         suffix = f" ({'; '.join(marks)})" if marks else ""
-        return f"orçamento esgotado ({MAX_GENERATIONS} gerações){suffix}"
+        return f"orçamento esgotado ({self.generation} gerações){suffix}"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -118,13 +118,13 @@ def _log(stats: GenerationStats, verbose: bool) -> None:
     )
 
 
-def _log_header(verbose: bool) -> None:
+def _log_header(verbose: bool, pop_size: int, n_generations: int) -> None:
     if not verbose:
         return
     names = "  ".join(f"{ARCHETYPES[aid].name[:4]:>4}" for aid in ARCHETYPE_ORDER)
     print(f"\n{'─'*80}")
-    print(f"  AG iniciado — pop={POPULATION_SIZE}  elites={ELITE_SIZE}  "
-          f"max_gen={MAX_GENERATIONS}")
+    print(f"  AG iniciado — pop={pop_size}  elites={elite_count(pop_size)}  "
+          f"max_gen={n_generations}")
     print(f"  Arquétipos: [{names}]")
     print(f"{'─'*80}")
 
@@ -161,18 +161,26 @@ def run(
     seed: Optional[int] = None,
     verbose: bool = True,
     log_every: int = 1,
+    pop_size: int = POPULATION_SIZE,
+    n_generations: int = MAX_GENERATIONS,
 ) -> GAResult:
+    """`pop_size` e `n_generations` são o ORÇAMENTO da execução. Ficam como parâmetro, e
+    não só como constante, porque experimentos exploratórios (sweeps de calibração) rodam
+    barato antes de a bateria rodar caro — e editar o `config.py` para isso mudaria a
+    configuração global, invalidaria a comparação com o que já foi medido e é fácil de
+    esquecer de desfazer. Quem varia o orçamento deve registrá-lo em
+    `provenance.override`, para o artefato não afirmar o orçamento do arquivo."""
     if seed is not None:
         random.seed(seed)
         np.random.seed(seed)
         seed_combat(seed)
     set_seed_base(generation_seed(seed, 0) if seed is not None else None)
 
-    _log_header(verbose)
+    _log_header(verbose, pop_size, n_generations)
     t_start = time.time()
 
     population = [Individual.from_canonical()] + [
-        Individual.random() for _ in range(POPULATION_SIZE - 1)
+        Individual.random() for _ in range(pop_size - 1)
     ]
     evaluate_population(population)
 
@@ -186,7 +194,7 @@ def run(
     best_ind          = max(population, key=lambda ind: ind.fitness)
     best_detail       = evaluate_detail(best_ind)
 
-    for gen in range(MAX_GENERATIONS):
+    for gen in range(n_generations):
 
         current_best = max(population, key=lambda ind: ind.fitness)
         if current_best.fitness != best_detail.fitness or gen == 0:
@@ -243,14 +251,14 @@ def run(
         evaluate_population(population)
 
     # O laço produz uma geração a mais que as logadas: `history` cobre
-    # 0..MAX_GENERATIONS-1 e esta população é a de índice MAX_GENERATIONS. Rotulá-la
-    # como MAX_GENERATIONS-1 dava um número que não existe no `history`.
+    # 0..n_generations-1 e esta população é a de índice n_generations. Rotulá-la
+    # como n_generations-1 dava um número que não existe no `history`.
     best_ind    = max(population, key=lambda ind: ind.fitness)
     best_detail = evaluate_detail(best_ind)
     return GAResult(
         best=best_ind,
         best_detail=best_detail,
-        generation=MAX_GENERATIONS,
+        generation=n_generations,
         converged_at=converged_at,
         stagnated_at=stagnated_at,
         convergence_gate_fired=gate_fired,

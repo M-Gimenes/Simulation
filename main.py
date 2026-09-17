@@ -6,8 +6,10 @@ Rode com: py main.py [--algorithm ga|nsga2] [--seed N] [--quiet] [--log-every N]
 import argparse
 import datetime
 
+from src.engine.config import MAX_GENERATIONS, POPULATION_SIZE
 from src.engine.ga import run as run_ga, save_results as save_ga_results
 from src.engine.paths import GA_RESULTS_PATH, NSGA2_PLOTS_DIR, NSGA2_RESULTS_PATH, PROJECT_ROOT, RESULTS_DIR
+from src.engine.provenance import override_budget
 
 
 def parse_args():
@@ -17,14 +19,21 @@ def parse_args():
     parser.add_argument("--seed",      type=int, default=None, help="Semente aleatória")
     parser.add_argument("--quiet",     action="store_true",    help="Suprime log por geração")
     parser.add_argument("--log-every", type=int, default=1,    help="Loga a cada N gerações (só AG)")
+    parser.add_argument("--pop", type=int, default=POPULATION_SIZE,
+                        help=f"Tamanho da população (default: {POPULATION_SIZE})")
+    parser.add_argument("--generations", type=int, default=MAX_GENERATIONS,
+                        help=f"Gerações (default: {MAX_GENERATIONS})")
     return parser.parse_args()
 
 
 def _main_ga(args):
+    override_budget(args.pop, args.generations, "ga")
     result = run_ga(
         seed=args.seed,
         verbose=not args.quiet,
         log_every=args.log_every,
+        pop_size=args.pop,
+        n_generations=args.generations,
     )
 
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
@@ -43,7 +52,9 @@ def _main_nsga2(args):
     from src.engine.pareto_metrics import hypervolume_2d, spacing
     from src.tools.nsga2_plots import save_plots
 
-    result = run_nsga2(seed=args.seed, verbose=not args.quiet)
+    override_budget(args.pop, args.generations, "nsga2")
+    result = run_nsga2(seed=args.seed, verbose=not args.quiet,
+                       pop_size=args.pop, n_generations=args.generations)
 
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     save_results(result, NSGA2_RESULTS_PATH)

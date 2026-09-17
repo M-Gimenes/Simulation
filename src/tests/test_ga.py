@@ -127,18 +127,20 @@ separator("run: esgota o orçamento e registra convergência/estagnação")
 import src.engine.ga as _ga
 import src.engine.fitness as _fit
 
+# O ORÇAMENTO vai por parâmetro (`pop_size`/`n_generations`), não por patch de global:
+# desde que ele é parâmetro, patchar `_ga.MAX_GENERATIONS` não tem efeito nenhum — o
+# default é resolvido na assinatura. O resto (sims, limite de estagnação, workers) segue
+# por patch porque são constantes de módulo mesmo.
 _originals = {m: {n: getattr(m, n) for n in
-                  ("POPULATION_SIZE", "MAX_GENERATIONS", "SIMS_PER_MATCHUP",
-                   "STAGNATION_LIMIT", "N_WORKERS") if hasattr(m, n)}
+                  ("SIMS_PER_MATCHUP", "STAGNATION_LIMIT", "N_WORKERS") if hasattr(m, n)}
               for m in (_ga, _fit)}
-for mod, names in (( _ga, dict(POPULATION_SIZE=8, MAX_GENERATIONS=3,
-                               SIMS_PER_MATCHUP=6, STAGNATION_LIMIT=1)),
+for mod, names in (( _ga, dict(SIMS_PER_MATCHUP=6, STAGNATION_LIMIT=1)),
                    ( _fit, dict(SIMS_PER_MATCHUP=6, N_WORKERS=1))):
     for name, value in names.items():
         if hasattr(mod, name):
             setattr(mod, name, value)
 try:
-    result = _ga.run(seed=1, verbose=False)
+    result = _ga.run(seed=1, verbose=False, pop_size=8, n_generations=3)
     assert len(result.history) == 3, (
         f"o AG tem de esgotar o orçamento (3 gerações logadas), deu {len(result.history)}"
     )

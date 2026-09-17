@@ -83,6 +83,22 @@ def override(name: str, value: Any) -> None:
     _OVERRIDES[name] = value
 
 
+def override_budget(pop_size: int, n_generations: int, algorithm: str) -> None:
+    """Registra o orçamento desta execução sob os nomes que o algoritmo de fato usa.
+
+    O escalar lê `POPULATION_SIZE`/`MAX_GENERATIONS` e o NSGA-II lê
+    `NSGA2_POP_SIZE`/`NSGA2_GENERATIONS` — que no `config.py` são derivados dos
+    primeiros, mas são constantes distintas. Registrar os quatro quando só um algoritmo
+    rodou afirmaria um orçamento que ninguém usou; registrar o par errado seria pior.
+    """
+    if algorithm == "ga":
+        override("POPULATION_SIZE", pop_size)
+        override("MAX_GENERATIONS", n_generations)
+    else:
+        override("NSGA2_POP_SIZE", pop_size)
+        override("NSGA2_GENERATIONS", n_generations)
+
+
 def overrides() -> Dict[str, Any]:
     return dict(_OVERRIDES)
 
