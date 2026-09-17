@@ -6,11 +6,11 @@
     {
       "label": "canônico",
       "role": "teto_identidade",
-      "dominance_penalty": 1.2689658923882183,
+      "dominance_penalty": 1.269437981676127,
       "dominance_terms": {
-        "global_term": 0.66496240495234,
-        "cap_term": 0.924562775873338,
-        "decis_term": 0.2834441989984183
+        "global_term": 0.6427421722588303,
+        "cap_term": 0.9386160024205852,
+        "decis_term": 0.3147756164140079
       },
       "drift_penalty": 0.0,
       "per_character_drift": [
@@ -24,265 +24,265 @@
       "validator_structural_total": 18,
       "validator_full": 23,
       "validator_full_total": 23,
-      "cycle_edges_kept": 5,
-      "circular_triads": 0.0,
+      "cycle_edges_kept": 6,
+      "circular_triads": 1.0,
       "pair_wr_min": 0.0,
       "pair_wr_max": 1.0,
       "global_wr": [
-        0.32625,
-        0.99625,
-        0.51625,
-        0.66125,
+        0.3925,
+        0.99125,
+        0.5,
+        0.61625,
         0.0
       ]
     },
     {
       "label": "espelho Zoner",
       "role": "piso_identidade",
-      "dominance_penalty": 0.08483995572896182,
+      "dominance_penalty": 0.11330527489726012,
       "dominance_terms": {
-        "global_term": 0.020721365785102114,
+        "global_term": 0.03098386676965931,
         "cap_term": 0.0,
-        "decis_term": 0.1282371798877194
+        "decis_term": 0.16464281625520163
       },
-      "drift_penalty": 0.39039208738219733,
+      "drift_penalty": 0.38972076571526165,
       "per_character_drift": [
         0.0,
-        0.5286520965774053,
-        0.4727454366392635,
-        0.5380219257545111,
-        0.41254097793980676
+        0.5296890703633181,
+        0.4688107757685667,
+        0.5398467696868742,
+        0.4102572127575493
       ],
       "validator_structural": 5,
       "validator_structural_total": 18,
-      "validator_full": 5,
+      "validator_full": 6,
       "validator_full_total": 23,
-      "cycle_edges_kept": 6,
-      "circular_triads": 4.0,
-      "pair_wr_min": 0.4525,
-      "pair_wr_max": 0.5475,
+      "cycle_edges_kept": 4,
+      "circular_triads": 3.0,
+      "pair_wr_min": 0.455,
+      "pair_wr_max": 0.54,
       "global_wr": [
-        0.5025,
-        0.50375,
-        0.515625,
-        0.493125,
-        0.485
+        0.499375,
+        0.521875,
+        0.509375,
+        0.475625,
+        0.49375
       ]
     },
     {
       "label": "espelho Rushdown",
       "role": "piso_identidade",
-      "dominance_penalty": 0.03409545424246464,
+      "dominance_penalty": 0.03748332962798262,
       "dominance_terms": {
-        "global_term": 0.03409545424246464,
+        "global_term": 0.03748332962798262,
         "cap_term": 0.0,
         "decis_term": 0.0
       },
-      "drift_penalty": 0.4193120439430961,
+      "drift_penalty": 0.4221341272536148,
       "per_character_drift": [
-        0.45509551536416526,
+        0.45796212549731957,
         0.0,
-        0.4220422468422541,
-        0.5572252686302013,
-        0.6621971888788598
+        0.41976503689884204,
+        0.5607393079039238,
+        0.6722041659679885
       ],
       "validator_structural": 6,
       "validator_structural_total": 18,
-      "validator_full": 7,
+      "validator_full": 6,
       "validator_full_total": 23,
-      "cycle_edges_kept": 5,
-      "circular_triads": 0.0,
-      "pair_wr_min": 0.4675,
-      "pair_wr_max": 0.5525,
+      "cycle_edges_kept": 7,
+      "circular_triads": 1.0,
+      "pair_wr_min": 0.44,
+      "pair_wr_max": 0.54,
       "global_wr": [
-        0.500625,
-        0.46875,
+        0.480625,
+        0.483125,
         0.520625,
-        0.504375,
-        0.505625
+        0.49125,
+        0.524375
       ]
     },
     {
       "label": "espelho Combo Master",
       "role": "piso_identidade",
-      "dominance_penalty": 0.05020582635511541,
+      "dominance_penalty": 0.02969638025079821,
       "dominance_terms": {
-        "global_term": 0.05020582635511541,
+        "global_term": 0.02969638025079821,
         "cap_term": 0.0,
         "decis_term": 0.0
       },
-      "drift_penalty": 0.33223606954583806,
+      "drift_penalty": 0.33365895843086113,
       "per_character_drift": [
-        0.45076641343064167,
-        0.36546147745455737,
+        0.4556833788015568,
+        0.35999215939254675,
         0.0,
-        0.41484044233005124,
-        0.43011201451394
+        0.41600458323903083,
+        0.4366146707211714
       ],
       "validator_structural": 7,
       "validator_structural_total": 18,
-      "validator_full": 9,
+      "validator_full": 7,
       "validator_full_total": 23,
       "cycle_edges_kept": 5,
       "circular_triads": 4.0,
-      "pair_wr_min": 0.415,
-      "pair_wr_max": 0.5725,
+      "pair_wr_min": 0.45,
+      "pair_wr_max": 0.5325,
       "global_wr": [
-        0.47,
-        0.525625,
-        0.4775,
-        0.494375,
-        0.5325
+        0.498125,
+        0.483125,
+        0.5275,
+        0.4925,
+        0.49875
       ]
     },
     {
       "label": "espelho Grappler",
       "role": "piso_identidade",
-      "dominance_penalty": 0.021751436734156193,
+      "dominance_penalty": 0.025568535351091184,
       "dominance_terms": {
-        "global_term": 0.021751436734156193,
+        "global_term": 0.025568535351091184,
         "cap_term": 0.0,
         "decis_term": 0.0
       },
-      "drift_penalty": 0.3476737142811451,
+      "drift_penalty": 0.3482488608340451,
       "per_character_drift": [
-        0.5058683403592062,
-        0.5386226685583957,
-        0.3383911154397335,
+        0.5041048819701548,
+        0.5440220283410051,
+        0.3376206653556824,
         0.0,
-        0.3554864470483899
+        0.35549672850338326
       ],
       "validator_structural": 8,
       "validator_structural_total": 18,
       "validator_full": 9,
       "validator_full_total": 23,
-      "cycle_edges_kept": 3,
-      "circular_triads": 4.0,
+      "cycle_edges_kept": 8,
+      "circular_triads": 2.0,
       "pair_wr_min": 0.48,
-      "pair_wr_max": 0.5425,
+      "pair_wr_max": 0.56,
       "global_wr": [
-        0.51125,
+        0.499375,
         0.490625,
-        0.51125,
-        0.5025,
-        0.484375
+        0.515625,
+        0.5125,
+        0.481875
       ]
     },
     {
       "label": "espelho Turtle",
       "role": "piso_identidade",
-      "dominance_penalty": 0.031888477542836684,
+      "dominance_penalty": 0.025318846298308422,
       "dominance_terms": {
-        "global_term": 0.031888477542836684,
+        "global_term": 0.019055839000159492,
         "cap_term": 0.0,
-        "decis_term": 0.0
+        "decis_term": 0.012526014596297859
       },
-      "drift_penalty": 0.3953991927572148,
+      "drift_penalty": 0.39181784827466837,
       "per_character_drift": [
-        0.332818229452969,
-        0.6750423612948181,
-        0.4309413766227027,
-        0.5381939964155841,
+        0.332483398374312,
+        0.6739360852806101,
+        0.4164179579378354,
+        0.5362517997805843,
         0.0
       ],
       "validator_structural": 7,
       "validator_structural_total": 18,
       "validator_full": 7,
       "validator_full_total": 23,
-      "cycle_edges_kept": 3,
-      "circular_triads": 2.25,
-      "pair_wr_min": 0.47,
+      "cycle_edges_kept": 5,
+      "circular_triads": 4.0,
+      "pair_wr_min": 0.4525,
       "pair_wr_max": 0.545,
       "global_wr": [
-        0.50375,
-        0.490625,
-        0.52625,
-        0.50125,
-        0.478125
+        0.511875,
+        0.50625,
+        0.485,
+        0.503125,
+        0.49375
       ]
     },
     {
       "label": "aleatório 1",
       "role": "chao_absoluto",
-      "dominance_penalty": 1.2497198449496207,
+      "dominance_penalty": 1.3489273324941804,
       "dominance_terms": {
-        "global_term": 0.6302316042535474,
-        "cap_term": 0.8091725428372077,
-        "decis_term": 0.4298039385549387
+        "global_term": 0.6618076571028776,
+        "cap_term": 0.8861663592839273,
+        "decis_term": 0.4880729914986788
       },
-      "drift_penalty": 0.44822612880853396,
+      "drift_penalty": 0.4354810410259599,
       "per_character_drift": [
-        0.3461497125743054,
-        0.600135300157996,
-        0.3243239616758582,
-        0.3489044205307098,
-        0.6216172491038007
+        0.344991785225395,
+        0.6001031273636619,
+        0.26704881248278484,
+        0.3440144186958512,
+        0.6212470613621065
       ],
       "validator_structural": 4,
       "validator_structural_total": 18,
-      "validator_full": 6,
+      "validator_full": 5,
       "validator_full_total": 23,
-      "cycle_edges_kept": 7,
+      "cycle_edges_kept": 6,
       "circular_triads": 0.0,
       "pair_wr_min": 0.0,
       "pair_wr_max": 0.975,
       "global_wr": [
-        0.31,
-        0.70125,
-        0.384375,
-        0.104375,
+        0.375,
+        0.705625,
+        0.398125,
+        0.02125,
         1.0
       ]
     },
     {
       "label": "aleatório 2",
       "role": "chao_absoluto",
-      "dominance_penalty": 1.2820550213675905,
+      "dominance_penalty": 1.374474341572407,
       "dominance_terms": {
-        "global_term": 0.5822993216551089,
-        "cap_term": 0.9021176899554804,
-        "decis_term": 0.4973937094694829
+        "global_term": 0.6079823188218552,
+        "cap_term": 0.8999319702179761,
+        "decis_term": 0.6330520752831277
       },
-      "drift_penalty": 0.46862539570893524,
+      "drift_penalty": 0.43310646937306113,
       "per_character_drift": [
-        0.3945101502081796,
-        0.49847937617152727,
-        0.5032807989089311,
-        0.606894566153468,
-        0.3399620871025705
+        0.33892944029074623,
+        0.5034366508830775,
+        0.4161091656087966,
+        0.6013771241941348,
+        0.30567996588855023
       ],
       "validator_structural": 7,
       "validator_structural_total": 18,
       "validator_full": 8,
       "validator_full_total": 23,
       "cycle_edges_kept": 4,
-      "circular_triads": 1.0,
+      "circular_triads": 0.0,
       "pair_wr_min": 0.0,
       "pair_wr_max": 1.0,
       "global_wr": [
-        0.3525,
-        0.62875,
+        0.44,
+        0.43375,
         0.0,
-        0.7375,
-        0.78125
+        0.75,
+        0.87625
       ]
     },
     {
       "label": "aleatório 3",
       "role": "chao_absoluto",
-      "dominance_penalty": 1.2595818904688847,
+      "dominance_penalty": 1.348918573714028,
       "dominance_terms": {
-        "global_term": 0.6363312816450248,
-        "cap_term": 0.8435832223682643,
-        "decis_term": 0.40291799527945504
+        "global_term": 0.6653622133845595,
+        "cap_term": 0.8923484265048682,
+        "decis_term": 0.4747642941540687
       },
-      "drift_penalty": 0.4280757173915134,
+      "drift_penalty": 0.41878258762401055,
       "per_character_drift": [
-        0.39054091335070373,
-        0.38927605829730694,
-        0.36295461061180845,
-        0.4272826942574817,
-        0.5703243104402661
+        0.3795487907487542,
+        0.389460123049417,
+        0.35457967089978953,
+        0.40468583505372624,
+        0.5656385183683657
       ],
       "validator_structural": 6,
       "validator_structural_total": 18,
@@ -293,62 +293,62 @@
       "pair_wr_min": 0.0,
       "pair_wr_max": 1.0,
       "global_wr": [
-        0.40625,
+        0.30625,
         1.0,
-        0.4525,
-        0.62125,
-        0.02
+        0.590625,
+        0.600625,
+        0.0025
       ]
     },
     {
       "label": "aleatório 4",
       "role": "chao_absoluto",
-      "dominance_penalty": 1.4208813109973077,
+      "dominance_penalty": 1.454338379597499,
       "dominance_terms": {
-        "global_term": 0.6885001815540792,
-        "cap_term": 0.9457099697786714,
-        "decis_term": 0.5190522891077854
+        "global_term": 0.6813057316653075,
+        "cap_term": 0.9359160087904277,
+        "decis_term": 0.610149287073955
       },
-      "drift_penalty": 0.35796029545084807,
+      "drift_penalty": 0.3510061527980186,
       "per_character_drift": [
-        0.36555734504155263,
-        0.2842105066516504,
-        0.33384416588565013,
-        0.34190133590002636,
-        0.46428812377536094
+        0.36038946170770386,
+        0.2976341417822065,
+        0.3038530558408575,
+        0.33687706477108387,
+        0.4562770398882413
       ],
       "validator_structural": 7,
       "validator_structural_total": 18,
       "validator_full": 9,
       "validator_full_total": 23,
-      "cycle_edges_kept": 6,
+      "cycle_edges_kept": 5,
       "circular_triads": 0.0,
-      "pair_wr_min": 0.485,
+      "pair_wr_min": 0.53,
       "pair_wr_max": 1.0,
       "global_wr": [
-        0.87125,
-        0.87875,
-        0.4975,
-        0.2525,
+        0.8825,
+        0.85625,
+        0.5,
+        0.26125,
         0.0
       ]
     },
     {
       "label": "aleatório 5",
       "role": "chao_absoluto",
-      "dominance_penalty": 1.2273378009853435,
+      "dominance_penalty": 1.2844458252038295,
       "dominance_terms": {
-        "global_term": 0.5918466862287902,
-        "cap_term": 0.8880039529237261,
-        "decis_term": 0.3829782765893805
+        "global_term": 0.5639769498835924,
+        "cap_term": 0.9581018649775552,
+        "decis_term": 0.48283588566291913
       },
-      "drift_penalty": 0.39800458620837237,
+      "drift_penalty": 0.39398534928384066,
       "per_character_drift": [
-        0.14209520906400622,
-        0.6832565910042993,
-        0.3031951400590182,
-        0.41065862109807,
-        0.4508173698164682
+        0.10775130512749559,
+        0.6847530146152145,
+        0.31232044198737413,
+        0.4086605174734789,
+        0.45644146721564033
       ],
       "validator_structural": 8,
       "validator_structural_total": 18,
@@ -359,62 +359,62 @@
       "pair_wr_min": 0.0,
       "pair_wr_max": 1.0,
       "global_wr": [
-        0.4975,
-        0.19125,
-        0.205,
-        0.9925,
-        0.61375
+        0.5,
+        0.25,
+        0.2075,
+        0.9975,
+        0.545
       ]
     },
     {
       "label": "aleatório 6",
       "role": "chao_absoluto",
-      "dominance_penalty": 0.951532608595381,
+      "dominance_penalty": 1.0324017491764201,
       "dominance_terms": {
-        "global_term": 0.5411117028858274,
-        "cap_term": 0.7203669699733404,
-        "decis_term": 0.10047484144576677
+        "global_term": 0.5282121969436147,
+        "cap_term": 0.8068362249413142,
+        "decis_term": 0.2015428795242968
       },
-      "drift_penalty": 0.4995827421518399,
+      "drift_penalty": 0.47827083189001174,
       "per_character_drift": [
-        0.3992736553779705,
-        0.5656247674798639,
-        0.49800508069589483,
-        0.6005709994475137,
-        0.4344392077579566
+        0.37571800731083715,
+        0.5562049672070493,
+        0.4325108901393311,
+        0.5915072410199511,
+        0.4354130537728901
       ],
       "validator_structural": 3,
       "validator_structural_total": 18,
       "validator_full": 3,
       "validator_full_total": 23,
-      "cycle_edges_kept": 5,
-      "circular_triads": 0.0,
+      "cycle_edges_kept": 4,
+      "circular_triads": 2.0,
       "pair_wr_min": 0.005,
       "pair_wr_max": 1.0,
       "global_wr": [
-        0.5575,
-        0.250625,
-        0.900625,
-        0.1525,
-        0.63875
+        0.5025,
+        0.296875,
+        0.965,
+        0.2,
+        0.535625
       ]
     },
     {
       "label": "aleatório 7",
       "role": "chao_absoluto",
-      "dominance_penalty": 1.4632856845396682,
+      "dominance_penalty": 1.567331394018536,
       "dominance_terms": {
-        "global_term": 0.6807665715941111,
-        "cap_term": 0.9053948287450991,
-        "decis_term": 0.6596433971460152
+        "global_term": 0.7064063986120172,
+        "cap_term": 0.997179696413227,
+        "decis_term": 0.7246702943998108
       },
-      "drift_penalty": 0.4352495628432817,
+      "drift_penalty": 0.4311918658350497,
       "per_character_drift": [
-        0.3651012326944859,
-        0.5554689533900535,
-        0.5143220053765316,
-        0.30731455115280154,
-        0.4340410716025361
+        0.36493037308161735,
+        0.5642070255265799,
+        0.5126560730057867,
+        0.3039836066515034,
+        0.41018225090976124
       ],
       "validator_structural": 4,
       "validator_structural_total": 18,
@@ -425,29 +425,29 @@
       "pair_wr_min": 0.0,
       "pair_wr_max": 1.0,
       "global_wr": [
-        0.314375,
-        0.80625,
+        0.25,
+        0.7525,
         0.0,
-        0.94375,
-        0.435625
+        0.9975,
+        0.5
       ]
     },
     {
       "label": "aleatório 8",
       "role": "chao_absoluto",
-      "dominance_penalty": 1.0687833243097022,
+      "dominance_penalty": 1.1775401546551487,
       "dominance_terms": {
-        "global_term": 0.5190526225730875,
-        "cap_term": 0.8911268949241421,
-        "decis_term": 0.2083345085490876
+        "global_term": 0.5290445397128676,
+        "cap_term": 0.9488150504708491,
+        "decis_term": 0.3481761794137131
       },
-      "drift_penalty": 0.50898991281708,
+      "drift_penalty": 0.49152131699263873,
       "per_character_drift": [
-        0.4918324937627729,
-        0.6363575113987443,
-        0.38053884343460875,
-        0.4838099986822912,
-        0.5524107168069827
+        0.47686207786326706,
+        0.622590818155493,
+        0.32506116853154904,
+        0.4880357567973435,
+        0.5450567636155411
       ],
       "validator_structural": 3,
       "validator_structural_total": 18,
@@ -458,29 +458,29 @@
       "pair_wr_min": 0.0,
       "pair_wr_max": 1.0,
       "global_wr": [
-        0.993125,
-        0.47375,
-        0.459375,
-        0.2725,
-        0.30125
+        0.991875,
+        0.510625,
+        0.455,
+        0.2475,
+        0.295
       ]
     },
     {
       "label": "aleatório 9",
       "role": "chao_absoluto",
-      "dominance_penalty": 1.2449268007202765,
+      "dominance_penalty": 1.2057026850077555,
       "dominance_terms": {
-        "global_term": 0.5935628652468077,
-        "cap_term": 0.8587989952752124,
-        "decis_term": 0.44392887567172545
+        "global_term": 0.539217024953775,
+        "cap_term": 0.8376351551010884,
+        "decis_term": 0.49533616500687266
       },
-      "drift_penalty": 0.4653863126156076,
+      "drift_penalty": 0.4414194638872604,
       "per_character_drift": [
-        0.35062096715440205,
-        0.6016918904206465,
-        0.34422852466259213,
-        0.48724227568744843,
-        0.5431479051529489
+        0.2961950191558911,
+        0.5975698318162093,
+        0.2973164413817125,
+        0.4750323758474623,
+        0.5409836512350269
       ],
       "validator_structural": 4,
       "validator_structural_total": 18,
@@ -491,29 +491,29 @@
       "pair_wr_min": 0.0,
       "pair_wr_max": 1.0,
       "global_wr": [
-        0.675625,
-        0.255,
-        0.675625,
-        0.8425,
-        0.05125
+        0.83625,
+        0.33,
+        0.59125,
+        0.67125,
+        0.07125
       ]
     },
     {
       "label": "aleatório 10",
       "role": "chao_absoluto",
-      "dominance_penalty": 1.3375457839658516,
+      "dominance_penalty": 1.431294198519292,
       "dominance_terms": {
-        "global_term": 0.6806068064602352,
-        "cap_term": 0.9424620384278356,
-        "decis_term": 0.37141591658339695
+        "global_term": 0.68920425129275,
+        "cap_term": 0.9486832980505138,
+        "decis_term": 0.5354965964025701
       },
-      "drift_penalty": 0.4466757263013087,
+      "drift_penalty": 0.43962574603990073,
       "per_character_drift": [
-        0.2977756858572961,
-        0.47874826133569315,
-        0.35971782995132595,
-        0.5209991791514593,
-        0.5761376752107692
+        0.25199656111079777,
+        0.4916805308160351,
+        0.37965044744326976,
+        0.5134726860488981,
+        0.5613285047805028
       ],
       "validator_structural": 4,
       "validator_structural_total": 18,
@@ -524,29 +524,29 @@
       "pair_wr_min": 0.0,
       "pair_wr_max": 1.0,
       "global_wr": [
-        0.950625,
-        0.01625,
-        0.50125,
+        0.87625,
+        0.0,
+        0.5,
         0.25,
-        0.781875
+        0.87375
       ]
     },
     {
       "label": "aleatório 11",
       "role": "chao_absoluto",
-      "dominance_penalty": 1.155352970172391,
+      "dominance_penalty": 1.3363648631940988,
       "dominance_terms": {
-        "global_term": 0.6572913166929866,
-        "cap_term": 0.8558859832515839,
-        "decis_term": 0.14023732370722475
+        "global_term": 0.6915693204589111,
+        "cap_term": 0.9446438698347258,
+        "decis_term": 0.3449472156356496
       },
-      "drift_penalty": 0.3435104763602319,
+      "drift_penalty": 0.33306583114575355,
       "per_character_drift": [
-        0.37485628622852357,
-        0.32573410076034126,
-        0.25212535242410833,
-        0.27158818401044404,
-        0.49324845837774234
+        0.3384454698506606,
+        0.3389082698535087,
+        0.2510221708537913,
+        0.2619262612448727,
+        0.47502698392593434
       ],
       "validator_structural": 9,
       "validator_structural_total": 18,
@@ -554,98 +554,98 @@
       "validator_full_total": 23,
       "cycle_edges_kept": 6,
       "circular_triads": 0.0,
-      "pair_wr_min": 0.0775,
+      "pair_wr_min": 0.005,
       "pair_wr_max": 1.0,
       "global_wr": [
-        0.644375,
-        0.945,
-        0.654375,
-        0.23,
-        0.02625
+        0.72,
+        0.993125,
+        0.536875,
+        0.23375,
+        0.01625
       ]
     },
     {
       "label": "aleatório 12",
       "role": "chao_absoluto",
-      "dominance_penalty": 1.2265452603171347,
+      "dominance_penalty": 1.3531546224868678,
       "dominance_terms": {
-        "global_term": 0.5281861650971179,
-        "cap_term": 0.8151154920047358,
-        "decis_term": 0.5816026984352978
+        "global_term": 0.5884258661887664,
+        "cap_term": 0.8593424158943291,
+        "decis_term": 0.6701150967018737
       },
-      "drift_penalty": 0.4838626313478036,
+      "drift_penalty": 0.47720669287383244,
       "per_character_drift": [
-        0.346411744325692,
-        0.7114486800678158,
-        0.42090645417850614,
-        0.4884215748274558,
-        0.4521247033395484
+        0.34559186338103604,
+        0.6975285794428514,
+        0.42158098952688144,
+        0.47458519482702155,
+        0.44674683719137176
       ],
       "validator_structural": 4,
       "validator_structural_total": 18,
-      "validator_full": 7,
+      "validator_full": 6,
       "validator_full_total": 23,
       "cycle_edges_kept": 4,
       "circular_triads": 1.0,
       "pair_wr_min": 0.0,
       "pair_wr_max": 1.0,
       "global_wr": [
-        0.36625,
-        0.838125,
-        0.2475,
-        0.24875,
-        0.799375
+        0.32375,
+        0.84625,
+        0.25,
+        0.21125,
+        0.86875
       ]
     },
     {
       "label": "aleatório 13",
       "role": "chao_absoluto",
-      "dominance_penalty": 1.3131335615346036,
+      "dominance_penalty": 1.3247473149577955,
       "dominance_terms": {
-        "global_term": 0.6823905589909638,
-        "cap_term": 0.9211932146816487,
-        "decis_term": 0.3402927904056309
+        "global_term": 0.6825032051206793,
+        "cap_term": 0.9219572126952619,
+        "decis_term": 0.3625310069789703
       },
-      "drift_penalty": 0.3702967263216855,
+      "drift_penalty": 0.36931880813784435,
       "per_character_drift": [
-        0.4175524998669559,
-        0.46831160435666436,
-        0.3227884053571108,
-        0.2897082340127732,
-        0.3531228880149232
+        0.40608712957451004,
+        0.4755123529118121,
+        0.3234986367626468,
+        0.2892661070231124,
+        0.35222981441714063
       ],
       "validator_structural": 7,
       "validator_structural_total": 18,
       "validator_full": 8,
       "validator_full_total": 23,
-      "cycle_edges_kept": 5,
+      "cycle_edges_kept": 4,
       "circular_triads": 0.0,
       "pair_wr_min": 0.0,
       "pair_wr_max": 1.0,
       "global_wr": [
-        0.491875,
-        0.241875,
-        0.8825,
-        0.8675,
-        0.01625
+        0.5,
+        0.224375,
+        0.8725,
+        0.8775,
+        0.025625
       ]
     },
     {
       "label": "aleatório 14",
       "role": "chao_absoluto",
-      "dominance_penalty": 1.423261436028991,
+      "dominance_penalty": 1.4992821512346617,
       "dominance_terms": {
-        "global_term": 0.6877304159334529,
-        "cap_term": 0.9396074951265339,
-        "decis_term": 0.5314545450645425
+        "global_term": 0.698412933013128,
+        "cap_term": 0.9670304851366753,
+        "decis_term": 0.6347079513063921
       },
-      "drift_penalty": 0.43196325365522403,
+      "drift_penalty": 0.41405431610155075,
       "per_character_drift": [
-        0.3761568617291317,
-        0.6283043198676522,
-        0.298982821852108,
-        0.2740497686934658,
-        0.5823224961337624
+        0.3284614889285881,
+        0.6285817920587372,
+        0.24279829209038947,
+        0.27303682449359973,
+        0.5973931829364394
       ],
       "validator_structural": 4,
       "validator_structural_total": 18,
@@ -656,29 +656,29 @@
       "pair_wr_min": 0.0,
       "pair_wr_max": 1.0,
       "global_wr": [
-        0.068125,
-        0.9925,
-        0.184375,
-        0.505,
+        0.035625,
+        1.0,
+        0.214375,
+        0.5,
         0.75
       ]
     },
     {
       "label": "aleatório 15",
       "role": "chao_absoluto",
-      "dominance_penalty": 1.3920054200946512,
+      "dominance_penalty": 1.4084192064215681,
       "dominance_terms": {
-        "global_term": 0.6822128516819366,
-        "cap_term": 0.9157382435020637,
-        "decis_term": 0.5038468933233655
+        "global_term": 0.6772430324484705,
+        "cap_term": 0.9158413105568284,
+        "decis_term": 0.5465110373893667
       },
-      "drift_penalty": 0.4812396999288092,
+      "drift_penalty": 0.47496680091532645,
       "per_character_drift": [
-        0.3909718263308752,
-        0.6145015184914032,
-        0.50776774084312,
-        0.45131205639064753,
-        0.4416453575880001
+        0.38769639838012177,
+        0.6217053862209203,
+        0.4647313889429143,
+        0.4433484658625965,
+        0.4573523651700794
       ],
       "validator_structural": 4,
       "validator_structural_total": 18,
@@ -689,128 +689,128 @@
       "pair_wr_min": 0.0,
       "pair_wr_max": 1.0,
       "global_wr": [
-        0.45,
-        0.751875,
-        0.99125,
-        0.0225,
-        0.284375
+        0.44125,
+        0.72375,
+        0.994375,
+        0.0,
+        0.340625
       ]
     },
     {
       "label": "aleatório 16",
       "role": "chao_absoluto",
-      "dominance_penalty": 1.2291619406318042,
+      "dominance_penalty": 1.2594940307729217,
       "dominance_terms": {
-        "global_term": 0.6148195873587633,
-        "cap_term": 0.7676561198657554,
-        "decis_term": 0.4610285866803265
+        "global_term": 0.6160620910265457,
+        "cap_term": 0.7777584221757461,
+        "decis_term": 0.5091054573170054
       },
-      "drift_penalty": 0.38133524964164545,
+      "drift_penalty": 0.3727004642200006,
       "per_character_drift": [
-        0.28575291444311324,
-        0.4883189123502862,
-        0.308406158089477,
-        0.4479543683551414,
-        0.3762438949702095
+        0.267783300471832,
+        0.46867564940304884,
+        0.30835458017354234,
+        0.44290692469631376,
+        0.37578186635526617
       ],
       "validator_structural": 5,
       "validator_structural_total": 18,
       "validator_full": 8,
       "validator_full_total": 23,
-      "cycle_edges_kept": 4,
+      "cycle_edges_kept": 3,
       "circular_triads": 0.0,
-      "pair_wr_min": 0.04,
+      "pair_wr_min": 0.03,
       "pair_wr_max": 1.0,
       "global_wr": [
-        0.58375,
-        0.351875,
-        0.65125,
-        0.913125,
+        0.69625,
+        0.3025,
+        0.6475,
+        0.85375,
         0.0
       ]
     },
     {
       "label": "aleatório 17",
       "role": "chao_absoluto",
-      "dominance_penalty": 1.3521136831712157,
+      "dominance_penalty": 1.445544948440276,
       "dominance_terms": {
-        "global_term": 0.6584266284104858,
-        "cap_term": 0.8781967842327452,
-        "decis_term": 0.5091773252887142
+        "global_term": 0.6796115618498556,
+        "cap_term": 0.9187946851551698,
+        "decis_term": 0.6130720880256708
       },
-      "drift_penalty": 0.4703284795909237,
+      "drift_penalty": 0.4696290975427315,
       "per_character_drift": [
-        0.34207185525112843,
-        0.6146845062129102,
-        0.4798077722639173,
-        0.36616400011223416,
-        0.5489142641144287
+        0.34249185026527795,
+        0.6154641294318204,
+        0.48060841918298447,
+        0.3638877864447296,
+        0.5456933023888454
       ],
       "validator_structural": 5,
       "validator_structural_total": 18,
       "validator_full": 5,
       "validator_full_total": 23,
-      "cycle_edges_kept": 5,
+      "cycle_edges_kept": 4,
       "circular_triads": 0.0,
       "pair_wr_min": 0.0,
       "pair_wr_max": 1.0,
       "global_wr": [
-        0.613125,
+        0.433125,
         1.0,
-        0.336875,
-        0.55,
-        0.0
+        0.343125,
+        0.7225,
+        0.00125
       ]
     },
     {
       "label": "aleatório 18",
       "role": "chao_absoluto",
-      "dominance_penalty": 1.147809336128222,
+      "dominance_penalty": 1.2880050528176263,
       "dominance_terms": {
-        "global_term": 0.6355184891094829,
-        "cap_term": 0.8430356953732561,
-        "decis_term": 0.18154599866422183
+        "global_term": 0.6771807365836686,
+        "cap_term": 0.9142243282963867,
+        "decis_term": 0.3074243041715291
       },
-      "drift_penalty": 0.4436173389951098,
+      "drift_penalty": 0.43199478895616766,
       "per_character_drift": [
-        0.4197194059340102,
-        0.41057043413727085,
-        0.4771746210701449,
-        0.46303449359630383,
-        0.4475877402378194
+        0.4182717429039386,
+        0.4186414061796291,
+        0.47187527633855797,
+        0.4104429896903257,
+        0.4407425296683869
       ],
       "validator_structural": 5,
       "validator_structural_total": 18,
       "validator_full": 5,
       "validator_full_total": 23,
       "cycle_edges_kept": 6,
-      "circular_triads": 0.75,
-      "pair_wr_min": 0.0825,
+      "circular_triads": 0.0,
+      "pair_wr_min": 0.025,
       "pair_wr_max": 1.0,
       "global_wr": [
-        0.770625,
-        0.979375,
-        0.153125,
-        0.309375,
-        0.2875
+        0.773125,
+        0.976875,
+        0.0375,
+        0.445625,
+        0.266875
       ]
     },
     {
       "label": "aleatório 19",
       "role": "chao_absoluto",
-      "dominance_penalty": 1.4104036278446745,
+      "dominance_penalty": 1.4152713124962024,
       "dominance_terms": {
-        "global_term": 0.6763010609188781,
-        "cap_term": 0.9091990195456973,
-        "decis_term": 0.5590061143058958
+        "global_term": 0.6727216177587874,
+        "cap_term": 0.9062256330292052,
+        "decis_term": 0.578873756445625
       },
-      "drift_penalty": 0.3621228365415173,
+      "drift_penalty": 0.3569097664944835,
       "per_character_drift": [
-        0.35601159626629775,
-        0.4637605255482498,
-        0.3611487033807954,
-        0.29645677575706236,
-        0.33323658175518095
+        0.3582763289506278,
+        0.46529132916565263,
+        0.33780517701008594,
+        0.2909977040398616,
+        0.3321782933061897
       ],
       "validator_structural": 6,
       "validator_structural_total": 18,
@@ -821,161 +821,95 @@
       "pair_wr_min": 0.0,
       "pair_wr_max": 1.0,
       "global_wr": [
-        0.586875,
+        0.614375,
         0.0,
-        0.68875,
-        0.968125,
-        0.25625
+        0.636875,
+        0.98,
+        0.26875
       ]
     },
     {
       "label": "aleatório 20",
       "role": "chao_absoluto",
-      "dominance_penalty": 1.1349647809183618,
+      "dominance_penalty": 1.0941279849780257,
       "dominance_terms": {
-        "global_term": 0.6045943888260955,
-        "cap_term": 0.7939696185006331,
-        "decis_term": 0.2667711656838992
+        "global_term": 0.6029547039372029,
+        "cap_term": 0.7556960570310295,
+        "decis_term": 0.22665050505061626
       },
-      "drift_penalty": 0.4454350840883013,
+      "drift_penalty": 0.42601611078571777,
       "per_character_drift": [
-        0.4621698206743974,
-        0.5942869418888376,
-        0.41525877867681754,
-        0.3326412133128938,
-        0.42281866588855993
+        0.4472926132582011,
+        0.5788102389017894,
+        0.3947165659439241,
+        0.2998505199146277,
+        0.4094106159100463
       ],
       "validator_structural": 3,
       "validator_structural_total": 18,
       "validator_full": 5,
       "validator_full_total": 23,
-      "cycle_edges_kept": 6,
-      "circular_triads": 1.0,
-      "pair_wr_min": 0.07,
+      "cycle_edges_kept": 5,
+      "circular_triads": 0.0,
+      "pair_wr_min": 0.01,
       "pair_wr_max": 1.0,
       "global_wr": [
-        0.985,
-        0.71125,
-        0.195,
-        0.243125,
-        0.365625
+        0.960625,
+        0.6725,
+        0.19125,
+        0.158125,
+        0.5175
       ]
     },
     {
       "label": "aleatório 21",
       "role": "chao_absoluto",
-      "dominance_penalty": 1.1351890238503757,
+      "dominance_penalty": 1.2242242595462267,
       "dominance_terms": {
-        "global_term": 0.6141330271203462,
-        "cap_term": 0.7530685525886466,
-        "decis_term": 0.28904344087141237
+        "global_term": 0.5980677219178444,
+        "cap_term": 0.7480109679431615,
+        "decis_term": 0.504302107313603
       },
-      "drift_penalty": 0.4261273714992024,
+      "drift_penalty": 0.3998719060448192,
       "per_character_drift": [
-        0.30092517261391927,
-        0.5750416285888696,
-        0.4985417026191595,
-        0.3906919815265265,
-        0.3654363721475371
+        0.29307052394879934,
+        0.5416245012761282,
+        0.4417100495301908,
+        0.37180333545602584,
+        0.35115112001295196
       ],
       "validator_structural": 7,
       "validator_structural_total": 18,
       "validator_full": 8,
       "validator_full_total": 23,
-      "cycle_edges_kept": 4,
+      "cycle_edges_kept": 6,
       "circular_triads": 0.0,
       "pair_wr_min": 0.0,
-      "pair_wr_max": 0.985,
+      "pair_wr_max": 1.0,
       "global_wr": [
-        0.746875,
-        0.42125,
-        0.256875,
-        0.95125,
-        0.12375
+        0.666875,
+        0.326875,
+        0.155625,
+        0.99875,
+        0.351875
       ]
     },
     {
       "label": "aleatório 22",
       "role": "chao_absoluto",
-      "dominance_penalty": 1.2243724340459687,
+      "dominance_penalty": 1.3812169187818997,
       "dominance_terms": {
-        "global_term": 0.6450678258912004,
-        "cap_term": 0.8426028672136919,
-        "decis_term": 0.3160063490958447
+        "global_term": 0.6856511503672986,
+        "cap_term": 0.938355052249218,
+        "decis_term": 0.4527764845799843
       },
-      "drift_penalty": 0.4269633672434427,
+      "drift_penalty": 0.4122977341506592,
       "per_character_drift": [
-        0.3382869961430702,
-        0.44860546088746117,
-        0.46311623616444997,
-        0.3694218972453294,
-        0.5153862457769027
-      ],
-      "validator_structural": 5,
-      "validator_structural_total": 18,
-      "validator_full": 6,
-      "validator_full_total": 23,
-      "cycle_edges_kept": 5,
-      "circular_triads": 0.0,
-      "pair_wr_min": 0.0,
-      "pair_wr_max": 1.0,
-      "global_wr": [
-        0.00375,
-        0.7675,
-        0.24625,
-        0.6375,
-        0.845
-      ]
-    },
-    {
-      "label": "aleatório 23",
-      "role": "chao_absoluto",
-      "dominance_penalty": 1.2587766505173517,
-      "dominance_terms": {
-        "global_term": 0.6715327616728762,
-        "cap_term": 0.8875470668749728,
-        "decis_term": 0.28694071081397776
-      },
-      "drift_penalty": 0.43087209381113656,
-      "per_character_drift": [
-        0.4474600865165552,
-        0.5613773916206444,
-        0.28892729159896346,
-        0.33176996312250107,
-        0.5248257361970184
-      ],
-      "validator_structural": 6,
-      "validator_structural_total": 18,
-      "validator_full": 7,
-      "validator_full_total": 23,
-      "cycle_edges_kept": 5,
-      "circular_triads": 0.0,
-      "pair_wr_min": 0.0,
-      "pair_wr_max": 1.0,
-      "global_wr": [
-        0.98,
-        0.128125,
-        0.135625,
-        0.506875,
-        0.749375
-      ]
-    },
-    {
-      "label": "aleatório 24",
-      "role": "chao_absoluto",
-      "dominance_penalty": 1.3524985548237858,
-      "dominance_terms": {
-        "global_term": 0.6867300233716304,
-        "cap_term": 0.9405409863152033,
-        "decis_term": 0.3909960765891076
-      },
-      "drift_penalty": 0.4221425340190831,
-      "per_character_drift": [
-        0.29022430519219633,
-        0.5575619836916497,
-        0.44521699051830455,
-        0.36702953651056985,
-        0.45067985418269524
+        0.33288129203687816,
+        0.4521854235020488,
+        0.4230405634833938,
+        0.3585376811595649,
+        0.49484371057140997
       ],
       "validator_structural": 5,
       "validator_structural_total": 18,
@@ -986,62 +920,128 @@
       "pair_wr_min": 0.0,
       "pair_wr_max": 1.0,
       "global_wr": [
-        0.254375,
-        0.603125,
         0.0,
-        0.9975,
-        0.645
+        0.61625,
+        0.25,
+        0.6425,
+        0.99125
+      ]
+    },
+    {
+      "label": "aleatório 23",
+      "role": "chao_absoluto",
+      "dominance_penalty": 1.2238991538980124,
+      "dominance_terms": {
+        "global_term": 0.6676694541462863,
+        "cap_term": 0.8834244594249154,
+        "decis_term": 0.22903494007853653
+      },
+      "drift_penalty": 0.41489715685548445,
+      "per_character_drift": [
+        0.43428398354311903,
+        0.5633402097437228,
+        0.24580809151533975,
+        0.3125569512575162,
+        0.5184965482177245
+      ],
+      "validator_structural": 6,
+      "validator_structural_total": 18,
+      "validator_full": 7,
+      "validator_full_total": 23,
+      "cycle_edges_kept": 6,
+      "circular_triads": 0.0,
+      "pair_wr_min": 0.0,
+      "pair_wr_max": 1.0,
+      "global_wr": [
+        0.890625,
+        0.145625,
+        0.109375,
+        0.49875,
+        0.855625
+      ]
+    },
+    {
+      "label": "aleatório 24",
+      "role": "chao_absoluto",
+      "dominance_penalty": 1.4209016615177705,
+      "dominance_terms": {
+        "global_term": 0.6948722904246506,
+        "cap_term": 0.955253999772643,
+        "decis_term": 0.4968047424135967
+      },
+      "drift_penalty": 0.4066681455800799,
+      "per_character_drift": [
+        0.24323035892481437,
+        0.5609118557219918,
+        0.4283243000857786,
+        0.3520453771185804,
+        0.4488288360492345
+      ],
+      "validator_structural": 5,
+      "validator_structural_total": 18,
+      "validator_full": 6,
+      "validator_full_total": 23,
+      "cycle_edges_kept": 6,
+      "circular_triads": 0.0,
+      "pair_wr_min": 0.0,
+      "pair_wr_max": 1.0,
+      "global_wr": [
+        0.25375,
+        0.54375,
+        0.0,
+        1.0,
+        0.7025
       ]
     },
     {
       "label": "aleatório 25",
       "role": "chao_absoluto",
-      "dominance_penalty": 1.4020967261605426,
+      "dominance_penalty": 1.4556399232512187,
       "dominance_terms": {
-        "global_term": 0.6838334044195268,
-        "cap_term": 0.9205283531644161,
-        "decis_term": 0.5159982903176152
+        "global_term": 0.6895578293370325,
+        "cap_term": 0.9486832980505138,
+        "decis_term": 0.5834808897778587
       },
-      "drift_penalty": 0.38193246338501213,
+      "drift_penalty": 0.3751583219947573,
       "per_character_drift": [
-        0.4051627593871022,
-        0.41360034899511855,
-        0.3320767680635373,
-        0.4690159869388246,
-        0.28980645354047785
+        0.39877392792276095,
+        0.42332431956785405,
+        0.32426303112092986,
+        0.44392166923161874,
+        0.2855086621306229
       ],
       "validator_structural": 7,
       "validator_structural_total": 18,
       "validator_full": 7,
       "validator_full_total": 23,
-      "cycle_edges_kept": 5,
+      "cycle_edges_kept": 6,
       "circular_triads": 0.0,
-      "pair_wr_min": 0.685,
+      "pair_wr_min": 0.43,
       "pair_wr_max": 1.0,
       "global_wr": [
-        0.92,
-        0.8275,
-        0.476875,
-        0.275625,
+        0.8575,
+        0.8925,
+        0.5,
+        0.25,
         0.0
       ]
     },
     {
       "label": "aleatório 26",
       "role": "chao_absoluto",
-      "dominance_penalty": 1.2195973032970422,
+      "dominance_penalty": 1.2916807709088287,
       "dominance_terms": {
-        "global_term": 0.6094756968083305,
-        "cap_term": 0.7720367972619767,
-        "decis_term": 0.4482064157154469
+        "global_term": 0.631097753917727,
+        "cap_term": 0.8137874415349502,
+        "decis_term": 0.5073785924472529
       },
-      "drift_penalty": 0.3737545694200611,
+      "drift_penalty": 0.36076170840427607,
       "per_character_drift": [
-        0.4771314226446078,
-        0.4729144390428016,
-        0.259257414248359,
-        0.3537455086500581,
-        0.30572406251447876
+        0.46659844993535793,
+        0.4729567482062619,
+        0.2548786415015134,
+        0.30388924480421214,
+        0.30548545757403506
       ],
       "validator_structural": 7,
       "validator_structural_total": 18,
@@ -1052,29 +1052,29 @@
       "pair_wr_min": 0.0,
       "pair_wr_max": 1.0,
       "global_wr": [
-        0.71875,
-        0.89875,
+        0.599375,
+        0.966875,
         0.0,
-        0.424375,
-        0.458125
+        0.3725,
+        0.56125
       ]
     },
     {
       "label": "aleatório 27",
       "role": "chao_absoluto",
-      "dominance_penalty": 1.2730501362393933,
+      "dominance_penalty": 1.3218686260029031,
       "dominance_terms": {
-        "global_term": 0.6345111307140325,
-        "cap_term": 0.8357448101873574,
-        "decis_term": 0.44133320086336436
+        "global_term": 0.6436618871736931,
+        "cap_term": 0.8436316054500838,
+        "decis_term": 0.5127818722083364
       },
-      "drift_penalty": 0.4871374751390741,
+      "drift_penalty": 0.4751682657824892,
       "per_character_drift": [
-        0.4460817223317643,
-        0.5159993278056813,
-        0.5364653532725807,
-        0.4465733013934245,
-        0.49056767089192
+        0.4278801802182067,
+        0.509457542488224,
+        0.5147590104794826,
+        0.44733454896749014,
+        0.47641004675904286
       ],
       "validator_structural": 3,
       "validator_structural_total": 18,
@@ -1083,31 +1083,31 @@
       "cycle_edges_kept": 6,
       "circular_triads": 0.0,
       "pair_wr_min": 0.0,
-      "pair_wr_max": 0.69,
+      "pair_wr_max": 0.785,
       "global_wr": [
         0.0,
-        0.25125,
-        0.7225,
-        0.804375,
-        0.721875
+        0.25375,
+        0.844375,
+        0.76375,
+        0.638125
       ]
     },
     {
       "label": "aleatório 28",
       "role": "chao_absoluto",
-      "dominance_penalty": 1.1877411520974843,
+      "dominance_penalty": 1.1558741061157716,
       "dominance_terms": {
-        "global_term": 0.6421584695384777,
-        "cap_term": 0.832499923392777,
-        "decis_term": 0.25866544172523637
+        "global_term": 0.6053836593433952,
+        "cap_term": 0.7818769933007756,
+        "decis_term": 0.31910390024397695
       },
-      "drift_penalty": 0.402815700467693,
+      "drift_penalty": 0.3740466184269522,
       "per_character_drift": [
-        0.3643374451122894,
-        0.45134250573700035,
-        0.45621264517710125,
-        0.40367834918060513,
-        0.33850755713146885
+        0.370742795784686,
+        0.39798635336665594,
+        0.3805340428512372,
+        0.3987611976463714,
+        0.3222087024858105
       ],
       "validator_structural": 5,
       "validator_structural_total": 18,
@@ -1116,31 +1116,31 @@
       "cycle_edges_kept": 4,
       "circular_triads": 0.0,
       "pair_wr_min": 0.0,
-      "pair_wr_max": 0.99,
+      "pair_wr_max": 0.985,
       "global_wr": [
-        0.20125,
-        0.655,
-        0.11125,
-        0.5325,
+        0.35,
+        0.604375,
+        0.08375,
+        0.461875,
         1.0
       ]
     },
     {
       "label": "aleatório 29",
       "role": "chao_absoluto",
-      "dominance_penalty": 1.0693862934011602,
+      "dominance_penalty": 1.2288386541401866,
       "dominance_terms": {
-        "global_term": 0.5530410246988916,
-        "cap_term": 0.7617347280506301,
-        "decis_term": 0.2709558093539071
+        "global_term": 0.5662524834382627,
+        "cap_term": 0.8790532941053978,
+        "decis_term": 0.4461190472984499
       },
-      "drift_penalty": 0.33935305551313666,
+      "drift_penalty": 0.3267347249651118,
       "per_character_drift": [
-        0.27229195369733833,
-        0.3468300022276696,
-        0.38558975970303,
-        0.4050495692897483,
-        0.2870039926478972
+        0.2569035834167963,
+        0.35110768662136954,
+        0.3710897490818814,
+        0.3774625387661698,
+        0.2771100669393419
       ],
       "validator_structural": 9,
       "validator_structural_total": 18,
@@ -1151,44 +1151,44 @@
       "pair_wr_min": 0.0,
       "pair_wr_max": 1.0,
       "global_wr": [
-        0.83125,
-        0.49,
-        0.519375,
-        0.0025,
-        0.656875
+        0.7925,
+        0.403125,
+        0.583125,
+        0.0,
+        0.72125
       ]
     },
     {
       "label": "aleatório 30",
       "role": "chao_absoluto",
-      "dominance_penalty": 1.310459715341972,
+      "dominance_penalty": 1.1765664646687077,
       "dominance_terms": {
-        "global_term": 0.6667556711419859,
-        "cap_term": 0.9075449052812983,
-        "decis_term": 0.37986318311867395
+        "global_term": 0.5588811367366052,
+        "cap_term": 0.8382470776956553,
+        "decis_term": 0.3971235781685496
       },
-      "drift_penalty": 0.4715876251174921,
+      "drift_penalty": 0.4548276320211273,
       "per_character_drift": [
-        0.4923648593870575,
-        0.6371019013523186,
-        0.4320047806883541,
-        0.3967539950632598,
-        0.39971258909647056
+        0.43687905862325904,
+        0.6122228762301265,
+        0.432959835641881,
+        0.39210956264925345,
+        0.3999668269611167
       ],
       "validator_structural": 1,
       "validator_structural_total": 18,
-      "validator_full": 1,
+      "validator_full": 2,
       "validator_full_total": 23,
       "cycle_edges_kept": 6,
       "circular_triads": 0.0,
       "pair_wr_min": 0.0,
       "pair_wr_max": 1.0,
       "global_wr": [
-        0.921875,
-        0.28375,
-        0.005,
+        0.91,
+        0.39375,
+        0.061875,
         0.49625,
-        0.793125
+        0.638125
       ]
     }
   ],
@@ -1197,12 +1197,12 @@
       "melhor": "maior",
       "teto": 23,
       "nulos": [
-        5,
-        7,
-        9,
-        9,
-        7,
         6,
+        6,
+        7,
+        9,
+        7,
+        5,
         8,
         7,
         9,
@@ -1213,7 +1213,7 @@
         5,
         6,
         10,
-        7,
+        6,
         8,
         5,
         6,
@@ -1231,21 +1231,21 @@
         3,
         5,
         10,
-        1
+        2
       ],
       "espelho": {
-        "media": 7.4,
-        "desvio": 1.4966629547095764,
+        "media": 7.0,
+        "desvio": 1.0954451150103321,
         "extremo": 9,
         "n": 5
       },
       "aleatorio": {
-        "media": 6.3,
-        "desvio": 2.0518284528683193,
+        "media": 6.266666666666667,
+        "desvio": 1.9821424996424675,
         "extremo": 10,
         "n": 30
       },
-      "piso": 6.457142857142857,
+      "piso": 6.371428571428571,
       "piso_extremo": 10
     },
     "validator_structural": {
@@ -1307,91 +1307,91 @@
       "melhor": "menor",
       "teto": 0.0,
       "nulos": [
-        0.39039208738219733,
-        0.4193120439430961,
-        0.33223606954583806,
-        0.3476737142811451,
-        0.3953991927572148,
-        0.44822612880853396,
-        0.46862539570893524,
-        0.4280757173915134,
-        0.35796029545084807,
-        0.39800458620837237,
-        0.4995827421518399,
-        0.4352495628432817,
-        0.50898991281708,
-        0.4653863126156076,
-        0.4466757263013087,
-        0.3435104763602319,
-        0.4838626313478036,
-        0.3702967263216855,
-        0.43196325365522403,
-        0.4812396999288092,
-        0.38133524964164545,
-        0.4703284795909237,
-        0.4436173389951098,
-        0.3621228365415173,
-        0.4454350840883013,
-        0.4261273714992024,
-        0.4269633672434427,
-        0.43087209381113656,
-        0.4221425340190831,
-        0.38193246338501213,
-        0.3737545694200611,
-        0.4871374751390741,
-        0.402815700467693,
-        0.33935305551313666,
-        0.4715876251174921
+        0.38972076571526165,
+        0.4221341272536148,
+        0.33365895843086113,
+        0.3482488608340451,
+        0.39181784827466837,
+        0.4354810410259599,
+        0.43310646937306113,
+        0.41878258762401055,
+        0.3510061527980186,
+        0.39398534928384066,
+        0.47827083189001174,
+        0.4311918658350497,
+        0.49152131699263873,
+        0.4414194638872604,
+        0.43962574603990073,
+        0.33306583114575355,
+        0.47720669287383244,
+        0.36931880813784435,
+        0.41405431610155075,
+        0.47496680091532645,
+        0.3727004642200006,
+        0.4696290975427315,
+        0.43199478895616766,
+        0.3569097664944835,
+        0.42601611078571777,
+        0.3998719060448192,
+        0.4122977341506592,
+        0.41489715685548445,
+        0.4066681455800799,
+        0.3751583219947573,
+        0.36076170840427607,
+        0.4751682657824892,
+        0.3740466184269522,
+        0.3267347249651118,
+        0.4548276320211273
       ],
       "espelho": {
-        "media": 0.3770026215818983,
-        "desvio": 0.03216217601661167,
-        "extremo": 0.33223606954583806,
+        "media": 0.3771161121016902,
+        "desvio": 0.03201088073876225,
+        "extremo": 0.33365895843086113,
         "n": 5
       },
       "aleatorio": {
-        "media": 0.42777248041279686,
-        "desvio": 0.046777238389770104,
-        "extremo": 0.33935305551313666,
+        "media": 0.4146895238716306,
+        "desvio": 0.045112751677206304,
+        "extremo": 0.3267347249651118,
         "n": 30
       },
-      "piso": 0.42051964343695425,
-      "piso_extremo": 0.33223606954583806
+      "piso": 0.4093218936187819,
+      "piso_extremo": 0.3267347249651118
     },
     "cycle_edges_kept": {
       "melhor": "maior",
       "teto": 10,
       "nulos": [
-        6,
-        5,
-        5,
-        3,
-        3,
+        4,
         7,
-        4,
+        5,
+        8,
         5,
         6,
         4,
         5,
         5,
+        4,
+        4,
+        5,
         5,
         5,
         6,
         6,
         4,
-        5,
+        4,
         4,
         5,
+        3,
         4,
-        5,
         6,
-        5,
-        6,
-        4,
         5,
         5,
         6,
-        5,
+        6,
+        6,
+        6,
+        6,
         5,
         6,
         4,
@@ -1399,106 +1399,106 @@
         6
       ],
       "espelho": {
-        "media": 4.4,
-        "desvio": 1.2,
-        "extremo": 6,
+        "media": 5.8,
+        "desvio": 1.469693845669907,
+        "extremo": 8,
         "n": 5
       },
       "aleatorio": {
-        "media": 5.066666666666666,
-        "desvio": 0.8137703743822469,
-        "extremo": 7,
+        "media": 5.0,
+        "desvio": 0.8944271909999159,
+        "extremo": 6,
         "n": 30
       },
       "piso": 5.0,
-      "piso_extremo": 7
+      "piso_extremo": 8
     },
     "dominance_penalty": {
       "melhor": "menor",
-      "teto": 0.044556230120706954,
+      "teto": 0.046274473285088116,
       "nulos": [
-        0.08483995572896182,
-        0.03409545424246464,
-        0.05020582635511541,
-        0.021751436734156193,
-        0.031888477542836684,
-        1.2497198449496207,
-        1.2820550213675905,
-        1.2595818904688847,
-        1.4208813109973077,
-        1.2273378009853435,
-        0.951532608595381,
-        1.4632856845396682,
-        1.0687833243097022,
-        1.2449268007202765,
-        1.3375457839658516,
-        1.155352970172391,
-        1.2265452603171347,
-        1.3131335615346036,
-        1.423261436028991,
-        1.3920054200946512,
-        1.2291619406318042,
-        1.3521136831712157,
-        1.147809336128222,
-        1.4104036278446745,
-        1.1349647809183618,
-        1.1351890238503757,
-        1.2243724340459687,
-        1.2587766505173517,
-        1.3524985548237858,
-        1.4020967261605426,
-        1.2195973032970422,
-        1.2730501362393933,
-        1.1877411520974843,
-        1.0693862934011602,
-        1.310459715341972
+        0.11330527489726012,
+        0.03748332962798262,
+        0.02969638025079821,
+        0.025568535351091184,
+        0.025318846298308422,
+        1.3489273324941804,
+        1.374474341572407,
+        1.348918573714028,
+        1.454338379597499,
+        1.2844458252038295,
+        1.0324017491764201,
+        1.567331394018536,
+        1.1775401546551487,
+        1.2057026850077555,
+        1.431294198519292,
+        1.3363648631940988,
+        1.3531546224868678,
+        1.3247473149577955,
+        1.4992821512346617,
+        1.4084192064215681,
+        1.2594940307729217,
+        1.445544948440276,
+        1.2880050528176263,
+        1.4152713124962024,
+        1.0941279849780257,
+        1.2242242595462267,
+        1.3812169187818997,
+        1.2238991538980124,
+        1.4209016615177705,
+        1.4556399232512187,
+        1.2916807709088287,
+        1.3218686260029031,
+        1.1558741061157716,
+        1.2288386541401866,
+        1.1765664646687077
       ],
       "espelho": {
-        "media": 0.044556230120706954,
-        "desvio": 0.022111783624326805,
-        "extremo": 0.021751436734156193,
+        "media": 0.046274473285088116,
+        "desvio": 0.03380272151279947,
+        "extremo": 0.025318846298308422,
         "n": 5
       },
       "aleatorio": {
-        "media": 1.2574523359172252,
-        "desvio": 0.11795188897949238,
-        "extremo": 0.951532608595381,
+        "media": 1.3176832220196888,
+        "desvio": 0.12147334583882602,
+        "extremo": 1.0324017491764201,
         "n": 30
       },
-      "piso": 1.0841814636605795,
-      "piso_extremo": 0.021751436734156193
+      "piso": 1.1360534007718888,
+      "piso_extremo": 0.025318846298308422
     }
   },
   "target": {
     "label": "EVOLUÍDO (results.json)",
-    "dominance_penalty": 0.10424338273327678,
+    "dominance_penalty": 0.026064823037956753,
     "dominance_terms": {
-      "global_term": 0.06808542428449717,
-      "cap_term": 0.07231591689755923,
+      "global_term": 0.026064823037956753,
+      "cap_term": 0.0,
       "decis_term": 0.0
     },
-    "drift_penalty": 0.2538507697883301,
+    "drift_penalty": 0.21779008185260365,
     "per_character_drift": [
-      0.035618334939606235,
-      0.33023032638408395,
-      0.29574353065684084,
-      0.25163523767202245,
-      0.3560264192890971
+      0.13337151226237567,
+      0.33633145843276047,
+      0.17856619015690678,
+      0.20012965232763122,
+      0.240551596083344
     ],
-    "validator_structural": 11,
+    "validator_structural": 12,
     "validator_structural_total": 18,
     "validator_full": 13,
     "validator_full_total": 23,
-    "cycle_edges_kept": 5,
+    "cycle_edges_kept": 4,
     "circular_triads": 4.0,
-    "pair_wr_min": 0.27,
-    "pair_wr_max": 0.6175,
+    "pair_wr_min": 0.4275,
+    "pair_wr_max": 0.55,
     "global_wr": [
-      0.45,
-      0.49875,
-      0.48375,
-      0.553125,
-      0.514375
+      0.506875,
+      0.489375,
+      0.51375,
+      0.51,
+      0.48
     ]
   }
 }

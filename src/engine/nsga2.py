@@ -335,10 +335,15 @@ def run(
             set_seed_base(generation_seed(seed, gen + 1))
             for ind in population:
                 ind.invalidate_fitness()
-            _evaluate_population(population)
-        _evaluate_population(offspring)
 
+        # UMA chamada para pais + filhos, não duas. `_evaluate_population` já filtra
+        # quem tem objetivo em cache, então sem rotação isto avalia só os filhos —
+        # mesmo comportamento de antes. Com rotação, avaliar em duas chamadas criava
+        # DOIS `ProcessPoolExecutor` por geração, cada um subindo N_WORKERS processos
+        # que carregam llvmlite: a bateria de 2026-09-16 morreu por estouro de commit
+        # do Windows exatamente aí (o mesmo modo de falha já registrado em N_WORKERS).
         combined = population + offspring
+        _evaluate_population(combined)
         fronts   = _assign_rank_and_crowding(combined)
         population = _select_next_population(fronts, pop_size)
 
