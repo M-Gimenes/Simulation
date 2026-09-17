@@ -42,6 +42,7 @@ from src.engine.fitness import (
 )
 from src.engine.individual import Individual
 from src.engine.paths import EXTERNAL_VALIDATION_DIR, PROJECT_ROOT
+from src.engine.provenance import stamp
 from src.tools.multi_run import CHAR_NAMES, matchup_label, mean_std
 
 
@@ -178,7 +179,8 @@ def _save(result: dict, label: str) -> None:
     EXTERNAL_VALIDATION_DIR.mkdir(parents=True, exist_ok=True)
     path = EXTERNAL_VALIDATION_DIR / f"external_validation_{label}.json"
     with open(path, "w", encoding="utf-8") as fh:
-        json.dump({"individual": label, **result}, fh, indent=2, ensure_ascii=False)
+        json.dump({"provenance": stamp(), "individual": label, **result},
+                  fh, indent=2, ensure_ascii=False)
     print(f"\n  Salvo em {path.relative_to(PROJECT_ROOT)}")
 
 

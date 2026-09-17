@@ -2,6 +2,11 @@
 Indivíduo do AG = conjunto de 5 personagens (um por arquétipo).
 
 Construtores: from_canonical, random, from_results, from_nsga2.
+
+Os dois que leem artefato verificam a **proveniência** do JSON e avisam se ele descreve
+outro sistema (ver `provenance.py`). O ponto de verificação é aqui, e não em cada tool,
+porque estes dois construtores são o gargalo por onde toda ferramenta carrega um indivíduo
+evoluído — checar num só lugar é o que impede a próxima tool de nascer sem a checagem.
 """
 
 from __future__ import annotations
@@ -14,6 +19,7 @@ from typing import List, Optional, Tuple
 from .archetypes import ARCHETYPE_ORDER, ArchetypeID, ARCHETYPES
 from .character import Character
 from .paths import GA_RESULTS_PATH, NSGA2_RESULTS_PATH
+from .provenance import warn_if_stale
 
 
 @dataclass
@@ -61,6 +67,7 @@ class Individual:
             raise FileNotFoundError(f"'{path}' não encontrado — rode main.py --algorithm nsga2 primeiro.")
         with open(path) as fh:
             data = json.load(fh)
+        warn_if_stale(data.get("provenance"), path.name)
         reps = data.get("representatives", {})
         if representative not in reps:
             available = ", ".join(reps.keys()) if reps else "nenhum"
@@ -79,6 +86,7 @@ class Individual:
             raise FileNotFoundError(f"'{path}' não encontrado — rode main.py primeiro.")
         with open(path) as fh:
             data = json.load(fh)
+        warn_if_stale(data.get("provenance"), path.name)
         if "best_individual" not in data:
             raise KeyError(f"'{path}' não contém 'best_individual'.")
         return cls._from_genes(data["best_individual"])

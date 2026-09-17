@@ -44,6 +44,7 @@ from src.engine.paths import (
     MULTI_RUN_NSGA2_PATH,
     PROJECT_ROOT,
 )
+from src.engine.provenance import stamp
 
 ALPHA = 0.05
 
@@ -293,7 +294,7 @@ def main() -> None:
 
     MULTI_RUN_COMPARISON_PATH.parent.mkdir(parents=True, exist_ok=True)
     with open(MULTI_RUN_COMPARISON_PATH, "w", encoding="utf-8") as fh:
-        json.dump(result, fh, indent=2, ensure_ascii=False)
+        json.dump({"provenance": stamp(), **result}, fh, indent=2, ensure_ascii=False)
     print("")
     print(f"  Salvo em {MULTI_RUN_COMPARISON_PATH.relative_to(PROJECT_ROOT)}")
 

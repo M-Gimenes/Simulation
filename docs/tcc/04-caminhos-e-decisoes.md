@@ -582,3 +582,73 @@ consistentemente fora de um que escapa uma vez por acaso.
 **A lição que vale para a redação:** um experimento cujos artefatos não carregam a
 configuração que os gerou não tem como se auto-verificar, e a falha não aparece como erro —
 aparece como um número plausível.
+
+## Os artefatos passaram a carregar a própria proveniência (2026-09-17)
+
+**Problema.** A causa-raiz do incidente acima: nenhum artefato de `results/` gravava a
+configuração que o produziu. Sem isso, um JSON obsoleto é **indistinguível** de um atual —
+`git status` limpo, mtime do checkout — e a falha não se manifesta como erro, e sim como um
+número plausível dentro de uma tabela.
+
+**Mudança.** `src/engine/provenance.py`: todo artefato passa a abrir com um bloco
+`provenance` — timestamp, `fingerprint`, **toda** constante pública de `config.py` valor a
+valor, digest dos canônicos (genes + `defining_genes` + `beats`) e digest do código de
+`src/engine/`. A verificação é automática em `Individual.from_results` / `from_nsga2`, que
+são o gargalo por onde toda ferramenta carrega um indivíduo evoluído.
+
+Quatro decisões, cada uma contra um modo de falha específico — e as quatro são o conteúdo
+metodológico do item, não detalhe de implementação:
+
+1. **Enumerar as constantes, não listá-las à mão.** Uma lista curada apodrece em silêncio:
+   a próxima constante adicionada ficaria invisível ao carimbo, que é exatamente o buraco
+   que ele existe para fechar.
+2. **Hashear o código do motor, não só as constantes.** O incidente não foi mudança de
+   constante — `grab_power`, a colisão e a rotação do stream são *código*. Um carimbo só de
+   constantes teria dito "atual" com o motor já diferente.
+3. **Deixar `config.py` fora do digest de código,** porque seus valores vão gravados um a
+   um. "`MATCHUP_WR_CAP` foi de 0,15 para 0,20" é acionável; "o hash mudou" não é.
+4. **Não carimbar `N_WORKERS`.** A avaliação resemeia ao `_SEED_BASE` antes de cada
+   round-robin, então o resultado independe de quantos workers avaliam — e um alarme que
+   dispara à toa deixa de ser lido.
+
+**Resultado.** Os artefatos da bateria de 2026-09-17 são anteriores ao módulo e receberam
+carimbo **retroativo**, com o campo `backfilled` dizendo isso e como foi justificado: por
+**reprodução bit-exata** sob o código atual — `results.json` devolve
+`fitness = −0,233101660623` sob `generation_seed(42, 150)`, e os 5 representantes do
+`nsga2_results.json` devolvem os objetivos gravados. Os demais artefatos são função
+determinística desses dois mais o motor, então re-rodar a bateria produziria números
+idênticos mais um hash.
+
+**Um efeito colateral vale registrar:** a verificação por reprodução expôs que o
+procedimento de checkup antigo (*"re-avaliar o melhor sob seed-base 42 devolve o gravado"*)
+é anterior à rotação do stream e **não** vale mais. O número gravado é medido no stream da
+**última geração**, `generation_seed(42, 150)`, não no seed-base — sob 42 o `dominance` sai
+0,0665 contra 0,0153 gravado, enquanto o `drift`, determinístico, bate exato nos dois
+casos. Quem for reproduzir um artefato precisa reproduzir também o *stream*.
+
+## Os marcos de convergência viraram amostra, não anedota (2026-09-17)
+
+**Problema.** Com os dois algoritmos em orçamento fixo, convergir virou evento registrado
+(`converged_at` / `stagnated_at`) e "velocidade" passou a ser um segundo eixo de comparação,
+além de "qualidade". Mas o `multi_run` não gravava esses campos: a única medida existente
+era a da seed 42 — **n = 1**, anedota.
+
+**Mudança.** `_run_algorithm` devolve os marcos junto do representante, `_seed_record` os
+grava por semente e `_aggregate` produz `convergence`: taxa de convergência, geração média
+entre as que convergiram, e o mesmo par para estagnação.
+
+Duas escolhas de agregação que são o conteúdo do item:
+
+- **A média sai só sobre quem convergiu.** Incluir as demais exigiria imputar um valor, e o
+  único honesto — "não convergiu" — não é um número. A **taxa** carrega essa metade da
+  informação, e as duas são lidas juntas: "converge em 70% das sementes, na geração 31 ± 8"
+  diz o que nenhuma das duas sozinha diria.
+- **O NSGA-II não recebe o campo, em vez de receber zero.** A assimetria é estrutural:
+  *"o roster está equilibrado?"* não é pergunta que se faça a uma **fronteira**, que contém
+  de propósito pontos desequilibrados-mas-fiéis. Gravar `0` ali produziria um número que
+  alguém agregaria sem perceber; a ausência é a leitura correta e força a declaração.
+
+**Resultado.** O eixo de velocidade passa a existir como amostra para o escalar — e fica
+explícito no artefato que ele **não** é uma comparação pareada entre os dois algoritmos, e
+sim uma caracterização do escalar. A medição sobre as N sementes ainda não foi feita: ela
+entra na próxima regeneração da bateria.

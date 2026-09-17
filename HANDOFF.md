@@ -653,10 +653,12 @@ O AG da seed 42 **convergiu na geração 39** (confirmado num stream que nunca v
 sem medir: sob rotação o fitness flutua entre gerações por troca de stream, o contador de
 estagnação reseta por ruído e o evento não dispara.
 
-> ⚠️ **Ressalva: isto é n = 1.** O `multi_run` **não grava** `converged_at` nem
-> `stagnated_at` no `per_seed`, então não há as 10 sementes para confirmar. Registrar
-> esses dois campos por semente é item em aberto — sem eles, "velocidade de convergência"
-> não pode ser o segundo eixo de comparação que o projeto pretende.
+> ⚠️ **Ressalva: isto ainda é n = 1.** O `multi_run` **passou a gravar** `converged_at` e
+> `stagnated_at` por semente em 2026-09-17 (agregados em `convergence`: taxa + geração
+> média entre as que convergiram), mas a bateria atual é anterior a essa mudança — os
+> artefatos em `results/multi_run/` não têm os campos. A medição sobre as 10 sementes sai
+> na próxima regeneração; até lá, "convergiu na geração 39" segue valendo só para a
+> seed 42.
 
 ## 4. Itens ainda abertos
 
@@ -672,14 +674,19 @@ Inventário completo e comentado em
   Não executado por custo (~180 min, sem resume).
 - **Pesos 1,0 / 0,5 / 0,5 do dominance** e **elitismo 10% / torneio 3** — nunca variados.
 
-**Instrumentação que falta** (§1.2):
+**Instrumentação — fechada em 2026-09-17** (§1.2 e §4 do known-issues):
 
-- `multi_run` **não grava `converged_at` / `stagnated_at` no `per_seed`** — a velocidade
-  de convergência é n = 1 hoje. Ressalva: o NSGA-II não tem equivalente (orçamento fixo,
-  sem predicado), então o que isso daria é descritivo do escalar, não comparação pareada.
-- **Nenhum artefato grava a config que o produziu** — foi exatamente o que deixou três
-  `external_validation` atravessarem uma troca de motor sem aviso (§3).
-- Pool de processos recriado a cada geração; `N_WORKERS = 8` é específico desta máquina.
+- ✅ **Carimbo de proveniência em todo artefato** (`src/engine/provenance.py`): timestamp,
+  `fingerprint`, toda constante de `config.py` valor a valor, digest dos canônicos e digest
+  do código do motor. `Individual.from_results` / `from_nsga2` verificam ao carregar e
+  avisam **o que** mudou. Os artefatos da bateria atual têm carimbo retroativo, justificado
+  por reprodução bit-exata (`provenance.backfilled` explica dentro do JSON).
+- ✅ **`converged_at` / `stagnated_at` por semente** no `multi_run`, agregados em
+  `convergence` (taxa + geração média entre as que convergiram). A assimetria com o
+  NSGA-II fica declarada: ele devolve `None` e a chave não aparece no agregado dele.
+  **A medição sobre as N sementes ainda não foi feita** — entra na próxima bateria.
+- Segue aberto: pool de processos recriado a cada geração; `N_WORKERS = 8` é específico
+  desta máquina.
 
 **Limites estruturais — escopo declarado, não conserto** (§2): política fixa (a objeção
 mais forte ao resultado) e **cega ao estado**; crossover só por bloco de personagem;

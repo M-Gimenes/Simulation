@@ -270,7 +270,17 @@ não um ponto — qual ponto representa a execução é uma escolha explícita
 - **(secundário)** WR média por matchup + fração de sementes em que cada par vira
   counter duro;
 - **(só NSGA-II)** hipervolume e spacing da fronteira por seed, média ± desvio
-  (item 1.2 — ver [06-nsga2.md](06-nsga2.md)).
+  (item 1.2 — ver [06-nsga2.md](06-nsga2.md));
+- **(só AG escalar)** `converged_at` e `stagnated_at` por semente, agregados em
+  `convergence` — o eixo de **velocidade**. Como os dois algoritmos rodam orçamento fixo
+  ([05-genetic-algorithm.md](05-genetic-algorithm.md)), convergir virou evento registrado
+  e não parada, e "quando" é uma segunda dimensão além de "quão bom". A média sai só
+  sobre as sementes que **convergiram** — incluir as que não convergiram exigiria imputar
+  um valor, e o único honesto ("não convergiu") não é um número; a taxa carrega essa
+  metade, e as duas são lidas juntas. O NSGA-II **não** tem equivalente: "o roster está
+  equilibrado?" não é pergunta que se faça a uma fronteira, que contém de propósito
+  pontos desequilibrados-mas-fiéis. Ele devolve `(None, None)` e a chave não aparece no
+  agregado dele — melhor que gravar zeros que alguém agregaria sem perceber.
 
 Parametrizado em `config.py` (`MULTI_RUN_*`) para escalar N facilmente. Mata a
 fragilidade de amostra única: um matchup travado (ex.: Combo×Rush) numa seed pode ser

@@ -43,6 +43,7 @@ trajetória sem re-rodar.
 
 | Campo | `results.json` (AG) | `nsga2_results.json` |
 |---|---|---|
+| `provenance` | ✓ | ✓ |
 | `algorithm`, `seed`, `generations_run` | ✓ | ✓ |
 | `history` (uma entrada por geração) | fitness melhor/média/pior + dominance + drift + tempo | tamanhos das frentes + amplitude da frente 0 + tempo |
 | condição de parada | `stop_reason`, `converged`, `stagnated` | — (roda `NSGA2_GENERATIONS` fixas) |
@@ -50,6 +51,58 @@ trajetória sem re-rodar.
 
 Sem `--seed`, o campo `seed` é `null` e a execução **não** é reproduzível — é a
 escolha explícita de rodar sob entropia.
+
+### `provenance` — o carimbo que faz um JSON velho se denunciar
+
+**Todos** os artefatos da tabela acima carregam um bloco `provenance`
+(`src/engine/provenance.py`), primeiro campo do JSON:
+
+| Chave | O que é |
+|---|---|
+| `generated_at` | timestamp local com fuso |
+| `fingerprint` | hash único de constantes + premissa + motor |
+| `config` | **toda** constante pública de `config.py`, valor a valor |
+| `archetypes_digest` | genes canônicos + `defining_genes` + `beats` |
+| `engine_digest` | digest do código de `src/engine/` |
+
+Por que existe: mexer em `config.py`, nos canônicos ou no motor invalida `results/`
+inteiro de uma vez, e sem carimbo um artefato obsoleto é **indistinguível** de um atual
+— `git status` fica limpo (o JSON velho segue versionado) e o mtime é o do *checkout*,
+não o da geração. Em 2026-09-17 foi assim que três artefatos de `external_validation`
+atravessaram uma troca de motor inteira, e o efeito chegou à tabela de resultados como
+um número plausível.
+
+Quatro decisões de projeto, cada uma contra um modo de falha:
+
+- **As constantes são enumeradas de `config.py`, não listadas à mão** — uma lista curada
+  apodrece em silêncio, e a próxima constante adicionada ficaria invisível ao carimbo.
+- **O código do motor entra por digest, não só as constantes** — o incidente não foi
+  mudança de constante: `grab_power`, a colisão e a rotação do stream são *código*.
+- **`config.py` fica fora do digest de código** porque seus valores vão gravados um a um:
+  "`MATCHUP_WR_CAP` foi de 0,15 para 0,20" é acionável, "o hash mudou" não é.
+- **`N_WORKERS` não entra** — a avaliação resemeia ao `_SEED_BASE` antes de cada
+  round-robin, então o resultado independe de quantos workers avaliam. Carimbá-lo faria
+  uma mudança inócua invalidar a bateria, e um alarme que dispara à toa deixa de ser lido.
+
+**A verificação acontece sozinha.** `Individual.from_results` e `Individual.from_nsga2`
+chamam `warn_if_stale` — os dois construtores são o gargalo por onde toda ferramenta
+carrega um indivíduo evoluído, então checar num só lugar impede que a próxima tool nasça
+sem a checagem. O aviso diz o que mudou, não só que mudou:
+
+```
+  ⚠ ARTEFATO OBSOLETO — 'results.json' não descreve o sistema atual:
+      · o CÓDIGO do motor mudou desde a geração
+      · ACTION_PERSISTENCE_SUBTICKS: 10 → 5
+      gerado em 2026-09-17T14:20:14-03:00
+```
+
+> **Nota sobre a bateria de 2026-09-17**, anterior ao módulo: os artefatos dela levam
+> `provenance.backfilled` explicando que o carimbo é retroativo e como foi justificado —
+> por **reprodução bit-exata** sob o código atual (`results.json` devolve
+> `fitness = −0,233101660623` sob `generation_seed(42, 150)`, e os 5 representantes do
+> `nsga2_results.json` devolvem os objetivos gravados). Os demais artefatos são função
+> determinística desses dois mais o motor. Re-rodar produziria números idênticos mais um
+> hash. Artefatos gerados daqui em diante não têm esse campo.
 
 ## Reprodutibilidade ✅
 

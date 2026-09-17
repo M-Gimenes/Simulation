@@ -54,6 +54,7 @@ from src.engine.fitness import (
 )
 from src.engine.individual import Individual
 from src.engine.paths import BASELINES_PATH, PROJECT_ROOT
+from src.engine.provenance import stamp
 from src.tools.analyze_matchups import expected_winner
 from src.tools.archetype_validator import run_validation
 
@@ -404,7 +405,7 @@ def main() -> None:
 
     BASELINES_PATH.parent.mkdir(parents=True, exist_ok=True)
     with open(BASELINES_PATH, "w", encoding="utf-8") as fh:
-        json.dump(artifact, fh, indent=2, ensure_ascii=False)
+        json.dump({"provenance": stamp(), **artifact}, fh, indent=2, ensure_ascii=False)
     print(f"\n  Salvo em {BASELINES_PATH.relative_to(PROJECT_ROOT)}\n")
 
 

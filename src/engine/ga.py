@@ -47,6 +47,7 @@ from .fitness import (
 from .individual import Individual
 from .operators import next_generation
 from .paths import GA_RESULTS_PATH
+from .provenance import stamp
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -252,6 +253,7 @@ def save_results(result: GAResult, path: Path = GA_RESULTS_PATH) -> None:
     geração — o suficiente para reproduzir a execução e plotar a convergência."""
     detail = result.best_detail
     data = {
+        "provenance":      stamp(),
         "algorithm":       "ga",
         "seed":            result.seed,
         "generations_run": result.generation + 1,

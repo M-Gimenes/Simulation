@@ -39,6 +39,7 @@ from .fitness import (
 from .individual import Individual
 from .operators import crossover, mutate, nsga2_binary_tournament
 from .paths import NSGA2_RESULTS_PATH
+from .provenance import stamp
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -391,6 +392,7 @@ def _individual_to_dict(ind: Individual) -> dict:
 
 def save_results(result: NSGAResult, path: Path = NSGA2_RESULTS_PATH) -> None:
     data = {
+        "provenance":      stamp(),
         "algorithm":       "nsga2",
         "seed":            result.seed,
         "generations_run": result.generations_run,

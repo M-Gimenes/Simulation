@@ -65,6 +65,7 @@ pip install -r requirements.txt
 ├── src/                       # pacote raiz (importável como `src`)
 │   ├── engine/                # motor (importável como pacote `src.engine`)
 │   │   ├── paths.py           # PROJECT_ROOT + paths derivados — single source
+│   │   ├── provenance.py      # carimbo de config/motor nos artefatos + aviso de obsoleto
 │   │   ├── config.py          # All hyperparameters
 │   │   ├── archetypes.py      # canonical definitions (frozen)
 │   │   ├── character.py       # gene representation
@@ -129,6 +130,7 @@ py -m src.tests.test_fitness
 py -m src.tests.test_ga
 py -m src.tests.test_operators
 py -m src.tests.test_nsga2
+py -m src.tests.test_provenance
 py -m src.tests.test_archetype_validator
 py -m src.tests.test_compare_algorithms
 ```
@@ -137,7 +139,7 @@ py -m src.tests.test_compare_algorithms
 
 ## Output Files
 
-All GA/NSGA-II outputs go to `results/` (created automatically on first run):
+All GA/NSGA-II outputs go to `results/` (created automatically on first run). **Every one of them opens with a `provenance` block** stamping the config, canonicals and engine that produced it, and loading a stale one prints a warning naming what changed — see Key Design Decisions and `docs/reference/09-reproducibility.md`.
 
 | File | Source |
 |---|---|
@@ -254,6 +256,10 @@ Two consequences worth stating plainly. First, the **mirror roster is the trivia
 **The grab is a conditional on attack resolution, not a fourth action.** `grab_power ∈ [0, 1]` (8th attribute) is what the grab **adds to the damage multiplier against a guarding target**: that multiplier is `defend_red + grab_power`. At `0` the guard gives its full 40% reduction (0.6×); at the **neutral point** `1 − defend_red = 0.40` the guard is exactly cancelled (1.0×); above it the guard becomes a **liability**, up to 1.6× at the cap. Canonically **only the Grappler (0.90 → 1.50×) is above the neutral point** — against the other four, guarding still pays. That is the mechanism that differentiates the Grappler and that realizes the cycle edge's stated justification. Two further deliberate properties make it a **counter to guard** rather than a better attack: it uses the same range and cooldown as the normal attack, and it does **nothing at all** against a target that is not defending (a conditional read — valuable against blockers, dead weight against pressure). Being a resolution conditional rather than a chosen action keeps the two-channel model intact — no `w_grab`, no fourth stance, so the policy space, the weight scale degeneracy and the weight drift are all untouched. Measured in `test_combat` against an always-guarding target: per-hit damage 16.2 at `grab_power = 0` (0.60×) versus 43.2 at `1.0` (1.60×), exactly a clean hit at the neutral 0.40, and **exactly zero** difference against a target that is not defending. `CombatTrace` exposes `guard_broken` (damage torn through the guard), which is the Grappler's Layer 3 signature.
 
 One gene closed four gaps that had been treated as separate problems: the Recurso axis had no counter (DEFEND was free); Layer 3 had 4 assertions for 5 archetypes because the Grappler had no distinct behaviour; the cycle edge "Grappler beats Turtle" — justified in the table below as literally *"grab é o counter canônico ao bloqueio"* — had no mechanism; and the Grappler had a single defining gene. The validator now scores **23/23** on the canonical, with all five archetypes carrying a behavioural signature for the first time. Honest caveat on the cycle edge: the Grappler beats the Turtle 100% canonically, but it already did before the grab — the canonical Turtle loses to everyone (0% global WR). The mechanism now exists for the GA to realize that edge *on merit*; whether it does is a question for the battery.
+
+**Every artifact carries the configuration that produced it, and checks itself on load.** `src/engine/provenance.py` stamps every JSON in `results/` with a `provenance` block: timestamp, a `fingerprint`, **every** public constant of `config.py` value by value, a digest of the canonical archetypes (genes + `defining_genes` + `beats`) and a digest of `src/engine/`'s source. `Individual.from_results` / `from_nsga2` call `warn_if_stale` — those two constructors are the chokepoint every tool goes through to load an evolved individual, so a new tool cannot be born without the check. The warning names *what* changed (`MATCHUP_WR_CAP: 0.20 → 0.15`), not just that something did. Four choices, each against a specific failure: constants are **enumerated** from `config.py` rather than hand-listed (a curated list rots — the next constant added would be invisible to the stamp); the engine's **source** is hashed, not only its constants (the incident that motivated this was code — `grab_power`, collision, stream rotation — and a constants-only stamp would have read "current"); `config.py` is excluded from the source digest because its values are recorded one by one, which is actionable where a hash is not; and `N_WORKERS` is excluded because evaluation reseeds to `_SEED_BASE` before every round-robin, so worker count changes no number — an alarm that cries wolf stops being read. Artifacts from the 2026-09-17 battery predate the module and carry `provenance.backfilled`, justified by **bit-exact reproduction** under the current code. Note for anyone reproducing an artifact: the recorded number is measured on the **last generation's** stream (`generation_seed(seed, MAX_GENERATIONS)`), not on the seed base — reproducing the value means reproducing the stream.
+
+**`converged_at` / `stagnated_at` are recorded per seed, and the asymmetry is declared.** `multi_run` writes both into `per_seed` and aggregates them into `convergence` (rate + mean generation among the seeds that converged) — this is the **speed** axis that fixed budgets turned from a stopping rule into a second dimension. Two aggregation choices carry the content: the mean covers only the seeds that **converged**, because including the others would require imputing a value and the only honest one ("did not converge") is not a number — the rate carries that half, and the two are read together; and NSGA-II gets **no field rather than a zero**, because "is the roster balanced?" is not a question one asks of a front, and a `0` there is a number someone would aggregate without noticing.
 
 **Draw as a third outcome**: `_decide_winner` returns `-1` when both fighters end on the same HP fraction (double KO, or a timeout with no difference); the round-robin scores it as half a win for each side and the per-fight score is `0.5`. Without it the tie always fell to side A — which in `_run_round_robin` is always the lower-index archetype, a systematic bias on the very metric the fitness optimises (measured in a mirror: canonical Rushdown gave 54.90% to side A, with 10.3% double KOs).
 

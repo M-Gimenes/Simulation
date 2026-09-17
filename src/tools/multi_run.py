@@ -61,6 +61,7 @@ from src.engine.paths import (
     MULTI_RUN_NSGA2_PATH,
     PROJECT_ROOT,
 )
+from src.engine.provenance import stamp
 
 CHAR_NAMES: List[str] = [ARCHETYPES[aid].name for aid in ARCHETYPE_ORDER]
 
@@ -82,16 +83,25 @@ def mean_std(values: List[float]) -> Dict[str, float]:
 
 
 def _run_algorithm(algorithm: str, seed: int, nsga2_representative: str):
-    """Roda o algoritmo (silencioso) e devolve `(representante, objetivos_da_fronteira)`.
+    """Roda o algoritmo (silencioso) e devolve `(representante, objetivos_da_fronteira,
+    marcos)`.
     AG escalar → o melhor indivíduo, sem fronteira (`None`). NSGA-II → o representante
     pedido e os objetivos `(dominance, drift)` de toda a fronteira (hipervolume/spacing).
     O NSGA-II devolve uma fronteira, não um ponto: qual ponto representa a execução é
-    uma escolha, registrada no artefato (`nsga2_representative`)."""
+    uma escolha, registrada no artefato (`nsga2_representative`).
+
+    `marcos` = `(converged_at, stagnated_at)`, o eixo de **velocidade** da comparação.
+    Só existe no escalar, e a assimetria é estrutural, não omissão: "o roster está
+    equilibrado?" não é pergunta que se faça a uma FRONTEIRA, que contém de propósito
+    pontos desequilibrados-mas-fiéis. O NSGA-II devolve `(None, None)` e os campos saem
+    do agregado dele — melhor que gravar zeros que alguém agregaria sem perceber.
+    """
     if algorithm == "ga":
-        return run_ga(seed=seed, verbose=False).best, None
+        result = run_ga(seed=seed, verbose=False)
+        return result.best, None, (result.converged_at, result.stagnated_at)
     result = run_nsga2(seed=seed, verbose=False)
     front_objectives = [ind.objectives for ind in result.pareto_front]
-    return result.representatives[nsga2_representative], front_objectives
+    return result.representatives[nsga2_representative], front_objectives, (None, None)
 
 
 def _evaluate_independent(individual, sims: int) -> FitnessDetail:
@@ -101,7 +111,7 @@ def _evaluate_independent(individual, sims: int) -> FitnessDetail:
     return evaluate_detail_n(individual, sims)
 
 
-def _seed_record(detail: FitnessDetail, seed: int, front_objectives) -> dict:
+def _seed_record(detail: FitnessDetail, seed: int, front_objectives, milestones) -> dict:
     characters: Dict[str, dict] = {}
     n_chars_balanced = 0
     for i, name in enumerate(CHAR_NAMES):
@@ -128,6 +138,10 @@ def _seed_record(detail: FitnessDetail, seed: int, front_objectives) -> dict:
         "n_hard_counters": n_hard_counters,
         "roster_balanced": roster_balanced(detail),
     }
+    converged_at, stagnated_at = milestones
+    if converged_at is not None or stagnated_at is not None or front_objectives is None:
+        record["converged_at"] = converged_at
+        record["stagnated_at"] = stagnated_at
     if front_objectives is not None:
         record["front_size"] = len(front_objectives)
         record["hypervolume"] = hypervolume_2d(front_objectives, HYPERVOLUME_REFERENCE)
@@ -172,6 +186,20 @@ def _aggregate(records: List[dict]) -> dict:
     if all("hypervolume" in r for r in records):
         agg["hypervolume"] = mean_std([r["hypervolume"] for r in records])
         agg["spacing"] = mean_std([r["spacing"] for r in records])
+
+    # Velocidade — só o escalar tem (ver `_run_algorithm`). A média é sobre as sementes
+    # que CONVERGIRAM: incluir as que não convergiram exigiria imputar um valor, e o
+    # único honesto seria "não convergiu", que não é um número. A taxa carrega essa
+    # informação separada, e as duas juntas é que são lidas.
+    if all("converged_at" in r for r in records):
+        gens = [r["converged_at"] for r in records if r["converged_at"] is not None]
+        stag = [r["stagnated_at"] for r in records if r["stagnated_at"] is not None]
+        agg["convergence"] = {
+            "converged_rate":  len(gens) / n,
+            "converged_at":    mean_std(gens) if gens else None,
+            "stagnated_rate":  len(stag) / n,
+            "stagnated_at":    mean_std(stag) if stag else None,
+        }
     return agg
 
 
@@ -186,14 +214,18 @@ def aggregate_algorithm(algorithm: str, seeds: List[int], sims: int,
 
     for idx, seed in enumerate(seeds, start=1):
         print(f"  [{idx:>2}/{len(seeds)}] seed={seed} ... ", end="", flush=True)
-        individual, front_objectives = _run_algorithm(algorithm, seed, nsga2_representative)
+        individual, front_objectives, milestones = _run_algorithm(
+            algorithm, seed, nsga2_representative
+        )
         detail = _evaluate_independent(individual, sims)
-        record = _seed_record(detail, seed, front_objectives)
+        record = _seed_record(detail, seed, front_objectives, milestones)
         records.append(record)
         hv_part = f"  hv={record['hypervolume']:.4f}" if "hypervolume" in record else ""
+        conv = record.get("converged_at")
+        conv_part = f"  conv={'—' if conv is None else f'g{conv}'}" if "converged_at" in record else ""
         print(f"dom={record['dominance_penalty']:.4f}  drift={record['drift_penalty']:.4f}  "
               f"bonecos eq={record['n_chars_balanced']}/{len(CHAR_NAMES)}  "
-              f"counters={record['n_hard_counters']}{hv_part}")
+              f"counters={record['n_hard_counters']}{hv_part}{conv_part}")
 
     result = {
         "algorithm": algorithm,
@@ -248,6 +280,16 @@ def _print_summary(result: dict) -> None:
     print(f"\n    Sementes que equilibram o ROSTER (5 bonecos em banda E 0 hard-counters): "
           f"{rate:.0%}  ({int(round(rate * n))}/{n})")
 
+    conv = agg.get("convergence")
+    if conv is not None:
+        c_rate, c_at = conv["converged_rate"], conv["converged_at"]
+        at = f", na geração {c_at['mean']:.1f} ± {c_at['std']:.1f}" if c_at else ""
+        print(f"\n    Velocidade — convergiu (equilíbrio confirmado FORA do stream de treino): "
+              f"{c_rate:.0%}  ({int(round(c_rate * n))}/{n}){at}")
+        s_rate, s_at = conv["stagnated_rate"], conv["stagnated_at"]
+        at = f", na geração {s_at['mean']:.1f} ± {s_at['std']:.1f}" if s_at else ""
+        print(f"    Velocidade — estagnou: {s_rate:.0%}  ({int(round(s_rate * n))}/{n}){at}")
+
     print(f"\n    (secundário) Hard-counter rate por matchup (fração de sementes em que o par vira counter duro):")
     for label, rate_hc in agg["hard_counter_rate"].items():
         wr = agg["matchup_wr"][label]
@@ -259,7 +301,7 @@ def _save(result: dict, algorithm: str) -> None:
     MULTI_RUN_DIR.mkdir(parents=True, exist_ok=True)
     path = MULTI_RUN_GA_PATH if algorithm == "ga" else MULTI_RUN_NSGA2_PATH
     with open(path, "w", encoding="utf-8") as fh:
-        json.dump(result, fh, indent=2, ensure_ascii=False)
+        json.dump({"provenance": stamp(), **result}, fh, indent=2, ensure_ascii=False)
     print(f"\n  Salvo em {path.relative_to(PROJECT_ROOT)}")
 
 

@@ -8,6 +8,7 @@
 ├── src/                       # pacote raiz (importável como `src`)
 │   ├── engine/                # o motor (importável como `src.engine`)
 │   │   ├── paths.py           # PROJECT_ROOT + paths derivados — single source
+│   │   ├── provenance.py      # carimbo de config/motor nos artefatos + aviso de obsoleto
 │   │   ├── config.py          # todos os hiperparâmetros
 │   │   ├── archetypes.py      # definições canônicas (frozen) + ciclo de vantagens
 │   │   ├── character.py       # representação de genes (8 atributos + 3 pesos)

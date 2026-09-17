@@ -49,20 +49,11 @@ provavelmente existe. Não foi executado por custo: `multi_run` **não tem resum
 `--n-seeds 20` re-roda as 20 (~180 min, não +90). É aditivo no sentido estatístico — as
 sementes 42–51 são determinísticas e nada do que já foi medido se perde.
 
-### 1.2 Instrumentação que falta
+### 1.2 Instrumentação
 
-- **`multi_run` não grava `converged_at` nem `stagnated_at` no `per_seed`.** O AG da seed
-  42 convergiu na geração 39 (confirmado fora do stream) e `stagnated_at` saiu `None`,
-  mas isso é **n = 1** — não há as 10 sementes. Sem esses campos, "velocidade de
-  convergência" não pode ser o segundo eixo de comparação que o critério de parada
-  pretende ([05-genetic-algorithm.md](05-genetic-algorithm.md)). Ressalva de escopo: o
-  NSGA-II **não tem equivalente** — orçamento fixo, sem predicado de convergência —, então
-  o que esses campos dariam é estatística descritiva do escalar sobre N sementes, não uma
-  comparação pareada entre os dois algoritmos.
-- **Nenhum artefato de `results/` grava a config que o produziu.** Não há timestamp nem
-  snapshot de `config.py` dentro dos JSONs, e não há versionamento parcial: mexer no
-  motor, nos canônicos ou no `config.py` invalida tudo de uma vez. A consequência é
-  concreta e já custou caro — ver a pegadinha da §3.
+Os dois itens que estavam aqui — carimbo de proveniência nos artefatos e marcos de
+convergência por semente — foram **fechados em 2026-09-17**; ver §4. O que resta:
+
 - **O pool de processos é recriado a cada geração.** `fitness.evaluate_population` (e o
   equivalente no `nsga2.py`) instancia um `ProcessPoolExecutor` novo por geração, então o
   custo de spawn escala com o nº de workers. Medido nesta máquina, uma geração de 300
@@ -145,14 +136,15 @@ py -m src.tools.baselines --evolved                     # baselines.json
 
 Levou 1h24 na última vez.
 
-> ⚠️ **A pegadinha que já mordeu, e o motivo de §1.2 importar.** A `external_validation`
-> regenera **só o rótulo que recebe**. Na primeira passada da bateria de 2026-09-17 só
-> `_nsga2_best_dominance` foi rodado, e os outros três atravessaram uma troca de motor
-> inteira sem que nada acusasse: `git status` limpo (os JSONs velhos seguem versionados)
-> e mtime recente (é do checkout, não da geração). O efeito não foi cosmético — a tabela
-> de degradação do `HANDOFF` acabou comparando o AG de uma bateria com o NSGA-II de outra.
-> Fechado em 2026-09-17 rodando os quatro. **Enquanto os artefatos não carregarem a config
-> que os produziu, a única defesa é rodar os quatro rótulos, sempre.**
+> ⚠️ **A pegadinha que já mordeu.** A `external_validation` regenera **só o rótulo que
+> recebe**. Na primeira passada da bateria de 2026-09-17 só `_nsga2_best_dominance` foi
+> rodado, e os outros três atravessaram uma troca de motor inteira sem que nada acusasse:
+> `git status` limpo (os JSONs velhos seguem versionados) e mtime recente (é do checkout,
+> não da geração). O efeito não foi cosmético — a tabela de degradação do `HANDOFF` acabou
+> comparando o AG de uma bateria com o NSGA-II de outra. Fechado rodando os quatro, e a
+> **causa-raiz** foi fechada no mesmo dia pelo carimbo de proveniência (§4): hoje um
+> artefato fora de data se denuncia ao ser carregado. Rodar os quatro rótulos continua
+> sendo a prática certa — o carimbo detecta, não regenera.
 
 ## 4. Encerrado (para não reabrir por engano)
 
@@ -240,6 +232,20 @@ Resolvido e verificado; o raciocínio completo está em
 
 **Infraestrutura:**
 
+- **Artefatos sem proveniência (2026-09-17)** — todo JSON de `results/` passou a carregar
+  um bloco `provenance`: timestamp, `fingerprint`, **toda** constante de `config.py` valor
+  a valor, digest dos canônicos e digest do código do motor. `Individual.from_results` e
+  `from_nsga2` verificam e avisam **o que** mudou, não só que mudou — e são o gargalo por
+  onde toda tool carrega um indivíduo evoluído, então a checagem não pode ser esquecida
+  numa tool nova. Detalhe e as quatro decisões de projeto em
+  [09-reproducibility.md](09-reproducibility.md).
+- **Marcos de convergência por semente (2026-09-17)** — `multi_run` grava `converged_at` e
+  `stagnated_at` no `per_seed` e agrega em `convergence` (taxa + geração média entre as
+  que convergiram, sem imputar valor para as que não convergiram). Fecha o eixo de
+  **velocidade** que o critério de parada prometia. A assimetria fica **declarada**: o
+  NSGA-II não tem equivalente — "o roster está equilibrado?" não é pergunta que se faça a
+  uma fronteira —, então ele devolve `(None, None)` e os campos não saem no agregado dele,
+  em vez de zeros que alguém agregaria sem perceber.
 - **Reprodutibilidade da seed** — o RNG do Numba é interno; `seed_combat()` é a única
   forma de semeá-lo, e a semeadura reset-ao-base dá Common Random Numbers.
 - **Persistência dos artefatos** — `results.json` grava semente, condição de parada,

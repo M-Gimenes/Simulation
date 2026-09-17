@@ -74,5 +74,7 @@ py -m src.tests.test_fitness
 py -m src.tests.test_ga
 py -m src.tests.test_operators
 py -m src.tests.test_nsga2
+py -m src.tests.test_provenance
 py -m src.tests.test_archetype_validator
+py -m src.tests.test_compare_algorithms
 ```

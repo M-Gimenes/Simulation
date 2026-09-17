@@ -53,6 +53,7 @@ from src.engine.config import (
 from src.engine.fitness import evaluate_detail_n
 from src.engine.individual import Individual
 from src.engine.paths import PROJECT_ROOT, SENSITIVITY_DIR, SENSITIVITY_PATH
+from src.engine.provenance import stamp
 
 Genes = Tuple[Tuple[float, ...], ...]
 # (genes, personagem, atributo, sinal, magnitude do deslocamento, sims, seed).
@@ -184,7 +185,7 @@ def _save(args, label: str, sigmas: Sequence[float], deltas: List[List[float]],
     }
     SENSITIVITY_DIR.mkdir(parents=True, exist_ok=True)
     with open(SENSITIVITY_PATH, "w", encoding="utf-8") as fh:
-        json.dump(data, fh, indent=2, ensure_ascii=False)
+        json.dump({"provenance": stamp(), **data}, fh, indent=2, ensure_ascii=False)
     print()
     print(f"  Salvo em {SENSITIVITY_PATH.relative_to(PROJECT_ROOT)}")
 
