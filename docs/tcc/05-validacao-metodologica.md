@@ -27,21 +27,36 @@ ferramenta está em [`../reference/08-tools.md`](../reference/08-tools.md).
 
 ## Análise de sensibilidade — o AG enxerga todos os genes?
 
-- **Pergunta:** algum dos 7 atributos é **neutro** — isto é, sem pressão seletiva, de
+- **Pergunta:** algum dos 8 atributos é **neutro** — isto é, sem pressão seletiva, de
   modo que ele só drifta por random walk e não é "otimizado"?
 - **Como medir** (`sensitivity_analysis`): para cada (arquétipo, atributo), perturbar o
   gene em ±σ e medir `|Δ WR|` **global** do personagem. Atributos cujo Δ médio fica
-  **abaixo do piso de ruído binomial** são genes neutros. O piso é o da WR global, que
-  agrega os 4 matchups do personagem: `sqrt(0.25 / (4·sims))` — ±1,8% com os 200 sims
-  default, ±1,1% com 500. O tool imprime esse piso e o grava no artefato JSON junto da
-  matriz completa.
+  **abaixo do piso medido** são neutros; `≤ 2× piso` é borderline.
+- **O piso é medido, não estimado** — e a diferença importa para o texto. O piso analítico
+  (`sqrt(0.25/(4·sims))`, ±1,8% a 200 sims) é o desvio de **uma proporção**, mas o número
+  classificado é uma **diferença** entre duas WRs: grandeza errada. O tool roda a própria
+  maquinaria sob a hipótese nula — `|Δ WR|` entre duas avaliações do **mesmo** roster,
+  **sem perturbação**, sob seeds diferentes (`--null-reps`). Ali o Δ verdadeiro é zero por
+  construção, então tudo que aparece é ruído, na mesma grandeza que a tabela classifica.
+  Seeds diferentes são necessárias: com a mesma seed e perturbação zero as avaliações são
+  bit-idênticas e o Δ sai 0. Quebrar o pareamento de propósito dá um piso **conservador**
+  (a medição real usa CRN pareado e tem menos ruído), que é o lado seguro. O piso medido e
+  a classificação vão no artefato JSON junto da matriz completa.
+- **Onde medir importa tanto quanto como.** O tool rodava fixo no canônico, que é
+  **saturado** (Rushdown ~100% global, Turtle ~0%): com a WR presa no teto, perturbar um
+  gene não muda nada e quase tudo saía "neutro" por efeito de teto, não por neutralidade —
+  a tabela sustentava o contrário do que se quer afirmar. Com `--evolved`, no roster
+  equilibrado, **4 dos 8** atributos saem visíveis (`range` 0,287 · `damage` 0,210 ·
+  `hp` 0,187 · `attack_cooldown` 0,181, contra um piso de 0,0794) e 4 ficam abaixo do piso
+  (`grab_power` 0,073 · `speed` 0,061 · `stun` 0,061 · `knockback` 0,024).
 - **Variância controlada:** usa pareamento de seeds (*common random numbers*) entre +σ
   e −σ — técnica que **só funciona após o fix de reprodutibilidade** (antes, ineficaz).
 - **Para que serve na tese:** sustenta a afirmação de que a seleção atua sobre todo o
   cromossomo (ou identifica explicitamente quais genes são inertes — foi o caso do
   antigo `recovery`, cuja neutralidade motivou sua remoção; ver
-  [07-achados-e-limitacoes.md](07-achados-e-limitacoes.md)). Não avalia um indivíduo;
-  valida o **método**.
+  [07-achados-e-limitacoes.md](07-achados-e-limitacoes.md)). Valida o **método**, não a
+  qualidade do indivíduo — mas *precisa* de um indivíduo não-saturado para medir, e é
+  por isso que a medida citável é a do `--evolved`, não a do canônico.
 
 ## Múltiplas execuções independentes + estatística agregada (item 1.1)
 

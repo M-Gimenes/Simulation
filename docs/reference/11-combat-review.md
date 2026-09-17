@@ -152,10 +152,14 @@ desfecho, então nada parece quebrado — e nada parece funcionar tampouco. Medi
 de RETREAT prova que a ação é **escolhida**, não que ela **serve para alguma coisa**: o
 Zoner recuava 39% do tempo e ainda assim perdia 100%, porque recuar era forfeit de dano.
 
-É exatamente o mesmo efeito de teto que faz a `sensitivity_analysis` classificar 6 dos 7
-atributos como "neutros" (item aberto em [`../../REVIEW.md`](../../REVIEW.md) §4). A
-lição metodológica: **auditar mecânica exige um ponto não-saturado do espaço** — corpo
-neutro para o gradiente bruto, contexto de projeto para genes relacionais.
+Era exatamente o mesmo efeito de teto que fazia a `sensitivity_analysis` classificar 6 dos
+7 atributos de então como "neutros" — o tool rodava fixo no canônico. Resolvido em
+2026-09-16 (item G da [`../../REVIEW.md`](../../REVIEW.md) §4): ele ganhou
+`--evolved` / `--nsga2` e o piso passou a ser medido. Num roster equilibrado o quadro é
+outro — **4 dos 8** atributos saem visíveis. A lição metodológica é a que este capítulo
+já dizia, agora com o instrumento consertado: **auditar mecânica exige um ponto
+não-saturado do espaço** — corpo neutro para o gradiente bruto, contexto de projeto para
+genes relacionais.
 
 Duas conclusões daquela revisão continuam de pé e estão registradas em
 [`../tcc/04-caminhos-e-decisoes.md`](../tcc/04-caminhos-e-decisoes.md): a hipótese "luta

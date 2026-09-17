@@ -214,8 +214,15 @@ py -m src.tools.archetype_validator --n 0    # só estrutural (Layers 1-2)
 
 
 Para cada (arquétipo, atributo), perturba o gene em ±σ e mede `Δ WR`. Atributos
-com `|Δ|` médio abaixo do piso binomial são genes "neutros" (drift por random
+com `|Δ|` médio abaixo do **piso medido** são genes "neutros" (drift por random
 walk, sem pressão seletiva).
+
+Medido no indivíduo evoluído (200 sims, `--null-reps 3`, piso 0,0794): **4 dos 8**
+atributos saem visíveis — `range` 0,287 · `damage` 0,210 · `hp` 0,187 ·
+`attack_cooldown` 0,181 — contra `speed` 0,061, `stun` 0,061, `grab_power` 0,073 e
+`knockback` 0,024 abaixo do piso. É um resultado muito diferente do que o canônico
+saturado dava (quase tudo "neutro" por efeito de teto), e é ele que sustenta — ou
+limita — a afirmação "o AG enxerga o cromossomo".
 
 ```bash
 py -m src.tools.sensitivity_analysis --sims 500 --workers 1
@@ -227,9 +234,9 @@ stream: o Δ medido é efeito do gene, não do sorteio. Ver
 [09-reproducibility.md](09-reproducibility.md).
 
 Salva a matriz completa em `results/sensitivity/sensitivity_analysis.json` (Δ WR por
-arquétipo × atributo, σ usado por gene, piso de ruído binomial e a classificação
-visível/borderline/neutro) — o console é volátil e a tabela é citada na validação
-metodológica.
+arquétipo × atributo, σ usado por gene, o piso **medido** — `noise_floor_measured` e
+`noise_floor_mean` — e a classificação visível/borderline/neutro) — o console é volátil
+e a tabela é citada na validação metodológica.
 
 ## `multi_run` — N execuções independentes + estatística agregada
 

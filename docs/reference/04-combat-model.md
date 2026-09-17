@@ -2,11 +2,11 @@
 
 Simulação tick a tick 1v1, em `src/engine/combat.py`. O loop vive em duas funções
 `@njit` (`_simulate_combat_jit` para o fitness, `_simulate_combat_traced_jit` para
-instrumentação) que **compartilham dois helpers `@njit`** — `_decide_action`
-(postura) e `_apply_movement` (deslocamento com colisão) —, fonte única chamada para
-A e B nas duas variantes, garantindo que ambas simulem exatamente o mesmo combate
-(mesmo consumo de RNG; coberto por um teste de paridade em `test_combat`). O desfecho
-sai de um terceiro helper compartilhado, `_decide_winner`. API pública:
+instrumentação) que **compartilham três helpers `@njit`** — `_decide_action` (postura),
+`_apply_movement` (deslocamento com colisão) e `_decide_winner` (desfecho) —, fonte única
+chamada para A e B nas duas variantes, garantindo que ambas simulem exatamente o mesmo
+combate (mesmo consumo de RNG; coberto por um teste de paridade em `test_combat`).
+API pública:
 `simulate_combat`, `simulate_combat_traced`, `simulate_combat_detailed`.
 
 ## Os dois canais de ação

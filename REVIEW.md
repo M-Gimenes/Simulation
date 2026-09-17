@@ -151,12 +151,16 @@ corrigidos; o quadro macro do modelo ficou registrado abaixo.
   (100% das lutas terminam em KO, então `D` baixo é KO no fio, não luta que não
   aconteceu). `MATCHUP_FLOOR` foi de 0,10 para 0,02 — guarda de degenerescência, não
   banda de qualidade. Ver §4, item (B).
-- [ ] **`TICK_SCALE = 5` e `ACTION_PERSISTENCE_SUBTICKS = 10` seguem provisórios.**
-  *Pergunta:* qual evidência justifica esses valores? Note a incoerência de escala: a
-  persistência (10 sub-ticks) é **maior que o cooldown mínimo** (5 sub-ticks), então um
-  personagem de `cooldown = 1` que sorteia GUARDA abre mão de duas janelas de ataque
-  inteiras. Com M3 o acoplamento `stun × TICK_SCALE` deixou de ser crítico (o timer é
-  contínuo), mas o cooldown segue quantizado em `round(cd × TICK_SCALE)`.
+- [x] ~~**`TICK_SCALE = 5` e `ACTION_PERSISTENCE_SUBTICKS = 10` seguem provisórios.**~~
+  **Fechado em 2026-09-16 pelo item (5) da §9:** a incoerência de escala era real — a
+  persistência a 10 sub-ticks era **maior que o cooldown mínimo** (5), então um personagem
+  de `cooldown = 1` que sorteava GUARDA abria mão de **duas** janelas de ataque por
+  acidente de escala. `ACTION_PERSISTENCE_SUBTICKS` foi para **5** = exatamente 1 tick =
+  exatamente o cooldown mínimo, e a medição concordou com o argumento de coerência: SNR
+  melhor em **8/8** genes (`speed` +81%, `stun` +80%, ambos abaixo do piso de ruído a 10),
+  piso de ruído 4,9% → 3,5%. `TICK_SCALE` fica em 5 — com M3 o acoplamento
+  `stun × TICK_SCALE` deixou de ser crítico (o timer é contínuo); o cooldown segue
+  quantizado em `round(cd × TICK_SCALE)`, e é o que ancora a persistência.
 - [ ] **A política é cega ao estado.** A intenção não depende de HP, distância, cooldown
   do oponente nem de o oponente estar stunado: um personagem em GUARDA continua em GUARDA
   enquanto o oponente está indefeso. É o commitment pretendido, mas significa que
@@ -242,10 +246,16 @@ corrigidos; o quadro macro do modelo ficou registrado abaixo.
 
 ## 3. Representação: genes, arquétipos, canônicos
 
-- [ ] **Canônicos re-tunados são provisórios.** HP, dano e stun dos 5 foram reajustados
-  ao novo modelo e nunca calibrados. *Pergunta:* qual o critério para dizer que um
-  conjunto canônico está bom? Ele é simultaneamente semente inicial e régua do
-  `drift_penalty` — mudá-lo move as duas coisas ao mesmo tempo.
+- [x] ~~**Canônicos re-tunados são provisórios.**~~ **Fechado em 2026-09-16 pelo item (4)
+  da §9: declarados finais.** A pergunta ("qual o critério para dizer que está bom?") tinha
+  resposta negativa: *"melhor valor" não existe aqui* — o canônico é a **premissa**, não uma
+  variável a otimizar, e ajustá-lo para ficar mais equilibrado ou realizar o ciclo seria
+  mexer na premissa para obter a resposta. O único critério admissível é **coerência**, e
+  ele foi declarado e medido: internamente coerentes (validador **23/23**), distintos entre
+  si (10 distâncias par-a-par ≥ **0,3221**) e **desequilibrados** de propósito (`dominance`
+  1,2690) — o ponto de partida do problema. Os três passam. Detalhe, mais as duas limitações
+  declaradas junto (5 genes colados no bound, 4 deles definidores; e a mudança de canônico
+  invalidar todo drift já medido), na §9 (4).
 - [ ] **Turtle no teto do bound de HP (450).** *Pergunta:* um canônico colado no bound
   limita a exploração do AG num lado só; é intencional?
   **Verificado:** na prática o AG foi para o **outro** lado — o Turtle evoluído tem
@@ -539,16 +549,23 @@ corrigidos; o quadro macro do modelo ficou registrado abaixo.
   `KeyError`.
 
   *Segue aberto:* os **pesos** 1,0 / 0,5 / 0,5 continuam nunca variados (item abaixo).
-- [ ] **`MATCHUP_WR_CAP = 0.15` provisório.** Define o que é "counter duro" e portanto
-  quanto do ciclo de vantagens cabe no espaço permitido. *Pergunta:* há justificativa de
-  domínio (FGC) para 15 pontos percentuais, ou é preciso um sweep?
+- [x] ~~**`MATCHUP_WR_CAP = 0.15` provisório.**~~ **Fechado em 2026-09-16 pelo item (2)
+  da §9: mantido, com âncora de domínio — e a resposta à pergunta é "sim, há justificativa
+  FGC; o sweep não é o instrumento certo".**
   **Verificado (motor antigo):** no indivíduo evoluído o `cap_term` era **exatamente 0** —
   os 10 pares ficavam em [43,5%, 58,0%]. O teto nunca chegava a morder.
   **Revisto (motor reformado, 2026-09-16):** o quadro mudou — o AG curto sob o fitness
   novo espalha os pares de 34% a 66% e o `cap_term` sai **0,0160**, ou seja o teto agora
   morde. Faz sentido: a reforma do combate abriu espaço para vantagem par-a-par, que é
-  justamente o que o cap regula. Ele voltou a ter função, e o sweep volta a fazer
-  sentido — fica para a calibração (H).
+  justamente o que o cap regula.
+  **Fechado:** a grade de matchup da FGC é declarada em números inteiros — 5-5, 6-4, 7-3,
+  8-2 —, que em `|WR − 0,5|` são 0,00 / 0,10 / 0,20 / 0,30. O consenso de domínio é que 6-4
+  é vantagem saudável e 7-3 é counter, então o cap tem de **permitir 0,10** e **barrar
+  0,20** — e não pode cair *sobre* um ponto da grade, porque um limiar encostado num valor
+  legítimo vira cara-ou-coroa sob ruído binomial (σ ≈ 0,040): em 0,10 um 6-4 verdadeiro
+  dispara **50%** das vezes, em 0,20 um 7-3 verdadeiro escapa **50%**. Em **0,15** — o ponto
+  médio do único vão que importa — um 6-4 dispara 10,6% e um 7-3 é pego 90,9%. Subir sims
+  estreita as duas caudas sem mexer no cap.
 - [ ] **Pesos 1.0 / 0.5 / 0.5 dos três termos do dominance.** Nunca variados.
   *Pergunta:* o que muda na fronteira ao mexer neles? (ver (B): hoje o termo com peso
   0,5 de decisividade é o que decide a comparação entre algoritmos).
@@ -595,13 +612,18 @@ corrigidos; o quadro macro do modelo ficou registrado abaixo.
 
   **E o menor do `--workers`** (§7): o default virou `N_WORKERS` em vez de `None`, que
   resolvia para todos os núcleos e reabria o `WinError 1455`.
-- [ ] **`SIMS_PER_MATCHUP = 150` vs as bandas de decisão.** Ruído binomial por matchup
-  ~4% contra um cap de 15%. *Pergunta:* a margem é confortável o bastante, ou o número
-  de sims precisa subir para o cap significar o que diz?
+- [x] ~~**`SIMS_PER_MATCHUP = 150` vs as bandas de decisão.**~~ **Fechado em 2026-09-16
+  pelo item (3) da §9: fica em 150.** A pergunta pressupunha que o problema fosse precisão
+  de medida, e não era: a margem de ~4% contra um cap de 15% já era folgada. O que degradava
+  o resultado fora do laço era o **protocolo** — `set_seed_base(seed)` rodava uma vez e as
+  gerações inteiras se ajustavam a **uma** realização do RNG. Dobrar sims reduziria o ruído
+  por √2, custaria 2× e deixaria a causa intacta. A rotação do stream por geração custa
+  ~1,8× no escalar e resolve: razão dentro/fora 4,14 → 2,20 em 5/5 sementes (Wilcoxon
+  p = 0,0312). Medido na bateria final: a degradação do AG caiu de 21× para **1,2×**.
 
 ## 5. AG escalar e NSGA-II
 
-- [ ] **Escalar e NSGA-II não param pelo mesmo critério.** O AG tem convergência +
+- [x] ~~**Escalar e NSGA-II não param pelo mesmo critério.**~~ O AG tinha convergência +
   estagnação + teto; o NSGA-II roda `NSGA2_GENERATIONS` fixas. *Pergunta:* a assimetria
   é intencional? Ela afeta a comparação entre os dois.
   **Verificado (2026-09-10):** na prática a assimetria era menor do que parecia — a
@@ -613,6 +635,19 @@ corrigidos; o quadro macro do modelo ficou registrado abaixo.
   NSGA-II rodou as 150 gerações fixas. *Pergunta reaberta:* comparar um algoritmo que
   para por critério com outro que para por orçamento exige declarar o que está sendo
   comparado — qualidade final sob orçamento igual, ou custo até atingir um critério?
+  **Fechado (2026-09-16): orçamento fixo nos dois.** A pergunta reaberta tinha uma resposta
+  forçada pelo NSGA-II — "o roster está equilibrado?" **não é uma pergunta que se faça a
+  uma fronteira**, que contém de propósito pontos desequilibrados-mas-fiéis, e fazê-la a um
+  representante faz a resposta depender de uma escolha arbitrária. Então o critério do
+  escalar não tem como ser transposto, e parar o escalar mais cedo tornaria "melhor"
+  indistinguível de "usou menos orçamento". `ga.run` passou a sempre completar
+  `MAX_GENERATIONS`; convergência e estagnação viraram **evento registrado**
+  (`converged_at` / `stagnated_at`), não parada. A comparação é **qualidade sob orçamento
+  igual**, e `converged_at` vira um segundo eixo — velocidade — que antes não existia.
+  *Resíduo, em aberto:* esse segundo eixo ainda não é utilizável, porque o `multi_run` não
+  grava `converged_at`/`stagnated_at` por semente (hoje é n = 1) e o NSGA-II não tem
+  equivalente — ver [`docs/reference/10-known-issues.md`](docs/reference/10-known-issues.md)
+  §1.2.
 - [x] **🔴 (C) O ponto do AG escalar não está na fronteira do NSGA-II — ele a domina.**
   *Fato novo, mesma condição para os dois (seed-base 42, 150 sims/matchup, exatamente
   como cada um foi avaliado no seu laço):*
@@ -707,16 +742,21 @@ corrigidos; o quadro macro do modelo ficou registrado abaixo.
   de gene?
 - [ ] **Elitismo de 10% + torneio 3.** Nunca variados. *Pergunta:* precisam de
   justificativa além de "valores usuais"?
-- [ ] **🟡 Degenerescência de escala nos pesos comportamentais.** *Fato novo:* a intenção
+- [x] ~~**🟡 Degenerescência de escala nos pesos comportamentais.**~~ *Fato:* a intenção
   é sorteada proporcionalmente a `(w_agg, w_ret, w_def)` — o comportamento depende **só
   da razão** entre os três. Multiplicar os três por uma constante não muda nada no
-  combate, mas muda o `drift_penalty`. No indivíduo evoluído a soma dos pesos varia de
+  combate, mas mudava o `drift_penalty`. No indivíduo evoluído a soma dos pesos variava de
   0,42 (Rushdown) a 1,80 (Turtle) contra ~1,0–1,3 nos canônicos, e para o Zoner a
-  distância bruta aos pesos canônicos é 0,367 enquanto a distância entre as **razões** é
-  0,065 — quase todo o "drift de pesos" do Zoner é escala invisível ao combate.
-  *Pergunta:* normalizar os pesos (simplex) na representação, ou medir o drift dos pesos
-  sobre a razão? Do jeito que está, parte do eixo de identidade mede algo que o simulador
-  não enxerga.
+  distância bruta aos pesos canônicos era 0,367 enquanto a distância entre as **razões** é
+  0,065 — quase todo o "drift de pesos" do Zoner era escala invisível ao combate.
+  **Fechado em 2026-09-16 pelo item (6) da §9:** das duas saídas da pergunta, a escolhida
+  foi **medir o drift sobre a razão**, não normalizar a representação — normalizar no
+  simplex mexeria no espaço de busca e nos operadores para consertar um problema que é de
+  **medição**. `fitness.drift_genes` reescala os 3 pesos à soma canônica antes da
+  comparação; os 8 atributos passam intactos. Fonte única: `_archetype_deviation` e o
+  `drift_table` consomem a mesma função, senão o total e a coluna por gene discordariam.
+  *Magnitude medida:* **7,5%** do drift médio (pior caso Rushdown 15,1%), com os `k` ótimos
+  entre 0,58 e 0,70 — o AG inflava a escala dos pesos e o drift cobrava pela inflação.
 
 ## 6. Protocolo experimental e artefatos
 
@@ -728,6 +768,14 @@ corrigidos; o quadro macro do modelo ficou registrado abaixo.
 - [ ] **10 sementes é suficiente?** `MULTI_RUN_N_SEEDS = 10`. Com Mann-Whitney e n=10 o
   SciPy usa a aproximação assintótica (conservadora). *Pergunta:* subir para 20-30
   mudaria as conclusões, e o custo é aceitável (~3,8 min por execução)?
+  **Decidido em 2026-09-16 pelo item (7) da §9: n = 20 — mas não executado.** A resposta à
+  primeira metade é sim: a curva de poder (4000 réplicas, dois normais separados por 1,190σ
+  = Â₁₂ 0,80, critério Holm família 3) dá **44,4%** a n = 10 contra **85,9%** a n = 20, e
+  20 é o menor valor que passa do patamar convencional de 80%. Com 10 o experimento tem
+  menos de metade de chance de detectar um efeito **grande**, então "não significativo" a
+  n = 10 diz mais sobre a amostra que sobre os algoritmos. A segunda metade — o custo — é
+  o que trava: `multi_run` **não tem resume**, então `--n-seeds 20` re-roda as 20 (~180 min,
+  não +90). **Segue aberto por execução, não por decisão.**
 - [x] **(F) Holm rodava sobre 4 métricas, uma delas degenerada.** *Fato:*
   `n_chars_balanced` é **5/5 nas 20 execuções** (10 por algoritmo) — amostra conjunta
   constante, e `mannwhitneyu` devolve `p = nan` porque a correção de empates zera o
@@ -766,12 +814,24 @@ corrigidos; o quadro macro do modelo ficou registrado abaixo.
   `overleaf/TCC/bibliografia.bib`.
   **Verificado:** também ausentes de `overleaf/artigo-SBC/referencias.bib` e de
   `overleaf/artigo-latinware-2026/referencias.bib` — os três `.bib`.
-- [ ] **O veredito da validação externa é binário e sensível a ruído.** *Fato:* o roster
+- [ ] **O veredito da validação externa é binário.** *Fato:* o roster
   só é ROBUSTO se **nenhum** par virar hard-counter em **nenhuma** das 10 condições — 100
   oportunidades de falhar. O `best_dominance` do NSGA-II tem 5/5 bonecos robustos e
   apenas 1/10 pares que trip em alguma condição, e ainda assim sai FRÁGIL. *Pergunta:* o
   quantificador "em alguma condição" é o certo, ou o veredito deveria ser uma fração
   (ex.: par fora da banda em >X% das condições)?
+  **Verificado (2026-09-17, os quatro rótulos no mesmo corte):** o item foi levantado como
+  "binário **e sensível a ruído**"; a segunda metade não se sustenta. O critério
+  **discrimina**: o AG escalar passa **limpo** — 5/5 bonecos, **0/10** pares, WR por par em
+  [42,0%, 57,8%] — e é o primeiro roster do projeto a sair ROBUSTO. O que reprova o
+  `best_dominance` não é ruído e sim um par **sistematicamente** fora: Grappler × Turtle a
+  66,7% ± 1,7%, 1,7 p.p. acima do teto, com desvio pequeno através das 10 condições.
+  *A pergunta segue aberta*, mas mudou de natureza — não é mais "o critério é severo demais
+  para qualquer roster?" e sim "reprovar por uma aresta canônica do ciclo 1,7 p.p. fora do
+  teto é a leitura que se quer?". Note que uma fração **não salvaria** esse caso: o par sai
+  fora da banda em **9 das 10** condições (WR 63,6%–69,0%), então qualquer limiar
+  fracionário razoável reprova igual. O que a fração mudaria é o *relato* — distinguir um
+  par consistentemente fora de um par que escapa uma vez por acaso —, não o veredito.
 - [ ] **`results/` não tem versionamento parcial.** Mexer em `config.py`, nos canônicos
   ou no motor invalida tudo de uma vez. *Pergunta:* vale gravar um snapshot da config
   dentro de cada artefato, para que um JSON antigo se denuncie sozinho?
@@ -804,16 +864,24 @@ Sem impacto em resultado; entram porque o padrão do projeto é código limpo pa
   usar `evaluate_detail_n(ind, n)`.
 - [x] ~~`sensitivity_analysis --workers` tem default `None` → todos os núcleos.~~
   **Corrigido em 2026-09-16:** default `N_WORKERS`.
-- [ ] `expected_winner` nunca devolve `None`: os 10 pares têm vencedor canônico (cada
+- [x] ~~`expected_winner` nunca devolve `None`: os 10 pares têm vencedor canônico (cada
   arquétipo vence 2 e perde 2, sem conflito). O ramo `"par neutro"` de
-  `MatchupRecord.cycle` e o símbolo `·` são código morto.
-- [ ] `ga.run`, ao bater o teto, devolve o melhor da população **151ª** rotulado
-  `generation = 149` e ausente do `history`. O elitismo faz coincidir na prática
-  (verificado na seed 42: `fitness` gravado == último ponto do `history`), mas a
-  rotulagem é enganosa.
-- [ ] `nsga2._log_generation` imprime `front0={front_sizes[0]}/{n_fronts}` medido sobre a
+  `MatchupRecord.cycle` e o símbolo `·` são código morto.~~
+  **Corrigido em 2026-09-16 e fechado em 2026-09-17:** `expected_winner` passou a
+  **levantar** em vez de devolver `None` (um par descoberto é incoerência da tabela
+  `beats`, e o retorno silencioso escondia o defeito), e `MatchupRecord.cycle` perdeu o
+  ramo neutro. O resíduo — `cyc_counts["·"]`, o `canonical_wr: Optional` com o fallback
+  `is not None` e o import de `Optional` — saiu em 2026-09-17.
+- [x] ~~`ga.run`, ao bater o teto, devolve o melhor da população **151ª** rotulado
+  `generation = 149` e ausente do `history`.~~ **Corrigido em 2026-09-16:** devolve
+  `generation = MAX_GENERATIONS`, com o comentário explicando que o laço produz uma
+  geração a mais que as logadas (`history` cobre `0..MAX_GENERATIONS-1`). Rotulá-la como
+  `MAX_GENERATIONS-1` dava um número que não existe no `history`.
+- [x] ~~`nsga2._log_generation` imprime `front0={front_sizes[0]}/{n_fronts}` medido sobre a
   população **combinada** (600), enquanto `front0_ranges` na mesma linha vem da população
-  **selecionada** (300) — daí sair `front0=302` num pop de 300.
+  **selecionada** (300) — daí sair `front0=302` num pop de 300.~~
+  **Corrigido em 2026-09-16:** a linha passou a usar `front0_selected`, da mesma população
+  que os `front0_ranges` ao lado.
 - [x] ~~`docs/reference/07-configuration.md` aponta `ATTRIBUTE_BOUNDS` em "hoje ~L68–L82".~~
   **Corrigido em 2026-09-16:** as referências por linha (aqui e em `03-archetypes.md`)
   viraram referência por **símbolo** — número de linha envelhece a cada edição.

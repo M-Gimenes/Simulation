@@ -541,3 +541,44 @@ separar duas classes, e essa separação é ela própria uma decisão metodológ
   atuais o experimento tem **menos de 50%** de chance de detectar um efeito grande que
   provavelmente existe — dizer "não significativo" a partir dali diz mais sobre a amostra
   que sobre os algoritmos.
+
+## A regeneração parcial de artefato, e o número que ela escondia (2026-09-17)
+
+**Problema.** A `external_validation` regenera **só o rótulo que recebe na linha de
+comando**, e a bateria de 2026-09-17 rodou apenas `--nsga2 best_dominance`. Os outros três
+rótulos (`_canonical`, `_evolved`, `_nsga2_knee_point`) ficaram no disco descrevendo o
+motor anterior, e nada acusou: `git status` limpo (JSONs velhos seguem versionados) e mtime
+recente (é do checkout, não da geração). O efeito não foi cosmético. A tabela que abre os
+resultados — a degradação entre o `dominance` medido **durante** a busca e o medido **fora**
+dela, que é o headline da rotação do stream — acabou comparando o **AG** de uma bateria com
+o **NSGA-II** da outra, lendo "21× → 1,1×".
+
+**Mudança.** Rodar os quatro rótulos no mesmo corte e refazer a tabela pareada, algoritmo
+com algoritmo. Registrada como pendência de instrumentação a causa-raiz: **nenhum artefato
+grava a config que o produziu**, então um JSON velho não se denuncia sozinho.
+
+**Resultado — a correção deixa o achado mais forte, não mais fraco.** Pareado, os dois
+algoritmos caem de degradação grande para ~1×:
+
+| | AG escalar: dentro → fora | | NSGA-II `best_dominance`: dentro → fora | |
+|---|---|---|---|---|
+| bateria 2026-09-16 | 0,0039 → 0,0804 | **21×** | 0,0140 → 0,1148 | **8,2×** |
+| bateria 2026-09-17 | 0,0153 → 0,0178 | **1,2×** | 0,0483 → 0,0545 | **1,1×** |
+
+E o rótulo que estava velho carregava o resultado mais forte da bateria: o roster do **AG
+escalar é o primeiro do projeto a sair ROBUSTO** da validação externa — 5/5 bonecos em
+banda nas 10 condições independentes e **0/10** pares virando counter duro em qualquer uma
+delas, com as WR por par em [42,0%, 57,8%]. Equilíbrio com arestas decididas, não
+achatamento. Na bateria anterior o mesmo rótulo dava 3/10 counters.
+
+**Efeito colateral metodológico:** isso recalibra a objeção ao veredito binário da
+validação externa. Ele estava registrado como "binário **e sensível a ruído**"; a segunda
+metade não se sustenta, porque o critério **discrimina** — o AG passa limpo e o
+`best_dominance` reprova por um par que está fora em **9 das 10** condições (Grappler ×
+Turtle, 63,6%–69,0%), não por um tropeço de amostragem. Um quantificador fracionário
+reprovaria esse caso igual; o que ele mudaria é o *relato*, distinguindo um par
+consistentemente fora de um que escapa uma vez por acaso.
+
+**A lição que vale para a redação:** um experimento cujos artefatos não carregam a
+configuração que os gerou não tem como se auto-verificar, e a falha não aparece como erro —
+aparece como um número plausível.

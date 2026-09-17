@@ -17,21 +17,25 @@ H, R, a **bateria completa** com `results/` regenerado, e o **item F** (família
 
 1. **O ambiente não sobe sozinho.** `.venv/` é gitignored e o Python do sistema (3.14)
    não tem `numpy`/`numba`/`scipy`. Rode `setup.ps1` antes de qualquer coisa.
-2. **`results/` está ATUAL e COERENTE** — bateria de 2026-09-17, sob o motor final
-   (rotação do stream, persistência 5, drift invariante à escala dos pesos). Números em
-   §3. O headline: a degradação entre o número de dentro do laço e o de fora caiu de
-   **21× para 1,1×**.
+2. **`results/` está ATUAL e COMPLETO** — bateria de 2026-09-17, sob o motor final
+   (rotação do stream, persistência 5, drift invariante à escala dos pesos), com os quatro
+   rótulos de `external_validation` no mesmo corte. Números em §3. Dois headlines: a
+   degradação entre o número de dentro do laço e o de fora caiu de **21× para 1,2×** no AG
+   e de **8,2× para 1,1×** no NSGA-II; e o roster do AG escalar é o **primeiro do projeto
+   a sair ROBUSTO** da validação externa (0/10 counters em 10 condições).
 3. **A agenda de calibração ([`REVIEW.md` §9](REVIEW.md)) está FECHADA** — os sete itens
    decididos com evidência. Quatro mantiveram o valor vigente com justificativa escrita;
    três mudaram e obrigaram a esta regeneração. Detalhe em §1c, §1d e no
    [`docs/tcc/04`](docs/tcc/04-caminhos-e-decisoes.md).
-4. **O que falta é redação, não sistema:** passo 9 do [`REVIEW.md` §8](REVIEW.md) —
-   `values.tex` (inteiramente obsoleto) e as seis referências estatísticas ausentes dos
-   três `.bib`. Mais os itens menores do §4 abaixo.
+4. **O que falta, em ordem:** os itens de §4 — instrumentação (`converged_at` por
+   semente, snapshot de config nos artefatos) e os experimentos decididos e não rodados
+   (sweep de `LAMBDA_DRIFT`, n = 20). Depois a **redação**, passo 9 do
+   [`REVIEW.md` §8](REVIEW.md): `values.tex` (inteiramente obsoleto) e as seis referências
+   estatísticas ausentes dos três `.bib`.
 
-> ⚠️ **Três artefatos de `external_validation` seguem velhos** (`_canonical`,
-> `_evolved`, `_knee_point`, de 2026-09-16): a bateria só regenera
-> `_nsga2_best_dominance`. Se forem citados, regerar antes.
+> ✅ **Os quatro rótulos de `external_validation` estão no mesmo corte** (2026-09-17).
+> Os três que faltavam (`_canonical`, `_evolved`, `_nsga2_knee_point`) foram regerados —
+> e o `_evolved` mudou o resultado principal, ver §3.
 
 ## 1. O que foi feito em 2026-09-16 — passos 2 a 7 (A, B, E, C, H, R + bateria)
 
@@ -521,9 +525,9 @@ sementes 42–51 são determinísticas), **não** no de compute: `multi_run` nã
 | eixo | do que é feito | estado |
 |---|---|---|
 | **Espaço** | range, speed, knockback, posição, campo, colisão | ✅ coerente após M1+M1b+M2 |
-| **Tempo** | cooldown, stun, persistência da intenção | ✅ coerente após M3. Ressalva: a persistência (10 sub-ticks) é **maior que o cooldown mínimo** (5), então quem tem `cooldown=1` e sorteia GUARDA abre mão de duas janelas de ataque |
+| **Tempo** | cooldown, stun, persistência da intenção | ✅ coerente após M3 + item (5): a persistência caiu para **5 sub-ticks** = 1 tick = o cooldown mínimo, então quem tem `cooldown=1` e sorteia GUARDA abre mão de exatamente **uma** janela |
 | **Recurso** | hp, damage, DEFEND, grab_power | ✅ coerente após (R) — o agarrão é o counter da guarda |
-| **Política** | 3 pesos, amostragem proporcional | contínua, mas **cega ao estado** (não olha HP, distância nem se o oponente está stunado) e com degenerescência de escala (só a razão importa) |
+| **Política** | 3 pesos, amostragem proporcional | contínua; a degenerescência de escala deixou de contaminar a identidade (item 6 — `drift_genes` reescala), mas segue **cega ao estado**: não olha HP, distância nem se o oponente está stunado |
 
 ## 3. Resultados da bateria (2026-09-17) — sob rotação, persistência 5 e drift invariante
 
@@ -533,14 +537,28 @@ com 30 nulos.
 
 ### O resultado que domina todos os outros: o número de dentro do laço virou honesto
 
-| | dentro do laço | fora do laço (10 condições) | degradação |
-|---|---|---|---|
-| **bateria 2026-09-16** | 0,0039 | 0,0804 ± 0,0158 | **21×** |
-| **bateria 2026-09-17** | 0,0483 | **0,0545 ± 0,0108** | **1,1×** |
+`dominance` medido **durante a busca** contra o mesmo indivíduo medido em **10 condições
+independentes** (`external_validation`, seeds 10000+, 500 sims/matchup):
 
-Era o objetivo declarado da rotação, e o efeito é maior do que o A/B previa. Antes, o
-equilíbrio reportado era em boa parte ajuste a uma realização do RNG; agora o número
-medido durante a busca **é** o número que sobrevive fora dela.
+| | AG escalar: dentro → fora | degradação | NSGA-II `best_dominance`: dentro → fora | degradação |
+|---|---|---|---|---|
+| **bateria 2026-09-16** | 0,0039 → 0,0804 ± 0,0158 | **21×** | 0,0140 → 0,1148 ± 0,0074 | **8,2×** |
+| **bateria 2026-09-17** | 0,0153 → **0,0178 ± 0,0065** | **1,2×** | 0,0483 → **0,0545 ± 0,0108** | **1,1×** |
+
+Era o objetivo declarado da rotação, e o efeito é maior do que o A/B previa — nos **dois**
+algoritmos. Antes, o equilíbrio reportado era em boa parte ajuste a uma realização do RNG;
+agora o número medido durante a busca **é** o número que sobrevive fora dela.
+
+> ⚠️ **Esta tabela foi corrigida em 2026-09-17.** A versão anterior lia "21× → 1,1×", mas
+> comparava o **AG** de uma bateria com o **NSGA-II** da outra: a `external_validation`
+> regenera só o rótulo que recebe, e a primeira passada da bateria rodou apenas
+> `--nsga2 best_dominance`. O `_evolved` que estava no disco era da bateria de 16/09 —
+> `git status` limpo e mtime recente (do checkout) não denunciavam nada. Com os quatro
+> rótulos no mesmo corte, a comparação pareada é a de cima, e **ficou mais forte**: os dois
+> algoritmos caem de degradação grande para ~1×. Registrado como pendência de
+> instrumentação em [`docs/reference/10-known-issues.md`](docs/reference/10-known-issues.md)
+> §1.2 — enquanto os artefatos não gravarem a config que os produziu, a defesa é rodar os
+> quatro rótulos sempre.
 
 ### Agregado (10 sementes, reavaliação independente na seed 9999)
 
@@ -605,18 +623,28 @@ Três leituras:
    por par espalhadas em 43%–55%, ou seja, arestas decididas: a **não-transitividade
    emergiu**, ainda que não no rótulo autoral.
 
-### Validação externa
+### Validação externa — os quatro rótulos, mesmo corte
 
-`best_dominance` do NSGA-II: **5/5 bonecos robustos**, `dominance` 0,0545 ± 0,0108
-através de 10 condições independentes, e **1/10 matchups** vira counter duro — contra
-3/10 na bateria anterior.
+| indivíduo | `dominance` fora | drift | bonecos robustos | counters | veredito |
+|---|---|---|---|---|---|
+| canônico | 1,2762 ± 0,0024 | 0,0000 | 1/5 | 9/10 | FRÁGIL |
+| **AG escalar** | **0,0178 ± 0,0065** | 0,2178 | **5/5** | **0/10** | **ROBUSTO** |
+| NSGA-II `best_dominance` | 0,0545 ± 0,0108 | 0,2004 | 5/5 | 1/10 | FRÁGIL |
+| NSGA-II `knee_point` | 0,2496 ± 0,0194 | 0,1082 | 5/5 | 9/10 | FRÁGIL |
 
-Detalhe que vale registrar: o único counter é **Grappler × Turtle a 66,7% ± 1,7%**, que é
-uma **aresta canônica do ciclo** ("grab é o counter canônico ao bloqueio"). O roster
-realiza a aresta autoral, apenas 1,7 p.p. acima do teto de 65%. O veredito segue
-**FRÁGIL** por causa do quantificador binário ("counter em ALGUMA das 10 condições"),
-cuja adequação já está questionada no [`REVIEW.md`](REVIEW.md) §6 — com 100 oportunidades
-de falhar, um par consistentemente 1,7 p.p. fora da banda derruba o roster inteiro.
+**O AG escalar é o primeiro roster do projeto a passar o veredito.** 5/5 bonecos em banda
+nas 10 condições, **nenhum** par virando counter duro em nenhuma delas, com as WR por par
+espalhadas em [42,0%, 57,8%] — equilíbrio com arestas decididas, não achatamento. Na
+bateria anterior esse mesmo rótulo dava 3/10 counters.
+
+No `best_dominance` o único counter é **Grappler × Turtle a 66,7% ± 1,7%**, que é uma
+**aresta canônica do ciclo** ("grab é o counter canônico ao bloqueio"): o roster realiza a
+aresta autoral, apenas 1,7 p.p. acima do teto de 65%, e reprova por isso. Vale como
+calibração do próprio veredito — o quantificador binário ("counter em ALGUMA das 10
+condições", 100 oportunidades de falhar) é severo, mas **discrimina**: com o mesmo
+critério o AG passa limpo. A questão sobre trocá-lo por uma fração segue aberta no
+[`REVIEW.md`](REVIEW.md) §6, agora sem o argumento de que ele seria severo demais para
+qualquer roster.
 
 ### Convergência e estagnação
 
@@ -630,18 +658,33 @@ estagnação reseta por ruído e o evento não dispara.
 > esses dois campos por semente é item em aberto — sem eles, "velocidade de convergência"
 > não pode ser o segundo eixo de comparação que o projeto pretende.
 
-## 4. Itens menores ainda abertos
+## 4. Itens ainda abertos
 
-- **(C)** assimetria dos critérios de parada entre os dois algoritmos (acima).
-- **(H)** resolução do p-valor empírico nos baselines (acima).
-- **§5** degenerescência de escala nos pesos comportamentais: a intenção é sorteada
-  proporcionalmente a `(w_agg, w_ret, w_def)`, então só a **razão** importa para o
-  combate — mas o drift mede os valores absolutos. Parte do eixo de identidade mede algo
-  que o simulador não enxerga.
-- **§2** a persistência da intenção (10 sub-ticks) é maior que o cooldown mínimo (5), então
-  quem tem `cooldown = 1` e sorteia GUARDA abre mão de duas janelas de ataque.
-- **§5** a política é **cega ao estado**: não olha HP, distância nem se o oponente está
-  stunado.
+Inventário completo e comentado em
+[`docs/reference/10-known-issues.md`](docs/reference/10-known-issues.md); aqui o resumo.
+
+**Experimentos decididos ou levantados, nunca executados** (§1.1 do known-issues):
+
+- **Sweep de `LAMBDA_DRIFT`** — o mais urgente. É o que transformaria "o escalar é um
+  ponto do trade-off" de afirmação em curva. Hoje, na forma literal, a afirmação é falsa:
+  o ponto do escalar cai **fora** da fronteira, passado o extremo de baixa dominância.
+- **`MULTI_RUN_N_SEEDS`: n = 20 decidido, rodando em 10** — 44,4% de poder contra 85,9%.
+  Não executado por custo (~180 min, sem resume).
+- **Pesos 1,0 / 0,5 / 0,5 do dominance** e **elitismo 10% / torneio 3** — nunca variados.
+
+**Instrumentação que falta** (§1.2):
+
+- `multi_run` **não grava `converged_at` / `stagnated_at` no `per_seed`** — a velocidade
+  de convergência é n = 1 hoje. Ressalva: o NSGA-II não tem equivalente (orçamento fixo,
+  sem predicado), então o que isso daria é descritivo do escalar, não comparação pareada.
+- **Nenhum artefato grava a config que o produziu** — foi exatamente o que deixou três
+  `external_validation` atravessarem uma troca de motor sem aviso (§3).
+- Pool de processos recriado a cada geração; `N_WORKERS = 8` é específico desta máquina.
+
+**Limites estruturais — escopo declarado, não conserto** (§2): política fixa (a objeção
+mais forte ao resultado) e **cega ao estado**; crossover só por bloco de personagem;
+round-robin uniforme; hipersensibilidade dos genes de recurso; veredito binário da
+validação externa; alinhamento CRN imperfeito depois do 1º matchup.
 
 ## 5. Aberto — redação
 

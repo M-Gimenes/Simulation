@@ -13,7 +13,7 @@ from __future__ import annotations
 import argparse
 import math
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
 import numpy as np
 
@@ -412,9 +412,7 @@ class MatchupRecord:
         return self.wr_a if aid == self.id_a else 1.0 - self.wr_a
 
     @property
-    def canonical_wr(self) -> Optional[float]:
-        if self.canonical_id is None:
-            return None
+    def canonical_wr(self) -> float:
         return self.wr_of(self.canonical_id)
 
     @property
@@ -621,7 +619,7 @@ def print_matchup_summary(records: List[MatchupRecord], n_per_matchup: int) -> N
 
     luta_counts: Dict[str, int] = {"=": 0, "⬆": 0, "⬇": 0}
     bal_counts:  Dict[str, int] = {"=": 0, "✗": 0}
-    cyc_counts:  Dict[str, int] = {"→": 0, "↯": 0, "·": 0}
+    cyc_counts:  Dict[str, int] = {"→": 0, "↯": 0}
     for r in records:
         bsym, _   = r.balance
         csym, clbl = r.cycle
@@ -629,9 +627,8 @@ def print_matchup_summary(records: List[MatchupRecord], n_per_matchup: int) -> N
         luta_counts[lsym] += 1
         bal_counts[bsym] += 1
         cyc_counts[csym] += 1
-        wr_val = r.canonical_wr if r.canonical_wr is not None else r.wr_a
         print(
-            f"  {r.name_a + ' vs ' + r.name_b:26s}  {wr_val:>5.0%}  {r.decisiveness:>6.3f}"
+            f"  {r.name_a + ' vs ' + r.name_b:26s}  {r.canonical_wr:>5.0%}  {r.decisiveness:>6.3f}"
             f"  {lsym} {llbl:12s}  {bsym:8s}  {csym} {clbl}"
         )
 
@@ -643,12 +640,9 @@ def print_matchup_summary(records: List[MatchupRecord], n_per_matchup: int) -> N
     print(
         f"  Counter: = {bal_counts['=']}/{total} dentro do teto   ✗ {bal_counts['✗']}/{total} counters duros"
     )
-    cyc_line = (
+    print(
         f"  Ciclo:  → {cyc_counts['→']}/{total} mantidos   ↯ {cyc_counts['↯']}/{total} invertidos"
     )
-    if cyc_counts["·"]:
-        cyc_line += f"   · {cyc_counts['·']}/{total} neutros"
-    print(cyc_line)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
