@@ -75,6 +75,16 @@ class GAResult:
     history: List[GenerationStats]
     seed: Optional[int] = None
 
+    # Quantas vezes o gate (`roster_balanced` no laço) disparou, e em quantas delas a
+    # confirmação num stream inédito RECUSOU. A razão entre os dois é o ajuste ao stream
+    # de RNG quantificado numa linha — o roster parecia equilibrado sob o stream de treino
+    # e não sobrevivia a outro. Medir isso exigia instrumentar o laço; sem os contadores o
+    # número só existiria numa medição ad-hoc, fora de qualquer artefato.
+    # Os dois param de contar na primeira confirmação aceita: seguir contando obrigaria a
+    # confirmar sempre, e cada confirmação custa SIMS_CONVERGENCE_CHECK simulações.
+    convergence_gate_fired: int = 0
+    convergence_rejected:   int = 0
+
     @property
     def converged(self) -> bool:
         return self.converged_at is not None
@@ -171,6 +181,8 @@ def run(
     stagnation_count  = 0
     converged_at: Optional[int] = None
     stagnated_at: Optional[int] = None
+    gate_fired        = 0     # disparos do gate de convergência
+    rejected          = 0     # recusados pela confirmação fora do stream
     best_ind          = max(population, key=lambda ind: ind.fitness)
     best_detail       = evaluate_detail(best_ind)
 
@@ -204,8 +216,11 @@ def run(
         # Só até a primeira confirmação: o que interessa é QUANDO convergiu, e a
         # confirmação custa SIMS_CONVERGENCE_CHECK simulações extras por disparo.
         if converged_at is None and roster_balanced(best_detail):
+            gate_fired += 1
             if roster_balanced(_confirm_convergence(best_ind)):
                 converged_at = gen
+            else:
+                rejected += 1
 
         if best_ind.fitness - best_fitness_ever > 0.001:
             best_fitness_ever = best_ind.fitness
@@ -238,6 +253,8 @@ def run(
         generation=MAX_GENERATIONS,
         converged_at=converged_at,
         stagnated_at=stagnated_at,
+        convergence_gate_fired=gate_fired,
+        convergence_rejected=rejected,
         history=history,
         seed=seed,
     )
@@ -260,6 +277,8 @@ def save_results(result: GAResult, path: Path = GA_RESULTS_PATH) -> None:
         "stop_reason":     result.stop_reason,
         "converged_at":    result.converged_at,
         "stagnated_at":    result.stagnated_at,
+        "convergence_gate_fired": result.convergence_gate_fired,
+        "convergence_rejected":   result.convergence_rejected,
         "fitness":         result.best.fitness,
         "objectives": {
             "dominance_penalty": detail.dominance_penalty,

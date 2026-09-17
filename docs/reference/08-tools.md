@@ -270,7 +270,8 @@ não um ponto — qual ponto representa a execução é uma escolha explícita
 - **(secundário)** WR média por matchup + fração de sementes em que cada par vira
   counter duro;
 - **(só NSGA-II)** hipervolume e spacing da fronteira por seed, média ± desvio
-  (item 1.2 — ver [06-nsga2.md](06-nsga2.md));
+  (item 1.2 — ver [06-nsga2.md](06-nsga2.md)), **mais os objetivos de toda a fronteira**
+  (`front_objectives`) e a amplitude do front 0 por geração (`front_history`);
 - **(só AG escalar)** `converged_at` e `stagnated_at` por semente, agregados em
   `convergence` — o eixo de **velocidade**. Como os dois algoritmos rodam orçamento fixo
   ([05-genetic-algorithm.md](05-genetic-algorithm.md)), convergir virou evento registrado
@@ -279,8 +280,21 @@ não um ponto — qual ponto representa a execução é uma escolha explícita
   um valor, e o único honesto ("não convergiu") não é um número; a taxa carrega essa
   metade, e as duas são lidas juntas. O NSGA-II **não** tem equivalente: "o roster está
   equilibrado?" não é pergunta que se faça a uma fronteira, que contém de propósito
-  pontos desequilibrados-mas-fiéis. Ele devolve `(None, None)` e a chave não aparece no
-  agregado dele — melhor que gravar zeros que alguém agregaria sem perceber.
+  pontos desequilibrados-mas-fiéis. Ele devolve dict vazio e a chave não aparece no
+  agregado dele — melhor que gravar zeros que alguém agregaria sem perceber. Junto vão
+  `convergence_gate_fired` e `convergence_rejected`: de quantas vezes o roster **pareceu**
+  equilibrado sob o stream de treino, quantas **não sobreviveram** a um stream inédito.
+  A razão entre os dois é o ajuste ao stream de RNG quantificado numa linha;
+- **sempre, por semente:** os `genes` do representante e o `history` por geração. Guardar
+  custa ~30 KB contra 7–14 min de execução, e é a diferença entre responder uma pergunta
+  nova a partir do artefato ou re-rodar o experimento. Com o histórico das N sementes a
+  curva de convergência vira **média ± banda** em vez de uma única semente — que é o que
+  a premissa deste tool exige (*"uma seed é amostra, não resultado"*).
+
+> **Regra que os artefatos deste tool seguem: gravar o que é caro de reproduzir.** Toda
+> métrica agregada se recalcula do `per_seed` em segundos; o que não se recalcula é o que
+> exigiu horas de busca — a fronteira, os genes, a trajetória. Foi por não guardar a
+> fronteira que o sweep de λ quase custou uma execução extra do NSGA-II por braço.
 
 Parametrizado em `config.py` (`MULTI_RUN_*`) para escalar N facilmente. Mata a
 fragilidade de amostra única: um matchup travado (ex.: Combo×Rush) numa seed pode ser

@@ -1,8 +1,8 @@
 {
   "provenance": {
-    "generated_at": "2026-09-17T15:10:16-03:00",
-    "fingerprint": "a1e07c0209ae",
-    "engine_digest": "528715617f8e",
+    "generated_at": "2026-09-17T15:46:01-03:00",
+    "fingerprint": "add03c4198e4",
+    "engine_digest": "5b4dc553454a",
     "archetypes_digest": "e37725dd4b7c",
     "config": {
       "ACTION_PERSISTENCE_SUBTICKS": 5,

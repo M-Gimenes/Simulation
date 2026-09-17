@@ -96,18 +96,45 @@ def _run_algorithm(algorithm: str, seed: int, nsga2_representative: str):
     O NSGA-II devolve uma fronteira, não um ponto: qual ponto representa a execução é
     uma escolha, registrada no artefato (`nsga2_representative`).
 
-    `marcos` = `(converged_at, stagnated_at)`, o eixo de **velocidade** da comparação.
-    Só existe no escalar, e a assimetria é estrutural, não omissão: "o roster está
-    equilibrado?" não é pergunta que se faça a uma FRONTEIRA, que contém de propósito
-    pontos desequilibrados-mas-fiéis. O NSGA-II devolve `(None, None)` e os campos saem
-    do agregado dele — melhor que gravar zeros que alguém agregaria sem perceber.
+    `marcos` é o dict do eixo de **velocidade**: `converged_at`, `stagnated_at` e os dois
+    contadores do gate de convergência (disparos e recusas da confirmação fora do stream,
+    que é o ajuste ao stream de RNG quantificado). Só existe no escalar, e a assimetria é
+    estrutural, não omissão: "o roster está equilibrado?" não é pergunta que se faça a uma
+    FRONTEIRA, que contém de propósito pontos desequilibrados-mas-fiéis. O NSGA-II devolve
+    dict **vazio** e as chaves não aparecem no agregado dele — melhor que gravar zeros que
+    alguém agregaria sem perceber.
     """
     if algorithm == "ga":
         result = run_ga(seed=seed, verbose=False)
-        return result.best, None, (result.converged_at, result.stagnated_at)
+        return result.best, None, {
+            "converged_at":           result.converged_at,
+            "stagnated_at":           result.stagnated_at,
+            "convergence_gate_fired": result.convergence_gate_fired,
+            "convergence_rejected":   result.convergence_rejected,
+            # A trajetória por geração, por semente. O `results.json` já guarda a da
+            # semente 42, mas uma curva de convergência de UMA semente contradiz a
+            # premissa deste tool — "uma seed é amostra, não resultado". Com o histórico
+            # das N sementes a figura vira média ± banda. São ~30 KB por semente contra
+            # 7 min de execução: não guardar é que seria caro.
+            "history": [
+                {"gen": s.generation, "best_fitness": s.best_fitness,
+                 "mean_fitness": s.mean_fitness, "worst_fitness": s.worst_fitness,
+                 "dominance_penalty": s.dominance_penalty, "drift_penalty": s.drift_penalty}
+                for s in result.history
+            ],
+        }
     result = run_nsga2(seed=seed, verbose=False)
-    front_objectives = [ind.objectives for ind in result.pareto_front]
-    return result.representatives[nsga2_representative], front_objectives, (None, None)
+    front_objectives = [list(ind.objectives) for ind in result.pareto_front]
+    return result.representatives[nsga2_representative], front_objectives, {
+        # A trajetória do NSGA-II é a da FRONTEIRA, não a de um fitness: amplitude de
+        # dominance e drift no front 0 por geração. É o que mostra a fronteira se abrindo
+        # (ou retraindo) ao longo da busca, e o análogo mais próximo da curva do escalar.
+        "front_history": [
+            {"gen": s.generation, "front0": s.front0_selected,
+             "dom_range": list(s.front0_ranges[0]), "drift_range": list(s.front0_ranges[1])}
+            for s in result.history
+        ],
+    }
 
 
 def _evaluate_independent(individual, sims: int) -> FitnessDetail:
@@ -117,7 +144,8 @@ def _evaluate_independent(individual, sims: int) -> FitnessDetail:
     return evaluate_detail_n(individual, sims)
 
 
-def _seed_record(detail: FitnessDetail, seed: int, front_objectives, milestones) -> dict:
+def _seed_record(detail: FitnessDetail, individual, seed: int,
+                 front_objectives, milestones: dict) -> dict:
     characters: Dict[str, dict] = {}
     n_chars_balanced = 0
     for i, name in enumerate(CHAR_NAMES):
@@ -144,14 +172,24 @@ def _seed_record(detail: FitnessDetail, seed: int, front_objectives, milestones)
         "n_hard_counters": n_hard_counters,
         "roster_balanced": roster_balanced(detail),
     }
-    converged_at, stagnated_at = milestones
-    if converged_at is not None or stagnated_at is not None or front_objectives is None:
-        record["converged_at"] = converged_at
-        record["stagnated_at"] = stagnated_at
+    record.update(milestones)
+
+    # Os genes do representante, sempre. São 55 floats por semente — nada perto de uma
+    # execução de 7 a 14 minutos —, e sem eles qualquer pergunta sobre o ROSTER de um
+    # braço ("a λ=4 o AG ficou colado no canônico?") exige re-rodar o braço inteiro.
+    record["genes"] = [c.genes() for c in individual.characters]
+
     if front_objectives is not None:
         record["front_size"] = len(front_objectives)
         record["hypervolume"] = hypervolume_2d(front_objectives, HYPERVOLUME_REFERENCE)
         record["spacing"] = spacing(front_objectives)
+        # A FRONTEIRA INTEIRA, e não só as métricas dela. É o que torna o sweep de λ um
+        # experimento só: a fronteira é λ-independente (`nsga2.scalar_objective` lê os
+        # LAMBDA_* apenas para ESCOLHER o `scalar_optimum`, nunca para buscar), então
+        # guardá-la permite re-derivar o comparável do escalar em qualquer λ sem re-rodar
+        # o NSGA-II. Guardando só `front_size`/`hypervolume`/`spacing`, como antes, cada
+        # λ novo custaria uma execução completa do NSGA-II.
+        record["front_objectives"] = front_objectives
     return record
 
 
@@ -200,11 +238,18 @@ def _aggregate(records: List[dict]) -> dict:
     if all("converged_at" in r for r in records):
         gens = [r["converged_at"] for r in records if r["converged_at"] is not None]
         stag = [r["stagnated_at"] for r in records if r["stagnated_at"] is not None]
+        fired    = sum(r["convergence_gate_fired"] for r in records)
+        rejected = sum(r["convergence_rejected"] for r in records)
         agg["convergence"] = {
             "converged_rate":  len(gens) / n,
             "converged_at":    mean_std(gens) if gens else None,
             "stagnated_rate":  len(stag) / n,
             "stagnated_at":    mean_std(stag) if stag else None,
+            # O ajuste ao stream quantificado: de quantas vezes o roster PARECEU
+            # equilibrado sob o stream de treino, quantas não sobreviveram a um inédito.
+            "gate_fired":      fired,
+            "gate_rejected":   rejected,
+            "rejection_rate":  rejected / fired if fired else None,
         }
     return agg
 
@@ -224,7 +269,7 @@ def aggregate_algorithm(algorithm: str, seeds: List[int], sims: int,
             algorithm, seed, nsga2_representative
         )
         detail = _evaluate_independent(individual, sims)
-        record = _seed_record(detail, seed, front_objectives, milestones)
+        record = _seed_record(detail, individual, seed, front_objectives, milestones)
         records.append(record)
         hv_part = f"  hv={record['hypervolume']:.4f}" if "hypervolume" in record else ""
         conv = record.get("converged_at")

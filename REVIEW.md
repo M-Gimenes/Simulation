@@ -367,7 +367,7 @@ corrigidos; o quadro macro do modelo ficou registrado abaixo.
   duas leituras não podem coexistir no texto. Com as duas réguas nomeadas
   (estrutural vs funcional) a contradição some, mas o texto precisa ser reescrito
   (§6 / passo 9 da ordem).
-- [ ] **🟡 (H) O canônico não realiza o próprio ciclo de vantagens.** *Fato novo:*
+- [x] **🟡 (H) O canônico não realiza o próprio ciclo de vantagens.** *Fato novo:*
   medido sob a semente 9999 com 200 sims, o roster canônico dá WR global Rushdown
   **100%**, Turtle **0%**, Zoner 25%, Grappler 73%, CM 52%; 10/10 pares são
   hard-counter; e o ciclo canônico é mantido em **5 de 10 arestas** (Zoner×Grappler,
@@ -569,7 +569,7 @@ corrigidos; o quadro macro do modelo ficou registrado abaixo.
 - [ ] **Pesos 1.0 / 0.5 / 0.5 dos três termos do dominance.** Nunca variados.
   *Pergunta:* o que muda na fronteira ao mexer neles? (ver (B): hoje o termo com peso
   0,5 de decisividade é o que decide a comparação entre algoritmos).
-- [ ] **A análise de sensibilidade mede no ponto errado do espaço.** *Fato:* ela roda
+- [x] ~~**A análise de sensibilidade mede no ponto errado do espaço.**~~ *Fato:* ela roda
   fixa no **canônico** (`Individual.from_canonical()` está hardcoded em `_eval_task`, o
   tool não tem `--evolved`/`--nsga2`), e o canônico é saturado — Rushdown ganha 100% de
   tudo, Turtle 0%, 10/10 hard-counters. Com a WR presa no teto, perturbar um gene não
@@ -579,6 +579,12 @@ corrigidos; o quadro macro do modelo ficou registrado abaixo.
   equilibrado (evoluído / knee) para sustentar a afirmação "o AG enxerga o cromossomo";
   do jeito que está, ela sustenta o contrário do que se quer afirmar.
   **Verificado:** confirmado no artefato (WR global canônica 100%/0% reproduzida).
+  **Fechado em 2026-09-16 pelo item (G), abaixo:** o tool ganhou `--evolved` / `--nsga2`,
+  os genes passam na task em vez de `Individual.from_canonical()` dentro do worker, e a
+  tabela do canônico segue disponível, agora **rotulada como saturada na própria saída**.
+  Medido no evoluído, o quadro se inverte: **4 dos 8** atributos saem visíveis
+  (`range` 0,287 · `damage` 0,210 · `hp` 0,187 · `attack_cooldown` 0,181) contra um piso
+  de 0,0794 — era isso que o efeito de teto escondia.
 - [x] **🟡 (G) A sensibilidade usa dois critérios de corte incompatíveis, e o piso está
   subdimensionado.** *Fato novo:* `_classify` usa limiares fixos (≥5% visível, <3%
   neutro, entre os dois "borderline") enquanto a saída imprime um "piso de ruído
@@ -832,18 +838,38 @@ corrigidos; o quadro macro do modelo ficou registrado abaixo.
   fora da banda em **9 das 10** condições (WR 63,6%–69,0%), então qualquer limiar
   fracionário razoável reprova igual. O que a fração mudaria é o *relato* — distinguir um
   par consistentemente fora de um par que escapa uma vez por acaso —, não o veredito.
-- [ ] **`results/` não tem versionamento parcial.** Mexer em `config.py`, nos canônicos
+- [x] ~~**`results/` não tem versionamento parcial.**~~ Mexer em `config.py`, nos canônicos
   ou no motor invalida tudo de uma vez. *Pergunta:* vale gravar um snapshot da config
   dentro de cada artefato, para que um JSON antigo se denuncie sozinho?
-- [x] **Checkup dos artefatos: reproduzem.** *Re-verificado em 2026-09-16, sob o motor
-  atual:* re-avaliar o `best_individual` do `results/results.json` sob seed-base 42 com
-  `SIMS_PER_MATCHUP` devolve `fitness = −0,257714` (gravado:
-  `−0,25771363889712734`), `dom = 0,003863`, `drift = 0,253851` — **idêntico ao
-  gravado**. Os números do `HANDOFF.md` conferem com os JSONs (`multi_run`,
-  `comparison`, `external_validation`). Nada stale em `results/`.
-  (A verificação de 2026-09-10 registrava `−0,268325 / 0,007601 / 0,260724`; eram do
-  motor **anterior** à reforma do combate e ao `grab_power`, e do `results.json` que
-  aquela bateria produziu. Não são comparáveis com os de hoje.)
+  **Resolvido em 2026-09-17 — e a pergunta tinha resposta prática urgente:** foi exatamente
+  a falta disso que deixou três artefatos de `external_validation` atravessarem uma troca
+  de motor sem aviso (§6, checkup). Todo artefato passou a abrir com um bloco `provenance`
+  (timestamp, `fingerprint`, **toda** constante de `config.py` valor a valor, digest dos
+  canônicos, digest do código do motor), e `Individual.from_results`/`from_nsga2` verificam
+  ao carregar, dizendo **o que** mudou. Continua **não** havendo versionamento parcial — o
+  carimbo *detecta*, não regenera —, mas um JSON velho agora se denuncia.
+  Ver [`docs/reference/09-reproducibility.md`](docs/reference/09-reproducibility.md).
+- [x] **Checkup dos artefatos: reproduzem — mas o PROCEDIMENTO do checkup mudou.**
+
+  ⚠️ **O procedimento antigo — "re-avaliar o melhor sob seed-base 42 devolve o gravado" —
+  é anterior à rotação do stream e não vale mais.** O número gravado é medido no stream da
+  **última geração** (`generation_seed(42, MAX_GENERATIONS)`), não no seed-base. Medido em
+  2026-09-17 no artefato vigente: sob seed-base 42 o `dominance` sai **0,0665** contra
+  **0,0153** gravado, enquanto o `drift` — determinístico, função pura dos genes — bate
+  exato nos dois casos. Foi essa assimetria que denunciou o erro. Quem for reproduzir um
+  artefato precisa reproduzir também o **stream**.
+
+  *Procedimento correto, e o resultado (2026-09-17):* sob
+  `set_seed_base(generation_seed(42, 150))` o `results.json` devolve
+  `fitness = −0,233101660623`, **bit-exato** com o gravado; e sob
+  `generation_seed(42, generations_run)` os **5 representantes** do `nsga2_results.json`
+  devolvem os objetivos gravados, também bit-exato. Foi essa verificação que autorizou o
+  carimbo retroativo de proveniência (item acima) — a validade do artefato foi
+  *estabelecida*, não assumida.
+
+  (As verificações de 2026-09-10 (`−0,268325`) e 2026-09-16 (`−0,257714`) eram de motores
+  anteriores e do `results.json` que cada bateria produziu. Não são comparáveis com os de
+  hoje, e a de 16/09 usava o procedimento agora sabido incorreto.)
 - [ ] **🟡 `values.tex` mistura proveniências na célula que mais depende disso.** *Fato
   novo:* além do stale já registrado no `HANDOFF` (`\aggDomMean` 0,19 → 0,1403;
   `\aggDriftMean` 0,23 → 0,2450; `\aggHvMean` 1,75 → 1,8084; `\hcPerSeed` 2,1 → 2,7;
@@ -907,6 +933,8 @@ tudo o que muda número tem de ser resolvido **antes** de uma única regeneraç�
 | 8 | **F**, **G** | camada de análise: não exigem re-rodar o AG | ✅ 2026-09-16 |
 | 9 | **§7 menores** + docs + `values.tex` | limpeza e sincronização final | menores ✅ 2026-09-16; falta `values.tex` + bibliografia |
 | 10 | **agenda de calibração (§9)** + regeneração final | (1)–(7) fechados; bateria regenerada sob o motor final | ✅ 2026-09-16 |
+| 11 | **instrumentação** — proveniência nos artefatos + marcos de convergência por semente | um artefato que não carrega a config que o produziu não se auto-verifica; e sem os marcos, "velocidade" é n = 1 | ✅ 2026-09-17 |
+| 12 | **bateria unificada** — `run_lambda_sweep.ps1` (n = 20 + sweep de λ) | os dois são um experimento só: a fronteira do NSGA-II é λ-independente, e a célula λ=1,0 É a bateria | roteirizada, **não executada** (~10h17) |
 
 > Fechado o passo 7, a decisão seguinte não é um item desta tabela e sim a
 > **[agenda de calibração (§9)](#9-agenda-de-calibração--as-constantes-provisórias-com-evidência)**:
