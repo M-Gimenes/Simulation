@@ -9,9 +9,9 @@ O que precisa valer, e por quê (ver docs/reference/09-reproducibility.md):
     coisas que invalidam `results/`;
   · o carimbo é ESPECÍFICO — diz QUAL constante mudou, não só que algo mudou;
   · o carimbo é ENUMERADO de `config.py`, senão a próxima constante nasce invisível;
-  · um BRAÇO de experimento (λ do sweep) não é confundido com artefato obsoleto — mas o
+  · um BRAÇO de experimento (um sweep) não é confundido com artefato obsoleto — mas o
     override também não vira salvo-conduto para esconder mudança de motor;
-  · o λ chega aos WORKERS, não só ao processo pai.
+  · TODO peso (λ e os três do dominance) chega aos WORKERS, não só ao pai.
 
 Estrutura em funções + guarda `__main__` (padrão do `test_nsga2`): o teste de workers
 sobe um `ProcessPoolExecutor`, e no Windows o spawn re-importa o módulo principal — com
@@ -23,8 +23,9 @@ import json
 import random
 
 from src.engine import config, provenance
-from src.engine.fitness import (evaluate_detail, evaluate_population, set_lambdas,
-                                set_lambdas_override, set_seed_base)
+from src.engine.fitness import (evaluate_detail, evaluate_population, runtime_state,
+                                set_dominance_weights, set_dominance_weights_override,
+                                set_lambdas, set_lambdas_override, set_seed_base)
 from src.engine.individual import Individual
 from src.engine.paths import RESULTS_DIR
 from src.engine.provenance import compare, config_values, fingerprint, stamp
@@ -40,6 +41,8 @@ def _reset() -> None:
     """Volta o processo à config do arquivo — os testes de override sujam estado global."""
     provenance.clear_overrides()
     set_lambdas(config.LAMBDA_DRIFT, config.LAMBDA_DOMINANCE)
+    set_dominance_weights(config.DOMINANCE_GLOBAL_WEIGHT, config.DOMINANCE_CAP_WEIGHT,
+                          config.DOMINANCE_DECIS_WEIGHT)
 
 
 def test_stamp_is_stable():
@@ -168,27 +171,43 @@ def test_experiment_arm_is_not_stale(braço):
     print("  ✓ o override não é salvo-conduto")
 
 
-def test_lambda_reaches_workers():
-    separator("λ chega aos workers, não só ao processo pai")
+def test_weights_reach_workers():
+    separator("Todo peso chega aos workers, não só ao processo pai")
     # O pool nasce por spawn no Windows e re-importa o módulo: sem propagação explícita
-    # os workers avaliariam com o λ do config.py enquanto o pai usa o do braço, e a
-    # divergência sairia como RESULTADO em vez de erro. É o modo de falha mais caro do
-    # sweep — um braço inteiro medindo o λ errado, sem sintoma.
+    # os workers avaliariam com os pesos do config.py enquanto o pai usa os do braço, e a
+    # divergência sairia como RESULTADO em vez de erro. É o modo de falha mais caro dos
+    # sweeps — um braço inteiro medindo a configuração errada, sem sintoma.
+    #
+    # Os dois grupos de peso são testados porque o risco não é "esquecer de propagar",
+    # é "esquecer de propagar O PRÓXIMO". `RuntimeState` existe para que acrescentar um
+    # peso ao estado já o propague; este teste é o que verifica que ainda vale.
     _reset()
     random.seed(7)
-    for λ in (0.25, 4.0):
-        set_lambdas_override(λ, 1.0)
-        set_seed_base(42)
-        pop = [Individual.random() for _ in range(12)]
-        evaluate_population(pop)                      # caminho paralelo
-        paralelo = pop[0].fitness
-        pop[0].invalidate_fitness()
-        set_seed_base(42)
-        serial = evaluate_detail(pop[0]).fitness      # caminho serial, mesmo indivíduo
-        assert abs(paralelo - serial) < 1e-12, (λ, paralelo, serial)
-        print(f"  λ_drift={λ:<5} worker={paralelo:.6f} == serial={serial:.6f}")
-    _reset()
-    print("  ✓ worker e pai avaliam sob o mesmo λ")
+    for rótulo, aplicar in (
+        ("λ_drift",    lambda v: set_lambdas_override(v, config.LAMBDA_DOMINANCE)),
+        ("dom_cap",    lambda v: set_dominance_weights_override(1.0, v, 0.5)),
+    ):
+        for valor in (0.0, 4.0):
+            aplicar(valor)
+            set_seed_base(42)
+            pop = [Individual.random() for _ in range(12)]
+            evaluate_population(pop)                      # caminho paralelo
+            paralelo = pop[0].fitness
+            pop[0].invalidate_fitness()
+            set_seed_base(42)
+            serial = evaluate_detail(pop[0]).fitness      # serial, mesmo indivíduo
+            assert abs(paralelo - serial) < 1e-12, (rótulo, valor, paralelo, serial)
+            print(f"  {rótulo}={valor:<5} worker={paralelo:.6f} == serial={serial:.6f}")
+            _reset()
+
+    # E o bundle tem de cobrir TODO peso que existe: se alguém adicionar um `set_*` sem
+    # pôr no RuntimeState, o worker fica com o valor do config e nada acusa.
+    estado = set(runtime_state()._fields)
+    esperado = {"seed_base", "lambda_drift", "lambda_dominance",
+                "dominance_global", "dominance_cap", "dominance_decis"}
+    assert estado == esperado, f"RuntimeState mudou: {estado ^ esperado}"
+    print(f"  RuntimeState cobre {len(estado)} campos: {', '.join(sorted(estado))}")
+    print("  ✓ worker e pai avaliam sob a mesma configuração")
 
 
 def test_results_artifacts():
@@ -216,6 +235,6 @@ if __name__ == "__main__":
     test_json_round_trip()
     braço = test_override_is_recorded()
     test_experiment_arm_is_not_stale(braço)
-    test_lambda_reaches_workers()
+    test_weights_reach_workers()
     test_results_artifacts()
     separator("Todos os testes passaram ✓")

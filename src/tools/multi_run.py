@@ -60,9 +60,11 @@ from src.engine.fitness import (
     FitnessDetail,
     character_balanced,
     evaluate_detail_n,
+    get_dominance_weights,
     get_lambdas,
     is_hard_counter,
     roster_balanced,
+    set_dominance_weights_override,
     set_lambdas_override,
     set_seed_base,
 )
@@ -302,6 +304,7 @@ def aggregate_algorithm(algorithm: str, seeds: List[int], sims: int,
         "n_generations": n_generations,
         "lambda_drift": lambda_drift,
         "lambda_dominance": lambda_dominance,
+        "dominance_weights": dict(zip(("global", "cap", "decis"), get_dominance_weights())),
         "n_seeds": len(seeds),
         "seeds": seeds,
         "validation_seed": MULTI_RUN_VALIDATION_SEED,
@@ -370,7 +373,7 @@ def _print_summary(result: dict) -> None:
         print(f"      {label:<28s} WR {wr['mean']:.0%}±{wr['std']:.0%}   counter em {rate_hc:.0%}{flag}")
 
 
-def _artifact_path(algorithm: str, lambdas, pop_size: int, n_generations: int) -> Path:
+def _artifact_path(algorithm: str, lambdas, dom_weights, pop_size: int, n_generations: int) -> Path:
     """Onde o artefato desta execução é gravado.
 
     Só a execução **inteiramente no default** — λ e orçamento — grava nos caminhos
@@ -387,13 +390,16 @@ def _artifact_path(algorithm: str, lambdas, pop_size: int, n_generations: int) -
     if lambdas != (LAMBDA_DRIFT, LAMBDA_DOMINANCE):
         drift, dominance = lambdas
         partes.append(f"drift{drift:g}_dom{dominance:g}")
+    if dom_weights != (DOMINANCE_GLOBAL_WEIGHT, DOMINANCE_CAP_WEIGHT, DOMINANCE_DECIS_WEIGHT):
+        g, c, d = dom_weights
+        partes.append(f"domw{g:g}-{c:g}-{d:g}")
     if not partes:
         return MULTI_RUN_GA_PATH if algorithm == "ga" else MULTI_RUN_NSGA2_PATH
     return EXPLORATORY_DIR / f"multi_run_{algorithm}_{'_'.join(partes)}.json"
 
 
 def _save(result: dict, algorithm: str) -> None:
-    path = _artifact_path(algorithm, get_lambdas(),
+    path = _artifact_path(algorithm, get_lambdas(), get_dominance_weights(),
                           result["pop_size"], result["n_generations"])
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8") as fh:
@@ -429,6 +435,12 @@ def parse_args():
                              f"Braço do sweep de λ")
     parser.add_argument("--lambda-dominance", type=float, default=LAMBDA_DOMINANCE,
                         help=f"Peso do dominance no fitness escalar (default: {LAMBDA_DOMINANCE})")
+    parser.add_argument("--dom-global", type=float, default=DOMINANCE_GLOBAL_WEIGHT,
+                        help=f"Peso do global_term no dominance (default: {DOMINANCE_GLOBAL_WEIGHT})")
+    parser.add_argument("--dom-cap", type=float, default=DOMINANCE_CAP_WEIGHT,
+                        help=f"Peso do cap_term (default: {DOMINANCE_CAP_WEIGHT})")
+    parser.add_argument("--dom-decis", type=float, default=DOMINANCE_DECIS_WEIGHT,
+                        help=f"Peso do decis_term (default: {DOMINANCE_DECIS_WEIGHT})")
     parser.add_argument("--nsga2-representative", default="best_dominance",
                         choices=["best_dominance", "best_drift", "knee_point", "ideal_point",
                                  "scalar_optimum"],
@@ -445,6 +457,15 @@ def main():
     # Antes de qualquer execução: o λ vale para o processo inteiro (e é propagado aos
     # workers), e fica registrado no carimbo de proveniência do artefato.
     set_lambdas_override(args.lambda_drift, args.lambda_dominance)
+    set_dominance_weights_override(args.dom_global, args.dom_cap, args.dom_decis)
+    pesos = (args.dom_global, args.dom_cap, args.dom_decis)
+    if pesos != (DOMINANCE_GLOBAL_WEIGHT, DOMINANCE_CAP_WEIGHT, DOMINANCE_DECIS_WEIGHT):
+        print(f"\n  PESOS DO DOMINANCE — global={args.dom_global:g} cap={args.dom_cap:g} "
+              f"decis={args.dom_decis:g} "
+              f"(config: {DOMINANCE_GLOBAL_WEIGHT:g}/{DOMINANCE_CAP_WEIGHT:g}/{DOMINANCE_DECIS_WEIGHT:g})")
+        print("  ⚠ `dominance_penalty` NÃO é comparável entre braços — os pesos o DEFINEM."
+              "\n    Compare pelos TERMOS (global/cap/decis) e pelas métricas post-hoc"
+              "\n    (hard-counters, bonecos em banda, drift), que não dependem dos pesos.")
     if (args.lambda_drift, args.lambda_dominance) != (LAMBDA_DRIFT, LAMBDA_DOMINANCE):
         print(f"\n  BRAÇO DO SWEEP — λ_drift={args.lambda_drift:g} "
               f"λ_dominance={args.lambda_dominance:g} "

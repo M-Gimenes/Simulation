@@ -793,3 +793,61 @@ módulo de proveniência existe para impedir. Duas consequências ficaram:
   e não só no carimbo. O carimbo é um registro de *proveniência* e pode ser reescrito; a
   configuração do experimento é um *dado* e pertence ao artefato. Foi essa redundância que
   permitiu reconstruir os cinco — junto com o nome do arquivo, que já codificava o λ.
+
+## Os pesos do dominance: os termos secundários são carga estrutural (2026-09-17)
+
+**Problema.** Os pesos `1,0 / 0,5 / 0,5` dos três termos do `dominance_penalty` nunca foram
+variados. Pior: o `decis_term` lê **0,0000 no indivíduo final de toda execução saudável**, o
+que a agenda de calibração chegou a levantar como suspeita de termo morto. A defesa era
+argumentativa — "uma guarda que lê 0 no fim é uma guarda que funcionou" —, sustentada por
+medições em rosters **não evoluídos** (canônico, aleatórios, espelhos). Faltava o teste
+direto: desligar o termo e ver o que acontece.
+
+**Mudança.** Sweep de 5 braços × 5 sementes em orçamento reduzido (pop 120 × 60, 25 min).
+
+> **A comparação NÃO pode ser pelo `dominance_penalty`** — os pesos o *definem*, então o
+> composto não é comparável entre braços. Ela é feita pelos **termos** (`global_term`,
+> `cap_term`, `decis_term`, que são medições independentes dos pesos) e pelas métricas
+> post-hoc (hard-counters, bonecos em banda, drift). Essa é a razão de a decomposição ser
+> gravada separada desde a formulação C2.
+
+**Resultado.**
+
+| pesos g/cap/decis | global_term | cap_term | decis_term | drift | counters | convergiu |
+|---|---|---|---|---|---|---|
+| 1 / 2 / 0,5 | 0,0455 | **0,0000** | 0,0000 | 0,3372 | 0,2 | 100% |
+| 1 / 1 / 1 | 0,0484 | 0,0108 | 0,0000 | 0,3470 | 0,2 | 100% |
+| **1 / 0,5 / 0,5** | 0,0454 | 0,0063 | 0,0000 | 0,2982 | 0,6 | 80% |
+| 1 / 0,5 / 0 | 0,0534 | 0,1440 | 0,0569 | 0,2454 | 3,2 | 40% |
+| 1 / 0 / 0 | **0,0170** | **0,9030** | 0,3114 | 0,1548 | **10,0** | 0% |
+
+**(1) O braço `1/0/0` falsifica de vez a hipótese "os secundários são decorativos".** Sem
+eles o AG atinge o **melhor `global_term` de todos** — 0,0170, porque é a única coisa que
+resta a otimizar — e ainda assim entrega **10 de 10 pares como counter duro, em 5 de 5
+sementes**. Os cinco personagens ficam na banda global enquanto *toda* luta é massacre.
+
+Isto é exatamente a patologia que a formulação C2 declarava como razão de existir do cap —
+*blowout-coinflip*: 55% A-esmaga / 45% B-esmaga, WR global ~50% para todos, cada luta um
+atropelo. A previsão existia como **raciocínio** desde a formulação; agora é **medida**, e
+com a assinatura mais forte possível (10/10, desvio zero).
+
+**(2) O `decis_term` não é inerte — ler 0 é ele funcionando.** Removê-lo sozinho (`1/0,5/0`)
+leva os counters de 0,6 para **3,2 ± 2,5**, a convergência de 80% para 40%, e — o detalhe
+que fecha o argumento — **piora o próprio `cap_term`**, de 0,0063 para 0,1440. Os dois
+guardas são complementares: sem o piso de decisividade a busca torna as lutas decisivas, e
+lutas decisivas empurram os pares para fora da banda de WR que o cap protege. O termo que
+"lia zero" estava segurando o outro.
+
+**(3) O que o sweep NÃO estabelece, e por isso o `config.py` não muda.** Subir o cap para
+2,0 melhora counters (0,6 → 0,2) e convergência (80% → 100%) ao custo de drift (0,298 →
+0,337). Mas a n = 5 isso é `0,6 ± 0,5` contra `0,2 ± 0,4` — bandas sobrepostas, 3 counters
+totais contra 1. **Não é distinguível de ruído.** A leitura honesta: o experimento
+estabelece que os termos são **indispensáveis** e não estabelece que a repartição 0,5/0,5
+seja subótima. A direção sugere que mais peso no cap ajudaria; confirmar exigiria n maior, e
+seria outro experimento.
+
+**Para o texto, o ganho é de natureza diferente do sweep de λ.** Lá, a medida *confirmou* uma
+escolha. Aqui ela **converte uma premissa de projeto em resultado experimental**: a
+afirmação "equilíbrio global sozinho não é equilíbrio" deixa de ser argumento de desenho e
+passa a ter contra-exemplo medido — um roster que o termo primário considera quase perfeito
+(0,0170) e que é injogável (10/10 counters duros).

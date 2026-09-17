@@ -20,7 +20,7 @@ escopo declarado e não pendência.
 |---|---|
 | **Sweep de `LAMBDA_DRIFT`** | ✅ **feito em 2026-09-17** (orçamento reduzido) — λ = 1,0 confirmado como joelho |
 | **`MULTI_RUN_N_SEEDS` n = 20** | decidido, roteirizado (`run_battery.ps1`), **não executado** — ~7h53 |
-| **Pesos 1,0 / 0,5 / 0,5 dos três termos do dominance** | nunca variados |
+| **Pesos 1,0 / 0,5 / 0,5 dos três termos do dominance** | ✅ **feito em 2026-09-17** — os secundários são indispensáveis; repartição mantida |
 | **Elitismo 10% + torneio 3** | nunca variados ("valores usuais") |
 
 **O sweep de `LAMBDA_DRIFT` está fechado** (5 braços × 5 sementes, pop 120 × 60 gerações,
@@ -62,6 +62,24 @@ determinísticas e nada do que já foi medido se perde —, mas **não** no de c
 > artefatos atuais: **AG 7,2 min/execução, NSGA-II 14,1 min**, o que põe o n = 20 dos dois
 > algoritmos em **~7h06**, e a bateria unificada inteira (com os braços do sweep e as
 > métricas post-hoc) em **~10h17**. `run_battery.ps1 -WhatIf` imprime a conta.
+
+**O sweep dos pesos do dominance está fechado** (5 braços × 5 sementes, mesmo orçamento
+reduzido). O achado é uma **falsificação**: com os secundários desligados (`1/0/0`) o AG
+atinge o **melhor `global_term` de todos** — 0,0170, a única coisa que resta a otimizar — e
+mesmo assim entrega **10 de 10 pares como counter duro em 5 de 5 sementes**. É o
+*blowout-coinflip* que a formulação C2 previa como razão de existir do cap, agora medido em
+vez de argumentado. E o `decis_term`, que lê 0,0000 em todo indivíduo final e por isso já foi
+suspeito de morto, **não é inerte**: removê-lo sozinho triplica os counters (0,6 → 3,2) e
+piora o próprio `cap_term` (0,0063 → 0,1440) — os dois guardas são complementares.
+
+A repartição **não muda**: subir o cap para 2,0 melhora counters e convergência ao custo de
+drift, mas a n = 5 a diferença (0,6 ± 0,5 contra 0,2 ± 0,4) não se distingue de ruído. O
+experimento estabelece que os termos são indispensáveis, não que 0,5/0,5 seja subótimo.
+Tabela em [`../tcc/04-caminhos-e-decisoes.md`](../tcc/04-caminhos-e-decisoes.md).
+
+> **Comparar braços pelo `dominance_penalty` seria erro**: os pesos o definem. A comparação
+> é pelos **termos** (medições independentes dos pesos) e pelas métricas post-hoc — que é
+> exatamente para isso que a decomposição é gravada separada.
 
 ### 1.2 Instrumentação
 

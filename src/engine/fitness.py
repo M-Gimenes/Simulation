@@ -21,7 +21,7 @@ import math
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass, field
 from itertools import combinations
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, NamedTuple, Optional, Tuple
 
 from .combat import seed_combat, simulate_combat
 from .archetypes import ArchetypeDefinition, ArchetypeID
@@ -73,25 +73,33 @@ def get_seed_base() -> Optional[int]:
     return _SEED_BASE
 
 
-# Pesos do escalar como ESTADO DE PROCESSO, e não constantes lidas direto do módulo.
-# Motivo: o sweep de LAMBDA_DRIFT varia o peso entre execuções, e um `from .config import
-# LAMBDA_DRIFT` congela o valor no import. Mesmo padrão do `_SEED_BASE`, inclusive na
-# parte que mais importa — a propagação aos workers (ver `init_worker`): no Windows o
-# pool nasce por spawn e re-importa o módulo, então sem propagar explicitamente os
-# workers avaliariam com o λ do `config.py` enquanto o pai usa o do braço, e a divergência
-# sairia como resultado em vez de como erro.
-# São duas portas de propósito: `set_lambdas` só muda o processo (é o que os workers
-# chamam), e `set_lambdas_override` muda e **registra no carimbo de proveniência**, para
-# que o artefato do braço não afirme o λ do arquivo. Quem carimba é o pai; se os workers
-# registrassem também, o override seria contado N vezes sem efeito nenhum.
+# ─────────────────────────────────────────────────────────────────────────────
+# Pesos do fitness como ESTADO DE PROCESSO
+# ─────────────────────────────────────────────────────────────────────────────
+# Os pesos do escalar (λ) e os três do `dominance` não são lidos direto do módulo, e sim
+# mantidos como estado: os sweeps de calibração os variam entre execuções, e um
+# `from .config import X` congela o valor no import.
+#
+# Mesmo padrão do `_SEED_BASE`, inclusive na parte que mais importa — a propagação aos
+# workers (ver `runtime_state` / `init_worker`): no Windows o pool nasce por spawn e
+# re-importa o módulo, então sem propagar explicitamente os workers avaliariam com os
+# pesos do `config.py` enquanto o pai usa os do braço, e a divergência sairia como
+# RESULTADO em vez de erro — um braço inteiro medindo a configuração errada, sem sintoma.
+#
+# Duas portas por peso, de propósito: `set_*` só muda o processo (é o que os workers
+# chamam) e `set_*_override` muda e **registra no carimbo de proveniência**, para que o
+# artefato do braço não afirme o valor do arquivo. Quem carimba é o pai; se os workers
+# registrassem, o override seria contado N vezes sem efeito nenhum.
 
 _LAMBDA_DRIFT:     float = LAMBDA_DRIFT
 _LAMBDA_DOMINANCE: float = LAMBDA_DOMINANCE
+_DOM_GLOBAL:       float = DOMINANCE_GLOBAL_WEIGHT
+_DOM_CAP:          float = DOMINANCE_CAP_WEIGHT
+_DOM_DECIS:        float = DOMINANCE_DECIS_WEIGHT
 
 
 def set_lambdas(drift: float, dominance: float) -> None:
-    """Define os pesos do escalar neste processo. Chamado pelo sweep e pelo initializer
-    dos workers — pelos workers SEM registrar override (quem carimba é o pai)."""
+    """Define os pesos do escalar neste processo."""
     global _LAMBDA_DRIFT, _LAMBDA_DOMINANCE
     _LAMBDA_DRIFT, _LAMBDA_DOMINANCE = drift, dominance
 
@@ -108,6 +116,45 @@ def get_lambdas() -> Tuple[float, float]:
     `nsga2.scalar_objective`, senão o representante comparável sairia de um λ e o
     escalar de outro."""
     return _LAMBDA_DRIFT, _LAMBDA_DOMINANCE
+
+
+def set_dominance_weights(global_w: float, cap_w: float, decis_w: float) -> None:
+    """Define os pesos dos três termos do `dominance_penalty` neste processo."""
+    global _DOM_GLOBAL, _DOM_CAP, _DOM_DECIS
+    _DOM_GLOBAL, _DOM_CAP, _DOM_DECIS = global_w, cap_w, decis_w
+
+
+def set_dominance_weights_override(global_w: float, cap_w: float, decis_w: float) -> None:
+    """Como `set_dominance_weights`, e registra no carimbo."""
+    set_dominance_weights(global_w, cap_w, decis_w)
+    _register_override("DOMINANCE_GLOBAL_WEIGHT", global_w)
+    _register_override("DOMINANCE_CAP_WEIGHT", cap_w)
+    _register_override("DOMINANCE_DECIS_WEIGHT", decis_w)
+
+
+def get_dominance_weights() -> Tuple[float, float, float]:
+    return _DOM_GLOBAL, _DOM_CAP, _DOM_DECIS
+
+
+class RuntimeState(NamedTuple):
+    """Todo o estado de processo que um worker **não** herda por spawn.
+
+    Existe como um objeto só, e não como argumentos soltos do `init_worker`, porque o modo
+    de falha aqui é *esquecer de propagar um*: o pool passaria a avaliar sob uma
+    configuração diferente da do pai e o resultado sairia como número plausível. Com um
+    bundle, acrescentar um peso novo ao estado o propaga automaticamente — e os nomes
+    documentam o que atravessa a fronteira."""
+    seed_base:        Optional[int]
+    lambda_drift:     float
+    lambda_dominance: float
+    dominance_global: float
+    dominance_cap:    float
+    dominance_decis:  float
+
+
+def runtime_state() -> RuntimeState:
+    return RuntimeState(_SEED_BASE, _LAMBDA_DRIFT, _LAMBDA_DOMINANCE,
+                        _DOM_GLOBAL, _DOM_CAP, _DOM_DECIS)
 
 
 def generation_seed(base: int, generation: int) -> int:
@@ -139,9 +186,9 @@ class DominanceTerms:
     @property
     def total(self) -> float:
         return (
-            DOMINANCE_GLOBAL_WEIGHT * self.global_term
-            + DOMINANCE_CAP_WEIGHT   * self.cap_term
-            + DOMINANCE_DECIS_WEIGHT * self.decis_term
+            _DOM_GLOBAL * self.global_term
+            + _DOM_CAP   * self.cap_term
+            + _DOM_DECIS * self.decis_term
         )
 
     def as_dict(self) -> Dict[str, float]:
@@ -436,12 +483,11 @@ def _eval_worker(ind: Individual) -> float:
     return evaluate_detail(ind).fitness
 
 
-def init_worker(seed_base: Optional[int], lambdas: Tuple[float, float]) -> None:
-    """Estado de processo que o worker NÃO herda por spawn. Os dois têm de vir juntos:
-    propagar só um deixaria o pool avaliando sob uma configuração diferente da do pai,
-    e o resultado sairia como número plausível em vez de erro."""
-    set_seed_base(seed_base)
-    set_lambdas(*lambdas)
+def init_worker(state: RuntimeState) -> None:
+    """Aplica no worker o estado de processo do pai. Ver `RuntimeState`."""
+    set_seed_base(state.seed_base)
+    set_lambdas(state.lambda_drift, state.lambda_dominance)
+    set_dominance_weights(state.dominance_global, state.dominance_cap, state.dominance_decis)
 
 
 def evaluate_population(population: List[Individual]) -> None:
@@ -455,8 +501,7 @@ def evaluate_population(population: List[Individual]) -> None:
         return
 
     with ProcessPoolExecutor(
-        max_workers=N_WORKERS, initializer=init_worker,
-        initargs=(_SEED_BASE, get_lambdas())
+        max_workers=N_WORKERS, initializer=init_worker, initargs=(runtime_state(),)
     ) as executor:
         fitnesses = list(executor.map(_eval_worker, unevaluated))
 

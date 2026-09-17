@@ -27,9 +27,13 @@ H, R, a **bateria completa** com `results/` regenerado, e o **item F** (família
    decididos com evidência. Quatro mantiveram o valor vigente com justificativa escrita;
    três mudaram e obrigaram a esta regeneração. Detalhe em §1c, §1d e no
    [`docs/tcc/04`](docs/tcc/04-caminhos-e-decisoes.md).
-4. **O que falta, em ordem:** os itens de §4 — instrumentação (`converged_at` por
-   semente, snapshot de config nos artefatos) e os experimentos decididos e não rodados
-   (sweep de `LAMBDA_DRIFT`, n = 20). Depois a **redação**, passo 9 do
+4. **Os sweeps exploratórios estão feitos** (2026-09-17, orçamento reduzido — 25 min cada
+   em vez de horas): **λ** confirmou 1,0 como o joelho da curva, e os **pesos do dominance**
+   mostraram que os secundários são indispensáveis (sem eles: 10/10 counters duros). Os
+   dois deixaram o `config.py` **inalterado** — testaram os valores vigentes, e ambos
+   passaram. Números em §3.
+5. **O que falta:** a **bateria com n = 20** (`run_battery.ps1`, ~7h53) e o último
+   "nunca variado" (elitismo / torneio). Depois a **redação**, passo 9 do
    [`REVIEW.md` §8](REVIEW.md): `values.tex` (inteiramente obsoleto) e as seis referências
    estatísticas ausentes dos três `.bib`.
 
@@ -675,6 +679,31 @@ buscou um novo. O ganho é que λ = 1,0 deixou de ser escolha por eliminação.
 > braço). Ou seja: **~3 de cada 4 vezes em que o roster parece equilibrado sob o stream de
 > treino, ele não sobrevive a um stream inédito.** É o que a rotação por geração existe para
 > combater, medido sobre amostra e não sobre a anedota de n = 1 abaixo.
+
+### Sweep dos pesos do dominance (2026-09-17) — os secundários são indispensáveis
+
+Mesmo orçamento reduzido, 5 braços × 5 sementes. **A comparação é pelos TERMOS**, não pelo
+`dominance_penalty` — os pesos o definem.
+
+| pesos g/cap/decis | global_term | cap_term | decis_term | drift | counters | conv |
+|---|---|---|---|---|---|---|
+| 1 / 2 / 0,5 | 0,0455 | **0,0000** | 0,0000 | 0,3372 | 0,2 | 100% |
+| 1 / 1 / 1 | 0,0484 | 0,0108 | 0,0000 | 0,3470 | 0,2 | 100% |
+| **1 / 0,5 / 0,5** | 0,0454 | 0,0063 | 0,0000 | 0,2982 | 0,6 | 80% |
+| 1 / 0,5 / 0 | 0,0534 | 0,1440 | 0,0569 | 0,2454 | 3,2 | 40% |
+| 1 / 0 / 0 | **0,0170** | **0,9030** | 0,3114 | 0,1548 | **10,0** | 0% |
+
+**`1/0/0` é a falsificação.** Sem os secundários o AG atinge o **melhor `global_term` de
+todos** (0,0170 — é a única coisa que resta a otimizar) e entrega **10/10 counters duros em
+5/5 sementes**: os cinco na banda global, toda luta um massacre. É o *blowout-coinflip* que
+a formulação C2 previa como razão de existir do cap — era raciocínio, agora é medida.
+
+**E o `decis_term` não é inerte.** Removê-lo sozinho triplica os counters (0,6 → 3,2), leva
+a convergência de 80% para 40% e **piora o próprio `cap_term`** (0,0063 → 0,1440). Ler
+0,0000 no indivíduo final é o termo tendo funcionado.
+
+**`config.py` inalterado:** subir o cap para 2,0 melhora counters e convergência ao custo de
+drift, mas a n = 5 (0,6 ± 0,5 contra 0,2 ± 0,4) não se distingue de ruído.
 
 ### Convergência e estagnação
 

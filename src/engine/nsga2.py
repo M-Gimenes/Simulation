@@ -34,6 +34,7 @@ from .fitness import (
     get_lambdas,
     get_seed_base,
     init_worker,
+    runtime_state,
     set_seed_base,
 )
 from .individual import Individual
@@ -236,8 +237,7 @@ def _evaluate_population(pop: List[Individual]) -> None:
             evaluate_objectives(ind)
         return
     with ProcessPoolExecutor(
-        max_workers=N_WORKERS, initializer=init_worker,
-        initargs=(get_seed_base(), get_lambdas())
+        max_workers=N_WORKERS, initializer=init_worker, initargs=(runtime_state(),)
     ) as executor:
         results = list(executor.map(_objectives_worker, unevaluated))
     for ind, objs in zip(unevaluated, results):
