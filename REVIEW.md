@@ -748,6 +748,13 @@ corrigidos; o quadro macro do modelo ficou registrado abaixo.
   de gene?
 - [ ] **Elitismo de 10% + torneio 3.** Nunca variados. *Pergunta:* precisam de
   justificativa além de "valores usuais"?
+  **É o último "nunca variado" em aberto, e o mais barato (~1h):** `ELITE_RATE` e
+  `TOURNAMENT_SIZE` são lidos só em `operators.py`, que roda **exclusivamente no processo
+  pai** — os workers só avaliam fitness, nunca reproduzem —, então eles **não atravessam o
+  spawn** e a plumbing que o λ e os pesos do dominance exigiram (`RuntimeState`, propagação
+  ao pool) não se aplica. Grade e custo detalhados em
+  [`docs/reference/10-known-issues.md`](docs/reference/10-known-issues.md) §1.1; o braço
+  default já está medido, compartilhado com os dois sweeps anteriores.
 - [x] ~~**🟡 Degenerescência de escala nos pesos comportamentais.**~~ *Fato:* a intenção
   é sorteada proporcionalmente a `(w_agg, w_ret, w_def)` — o comportamento depende **só
   da razão** entre os três. Multiplicar os três por uma constante não muda nada no

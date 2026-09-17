@@ -21,7 +21,7 @@ escopo declarado e não pendência.
 | **Sweep de `LAMBDA_DRIFT`** | ✅ **feito em 2026-09-17** (orçamento reduzido) — λ = 1,0 confirmado como joelho |
 | **`MULTI_RUN_N_SEEDS` n = 20** | decidido, roteirizado (`run_battery.ps1`), **não executado** — ~7h53 |
 | **Pesos 1,0 / 0,5 / 0,5 dos três termos do dominance** | ✅ **feito em 2026-09-17** — os secundários são indispensáveis; repartição mantida |
-| **Elitismo 10% + torneio 3** | nunca variados ("valores usuais") |
+| **Elitismo 10% + torneio 3** | nunca variados ("valores usuais") — **o último em aberto**; ~1h, ver abaixo |
 
 **O sweep de `LAMBDA_DRIFT` está fechado** (5 braços × 5 sementes, pop 120 × 60 gerações,
 25 min). A curva existe e é monotônica — drift cai 3,8×, dominance sobe 7,9× —, e o formato
@@ -80,6 +80,31 @@ Tabela em [`../tcc/04-caminhos-e-decisoes.md`](../tcc/04-caminhos-e-decisoes.md)
 > **Comparar braços pelo `dominance_penalty` seria erro**: os pesos o definem. A comparação
 > é pelos **termos** (medições independentes dos pesos) e pelas métricas post-hoc — que é
 > exatamente para isso que a decomposição é gravada separada.
+
+**O sweep de elitismo / torneio é o último "nunca variado", e é o mais barato dos três** —
+por uma razão estrutural que vale registrar antes de alguém repetir o trabalho dos outros
+dois: `ELITE_RATE` e `TOURNAMENT_SIZE` são lidos **só** em `operators.py`
+(`next_generation`, `tournament_selection`), que rodam **exclusivamente no processo pai** —
+os workers só avaliam fitness, nunca reproduzem. Logo esses dois parâmetros **não
+atravessam o spawn**, e toda a plumbing que o λ e os pesos do dominance exigiram
+(`RuntimeState`, propagação ao pool, teste de paralelo × serial) **não se aplica**. Basta
+estado de processo em `operators.py`, os flags no `multi_run` e o registro em
+`provenance.override`.
+
+| etapa | custo |
+|---|---|
+| implementação | ~15 min |
+| 4 braços de elitismo (`ELITE_RATE` ∈ 0 · 0,05 · **0,10** · 0,20 · 0,30, menos o default) | ~20 min |
+| 3 braços de torneio (`TOURNAMENT_SIZE` ∈ 2 · **3** · 5 · 7, menos o default) | ~15 min |
+| docs + commit | ~10 min |
+| **total** | **~1h** |
+
+Os dois compartilham o braço default, que **já está medido** —
+`exploratory/multi_run_ga_pop120_gen60.json`, o mesmo âncora dos sweeps de λ e dos pesos.
+Expectativa honesta: 10% e torneio 3 são valores de manual e a chance de mudarem é menor
+que a dos dois sweeps anteriores; o valor do experimento é sair de *"valores usuais da
+literatura"* para *"testados neste problema"*. O braço `ELITE_RATE = 0` deve ser informativo
+do mesmo jeito que o `1/0/0` foi nos pesos: mostra o que o elitismo está segurando.
 
 ### 1.2 Instrumentação
 

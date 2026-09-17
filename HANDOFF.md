@@ -733,7 +733,13 @@ Inventário completo e comentado em
   ~7h53**. `-WhatIf` lista sem executar.
   ⚠️ A estimativa antiga de ~180 min para o n = 20 é anterior à rotação do stream —
   medido hoje, AG 7,2 min e NSGA-II 14,1 min por execução.
-- **Pesos 1,0 / 0,5 / 0,5 do dominance** e **elitismo 10% / torneio 3** — nunca variados.
+- ✅ **Pesos do dominance — FEITO** (2026-09-17): os secundários são indispensáveis, a
+  repartição fica. Números na §3.
+- **Elitismo 10% / torneio 3** — o **último "nunca variado"**, e o mais barato (~1h):
+  `ELITE_RATE` e `TOURNAMENT_SIZE` são lidos só em `operators.py`, que roda no processo
+  pai, então não atravessam o spawn e dispensam a plumbing de `RuntimeState` que os outros
+  dois exigiram. Grade e custo em
+  [`docs/reference/10-known-issues.md`](docs/reference/10-known-issues.md) §1.1.
 
 **Instrumentação — fechada em 2026-09-17** (§1.2 e §4 do known-issues):
 
