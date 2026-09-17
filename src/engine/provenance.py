@@ -67,9 +67,19 @@ _OVERRIDES: Dict[str, Any] = {}
 
 
 def override(name: str, value: Any) -> None:
-    """Registra que `name` está valendo `value` nesta execução, e não o de `config.py`."""
+    """Registra que `name` está valendo `value` nesta execução, e não o de `config.py`.
+
+    Um valor **igual** ao do arquivo não é override e não é registrado. Sem essa guarda,
+    uma tool que chama `override` incondicionalmente (o `multi_run` chama, mesmo quando o
+    λ pedido é o default) carimbaria a bateria principal com um bloco `overrides` vazio de
+    conteúdo — e `is_experiment_arm` passaria a valer nela, que é exatamente a confusão
+    que a distinção existe para impedir.
+    """
     if not hasattr(config, name):
         raise AttributeError(f"'{name}' não é constante de config.py — override recusado")
+    if _normalized(value) == _normalized(getattr(config, name)):
+        _OVERRIDES.pop(name, None)
+        return
     _OVERRIDES[name] = value
 
 
@@ -231,24 +241,38 @@ class Divergence:
         return lines
 
 
-def compare(recorded: Optional[Dict[str, Any]]) -> Divergence:
-    """Compara o carimbo de um artefato com a configuração vigente."""
+def compare(recorded: Optional[Dict[str, Any]],
+            reference: Optional[Dict[str, Any]] = None) -> Divergence:
+    """Compara o carimbo de um artefato com uma referência.
+
+    `reference = None` usa a **configuração vigente** — a pergunta "este artefato ainda
+    descreve o sistema?". Passando outro carimbo, a pergunta vira "estes dois artefatos
+    são comparáveis entre si?", que é o que dois artefatos gerados em invocações separadas
+    precisam responder antes de entrar no mesmo teste estatístico.
+    """
     if not recorded or "fingerprint" not in recorded:
         return Divergence(missing=True)
+    if reference is not None and "fingerprint" not in reference:
+        return Divergence(missing=True)
+
+    ref_fingerprint = reference["fingerprint"] if reference else fingerprint()
+    ref_engine      = reference.get("engine_digest") if reference else engine_digest()
+    ref_archetypes  = reference.get("archetypes_digest") if reference else archetypes_digest()
+    ref_config      = reference.get("config", {}) if reference else config_values()
 
     div = Divergence(
         generated_at=recorded.get("generated_at"),
         overridden=dict(recorded.get("overrides", {})),
     )
-    if recorded["fingerprint"] == fingerprint():
+    if recorded["fingerprint"] == ref_fingerprint:
         return div
 
-    div.engine_changed     = recorded.get("engine_digest") != engine_digest()
-    div.archetypes_changed = recorded.get("archetypes_digest") != archetypes_digest()
+    div.engine_changed     = recorded.get("engine_digest") != ref_engine
+    div.archetypes_changed = recorded.get("archetypes_digest") != ref_archetypes
 
-    current = config_values()
-    for name in sorted(set(recorded.get("config", {})) | set(current)):
-        was, now = recorded.get("config", {}).get(name, "<ausente>"), current.get(name, "<removida>")
+    for name in sorted(set(recorded.get("config", {})) | set(ref_config)):
+        was = recorded.get("config", {}).get(name, "<ausente>")
+        now = ref_config.get(name, "<removida>")
         if was != now:
             div.config_changed[name] = (was, now)
     return div

@@ -44,7 +44,7 @@ from src.engine.paths import (
     MULTI_RUN_NSGA2_PATH,
     PROJECT_ROOT,
 )
-from src.engine.provenance import stamp
+from src.engine.provenance import compare as provenance_compare, stamp
 
 ALPHA = 0.05
 
@@ -75,6 +75,25 @@ def _check_comparable(ga: dict, nsga2: dict) -> None:
                 f"({ga[field]} vs {nsga2[field]}) — não são comparáveis. "
                 f"Regenere ambos com os mesmos parâmetros."
             )
+
+    # Mesma CONFIGURAÇÃO, e não só mesmos parâmetros de amostragem. Os dois artefatos
+    # vêm de invocações separadas — na bateria, ~4h42 de NSGA-II e ~2h24 de AG —, então
+    # uma mudança de código ou de constante entre elas produz dois números que não se
+    # comparam. Sem esta checagem nada acusaria: foi assim que um artefato de
+    # `external_validation` atravessou uma troca de motor e acabou numa tabela.
+    div = provenance_compare(ga.get("provenance"), nsga2.get("provenance"))
+    if div.missing:
+        raise ValueError(
+            "Um dos multi_run não tem carimbo de proveniência — foi gerado antes do "
+            "`src/engine/provenance.py`. Regenere ambos."
+        )
+    if not div.is_current:
+        detalhe = "\n      · ".join(div.describe())
+        raise ValueError(
+            "Os dois multi_run foram gerados sob CONFIGURAÇÕES DIFERENTES e não são "
+            f"comparáveis:\n      · {detalhe}\n"
+            "    (ga em relação a nsga2). Regenere ambos sob o mesmo estado do código."
+        )
     for label, run in (("ga", ga), ("nsga2", nsga2)):
         if "dominance_terms" not in run["per_seed"][0]:
             raise ValueError(

@@ -132,7 +132,8 @@ Precisam aparecer explicitamente na Discussão, não só em Trabalhos Futuros.
 > corte. Números no [`../../HANDOFF.md`](../../HANDOFF.md) §3.
 
 **Regra que continua valendo:** ao mexer em `config.py`, nos canônicos ou no motor, todo
-`results/` fica obsoleto **de uma vez** — não há versionamento parcial (§1.2) — e a
+`results/` fica obsoleto **de uma vez** — não há versionamento parcial; o carimbo de
+proveniência (§4) *detecta* um artefato fora de data, não o regenera — e a
 bateria inteira precisa rodar antes de qualquer número ser citado. A bateria completa:
 
 ```bash

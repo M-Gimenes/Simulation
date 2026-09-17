@@ -62,7 +62,6 @@ from src.engine.nsga2 import run as run_nsga2
 from src.engine.pareto_metrics import hypervolume_2d, spacing
 from src.engine.paths import (
     LAMBDA_SWEEP_DIR,
-    MULTI_RUN_DIR,
     MULTI_RUN_GA_PATH,
     MULTI_RUN_NSGA2_PATH,
     PROJECT_ROOT,

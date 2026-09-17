@@ -780,8 +780,11 @@ corrigidos; o quadro macro do modelo ficou registrado abaixo.
   20 é o menor valor que passa do patamar convencional de 80%. Com 10 o experimento tem
   menos de metade de chance de detectar um efeito **grande**, então "não significativo" a
   n = 10 diz mais sobre a amostra que sobre os algoritmos. A segunda metade — o custo — é
-  o que trava: `multi_run` **não tem resume**, então `--n-seeds 20` re-roda as 20 (~180 min,
-  não +90). **Segue aberto por execução, não por decisão.**
+  o que trava: `multi_run` **não tem resume**, então `--n-seeds 20` re-roda as 20.
+  ⚠️ **O ~180 min registrado no item (7) é anterior à rotação do stream** (que encareceu o
+  escalar em ~1,8× e o NSGA-II em ~2×). Medido nos artefatos de 2026-09-17: AG **7,2 min**
+  e NSGA-II **14,1 min** por execução, ou seja **~7h06** para o n = 20 dos dois.
+  **Segue aberto por execução, não por decisão** — roteirizado em `run_lambda_sweep.ps1`.
 - [x] **(F) Holm rodava sobre 4 métricas, uma delas degenerada.** *Fato:*
   `n_chars_balanced` é **5/5 nas 20 execuções** (10 por algoritmo) — amostra conjunta
   constante, e `mannwhitneyu` devolve `p = nan` porque a correção de empates zera o
@@ -1280,6 +1283,12 @@ partir dele diz mais sobre a amostra que sobre os algoritmos.
 determinísticas e produzem resultado idêntico sob a mesma config, então nada do que já
 foi medido se perde. **Não** vale no de compute: `multi_run` não tem resume, então
 `--n-seeds 20` re-roda as 20 (~180 min em vez de +90).
+
+> ⚠️ **Custo remedido em 2026-09-17: o ~180 min acima está obsoleto.** Ele é anterior à
+> rotação do stream, decidida no item (3) desta mesma agenda, que encareceu o escalar em
+> ~1,8× e o NSGA-II em ~2×. Medido nos artefatos: **AG 7,2 min · NSGA-II 14,1 min** por
+> execução → **~7h06** para o n = 20 dos dois algoritmos. A decisão (n = 20) não muda; o
+> orçamento sim.
 
 **Bundling:** junto com (3) e (6), numa regeneração só.
 

@@ -1,8 +1,11 @@
 """
 Fitness do AG via round-robin completo (C(5,2)=10 matchups × SIMS_PER_MATCHUP).
 
-    fitness = -(LAMBDA_DRIFT     × drift_penalty
-              + LAMBDA_DOMINANCE × dominance_penalty)
+    fitness = -(λ_drift     × drift_penalty
+              + λ_dominance × dominance_penalty)
+
+Os dois λ vêm de `config.py` mas são **estado de processo** (`set_lambdas` /
+`get_lambdas`), para que o sweep possa variá-los sem editar o arquivo.
 
 Os mesmos dois termos do NSGA-II — lá como objetivos de Pareto (sem ponderação),
 aqui como soma ponderada. O escalar é um ponto do trade-off que o NSGA-II mapeia.
@@ -73,12 +76,14 @@ def get_seed_base() -> Optional[int]:
 # Pesos do escalar como ESTADO DE PROCESSO, e não constantes lidas direto do módulo.
 # Motivo: o sweep de LAMBDA_DRIFT varia o peso entre execuções, e um `from .config import
 # LAMBDA_DRIFT` congela o valor no import. Mesmo padrão do `_SEED_BASE`, inclusive na
-# parte que mais importa — a propagação aos workers (ver `_init_worker`): no Windows o
+# parte que mais importa — a propagação aos workers (ver `init_worker`): no Windows o
 # pool nasce por spawn e re-importa o módulo, então sem propagar explicitamente os
 # workers avaliariam com o λ do `config.py` enquanto o pai usa o do braço, e a divergência
 # sairia como resultado em vez de como erro.
-# `set_lambdas` registra o override no carimbo de proveniência, para que o artefato do
-# braço não afirme o λ do arquivo.
+# São duas portas de propósito: `set_lambdas` só muda o processo (é o que os workers
+# chamam), e `set_lambdas_override` muda e **registra no carimbo de proveniência**, para
+# que o artefato do braço não afirme o λ do arquivo. Quem carimba é o pai; se os workers
+# registrassem também, o override seria contado N vezes sem efeito nenhum.
 
 _LAMBDA_DRIFT:     float = LAMBDA_DRIFT
 _LAMBDA_DOMINANCE: float = LAMBDA_DOMINANCE
@@ -431,7 +436,7 @@ def _eval_worker(ind: Individual) -> float:
     return evaluate_detail(ind).fitness
 
 
-def _init_worker(seed_base: Optional[int], lambdas: Tuple[float, float]) -> None:
+def init_worker(seed_base: Optional[int], lambdas: Tuple[float, float]) -> None:
     """Estado de processo que o worker NÃO herda por spawn. Os dois têm de vir juntos:
     propagar só um deixaria o pool avaliando sob uma configuração diferente da do pai,
     e o resultado sairia como número plausível em vez de erro."""
@@ -450,7 +455,7 @@ def evaluate_population(population: List[Individual]) -> None:
         return
 
     with ProcessPoolExecutor(
-        max_workers=N_WORKERS, initializer=_init_worker,
+        max_workers=N_WORKERS, initializer=init_worker,
         initargs=(_SEED_BASE, get_lambdas())
     ) as executor:
         fitnesses = list(executor.map(_eval_worker, unevaluated))

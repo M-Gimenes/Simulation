@@ -29,11 +29,11 @@ from .config import (
     NSGA2_POP_SIZE,
 )
 from .fitness import (
-    _init_worker,
     evaluate_objectives,
     generation_seed,
     get_lambdas,
     get_seed_base,
+    init_worker,
     set_seed_base,
 )
 from .individual import Individual
@@ -236,7 +236,7 @@ def _evaluate_population(pop: List[Individual]) -> None:
             evaluate_objectives(ind)
         return
     with ProcessPoolExecutor(
-        max_workers=N_WORKERS, initializer=_init_worker,
+        max_workers=N_WORKERS, initializer=init_worker,
         initargs=(get_seed_base(), get_lambdas())
     ) as executor:
         results = list(executor.map(_objectives_worker, unevaluated))
