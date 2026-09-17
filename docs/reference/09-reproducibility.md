@@ -96,6 +96,16 @@ sem a checagem. O aviso diz o que mudou, não só que mudou:
       gerado em 2026-09-17T14:20:14-03:00
 ```
 
+> ⚠️ **Re-carimbar NÃO é operação segura em massa.** `stamp()` lê os overrides **do
+> processo que chama**, então aplicá-lo em lote sobre artefatos existentes reescreve a
+> proveniência de todos com a configuração de quem está rodando o lote — e um braço de
+> experimento perde exatamente o que o distinguia. Aconteceu em 2026-09-17: um re-carimbo
+> em massa apagou o λ dos cinco braços do sweep, e os cinco passaram a afirmar o λ do
+> `config.py`. Os dados nunca foram tocados, e a recuperação foi possível porque o **corpo**
+> do artefato também carrega a configuração do experimento (`pop_size`, `n_generations`,
+> `lambda_drift`, `lambda_dominance`) — é por isso que ela não vive só no carimbo. Regra:
+> re-carimbe **um artefato de cada vez**, sob os mesmos overrides que o produziram.
+
 > **Nota sobre a bateria de 2026-09-17**, anterior ao módulo: os artefatos dela levam
 > `provenance.backfilled` explicando que o carimbo é retroativo e como foi justificado —
 > por **reprodução bit-exata** sob o código atual (`results.json` devolve

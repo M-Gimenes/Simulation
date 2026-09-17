@@ -1,8 +1,8 @@
 {
   "provenance": {
-    "generated_at": "2026-09-17T16:04:49-03:00",
-    "fingerprint": "8b76fb834f74",
-    "engine_digest": "743e1fa709b3",
+    "generated_at": "2026-09-17T17:14:02-03:00",
+    "fingerprint": "3cfa2f90fc89",
+    "engine_digest": "f6b2cab6abdf",
     "archetypes_digest": "e37725dd4b7c",
     "config": {
       "ACTION_PERSISTENCE_SUBTICKS": 5,
@@ -57,6 +57,7 @@
       "DOMINANCE_DECIS_WEIGHT": 0.5,
       "DOMINANCE_GLOBAL_WEIGHT": 1.0,
       "DRIFT_DEFINING_WEIGHT": 3.0,
+      "ELITE_RATE": 0.1,
       "ELITE_SIZE": 30,
       "EXTERNAL_VALIDATION_N_SEEDS": 10,
       "EXTERNAL_VALIDATION_SEED_START": 10000,
@@ -172,7 +173,8 @@
         "w_defend",
         "w_aggressiveness"
       ]
-    }
+    },
+    "backfilled": "carimbo retroativo (2026-09-17): a bateria e anterior ao modulo de proveniencia, e o carimbo foi renovado apos o refactor que tornou os LAMBDA_* estado de processo (para o sweep). Em ambas as ocasioes a validade foi estabelecida por REPRODUCAO bit-exata sob o codigo do momento: results.json devolve fitness -0.233101660623 sob generation_seed(42,150) e os 5 representantes do nsga2_results.json devolvem os objetivos gravados. Os demais artefatos sao funcao deterministica desses dois mais o motor."
   },
   "test": "Mann-Whitney U (bicaudal)",
   "effect_size": "Vargha-Delaney A12 (ga vs nsga2)",

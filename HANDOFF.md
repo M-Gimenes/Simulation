@@ -646,6 +646,36 @@ critério o AG passa limpo. A questão sobre trocá-lo por uma fração segue ab
 [`REVIEW.md`](REVIEW.md) §6, agora sem o argumento de que ele seria severo demais para
 qualquer roster.
 
+### Sweep de λ (2026-09-17) — orçamento reduzido, λ = 1,0 confirmado
+
+5 braços × 5 sementes a **pop 120 × 60 gerações** (16% do custo, 25 min). Artefatos em
+`results/multi_run/exploratory/`; a bateria em `results/multi_run/` não foi tocada.
+
+| λ_drift | peso rel. do dominance | dominance | drift | counters | convergiu |
+|---|---|---|---|---|---|
+| 0,25 | 4× | **0,0425** ± 0,0107 | 0,3681 | 0,4 | 100% |
+| 0,5 | 2× | 0,0483 ± 0,0189 | 0,3740 | 0,6 | 100% |
+| **1,0** | 1× | 0,0485 ± 0,0187 | 0,2982 | 0,6 | 80% |
+| 2,0 | ½× | 0,1891 ± 0,1648 | 0,1763 | 4,0 | 40% |
+| 4,0 | ¼× | 0,3365 ± 0,0803 | **0,0971** | 7,8 | 0% |
+
+**Só a razão entre os dois λ importa** (a seleção é por torneio, ordinal), então variar
+`λ_drift` com `λ_dominance` fixo em 1,0 percorre a família inteira. O trade-off é
+monotônico — drift cai 3,8×, dominance sobe 7,9× —, mas o achado é o **formato**:
+`dominance` fica plano em ~0,048 até λ = 1,0 e só então explode. λ = 1,0 é o **último ponto
+onde identidade sai de graça**; contra λ = 0,25 entrega drift 0,070 melhor por dominance
+0,006 pior. E λ = 4,0 reproduz a patologia que os docs atribuíam ao antigo λ = 6,0: drift
+0,0971 (quase canônico) com 7,8 de 10 pares virando counter duro.
+
+**Nada mudou no `config.py`, e nada precisava mudar** — o sweep testou o valor vigente, não
+buscou um novo. O ganho é que λ = 1,0 deixou de ser escolha por eliminação.
+
+> **O ajuste ao stream, agora quantificado.** Os contadores do gate deram, sobre **62
+> disparos em 25 execuções**, taxa de recusa de **67% a 83%** (75% · 67% · 73% · 83% por
+> braço). Ou seja: **~3 de cada 4 vezes em que o roster parece equilibrado sob o stream de
+> treino, ele não sobrevive a um stream inédito.** É o que a rotação por geração existe para
+> combater, medido sobre amostra e não sobre a anedota de n = 1 abaixo.
+
 ### Convergência e estagnação
 
 O AG da seed 42 **convergiu na geração 39** (confirmado num stream que nunca viu) e
@@ -667,13 +697,11 @@ Inventário completo e comentado em
 
 **O experimento que falta — instrumentado e roteirizado, não executado:**
 
-- **`run_lambda_sweep.ps1`** une o sweep de `LAMBDA_DRIFT` e o n = 20 num experimento só.
-  Dá para unir porque a **fronteira do NSGA-II é λ-independente** (`scalar_objective` é o
-  único consumidor de `LAMBDA_*` e é reporting, não busca): uma execução do NSGA-II serve
-  todos os braços, re-derivando o `scalar_optimum` por λ da fronteira salva. E porque a
-  célula λ=1,0 / 20 sementes **é** a bateria principal. Grade: λ_drift ∈
-  {0,25 · 0,5 · **1,0** · 2,0 · 4,0}, 20 sementes em λ=1,0 e 5 nos demais.
-  **15 passos retomáveis (`-From N`), ~10h17.** `-WhatIf` lista sem executar.
+- ✅ **Sweep de `LAMBDA_DRIFT` — FEITO** (2026-09-17, orçamento reduzido: 5 braços × 5
+  sementes a pop 120 × 60 gerações, 25 min). **λ = 1,0 é o joelho da curva** e o
+  `config.py` não mudou — o sweep testou o valor vigente e ele passou. Números na §3.
+- **`run_battery.ps1`** — a bateria com n = 20, **11 passos retomáveis (`-From N`),
+  ~7h53**. `-WhatIf` lista sem executar.
   ⚠️ A estimativa antiga de ~180 min para o n = 20 é anterior à rotação do stream —
   medido hoje, AG 7,2 min e NSGA-II 14,1 min por execução.
 - **Pesos 1,0 / 0,5 / 0,5 do dominance** e **elitismo 10% / torneio 3** — nunca variados.

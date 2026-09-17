@@ -694,9 +694,102 @@ outra constante) o devolve à condição de obsoleto. Sem a distinção o alarme
 cinco braços e viraria ruído; com ela frouxa, o override seria salvo-conduto para esconder
 mudança de motor. As duas falhas estão cobertas por teste.
 
-**Resultado.** `run_lambda_sweep.ps1`: 15 passos retomáveis (`-From N`), ordenados para que
+**Resultado.** `run_battery.ps1`: passos retomáveis (`-From N`), ordenados para que
 uma interrupção no meio ainda deixe a bateria principal completa e citável. Custo medido —
 e aqui vai uma correção: a estimativa de ~180 min registrada para o n = 20 é **anterior à
 rotação do stream**, que encareceu o escalar em ~1,8× e o NSGA-II em ~2×. Medido nos
 artefatos: AG 7,2 min e NSGA-II 14,1 min por execução, o que põe o n = 20 em ~7h06 e a
 bateria unificada inteira em **~10h17**.
+
+## O sweep de λ: λ = 1,0 deixou de ser escolha por eliminação (2026-09-17)
+
+**Problema.** `LAMBDA_DRIFT = 1.0` tinha só justificativa **negativa** — "6,0 prendia o AG
+ao canônico, então baixamos". Nunca se mediu o que acontece nos valores intermediários, e
+sem isso a afirmação central de que o escalar é *um ponto* de um trade-off era retórica: um
+ponto só não faz curva.
+
+**Mudança.** Sweep de 5 braços × 5 sementes, com o **orçamento reduzido** a pop 120 × 60
+gerações (16% do custo) — 25 minutos em vez das 2h24 que o mesmo sweep custaria no
+orçamento cheio. O que se pede dele é **ordenação**, não número citável.
+
+> **Só a RAZÃO entre os dois λ importa**, e isso é o que faz um sweep de um parâmetro
+> varrer a família inteira. A seleção é por torneio, que é ordinal: multiplicar `λ_drift` e
+> `λ_dominance` pela mesma constante não muda decisão nenhuma. Então variar `λ_drift` com
+> `λ_dominance` fixo em 1,0 percorre de "equilíbrio pesa 4× mais" (λ_drift = 0,25) a
+> "identidade pesa 4× mais" (λ_drift = 4,0). *Ressalva:* a escala absoluta afeta uma coisa
+> só — o limiar de estagnação, que é `> 0.001` absoluto; como estagnação virou evento
+> registrado e não parada, isso mexe em `stagnated_at` e em mais nada.
+
+**Resultado — a curva existe, e λ = 1,0 é o joelho dela.**
+
+| λ_drift | peso relativo do dominance | dominance | drift | counters | convergiu |
+|---|---|---|---|---|---|
+| 0,25 | 4× | **0,0425** ± 0,0107 | 0,3681 | 0,4 | 100% |
+| 0,5 | 2× | 0,0483 ± 0,0189 | 0,3740 | 0,6 | 100% |
+| **1,0** | 1× | 0,0485 ± 0,0187 | 0,2982 | 0,6 | 80% |
+| 2,0 | ½× | 0,1891 ± 0,1648 | 0,1763 | 4,0 | 40% |
+| 4,0 | ¼× | 0,3365 ± 0,0803 | **0,0971** | 7,8 | 0% |
+
+O trade-off é monotônico nas duas pontas: **drift cai 3,8×** e **dominance sobe 7,9×**. Mas
+o formato é o achado, e ele não era óbvio: **`dominance` fica plano em ~0,048 até λ = 1,0 e
+só então explode.** Entre 0,25 e 1,0 o equilíbrio custa praticamente nada enquanto o drift
+já melhora de 0,37 para 0,30 — λ = 1,0 é o **último ponto onde identidade sai de graça**.
+Depois dele o câmbio inverte: de 1,0 para 2,0 o drift melhora 0,12 e o dominance piora
+0,14, com a variância triplicando e os counters duros indo de 0,6 para 4,0.
+
+Dois modos de ler, e os dois apontam para o mesmo lugar:
+
+- **Não existe "melhor λ"** no sentido de um ótimo — λ escolhe *onde se senta na curva*, e
+  trocar identidade por equilíbrio é julgamento de valor, não algo que o dado decida.
+- **Mas dentro da região plana, λ = 1,0 domina.** Contra λ = 0,25 ele entrega drift **0,070
+  melhor** custando dominance **0,006 pior** — mais de 10× de retorno na troca.
+
+E λ = 4,0 reproduz exatamente o sintoma que os docs atribuíam ao antigo λ = 6,0: drift
+0,0971 (quase canônico) com **7,8 de 10 pares virando counter duro**. A patologia registrada
+de memória agora tem medida.
+
+**Consequência prática: nada mudou no `config.py`, e nada precisava mudar.** O sweep não foi
+busca por um valor novo, foi **teste do valor vigente** — e ele passou. O ganho não é um
+número diferente, é que λ = 1,0 passou de escolha por eliminação a joelho medido.
+
+**Resultado de brinde — o ajuste ao stream, quantificado.** Os contadores do gate de
+convergência (`convergence_gate_fired` / `convergence_rejected`) deram, sobre **62 disparos
+em 25 execuções**, uma taxa de recusa de **67% a 83%** conforme o braço:
+
+| λ_drift | gate disparou | confirmação recusou |
+|---|---|---|
+| 0,25 | 20× | 15× (75%) |
+| 0,5 | 15× | 10× (67%) |
+| 1,0 | 15× | 11× (73%) |
+| 2,0 | 12× | 10× (83%) |
+
+Ou seja: **~3 de cada 4 vezes em que o roster parece equilibrado sob o stream de treino, ele
+não sobrevive a um stream inédito.** É exatamente o que a rotação do stream por geração
+existe para combater, agora medido sobre uma amostra e não sobre a anedota de n = 1 que a
+bateria de 2026-09-17 dava.
+
+**Método que vale registrar junto:** este sweep só foi viável porque o orçamento virou
+parâmetro de execução, e isso exigiu consertar um bug que ninguém tinha visto — `ELITE_SIZE`
+era uma **contagem absoluta** (30) calculada uma vez no `config.py`, então reduzir a
+população levava o elitismo efetivo de 10% para 25% (pop 120) ou 100% (pop 12, onde a
+geração seguinte é só clones e o AG **para de buscar**), em silêncio e produzindo números
+plausíveis. A consequência retroativa precisa aparecer no texto: os A/B da agenda de
+calibração rodaram em pop 120, logo sob elitismo de **25%, não 10%**. Isso **não** invalida
+aquelas decisões — o confundimento é constante nos dois braços de cada A/B —, mas significa
+que "pop 120" nunca foi uma versão reduzida do AG de produção, e sim um AG com outra pressão
+seletiva. Depois do conserto (`ELITE_RATE` fração, `elite_count` sobre o tamanho real), é.
+
+**Um erro cometido no caminho, que virou regra.** Logo depois de rodar o sweep, um
+re-carimbo **em massa** sobre `results/` apagou a proveniência dos cinco braços: `stamp()`
+lê os overrides do processo que o chama, então aplicá-lo em lote reescreveu todos com a
+configuração de quem rodava o lote, e os cinco passaram a afirmar `LAMBDA_DRIFT = 1.0`. Os
+dados nunca foram tocados — só o registro de origem mentiu, que é precisamente a falha que o
+módulo de proveniência existe para impedir. Duas consequências ficaram:
+
+- **Regra:** re-carimbar é operação de **um artefato por vez**, sob os mesmos overrides que
+  o produziram. Nunca em lote.
+- **Conserto estrutural:** a configuração do experimento (`pop_size`, `n_generations`,
+  `lambda_drift`, `lambda_dominance`) passou a ser gravada também no **corpo** do artefato,
+  e não só no carimbo. O carimbo é um registro de *proveniência* e pode ser reescrito; a
+  configuração do experimento é um *dado* e pertence ao artefato. Foi essa redundância que
+  permitiu reconstruir os cinco — junto com o nome do arquivo, que já codificava o λ.

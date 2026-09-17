@@ -291,10 +291,17 @@ def aggregate_algorithm(algorithm: str, seeds: List[int], sims: int,
               f"bonecos eq={record['n_chars_balanced']}/{len(CHAR_NAMES)}  "
               f"counters={record['n_hard_counters']}{hv_part}{conv_part}")
 
+    lambda_drift, lambda_dominance = get_lambdas()
     result = {
         "algorithm": algorithm,
+        # Orçamento e λ no CORPO do artefato, não só no carimbo. São a configuração do
+        # experimento, e o carimbo é um registro de proveniência que pode ser reescrito
+        # (foi, por um re-carimbo em massa descuidado em 2026-09-17, que apagou o λ dos
+        # braços do sweep). Configuração do experimento pertence ao artefato.
         "pop_size": pop_size,
         "n_generations": n_generations,
+        "lambda_drift": lambda_drift,
+        "lambda_dominance": lambda_dominance,
         "n_seeds": len(seeds),
         "seeds": seeds,
         "validation_seed": MULTI_RUN_VALIDATION_SEED,

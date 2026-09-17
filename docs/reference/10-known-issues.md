@@ -18,29 +18,29 @@ escopo declarado e não pendência.
 
 | Experimento | Estado |
 |---|---|
-| **Sweep de `LAMBDA_DRIFT`** + **`MULTI_RUN_N_SEEDS` n = 20** | **instrumentados e roteirizados** (`run_lambda_sweep.ps1`), não executados — ~10h |
+| **Sweep de `LAMBDA_DRIFT`** | ✅ **feito em 2026-09-17** (orçamento reduzido) — λ = 1,0 confirmado como joelho |
+| **`MULTI_RUN_N_SEEDS` n = 20** | decidido, roteirizado (`run_battery.ps1`), **não executado** — ~7h53 |
 | **Pesos 1,0 / 0,5 / 0,5 dos três termos do dominance** | nunca variados |
 | **Elitismo 10% + torneio 3** | nunca variados ("valores usuais") |
 
-> **Os dois primeiros são um experimento só**, e a razão é estrutural: a **fronteira do
-> NSGA-II é λ-independente** — `nsga2.scalar_objective` é a única coisa no algoritmo que
-> lê os `LAMBDA_*`, e é *reporting*, não busca. Uma execução do NSGA-II serve todos os
-> braços do sweep: o `scalar_optimum` de cada λ se re-deriva da fronteira já salva, sem
-> re-rodar a busca. Além disso a célula λ=1,0 com 20 sementes **é** a bateria principal.
-> Separados, o sweep teria de re-rodar o NSGA-II (+4h42) ou comparar contra uma fronteira
-> de outro estado de código. Grade decidida: λ_drift ∈ {0,25 · 0,5 · **1,0** · 2,0 · 4,0},
-> com 20 sementes em λ=1,0 (o teste estatístico) e 5 nos demais (a curva é descritiva).
+**O sweep de `LAMBDA_DRIFT` está fechado** (5 braços × 5 sementes, pop 120 × 60 gerações,
+25 min). A curva existe e é monotônica — drift cai 3,8×, dominance sobe 7,9× —, e o formato
+é o achado: `dominance` fica **plano em ~0,048** de λ 0,25 a 1,0 e só então explode (0,19 em
+λ=2, 0,34 em λ=4, com counters duros de 0,6 a 7,8 de 10 pares). **λ = 1,0 é o joelho**, o
+último ponto onde identidade sai de graça, o que converte a escolha de "por eliminação" em
+medida. Nada mudou no `config.py` — o sweep testou o valor vigente e ele passou. Tabela
+completa em [`../tcc/04-caminhos-e-decisoes.md`](../tcc/04-caminhos-e-decisoes.md).
 
-O **sweep de `LAMBDA_DRIFT`** é o que sustentaria a afirmação de que o AG escalar é *um
-ponto* do trade-off que o NSGA-II mapeia — hoje isso é afirmado, não medido. E a medição
-de orçamento igual (pop 120, 150 gerações, 80 sims, seed 42) mostra que a afirmação, na
-forma literal, é **falsa**: o escalar chega a `dominance` 0,0088 / drift 0,2856
-(L1 0,2945), abaixo de toda a faixa da fronteira ([0,0346, 0,9585]), então ele fica
-**fora** dela — passado o extremo de baixa dominância, não sobre ele (domina 3 de 49
-pontos; nenhum o domina). Ao mesmo tempo o `scalar_optimum` da fronteira chega a L1
-**0,2115**, ou seja o NSGA-II vence na função que o escalar otimiza. Cada algoritmo
-alcança uma parte diferente do trade-off e nenhum está sub-convergido — é essa a leitura
-honesta, e o sweep é o que a transformaria numa curva em vez de dois pontos.
+O que o sweep **não** resolve, e segue valendo: a afirmação de que o escalar é *um ponto* do
+trade-off que o NSGA-II mapeia é, na forma literal, **falsa**. Medido a orçamento igual (pop
+120, 150 gerações, 80 sims, seed 42), o escalar chega a `dominance` 0,0088 / drift 0,2856
+(L1 0,2945), abaixo de toda a faixa da fronteira ([0,0346, 0,9585]) — ele fica **fora** dela,
+passado o extremo de baixa dominância, não sobre ele (domina 3 de 49 pontos; nenhum o
+domina). E o `scalar_optimum` da fronteira chega a L1 **0,2115**, ou seja o NSGA-II vence na
+função que o escalar otimiza. Cada algoritmo alcança uma parte diferente do trade-off e
+nenhum está sub-convergido — é essa a leitura honesta. O sweep dá a **curva do escalar**;
+compará-la ponto a ponto com a fronteira exige o `scalar_optimum` re-derivado por λ, que a
+bateria com `front_objectives` gravado permite.
 
 O instrumento para comparar configurações já existe e não precisa ser construído:
 **hipervolume por configuração** ([06-nsga2.md](06-nsga2.md)), `multi_run` para agregar N
@@ -61,7 +61,7 @@ determinísticas e nada do que já foi medido se perde —, mas **não** no de c
 > do stream por geração, que custou ~1,8× no escalar e ~2× no NSGA-II. Medido nos
 > artefatos atuais: **AG 7,2 min/execução, NSGA-II 14,1 min**, o que põe o n = 20 dos dois
 > algoritmos em **~7h06**, e a bateria unificada inteira (com os braços do sweep e as
-> métricas post-hoc) em **~10h17**. `run_lambda_sweep.ps1 -WhatIf` imprime a conta.
+> métricas post-hoc) em **~10h17**. `run_battery.ps1 -WhatIf` imprime a conta.
 
 ### 1.2 Instrumentação
 
@@ -149,8 +149,7 @@ py -m src.tools.sensitivity_analysis --evolved          # sensitivity_analysis.j
 py -m src.tools.baselines --evolved                     # baselines.json
 ```
 
-Levou 1h24 na última vez (10 sementes). **`run_lambda_sweep.ps1` é essa mesma bateria com
-n = 20 e os braços do sweep**, em passos retomáveis (`-From N`) — cada passo salva seu
+Levou 1h24 na última vez (10 sementes). **`run_battery.ps1` é essa mesma bateria com n = 20**, em passos retomáveis (`-From N`) — cada passo salva seu
 artefato, porque o `multi_run` não tem resume e a bateria de 2026-09-16 morreu no meio por
 estouro de commit do Windows. `-WhatIf` lista os passos e o custo sem executar.
 

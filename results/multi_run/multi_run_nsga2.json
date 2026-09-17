@@ -1,8 +1,8 @@
 {
   "provenance": {
-    "generated_at": "2026-09-17T16:04:48-03:00",
-    "fingerprint": "8b76fb834f74",
-    "engine_digest": "743e1fa709b3",
+    "generated_at": "2026-09-17T17:14:02-03:00",
+    "fingerprint": "3cfa2f90fc89",
+    "engine_digest": "f6b2cab6abdf",
     "archetypes_digest": "e37725dd4b7c",
     "config": {
       "ACTION_PERSISTENCE_SUBTICKS": 5,
@@ -57,6 +57,7 @@
       "DOMINANCE_DECIS_WEIGHT": 0.5,
       "DOMINANCE_GLOBAL_WEIGHT": 1.0,
       "DRIFT_DEFINING_WEIGHT": 3.0,
+      "ELITE_RATE": 0.1,
       "ELITE_SIZE": 30,
       "EXTERNAL_VALIDATION_N_SEEDS": 10,
       "EXTERNAL_VALIDATION_SEED_START": 10000,

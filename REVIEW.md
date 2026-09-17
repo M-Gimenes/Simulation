@@ -784,7 +784,7 @@ corrigidos; o quadro macro do modelo ficou registrado abaixo.
   ⚠️ **O ~180 min registrado no item (7) é anterior à rotação do stream** (que encareceu o
   escalar em ~1,8× e o NSGA-II em ~2×). Medido nos artefatos de 2026-09-17: AG **7,2 min**
   e NSGA-II **14,1 min** por execução, ou seja **~7h06** para o n = 20 dos dois.
-  **Segue aberto por execução, não por decisão** — roteirizado em `run_lambda_sweep.ps1`.
+  **Segue aberto por execução, não por decisão** — roteirizado em `run_battery.ps1`.
 - [x] **(F) Holm rodava sobre 4 métricas, uma delas degenerada.** *Fato:*
   `n_chars_balanced` é **5/5 nas 20 execuções** (10 por algoritmo) — amostra conjunta
   constante, e `mannwhitneyu` devolve `p = nan` porque a correção de empates zera o
@@ -937,7 +937,8 @@ tudo o que muda número tem de ser resolvido **antes** de uma única regeneraç�
 | 9 | **§7 menores** + docs + `values.tex` | limpeza e sincronização final | menores ✅ 2026-09-16; falta `values.tex` + bibliografia |
 | 10 | **agenda de calibração (§9)** + regeneração final | (1)–(7) fechados; bateria regenerada sob o motor final | ✅ 2026-09-16 |
 | 11 | **instrumentação** — proveniência nos artefatos + marcos de convergência por semente | um artefato que não carrega a config que o produziu não se auto-verifica; e sem os marcos, "velocidade" é n = 1 | ✅ 2026-09-17 |
-| 12 | **bateria unificada** — `run_lambda_sweep.ps1` (n = 20 + sweep de λ) | os dois são um experimento só: a fronteira do NSGA-II é λ-independente, e a célula λ=1,0 É a bateria | roteirizada, **não executada** (~10h17) |
+| 12 | **sweep de `LAMBDA_DRIFT`** em orçamento reduzido | exploratório quer ORDENAÇÃO, e ordenação transfere de orçamento — 25 min em vez de 2h24 | ✅ 2026-09-17: λ = 1,0 é o joelho; `config.py` inalterado |
+| 13 | **bateria** — `run_battery.ps1` (n = 20) | poder estatístico: 44,4% → 85,9% | roteirizada, **não executada** (~7h53) |
 
 > Fechado o passo 7, a decisão seguinte não é um item desta tabela e sim a
 > **[agenda de calibração (§9)](#9-agenda-de-calibração--as-constantes-provisórias-com-evidência)**:

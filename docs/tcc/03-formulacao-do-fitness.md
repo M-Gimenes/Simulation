@@ -74,6 +74,19 @@ funcionado, e o texto precisa dizer isso.
 mecanismo anti-homogeneização** (puxa cada personagem para um canônico distinto). Com
 `LAMBDA_DRIFT = LAMBDA_DOMINANCE`, identidade e equilíbrio pesam na mesma escala.
 
+**E essa igualdade é o joelho medido da curva, não uma escolha por simetria.** O sweep de
+2026-09-17 (5 braços × 5 sementes, orçamento reduzido) mostra que `dominance` fica **plano
+em ~0,048** de λ_drift 0,25 a 1,0 e só então explode — 0,19 em λ=2, 0,34 em λ=4, com os
+counters duros indo de 0,6 para 7,8 de 10 pares. λ = 1,0 é o **último ponto onde a
+identidade sai de graça**: contra λ = 0,25 ele entrega drift 0,070 melhor custando dominance
+0,006 pior. Antes, a justificativa era só negativa ("6,0 prendia ao canônico"). Detalhe e a
+tabela completa em [04-caminhos-e-decisoes.md](04-caminhos-e-decisoes.md).
+
+Vale dizer no texto que **só a razão entre os dois λ importa**: a seleção é por torneio, que
+é ordinal, então escalar os dois pela mesma constante não muda decisão nenhuma. Por isso o
+sweep varia um só — variar `λ_drift` com `λ_dominance` fixo percorre a família inteira, de
+"equilíbrio pesa 4× mais" a "identidade pesa 4× mais".
+
 Duas escolhas de medição que o texto precisa justificar:
 
 - **Normalização pelo range do bound**, `(x − lo)/(hi − lo)`, e não pelo máximo `x/hi`.
