@@ -162,15 +162,6 @@ Precisam aparecer explicitamente na Discussão, não só em Trabalhos Futuros.
   `dominance_penalty` de 1,236 a 0,250 com os 5 bonecos em WR global [48,7%, 52,0%] e
   espalhamento real por par. Gradiente forte com solução potencialmente frágil é a
   descrição correta do regime; amortecer (variância no dano, mais sims) é trabalho futuro.
-- **O veredito da validação externa é binário.** O roster só é ROBUSTO se **nenhum** par
-  virar hard-counter em **nenhuma** das 10 condições — 100 oportunidades de falhar. Está
-  declarado como escolha conservadora, e na bateria de 2026-09-17 ele **discrimina**: o AG
-  escalar passa limpo (0/10 pares) e o `best_dominance` do NSGA-II reprova por um único
-  par. O que um quantificador fracionário ("par fora da banda em > X% das condições")
-  mudaria é o **relato**, não o veredito — o par que reprova o `best_dominance` sai fora em
-  **9 das 10** condições (Grappler × Turtle, 63,6%–69,0%), então qualquer limiar razoável
-  reprova igual. O ganho da fração seria distinguir um par consistentemente fora de um par
-  que escapa uma vez por acaso; hoje os dois casos são relatados do mesmo jeito.
 - **`knockback` e `speed` ficam no limiar do piso de ruído.** Na sensibilidade do indivíduo
   atual (600 sims, 12 repetições) a razão sinal/ruído é ~1,1 para os dois (`knockback` 5,5%
   e `speed` 5,9% de |Δ WR| contra piso de 5,1%), contra 3,9–7,7 dos genes de recurso: o AG
@@ -330,6 +321,14 @@ Resolvido e verificado; o raciocínio completo está em
   carimbo faria a troca do default invalidar a bateria inteira sem mudar número nenhum —
   o mesmo motivo de `N_WORKERS`. `compare` ignora constantes excluídas também do lado
   gravado, então os artefatos carimbados antes seguem atuais.
+- **Veredito binário da validação externa — mantido, com contagem (2026-09-18)** — o roster
+  só é ROBUSTO se nenhum par virar counter duro em nenhuma das 10 condições, escolha
+  conservadora que **discrimina** (o AG escalar passa limpo, o `best_dominance` reprova por
+  um par). Um quantificador fracionário não mudaria veredito nenhum da bateria; o que
+  faltava era o relato distinguir o sistemático do esporádico. A `external_validation`
+  passou a gravar em quantas condições cada par vira counter e cada boneco fica na banda:
+  o `best_dominance` reprova por um par em 9/10, o `knee_point` tem sete pares em 9–10/10 e
+  dois esporádicos (4/10, 6/10).
 - **Elitismo 10% / torneio 3 mantidos (2026-09-18)** — sweep de 7 braços sem braço que
   supere o default; ver §1.1.
 

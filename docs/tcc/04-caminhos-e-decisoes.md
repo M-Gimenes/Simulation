@@ -585,7 +585,8 @@ metade não se sustenta, porque o critério **discrimina** — o AG passa limpo 
 `best_dominance` reprova por um par que está fora em **9 das 10** condições (Grappler ×
 Turtle, 63,6%–69,0%), não por um tropeço de amostragem. Um quantificador fracionário
 reprovaria esse caso igual; o que ele mudaria é o *relato*, distinguindo um par
-consistentemente fora de um que escapa uma vez por acaso.
+consistentemente fora de um que escapa uma vez por acaso. (Feito em 2026-09-18 — ver "O
+veredito da validação externa ganhou a contagem", no fim deste documento.)
 
 **A lição que vale para a redação:** um experimento cujos artefatos não carregam a
 configuração que os gerou não tem como se auto-verificar, e a falha não aparece como erro —
@@ -996,3 +997,24 @@ A limitação registrada na seção da persistência — *"`knockback` continua 
 `knockback` e `speed` ficam no limiar, com sinal/ruído ~1,1. A diferença do `speed` (2,0 no
 indivíduo em que se decidiu a persistência, 1,2 aqui) lembra que a análise é **local**: mede
 a paisagem em volta de um indivíduo, e o que o AG enxerga depende de onde ele está.
+
+## O veredito da validação externa ganhou a contagem (2026-09-18)
+
+**Problema.** A validação externa declara um roster ROBUSTO só se nenhum boneco sair da
+banda e nenhum par virar counter duro em **nenhuma** das 10 condições. O critério é
+conservador e discrimina — o AG escalar passa limpo, o `best_dominance` reprova —, mas o
+relato só dizia *se* um par falhou, nunca *quantas vezes*. Um par fora em 9 de 10 condições
+e um que escapa uma vez por amostragem saíam idênticos na tabela.
+
+**Mudança.** O veredito fica binário: um quantificador fracionário ("fora em mais de X% das
+condições") não mudaria o veredito de nenhum roster da bateria, e trocaria uma regra sem
+parâmetro por uma com um limiar a justificar. O que muda é o relato: a ferramenta grava e
+imprime, por boneco, em quantas condições ele fica na banda e, por par, em quantas vira
+counter duro.
+
+**Resultado.** Os números antigos saíram idênticos, só com as contagens a mais, e a
+distinção apareceu no primeiro uso. O `best_dominance` reprova por **um** par, Grappler ×
+Turtle, fora em **9/10** condições — sistemático. O `knee_point` tem sete pares em 9–10/10 e
+dois **esporádicos**, Zoner × Rushdown em 4/10 e Combo Master × Turtle em 6/10: ali o
+veredito FRÁGIL é certo pelos sete, e os dois são o tipo de caso que a contagem existe para
+não confundir com eles.

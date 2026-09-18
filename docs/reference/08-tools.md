@@ -422,10 +422,19 @@ Reporta, salvando em `results/external_validation/external_validation_<label>.js
 
 - `dominance_penalty` / `drift_penalty` média ± desvio através das condições;
 - por personagem: WR global média ± desvio + flag **robusto** (WR global em
-  `[0.40, 0.60]` em TODAS as K condições);
-- por matchup: WR média ± desvio + flag **⚠** (vira counter duro em ALGUMA condição);
+  `[0.40, 0.60]` em TODAS as K condições) + **em quantas** das K ele fica na banda
+  (`n_conditions_in_band`);
+- por matchup: WR média ± desvio + flag **⚠** (vira counter duro em ALGUMA condição) +
+  **em quantas** das K ele vira (`n_conditions_hard_counter`);
 - **veredito do roster**: ROBUSTO (todos os bonecos robustos **e** nenhum par vira
   counter duro) vs FRÁGIL (algum boneco/par sensível à semente → overfitting ao fitness).
+
+O veredito é binário e conservador de propósito — 100 oportunidades de falhar —, e as
+contagens vão junto porque ele junta achados diferentes: um par fora em 9 das 10
+condições é sistemático; um que escapa em 1 ou 2 pode ser amostragem. Na bateria atual, o
+`best_dominance` reprova por Grappler × Turtle em **9/10**, e o `knee_point` tem sete pares
+em 9–10/10 ao lado de dois esporádicos (Zoner × Rushdown em 4/10, Combo Master × Turtle em
+6/10).
 
 **Diferença vs `multi_run` (1.1):** lá varia-se a *execução evolutiva* (muitos
 indivíduos, uma seed de validação); aqui fixa-se UM indivíduo e varia-se a *avaliação*

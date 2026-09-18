@@ -678,9 +678,10 @@ No `best_dominance` o único counter é **Grappler × Turtle a 66,7% ± 1,7%**, 
 aresta autoral, apenas 1,7 p.p. acima do teto de 65%, e reprova por isso. Vale como
 calibração do próprio veredito — o quantificador binário ("counter em ALGUMA das 10
 condições", 100 oportunidades de falhar) é severo, mas **discrimina**: com o mesmo
-critério o AG passa limpo. A questão sobre trocá-lo por uma fração segue aberta no
-[`REVIEW.md`](REVIEW.md) §6, agora sem o argumento de que ele seria severo demais para
-qualquer roster.
+critério o AG passa limpo. O veredito ficou binário, e desde 2026-09-18 o relato traz
+**em quantas** condições cada par vira counter: Grappler × Turtle em 9/10 no
+`best_dominance` — sistemático, não tropeço de amostragem —, e no `knee_point` sete pares
+em 9–10/10 ao lado de dois esporádicos (4/10 e 6/10).
 
 ### Sweep de λ (2026-09-17) — orçamento reduzido, λ = 1,0 confirmado
 
@@ -849,8 +850,8 @@ Inventário completo e comentado em
 
 **Limites estruturais — escopo declarado, não conserto** (§2): política fixa (a objeção
 mais forte ao resultado) e **cega ao estado**; crossover só por bloco de personagem;
-round-robin uniforme; hipersensibilidade dos genes de recurso; veredito binário da
-validação externa; alinhamento CRN imperfeito depois do 1º matchup.
+round-robin uniforme; hipersensibilidade dos genes de recurso; `knockback` e `speed` no
+limiar do piso de ruído; alinhamento CRN imperfeito depois do 1º matchup.
 
 ## 5. Aberto — redação
 

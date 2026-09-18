@@ -14,6 +14,11 @@ A bateria de identidade post-hoc (ciclo, drift_table, fingerprint, archetype_val
 é determinística nos genes e já coberta pelo `report`; esta validação foca no eixo
 **estocástico** (equilíbrio), que é onde o overfitting ao fitness se esconde.
 
+O veredito é binário e conservador — o roster só é ROBUSTO se nenhum boneco sair da banda
+e nenhum par virar counter duro em NENHUMA condição. Junto dele vai a **contagem** de
+condições de cada boneco e de cada par: um par fora em 9 de 10 condições e um par que
+escapa uma vez reprovam igual, mas não são o mesmo achado, e só a contagem os distingue.
+
 Uso:
     py -m src.tools.external_validation              # canônico
     py -m src.tools.external_validation --evolved    # melhor do AG
@@ -83,9 +88,11 @@ def _aggregate(records: List[dict]) -> dict:
     n_chars_robust = 0
     for name in CHAR_NAMES:
         wrs = [r["characters"][name]["wr"] for r in records]
-        robust = all(r["characters"][name]["balanced"] for r in records)
+        n_in_band = sum(r["characters"][name]["balanced"] for r in records)
+        robust = n_in_band == len(records)
         n_chars_robust += robust
         stats = mean_std(wrs)
+        stats["n_conditions_in_band"] = n_in_band
         stats["robust"] = robust  # WR global em banda em TODAS as condições
         char_stats[name] = stats
 
@@ -93,9 +100,11 @@ def _aggregate(records: List[dict]) -> dict:
     n_hard_counter_matchups = 0
     for label in labels:
         wrs = [r["matchups"][label]["wr"] for r in records]
-        ever_hard_counter = any(r["matchups"][label]["hard_counter"] for r in records)
+        n_as_counter = sum(r["matchups"][label]["hard_counter"] for r in records)
+        ever_hard_counter = n_as_counter > 0
         n_hard_counter_matchups += ever_hard_counter
         stats = mean_std(wrs)
+        stats["n_conditions_hard_counter"] = n_as_counter
         stats["hard_counter"] = ever_hard_counter  # counter duro em ALGUMA condição
         matchup_stats[label] = stats
 
@@ -159,13 +168,16 @@ def _print_summary(result: dict, label: str) -> None:
     for name in CHAR_NAMES:
         stats = agg["characters"][name]
         mark = "✓" if stats["robust"] else "✗"
-        print(f"      {mark} {name:<15s} {stats['mean']:.1%} ± {stats['std']:.1%}")
+        print(f"      {mark} {name:<15s} {stats['mean']:.1%} ± {stats['std']:.1%}"
+              f"   em banda em {stats['n_conditions_in_band']}/{n}")
 
     print(f"\n    Matchups (WR média ± desvio através das condições; "
           f"⚠ = counter duro em ALGUMA condição):")
     for label_m, stats in agg["matchups"].items():
         mark = "⚠" if stats["hard_counter"] else " "
-        print(f"      {mark} {label_m:<28s} {stats['mean']:.1%} ± {stats['std']:.1%}")
+        vezes = (f"   counter em {stats['n_conditions_hard_counter']}/{n}"
+                 if stats["hard_counter"] else "")
+        print(f"      {mark} {label_m:<28s} {stats['mean']:.1%} ± {stats['std']:.1%}{vezes}")
 
     print(f"\n    Bonecos robustos (WR global em banda em todas as {n} condições): "
           f"{agg['n_chars_robust']}/{agg['n_chars']}")

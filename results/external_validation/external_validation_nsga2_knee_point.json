@@ -1,7 +1,7 @@
 {
   "provenance": {
-    "generated_at": "2026-09-18T05:08:04-03:00",
-    "fingerprint": "76e298ec305c",
+    "generated_at": "2026-09-18T10:17:28-03:00",
+    "fingerprint": "16b819fa17d7",
     "engine_digest": "0616241361e8",
     "archetypes_digest": "e37725dd4b7c",
     "config": {
@@ -136,7 +136,6 @@
       "MATCHUP_WR_CAP": 0.15,
       "MAX_GENERATIONS": 150,
       "MAX_TICKS": 2500,
-      "MULTI_RUN_N_SEEDS": 10,
       "MULTI_RUN_SEED_START": 42,
       "MULTI_RUN_SIMS": 200,
       "MULTI_RUN_VALIDATION_SEED": 9999,
@@ -894,26 +893,31 @@
       "Zoner": {
         "mean": 0.4768,
         "std": 0.012726721669166977,
+        "n_conditions_in_band": 10,
         "robust": true
       },
       "Rushdown": {
         "mean": 0.4941,
         "std": 0.007772101103019398,
+        "n_conditions_in_band": 10,
         "robust": true
       },
       "Combo Master": {
         "mean": 0.48339999999999994,
         "std": 0.006553413020878684,
+        "n_conditions_in_band": 10,
         "robust": true
       },
       "Grappler": {
         "mean": 0.54915,
         "std": 0.012593097756751968,
+        "n_conditions_in_band": 10,
         "robust": true
       },
       "Turtle": {
         "mean": 0.49654999999999994,
         "std": 0.008503104008406441,
+        "n_conditions_in_band": 10,
         "robust": true
       }
     },
@@ -921,51 +925,61 @@
       "Zoner vs Rushdown": {
         "mean": 0.6446,
         "std": 0.019557323152438053,
+        "n_conditions_hard_counter": 4,
         "hard_counter": true
       },
       "Zoner vs Combo Master": {
         "mean": 0.1036,
         "std": 0.00982287579524901,
+        "n_conditions_hard_counter": 10,
         "hard_counter": true
       },
       "Zoner vs Grappler": {
         "mean": 0.7671,
         "std": 0.02514601801920581,
+        "n_conditions_hard_counter": 10,
         "hard_counter": true
       },
       "Zoner vs Turtle": {
         "mean": 0.3919,
         "std": 0.024108320371007,
+        "n_conditions_hard_counter": 0,
         "hard_counter": false
       },
       "Rushdown vs Combo Master": {
         "mean": 0.7952,
         "std": 0.014312387796746014,
+        "n_conditions_hard_counter": 10,
         "hard_counter": true
       },
       "Rushdown vs Grappler": {
         "mean": 0.6681,
         "std": 0.016141389173316034,
+        "n_conditions_hard_counter": 9,
         "hard_counter": true
       },
       "Rushdown vs Turtle": {
         "mean": 0.1577,
         "std": 0.012780627701503726,
+        "n_conditions_hard_counter": 10,
         "hard_counter": true
       },
       "Combo Master vs Grappler": {
         "mean": 0.1757,
         "std": 0.022828101590413125,
+        "n_conditions_hard_counter": 10,
         "hard_counter": true
       },
       "Combo Master vs Turtle": {
         "mean": 0.6567000000000001,
         "std": 0.01171940461134629,
+        "n_conditions_hard_counter": 6,
         "hard_counter": true
       },
       "Grappler vs Turtle": {
         "mean": 0.8074999999999999,
         "std": 0.015064675384635521,
+        "n_conditions_hard_counter": 10,
         "hard_counter": true
       }
     },

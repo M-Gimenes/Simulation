@@ -848,7 +848,7 @@ corrigidos; o quadro macro do modelo ficou registrado abaixo.
   `overleaf/artigo-latinware-2026/referencias.bib` — os três `.bib`.
   **Resolvido (verificado em 2026-09-18):** `derrac2011practical`, `arcuri2011practical` e
   `vargha2000critique` estão nos três.
-- [ ] **O veredito da validação externa é binário.** *Fato:* o roster
+- [x] **O veredito da validação externa é binário.** *Fato:* o roster
   só é ROBUSTO se **nenhum** par virar hard-counter em **nenhuma** das 10 condições — 100
   oportunidades de falhar. O `best_dominance` do NSGA-II tem 5/5 bonecos robustos e
   apenas 1/10 pares que trip em alguma condição, e ainda assim sai FRÁGIL. *Pergunta:* o
@@ -866,6 +866,11 @@ corrigidos; o quadro macro do modelo ficou registrado abaixo.
   fora da banda em **9 das 10** condições (WR 63,6%–69,0%), então qualquer limiar
   fracionário razoável reprova igual. O que a fração mudaria é o *relato* — distinguir um
   par consistentemente fora de um par que escapa uma vez por acaso —, não o veredito.
+  **Fechado em 2026-09-18: o veredito fica binário, e o relato ganhou a contagem.** A
+  `external_validation` grava e imprime, por boneco, em quantas condições ele fica na banda
+  e, por par, em quantas vira counter duro. A distinção apareceu no primeiro uso: o
+  `best_dominance` reprova por um par fora em 9/10, e o `knee_point` tem sete pares em 9–10/10
+  ao lado de dois esporádicos (4/10 e 6/10) — achados diferentes que o veredito junta.
 - [x] ~~**`results/` não tem versionamento parcial.**~~ Mexer em `config.py`, nos canônicos
   ou no motor invalida tudo de uma vez. *Pergunta:* vale gravar um snapshot da config
   dentro de cada artefato, para que um JSON antigo se denuncie sozinho?
