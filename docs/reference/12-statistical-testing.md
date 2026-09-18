@@ -13,8 +13,8 @@ feita assim*, do zero. Para a descrição operacional do tool, ver
 
 ## 1. O problema que o teste resolve
 
-O `multi_run` roda cada algoritmo em 10 sementes e devolve média ± desvio. Suponha que
-saia isto:
+O `multi_run` roda cada algoritmo em N sementes (20 na bateria) e devolve média ± desvio.
+Suponha que saia isto:
 
 ```
 AG escalar   drift_penalty  0,2535 ± 0,0354
@@ -215,14 +215,22 @@ e é um resultado forte por si só: os dois algoritmos põem os 5 personagens em
 
 ## 7. Como ler o resultado
 
-A leitura atual da bateria (2026-09-16):
+A leitura atual — bateria de 2026-09-18, n = 20 sementes, família de 3:
 
 ```
-drift_penalty    p bruto 0,0257   p_Holm 0,0772   Â₁₂ 0,80 (grande)
+dominance_penalty   p_Holm 0,0123    Â₁₂ 0,27 (grande)   AG escalar melhor
+drift_penalty       p_Holm 0,00007   Â₁₂ 0,89 (grande)   NSGA-II melhor
+hard-counters       p_Holm 0,0018    Â₁₂ 0,21 (grande)   AG escalar melhor
 ```
 
-Traduzindo: **efeito grande, direção consistente (NSGA-II preserva mais identidade),
-não significativo a n = 10 sementes.**
+Traduzindo: **as três diferenças são significativas e grandes**, em direções opostas —
+cada algoritmo ocupa um extremo do trade-off. O Â₁₂ lê-se como probabilidade: sorteando
+uma execução de cada, a do AG tem drift maior em 89% dos casos, e `dominance` maior em só
+27%.
+
+A leitura da bateria de 2026-09-16, sob o motor anterior, era outra — `drift_penalty` com
+p_Holm 0,0772 e Â₁₂ 0,80: **efeito grande, direção consistente, não significativo a
+n = 10**. É o caso que os erros de leitura abaixo descrevem.
 
 Três erros de leitura a evitar:
 
@@ -240,9 +248,18 @@ Vale registrar porque é o que torna a correção defensável: nem a família m�
 concebível (2 métricas, só os dois objetivos do Pareto) leva o `drift` abaixo de α —
 para em **0,0515**, acima por 0,0015. Não havia prêmio em escolher a família menor.
 
-O gargalo é **poder amostral**, e o remédio é subir `MULTI_RUN_N_SEEDS` — que é
-aditivo: as 10 sementes atuais continuam valendo, só se acrescentam novas. O item está
-na agenda de calibração, [`../../REVIEW.md`](../../REVIEW.md) §9 (7), com a evidência.
+O gargalo era **poder amostral**, e o remédio foi subir o número de sementes para 20
+(agenda de calibração, [`../../REVIEW.md`](../../REVIEW.md) §9 (7): 44,4% de poder a
+n = 10 contra 85,9% a n = 20). Foi aditivo, como previsto — as sementes 42–51 reproduziram
+bit a bit na bateria de n = 20.
+
+### O que o n = 20 mostrou sobre o tamanho do efeito
+
+Entre n = 10 e n = 20 (mesmo motor, bateria de 2026-09-17 contra a de 2026-09-18) os p
+caíram, como se espera, e os três Â₁₂ **andaram na direção de 0,5**: 0,20 → 0,27 ·
+0,94 → 0,89 · 0,14 → 0,21. É o padrão típico de amostra pequena: entre as amostras que
+passam do limiar de significância, sobram mais as que sortearam um efeito maior que o
+real. O efeito continua grande nos três, e o de n = 20 é a estimativa a citar.
 
 ---
 

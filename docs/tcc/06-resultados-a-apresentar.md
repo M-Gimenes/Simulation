@@ -17,7 +17,7 @@ reúne, num relatório único:
 | Tabela de drift por gene + `drift_penalty` | **identidade de genes** — *o preço pago* pela evolução |
 | Diferenciação par-a-par (`ratio`) | **homogeneização** — os 5 ainda são distintos? |
 | Fingerprint (canônico vs evoluído) | **identidade comportamental** — ainda joga como o arquétipo? |
-| Validador (score /21: 17 estruturais + 4 comportamentais) | **identidade estrutural e comportamental** — invariantes de ranking |
+| Validador (score /23: 18 estruturais + 5 comportamentais) | **identidade estrutural e comportamental** — invariantes de ranking. Nunca citar o score cru: o piso é ~6,4/23 e um roster aleatório chega a 10/23 — reportar a **posição** entre piso e teto (`baselines`) |
 
 Apresentar o dossiê do(s) indivíduo(s) escolhido(s) — tipicamente o **canônico** (baseline)
 e os representantes de interesse do NSGA-II.
@@ -76,7 +76,7 @@ achados de seed única (ex.: um par travado) como estruturais ou amostrais.
 ## 5b. AG escalar × NSGA-II, com teste (`compare_algorithms`)
 
 As duas tabelas do `multi_run` colocam os algoritmos lado a lado, mas "média X <
-média Y" não é resultado: com 10 execuções por algoritmo, a diferença pode ser
+média Y" não é resultado: com 20 execuções por algoritmo, a diferença ainda pode ser
 amostragem. O `compare_algorithms` fecha isso — **Mann-Whitney U** bicaudal,
 **Â₁₂ de Vargha-Delaney** (tamanho de efeito) e **Holm-Bonferroni** (3 métricas
 testadas), sobre as mesmas sementes reavaliadas sob a mesma condição de validação.
@@ -113,8 +113,9 @@ Quatro números/figuras que passaram a existir e que a redação deve usar:
   mesmo composto. **Nunca citar o composto sozinho numa comparação.**
 - **Contagem de rejeições da confirmação de convergência.** O gate dispara N vezes e a
   confirmação fora do stream rejeita M delas — é o ajuste ao stream de RNG quantificado,
-  em uma linha. Medido em 60 gerações: 16 disparos, 16 rejeições; em 150 gerações o AG
-  converge de fato.
+  em uma linha. Medido em 60 gerações: 16 disparos, 16 rejeições. Na bateria de n = 20 (150
+  gerações): 70 disparos, 50 rejeições (71%), e mesmo assim as 20 sementes convergem, na
+  geração 34,8 ± 17,1.
 - **A fronteira do NSGA-II com e sem o seed canônico**, lado a lado. É a figura que
   mostra que um detalhe de inicialização consumia metade da fronteira — e serve de aviso
   metodológico na Discussão.

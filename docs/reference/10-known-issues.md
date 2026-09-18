@@ -1,8 +1,8 @@
 # 10 — Pontos em aberto
 
-O que **ainda está aberto** no sistema, em 2026-09-17 — depois de fechar a agenda de
-calibração ([`../../REVIEW.md`](../../REVIEW.md) §9) e regenerar a bateria completa sob o
-motor final. Não é histórico: a trajetória das decisões (que problema cada mudança
+O que **ainda está aberto** no sistema, em 2026-09-18 — depois de fechar a agenda de
+calibração ([`../../REVIEW.md`](../../REVIEW.md) §9), rodar os três sweeps exploratórios e
+a bateria completa com n = 20 sob o motor final. Não é histórico: a trajetória das decisões (que problema cada mudança
 resolveu) vive em [`../tcc/04-caminhos-e-decisoes.md`](../tcc/04-caminhos-e-decisoes.md),
 e o estado atual do sistema nos docs 01–09. Aqui ficam só as pendências e os limites
 conhecidos, para que nenhum deles seja descoberto por acidente na hora de escrever.
@@ -14,14 +14,30 @@ conhecidos, para que nenhum deles seja descoberto por acidente na hora de escrev
 O que **poderia ser feito e não foi** — separado dos limites estruturais da §2, que são
 escopo declarado e não pendência.
 
-### 1.1 Experimentos decididos ou levantados, nunca executados
+### 1.1 Experimentos decididos ou levantados — todos executados
 
 | Experimento | Estado |
 |---|---|
 | **Sweep de `LAMBDA_DRIFT`** | ✅ **feito em 2026-09-17** (orçamento reduzido) — λ = 1,0 confirmado como joelho |
-| **`MULTI_RUN_N_SEEDS` n = 20** | decidido, roteirizado (`run_battery.ps1`), **não executado** — ~7h53 |
 | **Pesos 1,0 / 0,5 / 0,5 dos três termos do dominance** | ✅ **feito em 2026-09-17** — os secundários são indispensáveis; repartição mantida |
-| **Elitismo 10% + torneio 3** | nunca variados ("valores usuais") — **o último em aberto**; ~1h, ver abaixo |
+| **Elitismo e torneio** | ✅ **feito em 2026-09-18** (orçamento reduzido) — nenhum braço supera 10% / 3; mantidos |
+| **`MULTI_RUN_N_SEEDS` n = 20** | ✅ **executado em 2026-09-18** (`run_battery.ps1`, 5h54) — as três métricas de Holm significativas |
+
+> **O que "ordenação transfere de orçamento" quer dizer — e onde ela NÃO vale.** Os três
+> sweeps rodam a pop 120 × 60 (~16% do custo) porque o que se quer deles é ordenar
+> **configurações do mesmo algoritmo**, e essa ordenação transfere. O projeto tem um
+> **contraexemplo medido** para a versão forte da afirmação: a comparação AG × NSGA-II
+> inverte entre pop 120 e pop 300 (`scalar_optimum` vence a pop 120, o escalar vence a pop
+> 300 — ver mais abaixo). Ou seja: orçamento reduzido escolhe *constante*, nunca declara
+> *vencedor entre algoritmos*. Comparação de qualidade só sai da bateria.
+>
+> **E os três sweeps compartilham o braço default de propósito** (`run_sweeps.ps1` passo 1).
+> Além de economizar uma execução, é o que garante que os 16 braços saiam do **mesmo digest
+> de motor** — em 2026-09-17 os braços de λ rodaram antes de um refactor e os de peso
+> depois, e metade do conjunto passou a se declarar obsoleta enquanto a outra metade se
+> declarava atual, com comportamento idêntico nas duas (verificado por reprodução
+> bit-exata). Implementar um braço mexe no motor; por isso `run_sweeps.ps1` vem **antes**
+> de `run_battery.ps1`, sempre.
 
 **O sweep de `LAMBDA_DRIFT` está fechado** (5 braços × 5 sementes, pop 120 × 60 gerações,
 25 min). A curva existe e é monotônica — drift cai 3,8×, dominance sobe 7,9× —, e o formato
@@ -32,15 +48,24 @@ medida. Nada mudou no `config.py` — o sweep testou o valor vigente e ele passo
 completa em [`../tcc/04-caminhos-e-decisoes.md`](../tcc/04-caminhos-e-decisoes.md).
 
 O que o sweep **não** resolve, e segue valendo: a afirmação de que o escalar é *um ponto* do
-trade-off que o NSGA-II mapeia é, na forma literal, **falsa**. Medido a orçamento igual (pop
-120, 150 gerações, 80 sims, seed 42), o escalar chega a `dominance` 0,0088 / drift 0,2856
-(L1 0,2945), abaixo de toda a faixa da fronteira ([0,0346, 0,9585]) — ele fica **fora** dela,
-passado o extremo de baixa dominância, não sobre ele (domina 3 de 49 pontos; nenhum o
-domina). E o `scalar_optimum` da fronteira chega a L1 **0,2115**, ou seja o NSGA-II vence na
-função que o escalar otimiza. Cada algoritmo alcança uma parte diferente do trade-off e
+trade-off que o NSGA-II mapeia é, na forma literal, **falsa**. Medido no **orçamento de
+produção** (pop 300, 150 gerações, seed 42 — os artefatos da bateria), o escalar chega a
+`dominance` 0,0153 / drift 0,2178 (L1 **0,2331**), com a dominância abaixo de toda a faixa da
+fronteira ([0,0483, 1,1438]) — ele fica **fora** dela, passado o extremo de baixa dominância,
+não sobre ele. Os dois são **mutuamente não-dominados**: o escalar domina **0 dos 64** pontos
+e nenhum o domina. Na função que o escalar otimiza quem vence é o **escalar** (L1 0,2331
+contra 0,2487 do `scalar_optimum`). Cada algoritmo alcança uma parte diferente do trade-off e
 nenhum está sub-convergido — é essa a leitura honesta. O sweep dá a **curva do escalar**;
 compará-la ponto a ponto com a fronteira exige o `scalar_optimum` re-derivado por λ, que a
 bateria com `front_objectives` gravado permite.
+
+> ⚠️ **Correção de registro (2026-09-17).** Este parágrafo citava o run diagnóstico do item
+> (C) — pop **120** × 150 —, onde o escalar dava L1 0,2945 contra 0,2115 do `scalar_optimum`,
+> "o NSGA-II vence na função do escalar". **A ordenação inverte no orçamento de produção.**
+> Aquele run continua válido para o que ele decidiu (o seed canônico imortal no NSGA-II); o
+> que ele não sustenta é comparação de qualidade entre os dois algoritmos. Regra que fica: a
+> ordenação transfere de orçamento para escolher **configuração**, e não para declarar
+> **vencedor** — comparação de qualidade só sai da bateria.
 
 O instrumento para comparar configurações já existe e não precisa ser construído:
 **hipervolume por configuração** ([06-nsga2.md](06-nsga2.md)), `multi_run` para agregar N
@@ -49,19 +74,14 @@ O que falta é rodar. Ao comparar escalar × NSGA-II o representante usado preci
 declarado (o `multi_run` grava `nsga2_representative`, default `best_dominance`); o
 comparável correto para o escalar é o `scalar_optimum`, não o `ideal_point` (L2).
 
-**Sobre o n = 20:** a decisão está fechada com evidência — simulação de poder com 4000
-réplicas, dois normais separados por 1,190σ (a separação que produz Â₁₂ = 0,80), critério
-Holm com família 3, dá **44,4%** de poder a n = 10 contra **85,9%** a n = 20. Com os 10
-atuais o experimento tem menos de 50% de chance de detectar um efeito **grande** que
-provavelmente existe. É aditivo no sentido estatístico — as sementes 42–51 são
-determinísticas e nada do que já foi medido se perde —, mas **não** no de compute:
-`multi_run` não tem resume, então `--n-seeds 20` re-roda as 20.
-
-> ⚠️ **A estimativa de custo antiga (~180 min) está obsoleta.** Ela é anterior à rotação
-> do stream por geração, que custou ~1,8× no escalar e ~2× no NSGA-II. Medido nos
-> artefatos atuais: **AG 7,2 min/execução, NSGA-II 14,1 min**, o que põe o n = 20 dos dois
-> algoritmos em **~7h06**, e a bateria unificada inteira (com os braços do sweep e as
-> métricas post-hoc) em **~10h17**. `run_battery.ps1 -WhatIf` imprime a conta.
+**O n = 20 está executado** (2026-09-18). A decisão veio de simulação de poder — 4000
+réplicas, dois normais separados por 1,190σ (Â₁₂ = 0,80), Holm com família 3: **44,4%** de
+poder a n = 10 contra **85,9%** a n = 20. O aditivo se confirmou: as sementes 42–51
+reproduziram bit a bit as 10 anteriores. Resultado: as três métricas seguem significativas
+com efeito grande — `dominance` p_Holm 0,0123 (Â₁₂ 0,27), `drift` 0,00007 (0,89), counters
+0,0018 (0,21) —, e os Â₁₂ andaram na direção de 0,5 em relação ao n = 10, que estava
+inflado. Custo medido: AG ~6,8 min e NSGA-II ~10,1 min por execução com 8 workers; a
+bateria inteira levou 5h54. Números no [`../../HANDOFF.md`](../../HANDOFF.md) §3.
 
 **O sweep dos pesos do dominance está fechado** (5 braços × 5 sementes, mesmo orçamento
 reduzido). O achado é uma **falsificação**: com os secundários desligados (`1/0/0`) o AG
@@ -81,30 +101,21 @@ Tabela em [`../tcc/04-caminhos-e-decisoes.md`](../tcc/04-caminhos-e-decisoes.md)
 > é pelos **termos** (medições independentes dos pesos) e pelas métricas post-hoc — que é
 > exatamente para isso que a decomposição é gravada separada.
 
-**O sweep de elitismo / torneio é o último "nunca variado", e é o mais barato dos três** —
-por uma razão estrutural que vale registrar antes de alguém repetir o trabalho dos outros
-dois: `ELITE_RATE` e `TOURNAMENT_SIZE` são lidos **só** em `operators.py`
-(`next_generation`, `tournament_selection`), que rodam **exclusivamente no processo pai** —
-os workers só avaliam fitness, nunca reproduzem. Logo esses dois parâmetros **não
-atravessam o spawn**, e toda a plumbing que o λ e os pesos do dominance exigiram
-(`RuntimeState`, propagação ao pool, teste de paralelo × serial) **não se aplica**. Basta
-estado de processo em `operators.py`, os flags no `multi_run` e o registro em
-`provenance.override`.
+**O sweep de elitismo / torneio está fechado** (7 braços × 5 sementes, mesmo orçamento
+reduzido, contra o default compartilhado): **nenhum braço domina 10% / 3**. O default tem o
+menor número de counters (0,6 contra 1,0–2,2) e o menor `cap_term` dos oito; as alternativas
+ganham um pouco de drift e pagam em counters. A n = 5 nada disso se separa do ruído, e o
+torneio dá um padrão não monotônico (3 melhor que 2 e que 5), mais a cara de ruído que de
+ótimo. O braço sem elitismo mostrou pouco: `global_term` piora de 0,0454 para 0,0593, o
+resto fica no ruído. `config.py` inalterado — os valores passam de "usuais da literatura" a
+"testados neste problema, sem braço que os supere", não a "ótimos". Tabela em
+[`../tcc/04-caminhos-e-decisoes.md`](../tcc/04-caminhos-e-decisoes.md).
 
-| etapa | custo |
-|---|---|
-| implementação | ~15 min |
-| 4 braços de elitismo (`ELITE_RATE` ∈ 0 · 0,05 · **0,10** · 0,20 · 0,30, menos o default) | ~20 min |
-| 3 braços de torneio (`TOURNAMENT_SIZE` ∈ 2 · **3** · 5 · 7, menos o default) | ~15 min |
-| docs + commit | ~10 min |
-| **total** | **~1h** |
-
-Os dois compartilham o braço default, que **já está medido** —
-`exploratory/multi_run_ga_pop120_gen60.json`, o mesmo âncora dos sweeps de λ e dos pesos.
-Expectativa honesta: 10% e torneio 3 são valores de manual e a chance de mudarem é menor
-que a dos dois sweeps anteriores; o valor do experimento é sair de *"valores usuais da
-literatura"* para *"testados neste problema"*. O braço `ELITE_RATE = 0` deve ser informativo
-do mesmo jeito que o `1/0/0` foi nos pesos: mostra o que o elitismo está segurando.
+Registro estrutural, para quem for varrer outro operador: `ELITE_RATE` e `TOURNAMENT_SIZE`
+são lidos **só** em `operators.py`, que roda **exclusivamente no processo pai** — os workers
+só avaliam fitness. Logo não atravessam o spawn, e a plumbing de `RuntimeState` que o λ e os
+pesos do dominance exigiram não se aplica: bastou estado de processo em `operators.py`, os
+flags no `multi_run` e o registro em `provenance.override`.
 
 ### 1.2 Instrumentação
 
@@ -120,6 +131,15 @@ convergência por semente — foram **fechados em 2026-09-17**; ver §4. O que r
   valor **específico desta máquina**. Um pool persistente teria ganho provável grande, mas
   exige propagar mudanças de `_SEED_BASE` para workers vivos: plumbing de
   reprodutibilidade, e a rotação do stream por geração torna isso mais delicado, não menos.
+- **`MULTI_RUN_N_SEEDS` segue em 10 no `config.py`, e a bateria depende de um flag.** O
+  n = 20 roda porque o `run_battery.ps1` passa `--n-seeds 20`; um `multi_run --algorithm
+  both` sem o flag grava n = 10 **por cima** dos artefatos da bateria, no mesmo caminho e
+  sem erro. É a mesma classe de falha que baixou o `baselines` para 8 nulos na bateria de
+  2026-09-18 (§3), lá corrigida no default. Aqui o conserto não é trocar a constante: todo
+  artefato carimba as constantes de `config.py` valor a valor, então mudar o default marca
+  **todos** como obsoletos, embora nenhum número dependa dele — o mesmo motivo de
+  `N_WORKERS` ficar fora do carimbo. Decidir entre tirá-la do carimbo (ela só define o
+  tamanho da amostra, que o corpo do artefato já grava em `n_seeds`) e re-rodar a bateria.
 
 ## 2. Limites estruturais do método (decisões, não bugs)
 
@@ -160,6 +180,12 @@ Precisam aparecer explicitamente na Discussão, não só em Trabalhos Futuros.
   **9 das 10** condições (Grappler × Turtle, 63,6%–69,0%), então qualquer limiar razoável
   reprova igual. O ganho da fração seria distinguir um par consistentemente fora de um par
   que escapa uma vez por acaso; hoje os dois casos são relatados do mesmo jeito.
+- **`knockback` e `speed` ficam no limiar do piso de ruído.** Na sensibilidade do indivíduo
+  atual (600 sims, 12 repetições) a razão sinal/ruído é ~1,1 para os dois (`knockback` 5,5%
+  e `speed` 5,9% de |Δ WR| contra piso de 5,1%), contra 3,9–7,7 dos genes de recurso: o AG
+  mal enxerga esses dois genes em volta desse indivíduo. Nenhum fica abaixo do piso. A
+  análise é local — no indivíduo em que se decidiu a persistência, o `speed` tinha
+  sinal/ruído 2,0 e o `knockback` 0,7.
 - **Alinhamento CRN imperfeito depois do 1º matchup.** Toda avaliação reseta o RNG do
   combate ao mesmo seed-base, mas cada luta consome um número variável de sorteios —
   a posição do stream diverge entre indivíduos nos matchups seguintes. Muito melhor
@@ -169,10 +195,10 @@ Precisam aparecer explicitamente na Discussão, não só em Trabalhos Futuros.
 
 ## 3. Estado dos artefatos em `results/`
 
-> ✅ **`results/` está ATUAL e COMPLETO** — bateria de 2026-09-17, sob o motor final
-> (rotação do stream por geração, `ACTION_PERSISTENCE_SUBTICKS = 5`, drift invariante à
-> escala dos pesos), com os quatro rótulos de `external_validation` fechados no mesmo
-> corte. Números no [`../../HANDOFF.md`](../../HANDOFF.md) §3.
+> ✅ **`results/` está ATUAL e COMPLETO** — bateria de 2026-09-18 com **n = 20**, sob o
+> motor final (rotação do stream por geração, `ACTION_PERSISTENCE_SUBTICKS = 5`, drift
+> invariante à escala dos pesos), a primeira gerada inteira com o carimbo de proveniência.
+> Números no [`../../HANDOFF.md`](../../HANDOFF.md) §3.
 
 **Regra que continua valendo:** ao mexer em `config.py`, nos canônicos ou no motor, todo
 `results/` fica obsoleto **de uma vez** — não há versionamento parcial; o carimbo de
@@ -182,7 +208,7 @@ bateria inteira precisa rodar antes de qualquer número ser citado. A bateria co
 ```bash
 py main.py --seed 42                                    # results.json
 py main.py --algorithm nsga2 --seed 42                  # nsga2_results.json + plots
-py -m src.tools.multi_run --algorithm both              # multi_run_{ga,nsga2}.json
+py -m src.tools.multi_run --algorithm both --n-seeds 20 # multi_run_{ga,nsga2}.json
 py -m src.tools.compare_algorithms                      # comparison_ga_vs_nsga2.json
 py -m src.tools.external_validation                     # canônico
 py -m src.tools.external_validation --evolved           # AG escalar
@@ -192,7 +218,8 @@ py -m src.tools.sensitivity_analysis --evolved          # sensitivity_analysis.j
 py -m src.tools.baselines --evolved                     # baselines.json
 ```
 
-Levou 1h24 na última vez (10 sementes). **`run_battery.ps1` é essa mesma bateria com n = 20**, em passos retomáveis (`-From N`) — cada passo salva seu
+**`run_battery.ps1` é essa mesma bateria**, e levou **5h54** na última vez (n = 20,
+2026-09-18). Roda em passos retomáveis (`-From N`) — cada passo salva seu
 artefato, porque o `multi_run` não tem resume e a bateria de 2026-09-16 morreu no meio por
 estouro de commit do Windows. `-WhatIf` lista os passos e o custo sem executar.
 
@@ -210,6 +237,17 @@ ser refeito.
 > **causa-raiz** foi fechada no mesmo dia pelo carimbo de proveniência (§4): hoje um
 > artefato fora de data se denuncia ao ser carregado. Rodar os quatro rótulos continua
 > sendo a prática certa — o carimbo detecta, não regenera.
+>
+> ⚠️ **Duas que a bateria de 2026-09-18 pegou, e que o carimbo não pega.** (1) O carimbo
+> **retroativo** de 2026-09-17 foi justificado reproduzindo `results.json` e
+> `nsga2_results.json` e *inferindo* o resto; o `sensitivity_analysis.json` era de
+> 2026-09-16 (persistência 10) e levou o carimbo de atual mesmo assim. A bateria o regerou.
+> Carimbo retroativo só vale por reprodução **do próprio artefato**. (2) O passo de
+> `baselines` rodou com 8 nulos aleatórios porque o default do tool era 8 e o script não
+> passava flag — o p caiu de < 0,03 para < 0,08 sem nenhum erro, e o carimbo dava o
+> artefato como atual, porque **era**: a config do motor não mudou, o que mudou foi um
+> argumento de linha de comando. Corrigido tornando 30 o default. O mesmo risco segue
+> aberto no `multi_run` (§1.2).
 
 ## 4. Encerrado (para não reabrir por engano)
 
@@ -248,7 +286,7 @@ Resolvido e verificado; o raciocínio completo está em
   de teto, não neutralidade de gene.
 - **Nenhuma métrica post-hoc tinha piso** — `baselines.py` mede o chão de cada métrica
   em modelos nulos (espelhos + aleatórios) e reporta `position` + p-valor empírico. O
-  validador tem chão ~6,8/21 e um roster aleatório chega a 12/21; drift de espelho ~0,33;
+  validador tem chão 6,4/23 e um roster aleatório chega a 10/23; drift de espelho 0,377;
   o ciclo canônico tem chão 5/10 porque cada aresta é cara-ou-coroa.
 
 **Motor de combate:**
@@ -293,7 +331,10 @@ Resolvido e verificado; o raciocínio completo está em
   `fitness.drift_genes` reescala os 3 pesos à soma canônica antes de comparar; sem isso o
   drift cobrava por um grau de liberdade invisível ao simulador (7,5% do drift médio,
   pior caso Rushdown 15,1%).
-- **`MULTI_RUN_N_SEEDS`: n = 20 decidido** — rodando em 10 por custo; ver §1.1.
+- **`MULTI_RUN_N_SEEDS`: n = 20 executado (2026-09-18)** — as três métricas de Holm
+  seguem significativas; o default do `config.py` é pendência à parte (§1.2).
+- **Elitismo 10% / torneio 3 mantidos (2026-09-18)** — sweep de 7 braços sem braço que
+  supere o default; ver §1.1.
 
 **Infraestrutura:**
 

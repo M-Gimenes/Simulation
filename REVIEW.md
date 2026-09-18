@@ -408,9 +408,10 @@ corrigidos; o quadro macro do modelo ficou registrado abaixo.
 
   *Veredito sobre os indivíduos existentes:* o do `results.json` está **no piso** em todos
   os eixos de identidade (p = 0,46 / 0,38 / 0,23) — indistinguível de um roster aleatório
-  — e **abaixo** do acaso no ciclo (4/10, p = 0,85). O AG sob o motor/fitness novos fica
-  em 99% do equilíbrio trivialmente alcançável e ~30% acima do piso de identidade
-  (p ≈ 0,08 com 13 nulos: sugestivo, não estabelecido).
+  — e **abaixo** do acaso no ciclo (4/10, p = 0,85). Na bateria atual (35 nulos) o AG fica
+  em **102%** do equilíbrio trivialmente alcançável — mais equilibrado que o espelho — e a
+  **47%** do caminho entre piso e teto de identidade, superando todos os 35 nulos nos três
+  eixos (p < 0,03 em cada). Era 99% e p ≈ 0,08 com 13 nulos.
 
   **(3) O espelho responde a objeção que estava em aberto.** Cinco personagens idênticos
   são a solução **trivial** do problema de equilíbrio, e eles equilibram *melhor* que o
@@ -548,7 +549,9 @@ corrigidos; o quadro macro do modelo ficou registrado abaixo.
   `dominance_terms` agora falham com mensagem explícita pedindo para regerar, em vez de
   `KeyError`.
 
-  *Segue aberto:* os **pesos** 1,0 / 0,5 / 0,5 continuam nunca variados (item abaixo).
+  *Fechado em 2026-09-17:* os **pesos** 1,0 / 0,5 / 0,5 foram varridos — os secundários são
+  indispensáveis (sem eles, 10/10 counters duros) e a repartição fica. Tabela em
+  [`docs/tcc/04`](docs/tcc/04-caminhos-e-decisoes.md).
 - [x] ~~**`MATCHUP_WR_CAP = 0.15` provisório.**~~ **Fechado em 2026-09-16 pelo item (2)
   da §9: mantido, com âncora de domínio — e a resposta à pergunta é "sim, há justificativa
   FGC; o sweep não é o instrumento certo".**
@@ -726,35 +729,42 @@ corrigidos; o quadro macro do modelo ficou registrado abaixo.
   função que o escalar otimiza. É o único ponto do NSGA-II que lê os `LAMBDA_*`, e é
   reporting, não busca. O `ideal_point` (mín L2) continua como ponto geométrico.
 
-  **Resultado final, orçamentos iguais (pop 120, 150 gerações, 80 sims, seed 42):**
+  **Resultado final, no orçamento de produção (pop 300, 150 gerações, seed 42):**
 
   | | dominance | drift | L1 |
   |---|---|---|---|
-  | AG escalar | **0,0088** | 0,2856 | 0,2945 |
-  | `scalar_optimum` da fronteira | 0,0481 | 0,1634 | **0,2115** |
+  | AG escalar | **0,0153** | 0,2178 | **0,2331** |
+  | `scalar_optimum` da fronteira | 0,0483 | 0,2004 | 0,2487 |
 
-  A alegação "o ponto do escalar domina a fronteira" **deixou de valer**: ele domina 3 de
-  49 pontos, nenhum ponto o domina, e o NSGA-II agora **vence o escalar na própria função
-  que o escalar otimiza**. A frase "o escalar é *um ponto* do trade-off que o NSGA-II
-  mapeia" continua não sendo literalmente verdadeira, mas por outro motivo: o escalar
-  alcança `dominance` 0,0088, **abaixo de toda a faixa da fronteira** [0,0346, 0,9585],
-  então ele fica *além* da ponta de dominance dela, não fora por sub-convergência. Cada
-  algoritmo alcança uma parte diferente do trade-off, e nenhum está sub-convergido.
-- [ ] **Sweep de `LAMBDA_DRIFT` nunca feito.** É a demonstração de que o escalar é *um
-  ponto* do trade-off. Hoje isso é afirmado, não medido — e por (C) a afirmação está
-  contradita pela única bateria existente. É o experimento mais urgente da lista.
+  A alegação "o ponto do escalar domina a fronteira" **deixou de valer**: ele domina **0 dos
+  64** pontos e nenhum o domina — mutuamente não-dominados. A frase "o escalar é *um ponto*
+  do trade-off que o NSGA-II mapeia" continua não sendo literalmente verdadeira, mas por
+  outro motivo: o escalar alcança `dominance` 0,0153, **abaixo de toda a faixa da fronteira**
+  [0,0483; 1,1438], então ele fica *além* da ponta de dominance dela, não fora por
+  sub-convergência. Cada algoritmo alcança uma parte diferente do trade-off, e nenhum está
+  sub-convergido.
+
+  > ⚠️ **Corrigido em 2026-09-17.** Esta tabela era do run diagnóstico a pop **120**
+  > (escalar L1 0,2945 × 0,2115 do `scalar_optimum`), lido como "o NSGA-II vence na função
+  > do escalar". **A ordenação inverte no orçamento de produção.** O run de pop 120 vale
+  > para o que decidiu — o seed canônico imortal —, não para ordenar os dois algoritmos.
+- [x] ~~**Sweep de `LAMBDA_DRIFT` nunca feito.**~~ **Feito em 2026-09-17** (5 braços × 5
+  sementes, orçamento reduzido): a curva existe, `dominance` fica plano em ~0,048 até
+  λ = 1,0 e só então explode — **λ = 1,0 é o joelho**, e o `config.py` não mudou. Tabela em
+  [`docs/tcc/04`](docs/tcc/04-caminhos-e-decisoes.md).
 - [ ] **Crossover só por bloco de personagem.** Recombinação intra-personagem depende
   100% da mutação. *Pergunta:* limitação aceita e declarada, ou vale testar um crossover
   de gene?
-- [ ] **Elitismo de 10% + torneio 3.** Nunca variados. *Pergunta:* precisam de
-  justificativa além de "valores usuais"?
-  **É o último "nunca variado" em aberto, e o mais barato (~1h):** `ELITE_RATE` e
-  `TOURNAMENT_SIZE` são lidos só em `operators.py`, que roda **exclusivamente no processo
-  pai** — os workers só avaliam fitness, nunca reproduzem —, então eles **não atravessam o
-  spawn** e a plumbing que o λ e os pesos do dominance exigiram (`RuntimeState`, propagação
-  ao pool) não se aplica. Grade e custo detalhados em
-  [`docs/reference/10-known-issues.md`](docs/reference/10-known-issues.md) §1.1; o braço
-  default já está medido, compartilhado com os dois sweeps anteriores.
+- [x] ~~**Elitismo de 10% + torneio 3.** Nunca variados.~~ **Fechado em 2026-09-18:
+  mantidos.** Sweep de 7 braços × 5 sementes em orçamento reduzido (`ELITE_RATE` ∈ 0 · 0,05
+  · 0,20 · 0,30; `TOURNAMENT_SIZE` ∈ 2 · 5 · 7), contra o default compartilhado com os
+  outros dois sweeps. **Nenhum braço domina o default**: ele tem o menor número de counters
+  (0,6 contra 1,0–2,2) e o menor `cap_term` dos oito; as alternativas ganham um pouco de
+  drift e pagam em counters. A n = 5 nada disso se separa do ruído (desvios de até 3,3
+  counters), e o torneio dá um padrão não monotônico (3 melhor que 2 e que 5), mais a cara
+  de ruído que de ótimo. A resposta à pergunta: a justificativa deixa de ser "valores
+  usuais" e passa a ser "testados neste problema, sem braço que os supere" — não "ótimos".
+  Tabela em [`docs/tcc/04`](docs/tcc/04-caminhos-e-decisoes.md).
 - [x] ~~**🟡 Degenerescência de escala nos pesos comportamentais.**~~ *Fato:* a intenção
   é sorteada proporcionalmente a `(w_agg, w_ret, w_def)` — o comportamento depende **só
   da razão** entre os três. Multiplicar os três por uma constante não muda nada no
@@ -778,7 +788,7 @@ corrigidos; o quadro macro do modelo ficou registrado abaixo.
 - [ ] **Equilíbrio condicionado a uma política fixa.** Os pesos `w_*` *são* a política;
   ninguém procura exploit contra o roster evoluído. É a objeção mais forte ao resultado.
   *Pergunta:* precisa aparecer na Discussão com que peso?
-- [ ] **10 sementes é suficiente?** `MULTI_RUN_N_SEEDS = 10`. Com Mann-Whitney e n=10 o
+- [x] **10 sementes é suficiente?** `MULTI_RUN_N_SEEDS = 10`. Com Mann-Whitney e n=10 o
   SciPy usa a aproximação assintótica (conservadora). *Pergunta:* subir para 20-30
   mudaria as conclusões, e o custo é aceitável (~3,8 min por execução)?
   **Decidido em 2026-09-16 pelo item (7) da §9: n = 20 — mas não executado.** A resposta à
@@ -791,7 +801,12 @@ corrigidos; o quadro macro do modelo ficou registrado abaixo.
   ⚠️ **O ~180 min registrado no item (7) é anterior à rotação do stream** (que encareceu o
   escalar em ~1,8× e o NSGA-II em ~2×). Medido nos artefatos de 2026-09-17: AG **7,2 min**
   e NSGA-II **14,1 min** por execução, ou seja **~7h06** para o n = 20 dos dois.
-  **Segue aberto por execução, não por decisão** — roteirizado em `run_battery.ps1`.
+  **Executado em 2026-09-18** (`run_battery.ps1`, 5h54). As sementes 42–51 reproduziram
+  bit a bit as 10 anteriores, e **as três métricas de Holm seguem significativas a n = 20**
+  — `dominance` p 0,0123 (Â₁₂ 0,27), `drift` p 0,00007 (0,89), counters p 0,0018 (0,21),
+  todas com efeito grande. Os Â₁₂ andaram na direção de 0,5 em relação ao n = 10 (0,20 ·
+  0,94 · 0,14): o efeito a n = 10 estava inflado, como é típico de amostra pequena, e o de
+  n = 20 é o que se cita.
 - [x] **(F) Holm rodava sobre 4 métricas, uma delas degenerada.** *Fato:*
   `n_chars_balanced` é **5/5 nas 20 execuções** (10 por algoritmo) — amostra conjunta
   constante, e `mannwhitneyu` devolve `p = nan` porque a correção de empates zera o
@@ -825,11 +840,13 @@ corrigidos; o quadro macro do modelo ficou registrado abaixo.
   resultado: não havia prêmio em escolher a família menor. A leitura honesta segue
   sendo *efeito grande, direção consistente, não significativo a n = 10*. O que
   resolveria é poder amostral — item (7) da §9, aditivo.
-- [ ] **Referências de estatística fora do `.bib`.** Derrac et al. 2011, Arcuri & Briand
+- [x] **Referências de estatística fora do `.bib`.** Derrac et al. 2011, Arcuri & Briand
   2011 e Vargha & Delaney 2000 são citadas nos docs e no código, mas **não estão** em
   `overleaf/TCC/bibliografia.bib`.
   **Verificado:** também ausentes de `overleaf/artigo-SBC/referencias.bib` e de
   `overleaf/artigo-latinware-2026/referencias.bib` — os três `.bib`.
+  **Resolvido (verificado em 2026-09-18):** `derrac2011practical`, `arcuri2011practical` e
+  `vargha2000critique` estão nos três.
 - [ ] **O veredito da validação externa é binário.** *Fato:* o roster
   só é ROBUSTO se **nenhum** par virar hard-counter em **nenhuma** das 10 condições — 100
   oportunidades de falhar. O `best_dominance` do NSGA-II tem 5/5 bonecos robustos e
@@ -941,11 +958,11 @@ tudo o que muda número tem de ser resolvido **antes** de uma única regeneraç�
 | 6 | **R** — guard break / grab | decisão registrada: só depois de A–C | ✅ 2026-09-16 |
 | 7 | **bateria completa** — regenerar `results/` | um corte único, com tudo estabilizado | ✅ 2026-09-16 |
 | 8 | **F**, **G** | camada de análise: não exigem re-rodar o AG | ✅ 2026-09-16 |
-| 9 | **§7 menores** + docs + `values.tex` | limpeza e sincronização final | menores ✅ 2026-09-16; falta `values.tex` + bibliografia |
+| 9 | **§7 menores** + docs + `values.tex` | limpeza e sincronização final | menores ✅ 2026-09-16; bibliografia ✅ 2026-09-17; falta `values.tex` |
 | 10 | **agenda de calibração (§9)** + regeneração final | (1)–(7) fechados; bateria regenerada sob o motor final | ✅ 2026-09-16 |
 | 11 | **instrumentação** — proveniência nos artefatos + marcos de convergência por semente | um artefato que não carrega a config que o produziu não se auto-verifica; e sem os marcos, "velocidade" é n = 1 | ✅ 2026-09-17 |
-| 12 | **sweep de `LAMBDA_DRIFT`** em orçamento reduzido | exploratório quer ORDENAÇÃO, e ordenação transfere de orçamento — 25 min em vez de 2h24 | ✅ 2026-09-17: λ = 1,0 é o joelho; `config.py` inalterado |
-| 13 | **bateria** — `run_battery.ps1` (n = 20) | poder estatístico: 44,4% → 85,9% | roteirizada, **não executada** (~7h53) |
+| 12 | **sweeps** de `LAMBDA_DRIFT`, pesos do dominance e elitismo/torneio, em orçamento reduzido | exploratório quer ORDENAÇÃO, e ordenação transfere de orçamento — ~10 min por braço | ✅ 2026-09-17/18: os três testaram o valor vigente e ele passou; `config.py` inalterado |
+| 13 | **bateria** — `run_battery.ps1` (n = 20) | poder estatístico: 44,4% → 85,9% | ✅ 2026-09-18: as três métricas de Holm significativas |
 
 > Fechado o passo 7, a decisão seguinte não é um item desta tabela e sim a
 > **[agenda de calibração (§9)](#9-agenda-de-calibração--as-constantes-provisórias-com-evidência)**:
@@ -1154,6 +1171,12 @@ razão é mais geral do que se supunha: persistência alta paga **duas vezes** �
 decisões independentes por luta dá sinal menor **e** piso de ruído maior (3,5% a 5
 contra 4,9% a 10), então baixá-la melhora numerador e denominador juntos. `knockback`
 segue abaixo do piso e continua como limitação declarada. `TICK_SCALE` fica em 5.
+
+> ⚠️ **Remedido em 2026-09-18, no indivíduo atual** (600 sims, 12 repetições): nenhum gene
+> fica abaixo do piso (5,1%), mas `knockback` (5,5%) e `speed` (5,9%) ficam **no limiar**,
+> com sinal/ruído ~1,1. A limitação muda de forma, não some. A análise é local — mede a
+> paisagem em volta de um indivíduo —, e o `speed` só aparece no limiar aqui. Ver
+> [`HANDOFF.md`](HANDOFF.md) §3.
 
 <details>
 <summary>Levantamento original do item</summary>

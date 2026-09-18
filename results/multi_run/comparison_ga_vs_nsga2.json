@@ -1,8 +1,8 @@
 {
   "provenance": {
-    "generated_at": "2026-09-17T17:14:02-03:00",
-    "fingerprint": "3cfa2f90fc89",
-    "engine_digest": "f6b2cab6abdf",
+    "generated_at": "2026-09-18T04:51:29-03:00",
+    "fingerprint": "76e298ec305c",
+    "engine_digest": "0616241361e8",
     "archetypes_digest": "e37725dd4b7c",
     "config": {
       "ACTION_PERSISTENCE_SUBTICKS": 5,
@@ -173,14 +173,13 @@
         "w_defend",
         "w_aggressiveness"
       ]
-    },
-    "backfilled": "carimbo retroativo (2026-09-17): a bateria e anterior ao modulo de proveniencia, e o carimbo foi renovado apos o refactor que tornou os LAMBDA_* estado de processo (para o sweep). Em ambas as ocasioes a validade foi estabelecida por REPRODUCAO bit-exata sob o codigo do momento: results.json devolve fitness -0.233101660623 sob generation_seed(42,150) e os 5 representantes do nsga2_results.json devolvem os objetivos gravados. Os demais artefatos sao funcao deterministica desses dois mais o motor."
+    }
   },
   "test": "Mann-Whitney U (bicaudal)",
   "effect_size": "Vargha-Delaney A12 (ga vs nsga2)",
   "correction": "Holm-Bonferroni",
   "alpha": 0.05,
-  "n_seeds": 10,
+  "n_seeds": 20,
   "seeds": [
     42,
     43,
@@ -191,7 +190,17 @@
     48,
     49,
     50,
-    51
+    51,
+    52,
+    53,
+    54,
+    55,
+    56,
+    57,
+    58,
+    59,
+    60,
+    61
   ],
   "validation_seed": 9999,
   "sims_per_matchup": 200,
@@ -206,13 +215,13 @@
       "label": "dominance_penalty",
       "better_is": "lower",
       "median_ga": 0.038675685954828266,
-      "median_nsga2": 0.0660350030814649,
-      "u_statistic": 20.0,
-      "p_value": 0.025748080821108063,
-      "a12_ga_vs_nsga2": 0.2,
+      "median_nsga2": 0.059902226204330805,
+      "u_statistic": 107.0,
+      "p_value": 0.012344745758617116,
+      "a12_ga_vs_nsga2": 0.2675,
       "better": "ga",
       "degenerate": false,
-      "p_holm": 0.025748080821108063,
+      "p_holm": 0.012344745758617116,
       "significant": true,
       "effect_magnitude": "grande"
     },
@@ -220,14 +229,14 @@
       "metric": "drift_penalty",
       "label": "drift_penalty",
       "better_is": "lower",
-      "median_ga": 0.25982372187722413,
-      "median_nsga2": 0.1695395379114804,
-      "u_statistic": 94.0,
-      "p_value": 0.0010079762403767444,
-      "a12_ga_vs_nsga2": 0.94,
+      "median_ga": 0.25255867149394345,
+      "median_nsga2": 0.18160985157757198,
+      "u_statistic": 357.0,
+      "p_value": 2.3024709881112628e-05,
+      "a12_ga_vs_nsga2": 0.8925,
       "better": "nsga2",
       "degenerate": false,
-      "p_holm": 0.003023928721130233,
+      "p_holm": 6.907412964333789e-05,
       "significant": true,
       "effect_magnitude": "grande"
     },
@@ -236,13 +245,13 @@
       "label": "hard-counters por execução",
       "better_is": "lower",
       "median_ga": 0.0,
-      "median_nsga2": 2.0,
-      "u_statistic": 14.5,
-      "p_value": 0.005520311493176235,
-      "a12_ga_vs_nsga2": 0.145,
+      "median_nsga2": 1.0,
+      "u_statistic": 84.0,
+      "p_value": 0.0008966488648324739,
+      "a12_ga_vs_nsga2": 0.21,
       "better": "ga",
       "degenerate": false,
-      "p_holm": 0.01104062298635247,
+      "p_holm": 0.0017932977296649477,
       "significant": true,
       "effect_magnitude": "grande"
     },
@@ -265,12 +274,12 @@
   "dominance_decomposition": {
     "global_term": {
       "median_ga": 0.03754630107619669,
-      "median_nsga2": 0.04701862840989123,
+      "median_nsga2": 0.03822522894500216,
       "weight": 1.0
     },
     "cap_term": {
       "median_ga": 0.0,
-      "median_nsga2": 0.049692934659788794,
+      "median_nsga2": 0.03565313708959621,
       "weight": 0.5
     },
     "decis_term": {

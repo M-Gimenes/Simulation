@@ -33,9 +33,11 @@ Daí a assimetria do projeto: **identidade é termo do fitness, o ciclo de vanta
    só se demonstra que otimizar um sozinho não entrega o outro, que é uma afirmação
    bem mais fraca e quase óbvia.
 2. **Penalidade não é restrição.** O AG é livre para destruir a identidade se o
-   equilíbrio pagar mais — e foi exatamente o que aconteceu: com `LAMBDA_DRIFT = 1.0`
-   ligado o run inteiro, o melhor indivíduo do AG escalar ficou em 8/21 no validador de
-   identidade. O termo existe e pode perder; ter o termo não pré-determina a resposta.
+   equilíbrio pagar mais, e é o que acontece: com `LAMBDA_DRIFT = 1.0` ligado o run
+   inteiro, o melhor do AG escalar fica em **13/23** no validador — acima de todos os 35
+   rosters nulos (p < 0,03), e longe dos 23/23 do canônico. O termo existe e pode perder;
+   ter o termo não pré-determina a resposta. (No diagnóstico de 2026-09-16, sob o
+   validador de 21 asserções que precedeu o `grab_power`, o mesmo fenômeno deu 8/21.)
 3. O conteúdo não-trivial da tese nunca foi "a identidade sobreviveu" — é **o preço**:
    quanto de equilíbrio se compra por unidade de drift. Esse é o formato da fronteira
    de Pareto, que é achado empírico, não suposição. E uma fronteira precisa de dois
@@ -46,7 +48,7 @@ Daí a assimetria do projeto: **identidade é termo do fitness, o ciclo de vanta
 O erro que a auditoria de 2026-09-16 encontrou não foi "identidade no fitness" — foi os
 dois instrumentos do projeto **discordarem sobre o que a palavra significa**. O
 `drift_penalty` dava 0,261 para o melhor do AG ("preservada") enquanto o validador dava
-8/21 ("destruída"). Não era homogeneização: era **troca de papéis** (o Turtle virou o de
+8/21 ("destruída") — números daquele diagnóstico, sob o validador de 21 asserções. Não era homogeneização: era **troca de papéis** (o Turtle virou o de
 menor HP e maior dano, o Rushdown virou defensivo, o Zoner virou o de menor alcance).
 Distância euclidiana é cega a **ranking**, que é o que identidade significa
 operacionalmente aqui.

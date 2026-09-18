@@ -106,13 +106,21 @@ sem a checagem. O aviso diz o que mudou, não só que mudou:
 > `lambda_drift`, `lambda_dominance`) — é por isso que ela não vive só no carimbo. Regra:
 > re-carimbe **um artefato de cada vez**, sob os mesmos overrides que o produziram.
 
-> **Nota sobre a bateria de 2026-09-17**, anterior ao módulo: os artefatos dela levam
-> `provenance.backfilled` explicando que o carimbo é retroativo e como foi justificado —
-> por **reprodução bit-exata** sob o código atual (`results.json` devolve
-> `fitness = −0,233101660623` sob `generation_seed(42, 150)`, e os 5 representantes do
-> `nsga2_results.json` devolvem os objetivos gravados). Os demais artefatos são função
-> determinística desses dois mais o motor. Re-rodar produziria números idênticos mais um
-> hash. Artefatos gerados daqui em diante não têm esse campo.
+> **Carimbo retroativo: só por reprodução do próprio artefato.** A bateria de 2026-09-17,
+> anterior ao módulo, recebeu carimbo retroativo justificado reproduzindo bit a bit
+> `results.json` e `nsga2_results.json` e **inferindo** o resto ("função determinística
+> desses dois mais o motor"). A inferência falhou num: o `sensitivity_analysis.json` era de
+> 2026-09-16, sob persistência 10, e levou o carimbo de atual. A bateria de 2026-09-18 é a
+> primeira gerada inteira com o módulo, e nenhum artefato em `results/` carrega mais
+> `provenance.backfilled`.
+
+> **O que o carimbo não cobre: argumentos de linha de comando.** Ele grava a configuração do
+> motor (`config.py`, canônicos, código), não os flags com que a ferramenta foi chamada.
+> Um artefato gerado com `--n-random 8` ou `--n-seeds 10` sai carimbado como atual, porque
+> **é** — a config não mudou. A defesa é o default de cada ferramenta ser o valor do
+> protocolo (`baselines` já é: 30 nulos) e o corpo do artefato gravar os parâmetros da
+> execução (`n_random`, `n_seeds`, `sims_per_matchup`). O `multi_run` ainda tem default 10
+> contra o protocolo de 20 — ver [10-known-issues.md](10-known-issues.md) §1.2.
 
 ## Reprodutibilidade ✅
 

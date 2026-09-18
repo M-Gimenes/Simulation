@@ -242,11 +242,17 @@ pergunta central fica ambígua — eu estaria forçando a preservação."*
   ele ajuda: o fitness é um número só, o canônico é ruim nele e some depois de doar genes
   (com seed drift 0,2874, sem 0,3365, mesmo dominance). Assimetria deliberada, declarada.
 - **Resultado:** min `dominance` 0,0896 em 60 gerações e 0,0346 em 150, sem nuvem
-  (0/49 pontos com `dominance ≥ 1.0`). Com isso o **mapa do trade-off passou a existir**
-  — e a leitura da comparação inverteu: o NSGA-II agora vence o AG escalar na função que
-  o *escalar* otimiza (L1 0,2115 contra 0,2945), enquanto o escalar alcança um extremo de
-  `dominance` (0,0088) abaixo de toda a faixa da fronteira. Não é que um domine o outro:
-  cada um alcança uma parte diferente do trade-off.
+  (0/49 pontos com `dominance ≥ 1.0`). Com isso o **mapa do trade-off passou a existir**.
+  No orçamento de produção (pop 300 × 150, os artefatos da bateria) os dois ficam
+  **mutuamente não-dominados**: o escalar domina 0 dos 64 pontos da fronteira, nenhum o
+  domina, e a `dominance` dele (0,0153) fica abaixo de toda a faixa dela ([0,0483; 1,1438]).
+  Na função que o *escalar* otimiza, quem vence é o escalar — L1 0,2331 contra 0,2487.
+  Não é que um domine o outro: cada um alcança uma parte diferente do trade-off.
+- **Ressalva de método que este item produziu:** o run diagnóstico rodou a pop **120**, e
+  ali a leitura era a inversa (L1 0,2115 do NSGA-II contra 0,2945 do escalar). A conclusão
+  sobre a **inicialização** transfere — é o mecanismo, e ele independe do orçamento; a
+  conclusão sobre **qual algoritmo é melhor** não transferiu. Regra adotada: orçamento
+  reduzido ordena *configurações*, nunca declara *vencedor* entre algoritmos.
 - **Ponto de método associado:** `select_representatives` ganhou `scalar_optimum`, o
   mínimo da soma ponderada que o escalar otimiza. A comparação vinha usando
   `ideal_point`, que minimiza a norma L2 — outro ponto da mesma fronteira.
@@ -449,7 +455,9 @@ convergência é o predicado de equilíbrio (`roster_balanced`), não o valor do
   **duas vezes**. Menos decisões independentes por luta significa menos oportunidades de
   o gene se expressar (sinal menor) **e** mais variância no desfecho (piso de ruído
   maior — 3,5% a 5 contra 4,9% a 10). Baixá-la melhora numerador e denominador ao mesmo
-  tempo. `knockback` continua abaixo do piso e segue como limitação declarada.
+  tempo. `knockback` continua abaixo do piso e segue como limitação declarada. (Remedido em
+  2026-09-18 no indivíduo atual: no **limiar** do piso, junto com o `speed`, e não abaixo
+  dele — ver "O carimbo retroativo por inferência falhou num artefato".)
 
 ## O drift deixou de cobrar pela escala dos pesos (2026-09-16)
 
@@ -619,6 +627,10 @@ carimbo **retroativo**, com o campo `backfilled` dizendo isso e como foi justifi
 determinística desses dois mais o motor, então re-rodar a bateria produziria números
 idênticos mais um hash.
 
+> ⚠️ **A inferência falhou num artefato.** O `sensitivity_analysis.json` não tinha sido
+> regerado depois desses dois e era de 2026-09-16; a bateria de 2026-09-18 o pegou. Ver "O
+> carimbo retroativo por inferência falhou num artefato", no fim deste documento.
+
 **Um efeito colateral vale registrar:** a verificação por reprodução expôs que o
 procedimento de checkup antigo (*"re-avaliar o melhor sob seed-base 42 devolve o gravado"*)
 é anterior à rotação do stream e **não** vale mais. O número gravado é medido no stream da
@@ -650,8 +662,8 @@ Duas escolhas de agregação que são o conteúdo do item:
 
 **Resultado.** O eixo de velocidade passa a existir como amostra para o escalar — e fica
 explícito no artefato que ele **não** é uma comparação pareada entre os dois algoritmos, e
-sim uma caracterização do escalar. A medição sobre as N sementes ainda não foi feita: ela
-entra na próxima regeneração da bateria.
+sim uma caracterização do escalar. A medição sobre as 20 sementes saiu na bateria de
+2026-09-18 — ver "A bateria com n = 20", no fim deste documento.
 
 ## O sweep de lambda e o n = 20 viraram um experimento só (2026-09-17)
 
@@ -851,3 +863,132 @@ escolha. Aqui ela **converte uma premissa de projeto em resultado experimental**
 afirmação "equilíbrio global sozinho não é equilíbrio" deixa de ser argumento de desenho e
 passa a ter contra-exemplo medido — um roster que o termo primário considera quase perfeito
 (0,0170) e que é injogável (10/10 counters duros).
+
+## O elitismo e o torneio: testados, e mantidos (2026-09-18)
+
+**Problema.** `ELITE_RATE = 0.10` e `TOURNAMENT_SIZE = 3` eram os últimos parâmetros do AG
+nunca variados. A justificativa era só "valores usuais da literatura" — a mesma posição em
+que λ e os pesos do dominance estavam antes dos seus sweeps.
+
+**Mudança.** Sweep de 7 braços × 5 sementes no orçamento reduzido (pop 120 × 60), contra o
+braço default que os três sweeps compartilham. Os dois parâmetros só existem no AG escalar:
+o NSGA-II seleciona por rank de Pareto e torneio binário, então rodá-lo por braço mediria o
+mesmo número sete vezes.
+
+**Resultado.**
+
+| braço | global_term | cap_term | drift | counters | roster eq. | convergiu |
+|---|---|---|---|---|---|---|
+| elitismo 0 | 0,0593 | 0,0076 | 0,2746 | 1,4 ± 1,3 | 2/5 | 80% |
+| elitismo 5% | **0,0391** | 0,0111 | 0,2723 | 1,0 ± 1,0 | 2/5 | 60% |
+| **elitismo 10% · torneio 3** | 0,0454 | **0,0063** | 0,2982 | **0,6 ± 0,5** | 2/5 | 80% |
+| elitismo 20% | 0,0473 | 0,0327 | 0,2736 | 1,6 ± 1,5 | 1/5 | 60% |
+| elitismo 30% | 0,0516 | 0,0440 | 0,3136 | 1,8 ± 1,3 | 1/5 | 60% |
+| torneio 2 | 0,0439 | 0,0884 | **0,2411** | 2,0 ± 2,9 | 2/5 | 40% |
+| torneio 5 | 0,0528 | 0,1049 | 0,2575 | 2,2 ± 1,9 | 1/5 | 20% |
+| torneio 7 | 0,0459 | 0,0886 | 0,2786 | 2,2 ± 3,3 | 1/5 | 60% |
+
+**Nenhum braço domina o default.** Ele tem o menor número de counters e o menor `cap_term`
+dos oito; as alternativas ganham um pouco de drift e pagam em counters. Como no sweep dos
+pesos, a comparação é pelos termos e pelas métricas post-hoc, não pelo composto.
+
+**O que o sweep NÃO estabelece, e por isso o `config.py` não muda.** A n = 5 nenhuma dessas
+diferenças se separa do ruído — os desvios de counters chegam a 3,3 —, e o torneio dá um
+padrão **não monotônico**: 3 sai melhor que 2 e que 5, e 5 empata com 7. Um ótimo real de
+pressão seletiva produziria uma curva suave; um pico isolado no valor default tem mais a
+cara de ruído. O braço sem elitismo, que devia ser o informativo (como o `1/0/0` foi nos
+pesos), mostrou pouco: o `global_term` piora de 0,0454 para 0,0593, o pior dos oito, e o
+resto fica dentro do ruído. A leitura honesta: 10% / 3 passam de "valores usuais" a
+"testados neste problema, sem braço que os supere" — não a "ótimos".
+
+**Consequência para o método:** os três sweeps exploratórios (λ, pesos, seleção) testaram
+os valores vigentes e os três passaram. Nenhum parâmetro do AG ficou sem ter sido variado.
+
+## A bateria com n = 20: o efeito se sustenta, e o de n = 10 estava inflado (2026-09-18)
+
+**Problema.** A n = 10 o experimento tinha **44,4%** de poder para detectar um efeito grande
+(simulação de poder, seção das constantes provisórias acima). As três métricas da família de
+Holm saíram significativas na bateria de 2026-09-17, mas um resultado significativo numa
+amostra subdimensionada tende a **superestimar** o efeito — a amostra que passa do limiar é,
+em média, a que sorteou um efeito maior que o real.
+
+**Mudança.** Rodar as 20 sementes (`run_battery.ps1`, 5h54). As sementes 42–51 reproduziram
+**bit a bit** as 10 anteriores, nos dois algoritmos, o que confirma o "aditivo" que a decisão
+pressupunha.
+
+**Resultado — a conclusão se sustenta, e o tamanho do efeito encolhe.**
+
+| métrica | mediana AG | mediana NSGA-II | p (Holm), n = 20 | Â₁₂, n = 20 | Â₁₂, n = 10 |
+|---|---|---|---|---|---|
+| `dominance_penalty` | 0,0387 | 0,0599 | **0,0123** | 0,27 | 0,20 |
+| `drift_penalty` | 0,2526 | 0,1816 | **0,00007** | 0,89 | 0,94 |
+| hard-counters/execução | 0 | 1 | **0,0018** | 0,21 | 0,14 |
+
+Os p caíram, como se espera ao dobrar a amostra, e os três Â₁₂ **andaram na direção de 0,5**
+— exatamente o que a preocupação previa. As 10 sementes novas foram mais favoráveis ao
+NSGA-II (1,1 counter por execução contra 2,4 nas 42–51). O efeito continua **grande** nas
+três métricas, e o de n = 20 é o que se cita.
+
+**A decomposição ficou mais nítida, e muda a frase certa sobre o resultado.** O `global_term`
+— o termo primário, que mede se alguém domina o roster — deu **0,0375 contra 0,0382**:
+praticamente igual (a n = 10 eram 0,0375 contra 0,0470). O `cap_term` deu 0,0000 contra
+0,0357. Então **toda** a vantagem do AG em `dominance` vem de counters duros: os dois
+algoritmos equilibram o roster globalmente igual, e o NSGA-II perde porque deixa pares
+passarem do teto. "O AG equilibra melhor" é impreciso; "o AG evita counters duros e o NSGA-II
+não" é o que o dado diz. Em rosters: 14/20 do AG passam no critério completo, contra 4/20 do
+`best_dominance`.
+
+**O eixo de velocidade deixou de ser anedota.** O AG convergiu em **20/20 sementes**, sempre
+confirmado num stream que nunca viu, na geração **34,8 ± 17,1** (18 a 75). E a amostra
+corrigiu uma leitura feita a n = 1: a seed 42 não estagnava, e isso tinha sido tomado como
+confirmação de que, sob rotação do stream, o contador de estagnação reseta por ruído e o
+evento não dispara. Ele dispara em **10/20** sementes, tarde (geração 99,5 ± 21,2). O gate de
+convergência disparou 70 vezes e a confirmação fora do stream recusou 50 (**71%**), dentro da
+faixa de 67%–83% medida nos braços do sweep — agora no orçamento de produção.
+
+## O carimbo retroativo por inferência falhou num artefato (2026-09-18)
+
+**Problema.** O carimbo retroativo de 2026-09-17 reproduziu `results.json` e
+`nsga2_results.json` e **inferiu** o resto: *"os demais artefatos são função determinística
+desses dois mais o motor"*. A inferência vale para um artefato gerado depois deles, e o
+`sensitivity_analysis.json` não tinha sido: era do indivíduo de 2026-09-16, sob persistência
+10 (piso de ruído 7,9%), e recebeu o carimbo de atual. A bateria o regerou — e re-rodar deu
+resultado idêntico ao da bateria, então a ferramenta é determinística; o arquivo é que era
+velho. Na mesma bateria apareceu uma segunda falha da mesma família: o `run_battery.ps1`
+chamava `baselines --evolved` sem `--n-random`, o default do tool era 8, e o artefato saiu com
+13 nulos em vez de 35 — a resolução do p caiu de < 0,03 para < 0,08 sem nenhum erro.
+
+**O que as duas têm em comum:** nenhuma é detectável pelo carimbo. Na primeira, o carimbo
+foi posto à mão sem reprodução; na segunda, a config do motor não mudou — mudou um argumento
+de linha de comando, e o carimbo registra a config, não os argumentos.
+
+**Mudança.** A sensibilidade foi regerada sobre o indivíduo atual. `N_RANDOM_DEFAULT` passou a
+30, o valor do protocolo, para que a bateria e o dossiê (`report`) não dependam de um flag; o
+`baselines.json` regerado saiu idêntico ao de 2026-09-17. Duas regras ficaram: **carimbo
+retroativo só por reprodução do próprio artefato**, e **o default de uma ferramenta é o valor
+do protocolo**, não um atalho mais barato. A segunda ainda não vale para o `multi_run`: o
+`MULTI_RUN_N_SEEDS` segue 10 no `config.py`, e mudá-lo marcaria todos os artefatos como
+obsoletos, porque o carimbo grava toda constante — pendência registrada em
+[`../reference/10-known-issues.md`](../reference/10-known-issues.md) §1.2.
+
+**Resultado — a primeira medição de sensibilidade sobre o indivíduo atual.** Com 600 sims e 12
+repetições do piso, para decidir o `knockback`:
+
+| gene | \|Δ WR\| | sinal/ruído |
+|---|---|---|
+| `range` | 39,4% | 7,7 |
+| `attack_cooldown` | 23,3% | 4,6 |
+| `hp` | 20,0% | 3,9 |
+| `damage` | 19,7% | 3,9 |
+| `grab_power` | 9,8% | 1,9 |
+| `stun` | 7,7% | 1,5 |
+| `speed` | 5,9% | 1,2 |
+| `knockback` | 5,5% | 1,1 |
+
+(piso de ruído, máximo sobre 480 células sem perturbação: 5,1%)
+
+A limitação registrada na seção da persistência — *"`knockback` continua abaixo do piso"* —
+**muda de forma, não some**: no indivíduo atual nenhum gene fica abaixo do piso, mas
+`knockback` e `speed` ficam no limiar, com sinal/ruído ~1,1. A diferença do `speed` (2,0 no
+indivíduo em que se decidiu a persistência, 1,2 aqui) lembra que a análise é **local**: mede
+a paisagem em volta de um indivíduo, e o que o AG enxerga depende de onde ele está.

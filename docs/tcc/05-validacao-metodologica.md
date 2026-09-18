@@ -46,9 +46,14 @@ ferramenta está em [`../reference/08-tools.md`](../reference/08-tools.md).
   **saturado** (Rushdown ~100% global, Turtle ~0%): com a WR presa no teto, perturbar um
   gene não muda nada e quase tudo saía "neutro" por efeito de teto, não por neutralidade —
   a tabela sustentava o contrário do que se quer afirmar. Com `--evolved`, no roster
-  equilibrado, **4 dos 8** atributos saem visíveis (`range` 0,287 · `damage` 0,210 ·
-  `hp` 0,187 · `attack_cooldown` 0,181, contra um piso de 0,0794) e 4 ficam abaixo do piso
-  (`grab_power` 0,073 · `speed` 0,061 · `stun` 0,061 · `knockback` 0,024).
+  equilibrado da bateria de 2026-09-18, **4 dos 8** atributos saem visíveis (`range`
+  0,393 · `attack_cooldown` 0,213 · `hp` 0,191 · `damage` 0,183, contra um piso de 0,057)
+  e os outros 4 borderline (`grab_power` 0,110 · `stun` 0,073 · `speed` 0,071 ·
+  `knockback` 0,067) — **nenhum abaixo do piso**. Uma medição mais fina (600 sims, 12
+  repetições do piso, piso 0,051) põe `speed` e `knockback` **no limiar**, com
+  sinal/ruído ~1,1: a limitação a declarar é que o AG mal enxerga esses dois genes em volta
+  do indivíduo evoluído. A análise é **local** — mede a paisagem em volta de um indivíduo e
+  muda com ele.
 - **Variância controlada:** usa pareamento de seeds (*common random numbers*) entre +σ
   e −σ — técnica que **só funciona após o fix de reprodutibilidade** (antes, ineficaz).
 - **Para que serve na tese:** sustenta a afirmação de que a seleção atua sobre todo o

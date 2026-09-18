@@ -61,10 +61,12 @@ Layers 1-2 do validador medem o mesmo eixo que o fitness otimiza e por isso são
 **parcialmente endógenas**; quem sustenta a leitura post-hoc de identidade é a
 **Layer 3** (comportamental) somada ao ciclo de vantagens, que nada no fitness toca.
 
-**Medido nos quatro indivíduos de referência** (drift ascendente deve bater com o
-validador descendente — `knee_point` 19/21 > `ideal_point` 16/21 >
-`best_dominance` 11/21 > AG escalar 8/21; scores re-medidos após a correção, já que a
-Layer 2 do validador usa a mesma normalização):
+**Medido nos quatro indivíduos de referência do diagnóstico de 2026-09-16**, sob o
+validador de **21** asserções que precedeu o `grab_power` — é a evidência que decidiu a
+convenção, não um número corrente (os atuais, de 23, estão em `results/baselines.json`).
+O critério: drift ascendente deve bater com o validador descendente — `knee_point` 19/21 >
+`ideal_point` 16/21 > `best_dominance` 11/21 > AG escalar 8/21; scores re-medidos após a
+correção, já que a Layer 2 do validador usa a mesma normalização:
 
 | variante | knee (19/21) | ideal (16/21) | best_dom (11/21) | AG (8/21) | ordem bate? | gap AG−best_dom |
 |---|---|---|---|---|---|---|
@@ -171,7 +173,8 @@ escala bruta. Mudar qualquer `LAMBDA_*` não afeta o NSGA-II.
 ## Operadores
 
 - **Seleção:** torneio com `TOURNAMENT_SIZE = 3` — pega o de maior fitness entre
-  3 sorteados.
+  3 sorteados. (O NSGA-II **não** usa este operador: lá o torneio é binário e ordenado
+  por rank de Pareto + crowding, `operators.nsga2_binary_tournament`.)
 - **Crossover por bloco de personagem:** cada um dos 5 personagens do filho é
   clonado integralmente de um dos pais (50/50). Preserva a coerência interna
   entre atributos e pesos de um mesmo arquétipo. *Consequência:* a recombinação
@@ -184,7 +187,29 @@ escala bruta. Mudar qualquer `LAMBDA_*` não afeta o NSGA-II.
     estratégia; explora-se mais capacidade do que estratégia.
   - `clip()` aplica os bounds após cada mutação. Todos os genes são contínuos
     (não há mais atributo inteiro — `recovery`, o único, foi removido do modelo).
-- **Elitismo:** top `ELITE_SIZE = 30` (10% de 300) clonados direto a cada geração.
+- **Elitismo:** top `operators.elite_count(pop_size)` clonados direto a cada geração —
+  uma **fração** (`ELITE_RATE = 0.10`) do tamanho **real** da população, não uma contagem
+  absoluta. `ELITE_SIZE = 30` é a derivação no orçamento default e existe só como
+  referência; quem manda no laço é a taxa. A distinção importa porque uma execução de
+  orçamento reduzido herdando 30 elites absolutos teria elitismo efetivo de 25% (pop 120)
+  ou 100% (pop 30) — nesse último caso a geração seguinte é só clones e **o AG para de
+  buscar**, sem erro e produzindo números plausíveis. Taxa 0 devolve 0 elites (é o braço
+  "sem elitismo" do sweep); qualquer taxa positiva preserva no mínimo o melhor.
+
+> **Elitismo e torneio são estado de processo** (`operators.set_selection` /
+> `set_selection_override`), pela mesma razão dos λ e dos pesos do dominance: um sweep os
+> varia entre execuções e `from .config import X` congelaria o valor no import. **Sem** a
+> plumbing de `RuntimeState`, porém — os dois são lidos só por `next_generation` e
+> `tournament_selection`, que rodam exclusivamente no processo pai (os workers avaliam
+> fitness, nunca reproduzem), então não atravessam o spawn. `set_selection_override`
+> recalcula também `ELITE_SIZE` no carimbo, senão o artefato de um braço afirmaria a taxa
+> do braço ao lado da contagem do arquivo.
+
+**Os dois valores foram testados** (2026-09-18, 7 braços × 5 sementes em orçamento
+reduzido: elitismo 0 · 5% · 20% · 30%, torneio 2 · 5 · 7). Nenhum braço supera 10% / 3,
+que têm o menor número de counters duros e o menor `cap_term` dos oito; a n = 5 as
+diferenças não se separam do ruído. Tabela e leitura em
+[tcc/04](../tcc/04-caminhos-e-decisoes.md).
 
 ## Critérios de convergência e parada
 
@@ -257,6 +282,8 @@ Como os elites chegam medidos no stream anterior, a geração inteira é reavali
 custo ~1,8× (no NSGA-II é ~2×, ver [06](06-nsga2.md)). E o fitness passa a flutuar
 entre gerações por troca de stream, então **`stagnated_at` fica menos confiável**;
 `converged_at` não sofre, porque testa o predicado `roster_balanced` e não o fitness.
+Medido na bateria de n = 20 (2026-09-18): a estagnação dispara em **10/20** sementes, tarde
+(geração 99,5 ± 21,2), enquanto a convergência sai em 20/20, na geração 34,8 ± 17,1.
 
 ### Por que a confirmação roda fora do stream do treino
 
@@ -277,7 +304,9 @@ passa a significar **"o equilíbrio sobrevive a um stream que o AG nunca viu"**,
 `best_detail` devolvido pelo AG vira uma medição fora da amostra. Consequência esperada
 e aceita: convergência fica bem mais rara — medido num run curto (pop 120, 60 gerações,
 seed 42), o gate disparou **16 vezes** e a confirmação fora do stream rejeitou **as 16**.
-É o ajuste ao stream quantificado.
+É o ajuste ao stream quantificado. No orçamento de produção, sobre as 20 sementes da
+bateria, o gate disparou 70 vezes e a confirmação recusou 50 (**71%**) — e ainda assim
+todas as 20 convergiram: a confirmação atrasa a convergência, não a impede.
 
 A confirmação é testada **só até o primeiro sucesso**: o que interessa é *quando*
 convergiu, e cada disparo custa `SIMS_CONVERGENCE_CHECK` simulações extras.

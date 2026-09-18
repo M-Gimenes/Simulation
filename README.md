@@ -12,8 +12,8 @@ The system evolves a set of 5 characters (one per archetype) through a GA, evalu
 
 ## How it works
 
-- **Simulation layer** — tick-based 1v1 combat with intention→execution action selection (Attack / Advance / Retreat / Defend), the intention sampled from the character's behavioral weights
-- **GA layer** — each individual encodes 5 characters (50 genes total); fitness balances archetype drift against dominance (no single archetype dominates the roster, plus a hard-counter cap). NSGA-II variant optimizes the same two as Pareto objectives.
+- **Simulation layer** — tick-based 1v1 combat on **two action channels**: the sampled intention governs only the *stance* (Advance / Retreat / Defend), while the *attack* is a resolution rule that fires whenever cooldown is ready and the opponent is in range and the stance is not Defend. Advancing and retreating both hit; only guarding gives up the blow. The intention is sampled from the character's behavioral weights and held for a few sub-ticks (commitment).
+- **GA layer** — each individual encodes 5 characters (8 attributes + 3 behavioral weights each = **55 genes**); fitness balances archetype drift against dominance (no single archetype dominates the roster, plus a hard-counter cap and a decisiveness band). NSGA-II variant optimizes the same two as unweighted Pareto objectives.
 
 ## Setup
 
@@ -61,6 +61,28 @@ py -m src.tools.compare_algorithms              # GA x NSGA-II: Mann-Whitney U +
 py -m src.tools.external_validation --nsga2 knee_point  # robustez do equilibrio fora do laco
 py -m src.tools.web_viewer                      # browser viewer em localhost:8080
 ```
+
+### Experimentos completos
+
+Scripts retomáveis (`-From N` retoma de um passo; `-WhatIf` só lista e estima o custo):
+
+```powershell
+.\run_sweeps.ps1     # 16 bracos exploratorios em orcamento reduzido (~2h56)
+.\run_battery.ps1    # a bateria citavel, n = 20 sementes (~6h)
+.\run_overnight.ps1  # encadeia os dois e roda desassistido
+```
+
+> **Nesta ordem.** Implementar um braço de sweep mexe no motor, e mexer no motor depois da
+> bateria faria 6h de artefato nascerem carimbados como obsoletos. A bateria é sempre a
+> última coisa a rodar.
+
+`run_overnight.ps1` é para deixar rodando sozinho: ele espera os sweeps terminarem (rodar
+os dois ao mesmo tempo dobra o tempo de ambos e arrisca estourar o limite de commit do
+Windows), declara ao Windows que há trabalho em andamento — via `SetThreadExecutionState`,
+que impede suspensão/hibernação enquanto ele vive e **solta sozinho no fim**, em vez de
+mexer no plano de energia global que ninguém lembra de desfazer —, e emenda a bateria com
+**uma** retomada automática se um passo falhar. Tudo com carimbo de hora em
+`results/overnight.log`.
 
 ## Tests
 

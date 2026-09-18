@@ -15,13 +15,13 @@ lógica — chama as funções dos outros tools.
 A seção de modelos nulos vem por último de propósito: ela é o que dá sentido às
 anteriores. Valor cru de identidade não diz nada sem o piso, e os pisos deste projeto
 estão longe de zero. Os rosters de referência são **recalculados a cada execução**
-(~2s) e nunca lidos de cache — baseline silenciosamente obsoleto é exatamente o erro
+(~10s) e nunca lidos de cache — baseline silenciosamente obsoleto é exatamente o erro
 que o dossiê existe para evitar.
 
 ```bash
 py -m src.tools.report --evolved              # dossiê completo do melhor do AG
 py -m src.tools.report --nsga2 scalar_optimum
-py -m src.tools.report --evolved --n-random 20   # mais nulos = mais resolução no p
+py -m src.tools.report --evolved --n-random 60   # mais nulos = mais resolução no p
 ```
 
 Os tools abaixo continuam rodando isolados (pra quando você quer só um ângulo), e
@@ -105,14 +105,18 @@ py -m src.tools.fingerprint --nsga2 knee_point
 Toda métrica de identidade do projeto vinha sendo lida contra o **teto** (o canônico),
 como se o piso fosse zero. Nenhuma tem piso zero, e isso invalidava as leituras:
 
-| métrica | piso medido | teto | o que `8/21` parecia | o que era |
+Medido com 35 nulos (5 espelhos + 30 aleatórios), na bateria atual:
+
+| métrica | piso medido | teto | o que o score cru parecia | o que era |
 |---|---|---|---|---|
-| validador (L1-L3) | **~6,8/21**, com nulo chegando a **12/21** | 21/21 | "38% preservado" | no acaso |
-| `drift_penalty` | **~0,33** (espelho) · ~0,41 (aleatório) | 0,000 | — | 0,04 separa "preservado" de aniquilado |
+| validador (L1-L3) | **6,4/23**, com nulo chegando a **10/23** | 23/23 | "% preservado" | no acaso |
+| validador (L1-L2) | **5,4/18**, com nulo chegando a **9/18** | 18/18 | idem | idem |
+| `drift_penalty` | **0,377** (espelho) · 0,415 (aleatório) | 0,000 | — | 0,04 separa "preservado" de aniquilado |
+| `dominance_penalty` | 1,136 (aleatório); o **espelho** chega a 0,025 | 0,046 (média dos espelhos) | — | o teto de equilíbrio é a solução trivial |
 | arestas do ciclo | **5/10** (cada aresta é cara-ou-coroa) | 10/10 | — | sem sinal possível |
 
-Ler `8/21` como "38% da identidade sobreviveu" é o mesmo erro de ler 20% numa prova de
-cinco alternativas como "sabe 20% da matéria".
+Ler um score cru como "essa fração da identidade sobreviveu" é o mesmo erro de ler 20%
+numa prova de cinco alternativas como "sabe 20% da matéria".
 
 Rosters de referência que o tool monta e mede:
 
@@ -126,13 +130,18 @@ Rosters de referência que o tool monta e mede:
 Saída: cada métrica como `posição = (valor − piso) / (teto − piso)`, o **pior nulo** (o
 melhor resultado que um roster sem estrutura alcançou) e um **p-valor empírico** — a
 fração dos nulos que igualam ou superam o observado. O piso é uma **distribuição**, não
-um ponto: com 13 nulos a resolução do p é 1/13, então `p = 0` afirma apenas `p < 0,08`.
+um ponto — e a resolução do p é 1/N: com os 35 nulos da bateria atual, nenhum nulo
+igualando o observado afirma `p < 0,03`; com os 13 da primeira medição afirmava só
+`p < 0,08`. Por isso o default de `--n-random` é **30**, o valor do protocolo: a bateria e o
+`report` o usam sem flag, e um default mais barato já rebaixou a resolução da bateria em
+silêncio (2026-09-18, ver [10-known-issues.md](10-known-issues.md) §3). Aumentá-lo além
+disso compra mais resolução, e é barato.
 
 ```bash
 py -m src.tools.baselines                      # só os rosters de referência
 py -m src.tools.baselines --evolved            # + posiciona o melhor do AG
 py -m src.tools.baselines --nsga2 scalar_optimum
-py -m src.tools.baselines --n-random 20 --sims 200   # mais nulos = mais resolução no p
+py -m src.tools.baselines --n-random 60 --sims 400   # mais nulos = mais resolução no p
 ```
 
 Também reporta **tríades circulares** (Kendall & Babington Smith 1940) como medida de
@@ -217,12 +226,15 @@ Para cada (arquétipo, atributo), perturba o gene em ±σ e mede `Δ WR`. Atribu
 com `|Δ|` médio abaixo do **piso medido** são genes "neutros" (drift por random
 walk, sem pressão seletiva).
 
-Medido no indivíduo evoluído (200 sims, `--null-reps 3`, piso 0,0794): **4 dos 8**
-atributos saem visíveis — `range` 0,287 · `damage` 0,210 · `hp` 0,187 ·
-`attack_cooldown` 0,181 — contra `speed` 0,061, `stun` 0,061, `grab_power` 0,073 e
-`knockback` 0,024 abaixo do piso. É um resultado muito diferente do que o canônico
-saturado dava (quase tudo "neutro" por efeito de teto), e é ele que sustenta — ou
-limita — a afirmação "o AG enxerga o cromossomo".
+Medido no indivíduo evoluído atual (bateria de 2026-09-18: 200 sims, `--null-reps 3`,
+piso 0,057): **4 dos 8** atributos saem visíveis — `range` 0,393 · `attack_cooldown`
+0,213 · `hp` 0,191 · `damage` 0,183 — e os outros 4 borderline: `grab_power` 0,110,
+`stun` 0,073, `speed` 0,071, `knockback` 0,067. Nenhum abaixo do piso. Uma medição mais
+fina (600 sims, `--null-reps 12`, piso 0,051) confirma a ordem e põe `speed` (0,059) e
+`knockback` (0,055) **no limiar**, com sinal/ruído ~1,1. É um resultado muito diferente do
+que o canônico saturado dava (quase tudo "neutro" por efeito de teto), e é ele que
+sustenta — ou limita — a afirmação "o AG enxerga o cromossomo". A análise é **local**:
+mede a paisagem em volta de um indivíduo, e muda com ele.
 
 ```bash
 py -m src.tools.sensitivity_analysis --sims 500 --workers 1
@@ -296,9 +308,50 @@ não um ponto — qual ponto representa a execução é uma escolha explícita
 > exigiu horas de busca — a fronteira, os genes, a trajetória. Foi por não guardar a
 > fronteira que o sweep de λ quase custou uma execução extra do NSGA-II por braço.
 
-Parametrizado em `config.py` (`MULTI_RUN_*`) para escalar N facilmente. Mata a
+Parametrizado em `config.py` (`MULTI_RUN_*`) para escalar N facilmente. O protocolo é
+n = 20 (`--n-seeds 20`, como o `run_battery.ps1` passa); o default `MULTI_RUN_N_SEEDS` ainda
+é 10 — pendência em [10-known-issues.md](10-known-issues.md) §1.2. Mata a
 fragilidade de amostra única: um matchup travado (ex.: Combo×Rush) numa seed pode ser
 azar ou estrutural, e só N execuções respondem.
+
+### Braços de sweep — variar a configuração sem editar o `config.py`
+
+Quatro grupos de flags variam a configuração **em tempo de execução**, para os sweeps
+exploratórios (`run_sweeps.ps1`, pop 120 × 60 gerações, 5 sementes por braço):
+
+| flag | varia | lido por |
+|---|---|---|
+| `--pop` / `--generations` | orçamento | `ga.run` / `nsga2.run` |
+| `--lambda-drift` / `--lambda-dominance` | pesos do escalar | `fitness` (propagado ao pool) |
+| `--dom-global` / `--dom-cap` / `--dom-decis` | pesos dos 3 termos do dominance | `fitness` (propagado ao pool) |
+| `--elite-rate` / `--tournament-size` | pressão seletiva | `operators` (**só o processo pai**) |
+
+Três invariantes que essas flags mantêm, cada uma contra um modo de falha que já ocorreu
+ou foi previsto:
+
+1. **O artefato nunca cai no caminho da bateria por engano.** `_artifact_path` monta o
+   nome a partir dos desvios **reais** em relação ao default, nos quatro eixos. Só a
+   execução inteiramente default grava em `multi_run_<algo>.json`; qualquer desvio vai
+   para `exploratory/` com o nome dizendo o que desviou. Sem isso, uma execução barata no
+   λ default **apagaria** horas de bateria em silêncio, e dois braços diferentes se
+   sobrescreveriam.
+2. **O carimbo registra o que a execução usou**, não o que está no arquivo — via
+   `provenance.override`, então cada braço tem `fingerprint` próprio e
+   `Divergence.is_experiment_arm` o separa de "artefato obsoleto". `set_selection_override`
+   recalcula junto o `ELITE_SIZE` derivado, senão o artefato afirmaria a taxa do braço ao
+   lado da contagem do arquivo.
+3. **O que atravessa o spawn é propagado explicitamente.** Os λ e os pesos do dominance
+   são lidos pelos *workers*, então viajam num `RuntimeState` (ver
+   [05-genetic-algorithm.md](05-genetic-algorithm.md)); elitismo e torneio são lidos só
+   pelo pai e **não** precisam disso. A assimetria é deliberada: propagar o que não
+   atravessa seria cerimônia, e **não** propagar o que atravessa faria um braço inteiro
+   medir a configuração errada sem sintoma nenhum.
+
+O tool avisa em cada caso — e no dos pesos do dominance avisa o principal: **o composto
+não é comparável entre braços**, porque os pesos o definem. A comparação é pelos *termos*
+e pelas métricas post-hoc. No de elitismo/torneio avisa que os dois valem só para o AG
+escalar (o NSGA-II usa rank de Pareto e torneio binário), então rodá-lo por braço mediria
+o mesmo número N vezes.
 
 ## `compare_algorithms` — comparação estatística AG × NSGA-II
 
@@ -341,7 +394,7 @@ de **onde** vem a diferença: o termo primário é o `global_term`, e é ele que
 equilibra o roster melhor.
 
 ```bash
-py -m src.tools.multi_run --algorithm both   # gera os dois artefatos
+py -m src.tools.multi_run --algorithm both --n-seeds 20   # gera os dois artefatos
 py -m src.tools.compare_algorithms           # compara e salva
 ```
 

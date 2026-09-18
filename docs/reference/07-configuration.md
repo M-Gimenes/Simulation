@@ -54,11 +54,12 @@ foi removido).
 | Parâmetro | Valor | Efeito |
 |---|---|---|
 | `POPULATION_SIZE` | 300 | tamanho da população |
-| `ELITE_SIZE` | 30 | 10% × POPULATION_SIZE — preservados por elitismo |
-| `MAX_GENERATIONS` | 150 | limite de gerações |
-| `STAGNATION_LIMIT` | 30 | gerações sem melhoria > 0.001 antes de parar |
+| `ELITE_RATE` | 0.10 | **fração** da população preservada por elitismo — é o que o laço lê, via `operators.elite_count(pop_size)`. **Testado** (2026-09-18: 0 · 0,05 · 0,20 · 0,30): nenhum braço o supera |
+| `ELITE_SIZE` | 30 | derivação de `ELITE_RATE` no orçamento default; referência, não a fonte |
+| `MAX_GENERATIONS` | 150 | orçamento de gerações (o AG roda todas — não é limite de parada) |
+| `STAGNATION_LIMIT` | 30 | gerações sem melhoria > 0.001 até **registrar** `stagnated_at` (evento, não parada) |
 | `GLOBAL_CONVERGENCE_THRESHOLD` | 0.10 | desvio máximo da WR **global** por personagem p/ convergência (ninguém domina o roster); também a banda "boneco equilibrado" no reporting |
-| `TOURNAMENT_SIZE` | 3 | candidatos por torneio (AG escalar) |
+| `TOURNAMENT_SIZE` | 3 | candidatos por torneio (AG escalar). **Testado** (2026-09-18: 2 · 5 · 7): nenhum braço o supera |
 | `MUTATION_RATE` | 0.05 | probabilidade de mutação por gene |
 | `ATTRIBUTE_MUTATION_SIGMA` | 0.10 | sigma como fração do range (atributos) |
 | `WEIGHT_MUTATION_SIGMA` | 0.025 | sigma como fração do range (pesos) — inércia |
@@ -87,7 +88,7 @@ foi removido).
 | `NSGA2_OBJECTIVES` | (dominance, drift) | objetivos do NSGA-II |
 | `HYPERVOLUME_REFERENCE` | (2.0, 1.0) | ponto de referência do hipervolume (piores valores de dominance/drift; dominance vai a 2.0 sob C2) |
 | `MULTI_RUN_SEED_START` | 42 | primeira semente da agregação `multi_run` |
-| `MULTI_RUN_N_SEEDS` | 10 | nº de execuções independentes a agregar. **Decidido: 20** (poder medido — n=10 dá 44,4%, n=20 dá 85,9% para Â₁₂ = 0,80 com a família de Holm de 3); mantido em 10 por custo, e as sementes 42..51 são determinísticas, então subir depois reproduz estas |
+| `MULTI_RUN_N_SEEDS` | 10 | nº de execuções independentes a agregar. **O protocolo é 20** (poder medido — n=10 dá 44,4%, n=20 dá 85,9% para Â₁₂ = 0,80 com a família de Holm de 3), e a bateria de 2026-09-18 rodou com `--n-seeds 20`; as sementes 42..51 reproduziram bit a bit as da bateria de n = 10. O default segue 10 — **pendência**: sem o flag, o `multi_run` sobrescreve a bateria com n = 10 (ver [10-known-issues](10-known-issues.md) §1.2) |
 | `MULTI_RUN_VALIDATION_SEED` | 9999 | semente de validação (reavaliação independente do treino, comum a todas as execuções) |
 | `MULTI_RUN_SIMS` | 200 | sims/matchup na reavaliação independente (= `SIMS_CONVERGENCE_CHECK`) |
 | `EXTERNAL_VALIDATION_SEED_START` | 10000 | primeira semente de avaliação da validação externa (item 3.2) |

@@ -1,8 +1,8 @@
 {
   "provenance": {
-    "generated_at": "2026-09-17T17:14:54-03:00",
-    "fingerprint": "5119af2588d1",
-    "engine_digest": "f6b2cab6abdf",
+    "generated_at": "2026-09-17T22:31:16-03:00",
+    "fingerprint": "1da80959ec5e",
+    "engine_digest": "0616241361e8",
     "archetypes_digest": "e37725dd4b7c",
     "config": {
       "ACTION_PERSISTENCE_SUBTICKS": 5,
@@ -187,12 +187,22 @@
         "usado": 120,
         "config": 300
       }
-    },
-    "repaired": "proveniencia reconstruida em 2026-09-17: um re-carimbo em massa sobrescreveu o bloco original e apagou os overrides, fazendo o braco afirmar o lambda do config. Os dados (per_seed/aggregate) nunca foram tocados; o lambda foi recuperado do nome do arquivo e o carimbo refeito pela API real."
+    }
   },
   "algorithm": "ga",
   "pop_size": 120,
   "n_generations": 60,
+  "lambda_drift": 4.0,
+  "lambda_dominance": 1.0,
+  "dominance_weights": {
+    "global": 1.0,
+    "cap": 0.5,
+    "decis": 0.5
+  },
+  "selection": {
+    "elite_rate": 0.1,
+    "tournament_size": 3
+  },
   "n_seeds": 5,
   "seeds": [
     42,
@@ -3473,7 +3483,5 @@
       "gate_rejected": 0,
       "rejection_rate": null
     }
-  },
-  "lambda_drift": 4.0,
-  "lambda_dominance": 1.0
+  }
 }

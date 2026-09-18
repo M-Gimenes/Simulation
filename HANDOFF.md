@@ -1,9 +1,10 @@
-# Retomada — estado do projeto em 2026-09-17
+# Retomada — estado do projeto em 2026-09-18
 
 Este arquivo é o retrato do **agora**. O histórico (levantamento de 2026-09-09, rodada
 de metodologia, auditoria de coerência e reforma do combate de 2026-09-10) está no git;
 o que segue é o estado depois de fechar os **passos 2 a 8 da ordem** — itens A, B, E, C,
-H, R, a **bateria completa** com `results/` regenerado, e o **item F** (família de Holm).
+H, R, a **bateria completa** com `results/` regenerado, e o **item F** (família de Holm) —
+e da **run noturna de 2026-09-18**: os três sweeps exploratórios e a bateria com n = 20.
 
 - Pauta da auditoria, com o que foi verificado e o que segue aberto: [`REVIEW.md`](REVIEW.md).
 - **Ordem de execução do que falta:** [`REVIEW.md` §8](REVIEW.md).
@@ -17,25 +18,28 @@ H, R, a **bateria completa** com `results/` regenerado, e o **item F** (família
 
 1. **O ambiente não sobe sozinho.** `.venv/` é gitignored e o Python do sistema (3.14)
    não tem `numpy`/`numba`/`scipy`. Rode `setup.ps1` antes de qualquer coisa.
-2. **`results/` está ATUAL e COMPLETO** — bateria de 2026-09-17, sob o motor final
-   (rotação do stream, persistência 5, drift invariante à escala dos pesos), com os quatro
-   rótulos de `external_validation` no mesmo corte. Números em §3. Dois headlines: a
-   degradação entre o número de dentro do laço e o de fora caiu de **21× para 1,2×** no AG
-   e de **8,2× para 1,1×** no NSGA-II; e o roster do AG escalar é o **primeiro do projeto
-   a sair ROBUSTO** da validação externa (0/10 counters em 10 condições).
+2. **`results/` está ATUAL e COMPLETO** — bateria de **2026-09-18 com n = 20**, sob o
+   motor final (rotação do stream, persistência 5, drift invariante à escala dos pesos).
+   Rodou à noite: `run_sweeps.ps1` (16 braços, ~3h) e, emendada por `run_overnight.ps1`,
+   a bateria (11 passos, 5h54), sem nenhuma falha; `test_provenance` dá todos os
+   artefatos como atuais. As sementes 42–51
+   reproduziram **bit a bit** a bateria de n = 10, e os artefatos da seed 42 saíram
+   idênticos aos de 2026-09-17. Números em §3. Headlines: as **três métricas da família de
+   Holm seguem significativas a n = 20**, todas com efeito grande; a degradação entre o
+   número de dentro do laço e o de fora caiu de **21× para 1,2×** no AG e de **8,2× para
+   1,1×** no NSGA-II; e o roster do AG escalar é o **primeiro do projeto a sair ROBUSTO** da
+   validação externa (0/10 counters em 10 condições).
 3. **A agenda de calibração ([`REVIEW.md` §9](REVIEW.md)) está FECHADA** — os sete itens
    decididos com evidência. Quatro mantiveram o valor vigente com justificativa escrita;
    três mudaram e obrigaram a esta regeneração. Detalhe em §1c, §1d e no
    [`docs/tcc/04`](docs/tcc/04-caminhos-e-decisoes.md).
-4. **Os sweeps exploratórios estão feitos** (2026-09-17, orçamento reduzido — 25 min cada
-   em vez de horas): **λ** confirmou 1,0 como o joelho da curva, e os **pesos do dominance**
-   mostraram que os secundários são indispensáveis (sem eles: 10/10 counters duros). Os
-   dois deixaram o `config.py` **inalterado** — testaram os valores vigentes, e ambos
-   passaram. Números em §3.
-5. **O que falta:** a **bateria com n = 20** (`run_battery.ps1`, ~7h53) e o último
-   "nunca variado" (elitismo / torneio). Depois a **redação**, passo 9 do
-   [`REVIEW.md` §8](REVIEW.md): `values.tex` (inteiramente obsoleto) e as seis referências
-   estatísticas ausentes dos três `.bib`.
+4. **Os três sweeps exploratórios estão feitos** (orçamento reduzido — ~10 min por braço):
+   **λ** confirmou 1,0 como o joelho da curva; os **pesos do dominance** mostraram que os
+   secundários são indispensáveis (sem eles: 10/10 counters duros); e **elitismo / torneio**
+   (2026-09-18) não achou braço que supere 10% / 3. Os três deixaram o `config.py`
+   **inalterado** — testaram os valores vigentes, e todos passaram. Números em §3.
+5. **O que falta:** só a **redação**, passo 9 do [`REVIEW.md` §8](REVIEW.md) — a começar
+   pelo `values.tex`, inteiramente obsoleto (§5).
 
 > ✅ **Os quatro rótulos de `external_validation` estão no mesmo corte** (2026-09-17).
 > Os três que faltavam (`_canonical`, `_evolved`, `_nsga2_knee_point`) foram regerados —
@@ -220,19 +224,27 @@ reaparecer em outro regime, a ordem de intervenção é supressão de duplicatas
 A comparação usava `ideal_point`, que minimiza a norma **L2** — comparável errado. É o
 único ponto do NSGA-II que lê os `LAMBDA_*`, e é reporting, não busca.
 
-**Resultado final, orçamentos iguais** (pop 120, 150 gerações, 80 sims, seed 42):
+**Resultado final** — no **orçamento de produção** (pop 300, 150 gerações, seed 42), que é
+de onde sai qualquer comparação de qualidade:
 
 | | dominance | drift | L1 |
 |---|---|---|---|
-| AG escalar | **0,0088** | 0,2856 | 0,2945 |
-| `scalar_optimum` da fronteira | 0,0481 | 0,1634 | **0,2115** |
+| AG escalar | **0,0153** | 0,2178 | **0,2331** |
+| `scalar_optimum` da fronteira | 0,0483 | 0,2004 | 0,2487 |
 
-A alegação "o ponto do escalar domina a fronteira" **caiu**: ele domina 3 de 49 pontos,
-nenhum o domina, e o NSGA-II agora vence o escalar **na própria função que o escalar
-otimiza**. A frase "o escalar é *um ponto* do trade-off que o NSGA-II mapeia" segue não
-sendo literalmente verdadeira, mas por outro motivo: o escalar alcança dominance 0,0088,
-**abaixo de toda a faixa da fronteira**, então fica *além* da ponta dela — não fora por
-sub-convergência. Cada um alcança uma parte diferente do trade-off, nenhum sub-convergido.
+A alegação "o ponto do escalar domina a fronteira" **caiu**: ele domina **0 dos 64** pontos e
+nenhum o domina — os dois são mutuamente não-dominados. A frase "o escalar é *um ponto* do
+trade-off que o NSGA-II mapeia" segue não sendo literalmente verdadeira, mas por outro
+motivo: o escalar alcança dominance 0,0153, **abaixo de toda a faixa da fronteira**
+([0,0483; 1,1438]), então fica *além* da ponta dela — não fora por sub-convergência. Cada um
+alcança uma parte diferente do trade-off, nenhum sub-convergido.
+
+> ⚠️ **Corrigido em 2026-09-17.** A tabela anterior era do run diagnóstico a pop **120**, e
+> lá a ordenação era a inversa: escalar L1 0,2945 contra 0,2115 do `scalar_optimum`, lido
+> como "o NSGA-II vence na função do escalar". No orçamento de produção o **escalar** vence
+> (0,2331 × 0,2487). O run de pop 120 segue válido para o que decidiu — o seed canônico
+> imortal —, mas não para ordenar os dois algoritmos. Regra que ficou: orçamento reduzido
+> ordena *configurações*, não declara *vencedor*.
 
 E um bônus para o item (E): nessa mesma rodada de 150 gerações o AG **parou por
 convergência**, com o critério confirmado num stream que ele nunca viu. O critério novo é
@@ -533,11 +545,17 @@ sementes 42–51 são determinísticas), **não** no de compute: `multi_run` nã
 | **Recurso** | hp, damage, DEFEND, grab_power | ✅ coerente após (R) — o agarrão é o counter da guarda |
 | **Política** | 3 pesos, amostragem proporcional | contínua; a degenerescência de escala deixou de contaminar a identidade (item 6 — `drift_genes` reescala), mas segue **cega ao estado**: não olha HP, distância nem se o oponente está stunado |
 
-## 3. Resultados da bateria (2026-09-17) — sob rotação, persistência 5 e drift invariante
+## 3. Resultados da bateria (2026-09-18, n = 20) — sob rotação, persistência 5 e drift invariante
 
 `results/` está **atual e coerente**. Bateria: AG e NSGA-II na seed 42, `multi_run` com
-10 sementes × 2 algoritmos, `compare_algorithms`, `external_validation` e `baselines`
-com 30 nulos.
+**20 sementes** × 2 algoritmos, `compare_algorithms`, os quatro rótulos de
+`external_validation`, `sensitivity_analysis` e `baselines` com 30 nulos.
+
+A bateria de 2026-09-18 **estende** a de 2026-09-17 em vez de substituí-la: as sementes
+42–51 reproduziram bit a bit as 10 anteriores, nos dois algoritmos, e os artefatos da seed
+42 (`results.json`, `nsga2_results.json`, as validações externas, os nulos) saíram
+idênticos. Por isso as tabelas de degradação, de validação externa e de modelos nulos
+abaixo seguem valendo como estavam; o que muda é o agregado, que ganhou 10 sementes.
 
 ### O resultado que domina todos os outros: o número de dentro do laço virou honesto
 
@@ -564,35 +582,43 @@ agora o número medido durante a busca **é** o número que sobrevive fora dela.
 > §1.2 — enquanto os artefatos não gravarem a config que os produziu, a defesa é rodar os
 > quatro rótulos sempre.
 
-### Agregado (10 sementes, reavaliação independente na seed 9999)
+### Agregado (20 sementes, reavaliação independente na seed 9999)
 
-| | dominance | drift | hard-counters | bonecos em banda |
-|---|---|---|---|---|
-| **AG escalar** | **0,0387** (±0,0137) | 0,2598 | **0,40** ± 0,66 | 5/5 em 10/10 |
-| **NSGA-II** | 0,0660 (±0,0630) | **0,1695** (±0,0319) | 2,40 ± 1,80 | 5/5 em 10/10 |
+Média ± desvio sobre as 20 execuções; o NSGA-II representado pelo `best_dominance`.
 
-**A relação entre os dois se inverteu, e para melhor.** Na bateria anterior o NSGA-II
-vencia em dominance (0,0541 contra 0,0701) e os dois ficavam próximos em tudo. Agora
-cada um ocupa um extremo nítido do trade-off — e é a primeira vez que **as três métricas
-da família de Holm saem significativas**, todas com efeito grande:
+| | dominance | drift | hard-counters | roster equilibrado | bonecos em banda |
+|---|---|---|---|---|---|
+| **AG escalar** | **0,0436** ± 0,0177 | 0,2503 ± 0,0413 | **0,40** ± 0,68 | **14/20** (70%) | 5/5 em 20/20 |
+| **NSGA-II** | 0,0703 ± 0,0508 | **0,1757** ± 0,0449 | 1,75 ± 1,59 | 4/20 (20%) | 5/5 em 20/20 |
 
-| métrica | p (Holm) | Â₁₂ | vencedor |
-|---|---|---|---|
-| `dominance_penalty` | **0,0257** | 0,20 | AG escalar |
-| `drift_penalty` | **0,0030** | 0,94 | NSGA-II |
-| hard-counters/execução | **0,0110** | 0,14 | AG escalar |
+Cada um ocupa um extremo nítido do trade-off, e **as três métricas da família de Holm
+seguem significativas a n = 20**, todas com efeito grande:
 
-(Na bateria anterior, nenhuma era significativa e o melhor p era 0,0772.)
+| métrica | mediana AG | mediana NSGA-II | p (Holm) | Â₁₂ | a n = 10: p (Holm) · Â₁₂ | vencedor |
+|---|---|---|---|---|---|---|
+| `dominance_penalty` | 0,0387 | 0,0599 | **0,0123** | 0,27 | 0,0257 · 0,20 | AG escalar |
+| `drift_penalty` | 0,2526 | 0,1816 | **0,00007** | 0,89 | 0,0030 · 0,94 | NSGA-II |
+| hard-counters/execução | 0 | 1 | **0,0018** | 0,21 | 0,0110 · 0,14 | AG escalar |
 
-A decomposição diz **de onde** vem a diferença: `global_term` 0,0375 contra 0,0470 —
-próximos —, mas `cap_term` **0,0000 contra 0,0497**. O NSGA-II não está globalmente
-desequilibrado; ele tem **counters duros**. Essa é a leitura correta, e o composto
-sozinho a esconderia.
+(Na bateria de 2026-09-16, nenhuma era significativa e o melhor p era 0,0772.)
+
+**O que o n = 20 acrescentou ao n = 10.** A conclusão não mudou e os p caíram, como se
+espera ao dobrar a amostra. Mas os três Â₁₂ **andaram na direção de 0,5** (0,20 → 0,27,
+0,94 → 0,89, 0,14 → 0,21): as 10 sementes novas foram mais favoráveis ao NSGA-II —
+nas sementes 52–61 ele fez 1,1 counter por execução contra 2,4 nas 42–51, e 3/10 rosters
+equilibrados contra 1/10. O efeito medido a n = 10 estava **inflado**, como é típico de
+amostra pequena; o de n = 20 é a estimativa a citar, e ele continua grande nos três.
+
+A decomposição diz **de onde** vem a diferença, e a n = 20 a leitura ficou mais nítida:
+`global_term` **0,0375 contra 0,0382** — praticamente iguais (a n = 10 eram 0,0375 contra
+0,0470) —, e `cap_term` **0,0000 contra 0,0357**. **Toda** a vantagem do AG em dominance
+vem de counters duros. Globalmente, os dois equilibram o roster igual; o NSGA-II perde
+porque deixa pares passarem do teto. O composto sozinho esconderia isso.
 
 ### Por que o NSGA-II "piorou" em dominance — e por que não é regressão
 
-O hipervolume ficou **igual** (1,8090 ± 0,0445 contra 1,8084 antes): a fronteira não
-perdeu qualidade, ela **se deslocou**. A causa é assimetria entre os dois objetivos:
+O hipervolume ficou **igual** — 1,8081 ± 0,0370 a n = 20, 1,8090 ± 0,0470 a n = 10, 1,8084
+na bateria de 2026-09-16: a fronteira não perdeu qualidade, ela **se deslocou**. A causa é assimetria entre os dois objetivos:
 
 > **`drift` é determinístico** — função pura dos genes, sem RNG. **`dominance` é o único
 > objetivo estocástico.** A rotação torna a dominância mais cara de otimizar e não toca
@@ -604,6 +630,12 @@ E `best_dominance` é, por definição, o extremo de baixa dominância — quand
 retrai, o representante piora. **A piora é a correção.**
 
 ### Contra os modelos nulos (melhor do AG, 30 nulos)
+
+> ⚠️ **O passo 11 da bateria rodou com 8 nulos aleatórios, não 30.** O `run_battery.ps1`
+> chamava `baselines --evolved` sem `--n-random`, e o default do tool era 8 — a resolução
+> do p caiu de < 0,03 para < 0,08 sem nenhum erro. Corrigido em 2026-09-18 na fonte:
+> `N_RANDOM_DEFAULT` passou a 30, o valor do protocolo, e o artefato foi regerado — saiu
+> **idêntico** ao de 2026-09-17. A tabela abaixo é a dele.
 
 | métrica | valor | piso médio | pior nulo | posição | p |
 |---|---|---|---|---|---|
@@ -705,53 +737,113 @@ a convergência de 80% para 40% e **piora o próprio `cap_term`** (0,0063 → 0,
 **`config.py` inalterado:** subir o cap para 2,0 melhora counters e convergência ao custo de
 drift, mas a n = 5 (0,6 ± 0,5 contra 0,2 ± 0,4) não se distingue de ruído.
 
-### Convergência e estagnação
+Os braços de λ e de pesos foram **re-rodados** em 2026-09-18, junto dos de elitismo/torneio,
+para que os 16 saíssem do mesmo digest de motor — e reproduziram bit a bit, semente a
+semente, os de 2026-09-17. A refatoração do `operators.py` que o sweep seguinte exigiu não
+mudou comportamento.
 
-O AG da seed 42 **convergiu na geração 39** (confirmado num stream que nunca viu) e
-`stagnated_at` ficou **`None`** — o que confirma a consequência que eu havia declarado
-sem medir: sob rotação o fitness flutua entre gerações por troca de stream, o contador de
-estagnação reseta por ruído e o evento não dispara.
+### Sweep de elitismo / torneio (2026-09-18) — 10% / 3 mantidos
 
-> ⚠️ **Ressalva: isto ainda é n = 1.** O `multi_run` **passou a gravar** `converged_at` e
-> `stagnated_at` por semente em 2026-09-17 (agregados em `convergence`: taxa + geração
-> média entre as que convergiram), mas a bateria atual é anterior a essa mudança — os
-> artefatos em `results/multi_run/` não têm os campos. A medição sobre as 10 sementes sai
-> na próxima regeneração; até lá, "convergiu na geração 39" segue valendo só para a
-> seed 42.
+Mesmo orçamento reduzido (pop 120 × 60, 5 sementes). Os dois só existem no AG escalar — o
+NSGA-II seleciona por rank de Pareto e torneio binário —, então só ele roda.
+
+| braço | global_term | cap_term | drift | counters | roster eq. | convergiu |
+|---|---|---|---|---|---|---|
+| elitismo 0 | 0,0593 | 0,0076 | 0,2746 | 1,4 ± 1,3 | 2/5 | 80% |
+| elitismo 5% | **0,0391** | 0,0111 | 0,2723 | 1,0 ± 1,0 | 2/5 | 60% |
+| **elitismo 10% · torneio 3** | 0,0454 | **0,0063** | 0,2982 | **0,6 ± 0,5** | 2/5 | 80% |
+| elitismo 20% | 0,0473 | 0,0327 | 0,2736 | 1,6 ± 1,5 | 1/5 | 60% |
+| elitismo 30% | 0,0516 | 0,0440 | 0,3136 | 1,8 ± 1,3 | 1/5 | 60% |
+| torneio 2 | 0,0439 | 0,0884 | **0,2411** | 2,0 ± 2,9 | 2/5 | 40% |
+| torneio 5 | 0,0528 | 0,1049 | 0,2575 | 2,2 ± 1,9 | 1/5 | 20% |
+| torneio 7 | 0,0459 | 0,0886 | 0,2786 | 2,2 ± 3,3 | 1/5 | 60% |
+
+**Nenhum braço domina o default.** Ele tem o menor número de counters e o menor `cap_term`
+dos oito; as alternativas ganham um pouco de drift e pagam em counters. Mas a n = 5 nada
+disso se separa do ruído — os desvios de counters chegam a 3,3 —, e o torneio ainda dá um
+padrão **não monotônico** (3 melhor que 2 e que 5, 5 igual a 7), que é mais a cara de ruído
+do que de um ótimo de pressão seletiva. O braço sem elitismo, o informativo, mostra pouco:
+`global_term` piora de 0,0454 para 0,0593, o pior dos oito, e o resto fica dentro do ruído.
+
+**`config.py` inalterado.** O que o sweep estabelece é que 10% / 3 deixam de ser "valores de
+manual" e passam a "testados neste problema, sem braço que os supere" — não que sejam o
+ótimo.
+
+### Convergência e estagnação — agora sobre 20 sementes
+
+A n = 20 o eixo de velocidade deixou de ser anedota:
+
+- **Convergiu em 20/20 sementes** (sempre confirmado num stream que o AG nunca viu), na
+  geração **34,8 ± 17,1** (18 a 75). A seed 42 converge na 39.
+- **Estagnou em 10/20**, na geração **99,5 ± 21,2** (63 a 132). A n = 1 a seed 42 não
+  estagnava, e isso tinha sido lido como confirmação de que, sob rotação, o contador reseta
+  por ruído e o evento não dispara. A amostra corrige: ele dispara em metade das sementes,
+  tarde. O que segue valendo é que `stagnated_at` é menos confiável que `converged_at`.
+- **O gate disparou 70 vezes e a confirmação recusou 50 (71%)**, dentro da faixa de 67%–83%
+  medida nos braços do sweep — agora no orçamento de produção.
+
+### Sensibilidade — a primeira medição sobre o indivíduo atual
+
+> ⚠️ **O `sensitivity_analysis.json` versionado estava obsoleto e marcado como atual.** Era
+> do indivíduo de 2026-09-16, sob persistência 10 (piso 7,9% — o número que o
+> [`REVIEW.md`](REVIEW.md) item (5) registra para essa época), e recebeu o carimbo
+> retroativo de 2026-09-17 junto com os demais. O carimbo foi justificado reproduzindo
+> `results.json` e `nsga2_results.json` e **inferindo** o resto ("função determinística
+> desses dois mais o motor"). A inferência vale para quem foi regerado depois deles, e este
+> não tinha sido. A bateria o regerou, e re-rodar deu resultado idêntico — a ferramenta é
+> determinística; o arquivo é que era velho.
+
+| gene | \|Δ WR\| (200 sims, 3 rep.) | \|Δ WR\| (600 sims, 12 rep.) | sinal/ruído (600) |
+|---|---|---|---|
+| `range` | 39,3% | 39,4% | 7,7 |
+| `attack_cooldown` | 21,3% | 23,3% | 4,6 |
+| `hp` | 19,1% | 20,0% | 3,9 |
+| `damage` | 18,3% | 19,7% | 3,9 |
+| `grab_power` | 11,0% | 9,8% | 1,9 |
+| `stun` | 7,3% | 7,7% | 1,5 |
+| `speed` | 7,1% | 5,9% | 1,2 |
+| `knockback` | 6,7% | 5,5% | 1,1 |
+| *piso de ruído (máx.)* | *5,7%* | *5,1%* | |
+
+A medição de 600 sims foi feita à parte, para decidir o `knockback`; o artefato em
+`results/` é o da bateria (200 sims). **Nenhum gene fica abaixo do piso** — mas `knockback`
+e `speed` ficam **no limiar**, com sinal/ruído ~1,1. A limitação declarada muda de forma, não
+some: era "`knockback` abaixo do piso"; no indivíduo atual é "`knockback` e `speed` no
+limiar do piso". A análise é local — mede a paisagem em volta de um indivíduo —, e é por
+isso que o `speed`, com sinal/ruído 2,0 no indivíduo em que se decidiu a persistência, aqui
+fica no limiar.
 
 ## 4. Itens ainda abertos
 
 Inventário completo e comentado em
 [`docs/reference/10-known-issues.md`](docs/reference/10-known-issues.md); aqui o resumo.
 
-**O experimento que falta — instrumentado e roteirizado, não executado:**
+**Experimentos — todos executados:**
 
-- ✅ **Sweep de `LAMBDA_DRIFT` — FEITO** (2026-09-17, orçamento reduzido: 5 braços × 5
-  sementes a pop 120 × 60 gerações, 25 min). **λ = 1,0 é o joelho da curva** e o
-  `config.py` não mudou — o sweep testou o valor vigente e ele passou. Números na §3.
-- **`run_battery.ps1`** — a bateria com n = 20, **11 passos retomáveis (`-From N`),
-  ~7h53**. `-WhatIf` lista sem executar.
-  ⚠️ A estimativa antiga de ~180 min para o n = 20 é anterior à rotação do stream —
-  medido hoje, AG 7,2 min e NSGA-II 14,1 min por execução.
-- ✅ **Pesos do dominance — FEITO** (2026-09-17): os secundários são indispensáveis, a
-  repartição fica. Números na §3.
-- **Elitismo 10% / torneio 3** — o **último "nunca variado"**, e o mais barato (~1h):
-  `ELITE_RATE` e `TOURNAMENT_SIZE` são lidos só em `operators.py`, que roda no processo
-  pai, então não atravessam o spawn e dispensam a plumbing de `RuntimeState` que os outros
-  dois exigiram. Grade e custo em
-  [`docs/reference/10-known-issues.md`](docs/reference/10-known-issues.md) §1.1.
+- ✅ **Sweep de `LAMBDA_DRIFT`** (2026-09-17, orçamento reduzido): **λ = 1,0 é o joelho da
+  curva** e o `config.py` não mudou. Números na §3.
+- ✅ **Pesos do dominance** (2026-09-17): os secundários são indispensáveis, a repartição
+  fica. Números na §3.
+- ✅ **Elitismo / torneio** (2026-09-18): nenhum braço supera 10% / 3, que ficam. Números
+  na §3.
+- ✅ **Bateria com n = 20** (2026-09-18, `run_battery.ps1`, 11 passos, 5h54 — os `Min` do
+  script agora são os tempos medidos). As três métricas de Holm seguem significativas.
+  Números na §3.
 
 **Instrumentação — fechada em 2026-09-17** (§1.2 e §4 do known-issues):
 
 - ✅ **Carimbo de proveniência em todo artefato** (`src/engine/provenance.py`): timestamp,
   `fingerprint`, toda constante de `config.py` valor a valor, digest dos canônicos e digest
   do código do motor. `Individual.from_results` / `from_nsga2` verificam ao carregar e
-  avisam **o que** mudou. Os artefatos da bateria atual têm carimbo retroativo, justificado
-  por reprodução bit-exata (`provenance.backfilled` explica dentro do JSON).
+  avisam **o que** mudou. A bateria de 2026-09-18 é a primeira gerada **com** o módulo — o
+  carimbo retroativo saiu de todos os artefatos. Ele tinha falhado num: o
+  `sensitivity_analysis.json` levou o carimbo sem ter sido reproduzido e era de 2026-09-16
+  (§3). Regra que ficou: carimbo retroativo só por reprodução **do próprio artefato**,
+  nunca por inferência.
 - ✅ **`converged_at` / `stagnated_at` por semente** no `multi_run`, agregados em
   `convergence` (taxa + geração média entre as que convergiram). A assimetria com o
   NSGA-II fica declarada: ele devolve `None` e a chave não aparece no agregado dele.
-  **A medição sobre as N sementes ainda não foi feita** — entra na próxima bateria.
+  **Medido sobre as 20 sementes** (§3).
 - Segue aberto: pool de processos recriado a cada geração; `N_WORKERS = 8` é específico
   desta máquina.
 
@@ -781,5 +873,7 @@ preservada a 0,26". Com as duas réguas nomeadas (estrutural no fitness, funcion
 post-hoc) a contradição some — mas o texto precisa ser reescrito com essa distinção
 explícita.
 
-Bibliografia: Derrac et al. 2011, Arcuri & Briand 2011 e Vargha & Delaney 2000 são
-citadas nos docs e no código e **não estão** em nenhum dos três `.bib`.
+Bibliografia: **não é mais pendência.** Derrac et al. 2011, Arcuri & Briand 2011 e Vargha &
+Delaney 2000 — as três que este arquivo listava como ausentes — estão nos **três** `.bib`
+(`derrac2011practical`, `arcuri2011practical`, `vargha2000critique`), junto de Holm, Mann,
+Laumanns, Kendall e Deb. Verificado em 2026-09-17.

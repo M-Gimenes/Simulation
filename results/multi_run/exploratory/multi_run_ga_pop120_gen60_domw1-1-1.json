@@ -1,8 +1,8 @@
 {
   "provenance": {
-    "generated_at": "2026-09-17T17:44:56-03:00",
-    "fingerprint": "3cd248bc2d83",
-    "engine_digest": "08b5121cd32e",
+    "generated_at": "2026-09-17T22:51:51-03:00",
+    "fingerprint": "f5cf77bdf096",
+    "engine_digest": "0616241361e8",
     "archetypes_digest": "e37725dd4b7c",
     "config": {
       "ACTION_PERSISTENCE_SUBTICKS": 5,
@@ -202,6 +202,10 @@
     "global": 1.0,
     "cap": 1.0,
     "decis": 1.0
+  },
+  "selection": {
+    "elite_rate": 0.1,
+    "tournament_size": 3
   },
   "n_seeds": 5,
   "seeds": [

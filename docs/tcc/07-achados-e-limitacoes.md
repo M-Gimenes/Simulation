@@ -67,11 +67,15 @@ método, o último é sobre o objeto.
   canônico é **imortal** no NSGA-II: `drift` tem piso 0 *alcançável*, então dominar o
   canônico exigiria `drift < 0`. Resultado medido: 40 dos 78 pontos da fronteira eram
   rosters tão desequilibrados quanto o canônico intocado, comendo um terço da população.
-  Removendo o seed (só do NSGA-II — no escalar ele ajuda), o NSGA-II passa a **vencer o
-  AG escalar na própria função que o escalar otimiza** (L1 0,2115 contra 0,2945).
   Enquanto a fronteira estava contaminada, toda comparação media sub-convergência do
-  NSGA-II, não trade-off. Vale como lição de método na Discussão: **um detalhe de
-  inicialização pode inverter a conclusão de uma comparação entre algoritmos.**
+  NSGA-II, não trade-off. Removendo o seed (só do NSGA-II — no escalar ele ajuda), o mapa
+  do trade-off passou a existir, e no orçamento de produção os dois ficam **mutuamente
+  não-dominados**: o escalar domina 0 dos 64 pontos, nenhum o domina, e ele vence na
+  própria função que otimiza (L1 0,2331 contra 0,2487). Vale como lição de método na
+  Discussão: **um detalhe de inicialização pode inverter a conclusão de uma comparação
+  entre algoritmos** — e, no mesmo item, o orçamento também inverteu (a pop 120 a leitura
+  era 0,2115 contra 0,2945, a favor do NSGA-II), o que é a razão de a comparação de
+  qualidade só ser feita sobre a bateria.
 
 ### Nenhuma métrica do projeto tinha piso (2026-09-16)
 
@@ -90,12 +94,14 @@ Consequências para a redação:
 - **Nunca citar valor cru.** Reportar `posição = (valor − piso)/(teto − piso)` e o
   p-valor empírico. O indivíduo antigo do `results.json`, lido como "8/21 = identidade
   destruída", está **no piso** (p = 0,46) — indistinguível de um roster aleatório.
-- **O espelho é a objeção da banca com números.** Cinco personagens idênticos equilibram
-  *melhor* que o roster evoluído (dominance 0,02–0,05 contra 0,049–0,084) e perdem
-  identidade por apenas ~0,04 de drift. A tese precisa responder isso medindo, não
-  argumentando. Leitura atual do AG novo: **99% do equilíbrio trivialmente alcançável**,
-  com identidade **~30% acima do piso** (p ≈ 0,08 com 13 nulos — sugestivo, não
-  estabelecido; mais nulos aumentam a resolução).
+- **O espelho é a objeção com números.** Cinco personagens idênticos são a solução trivial
+  do equilíbrio e perdem identidade por apenas ~0,04 de drift, então a tese precisa
+  responder isso medindo, não argumentando. **A leitura virou favorável**: na bateria atual
+  o roster evoluído chega a **102% do equilíbrio trivialmente alcançável** — é *mais*
+  equilibrado que o espelho (dominance 0,026 contra 0,025 do melhor espelho, 1,136 do
+  aleatório) — sentado a **47%** do caminho entre o piso e o teto de identidade, e supera
+  **todos os 35 nulos** nos três eixos de identidade (p < 0,03 em cada). Era 99% e
+  p ≈ 0,08 com 13 nulos; o que mudou foi o motor **e** a resolução do p (que é 1/N).
 - **O ciclo canônico não pode ser achado, e isso é demonstrável.** Ele é um torneio
   **regular** (cada arquétipo vence 2 e perde 2), e existem **24** torneios regulares
   rotulados em 5 vértices: acertar o rótulo específico é 1/24, e o acaso já entrega 5/10
@@ -106,8 +112,28 @@ Consequências para a redação:
   WRs 100/75/50/25/0, incompatível com todos perto de 50%. Logo o objetivo C2 não apenas
   *permite* o ciclo — ele **força** estrutura não-transitiva quando os pares são
   decididos. Medido em tríades circulares (0 = ordem estrita · 2,5 = acaso · 5 = máximo):
-  o AG novo dá **3,0 com pares em 34%–66%** (arestas decididas, contagem válida). Essa é
-  a frase para a tese, e ela não depende de nenhuma tabela inventada pelo autor.
+  o roster do AG na bateria dá **4,0 com pares em 43%–55%** (arestas decididas, contagem
+  válida). Essa é a frase para a tese, e ela não depende de nenhuma tabela inventada pelo
+  autor.
+
+### Achados da bateria com n = 20 (2026-09-18)
+
+- **A comparação AG × NSGA-II se sustenta a n = 20, e o efeito de n = 10 estava inflado.**
+  As três métricas da família de Holm seguem significativas com efeito grande —
+  `dominance` p 0,0123 (Â₁₂ 0,27, AG melhor), `drift` p 0,00007 (0,89, NSGA-II melhor),
+  counters p 0,0018 (0,21, AG melhor). Mas os três Â₁₂ andaram na direção de 0,5 em relação
+  ao n = 10 (0,20 · 0,94 · 0,14), o padrão típico de amostra pequena. Cita-se o de n = 20.
+- **A vantagem do AG em equilíbrio é inteiramente de counters duros.** No termo primário
+  (`global_term`) os dois empatam — mediana 0,0375 contra 0,0382; no `cap_term`, 0,0000
+  contra 0,0357. A frase certa não é "o AG equilibra melhor", e sim "os dois equilibram o
+  roster globalmente igual, e o NSGA-II deixa pares passarem do teto". Em rosters que
+  passam no critério completo: 14/20 do AG contra 4/20 do `best_dominance`.
+- **Convergência é regra, não exceção — mesmo com a confirmação fora do stream.** O AG
+  convergiu em 20/20 sementes, na geração 34,8 ± 17,1, embora a confirmação tenha recusado
+  71% dos disparos do gate (50 de 70). A confirmação atrasa a convergência, não a impede.
+- **Os três sweeps exploratórios testaram os valores vigentes e os três passaram** — λ,
+  pesos do dominance e, por último, elitismo / torneio, onde nenhum dos 7 braços superou
+  10% / 3. Nenhum parâmetro do AG ficou sem ter sido variado.
 
 ## Limitações conhecidas
 
@@ -125,25 +151,19 @@ Consequências para a redação:
 - **As Layers 1-2 do validador são parcialmente endógenas** — medem o mesmo eixo
   estrutural que o `drift_penalty` otimiza. A Layer 3 é *held-out*, não causalmente
   isolada: comportamento é downstream dos genes que o fitness move.
+- **Dois genes ficam no limiar do piso de ruído.** Na sensibilidade do indivíduo evoluído
+  (600 sims, 12 repetições do piso) `knockback` e `speed` têm sinal/ruído ~1,1: o AG mal
+  os enxerga em volta desse indivíduo. Nenhum gene fica abaixo do piso, e a análise é
+  local — no indivíduo em que se decidiu a persistência o `speed` tinha 2,0. Ver
+  [05](05-validacao-metodologica.md).
 
-## O que ainda falta (para fechar a base experimental)
+## O que ainda falta
 
-Backlog técnico detalhado em [`../10-known-issues.md`](../reference/10-known-issues.md). Em
-termos de tese, falta:
-- **Calibrar e re-rodar tudo (passo de maior retorno):** o motor de combate e o
-  objetivo mudaram (simplificação + reformulação **C2**), então **todas as rodadas
-  anteriores estão invalidadas** — os números históricos (ex.: "`best_dominance` 8/10
-  matchups") foram gerados sob o modelo antigo e **não devem ser citados**. Calibrar
-  os provisórios (`MATCHUP_WR_CAP`, bound/valores de `stun`-fração, canônicos
-  re-tunados, `ACTION_PERSISTENCE_SUBTICKS`) e então executar `multi_run` (10+ seeds),
-  `external_validation` e a fronteira/HV, e **interpretar**. A infraestrutura de
-  agregação (item 1.1) já está pronta.
-- (O reporting já foi **realinhado** ao headline C2 — `analyze_matchups`, `multi_run`
-  e `external_validation` reportam WR **global** por personagem + hard-counters; ver
-  [`../reference/10-known-issues.md`](../reference/10-known-issues.md). Falta só
-  **executar** com a calibração final.)
-- **Os instrumentos já estão prontos:** leitura por indivíduo (`report`, `drift_table`
-  com diferenciação, `fingerprint`, validador), agregação estatística (`multi_run`,
-  item 1.1), qualidade de fronteira (`pareto_metrics`, item 1.2) e robustez fora do
-  laço (`external_validation`, item 3.2). Ver o status completo em
-  [08-metodologias-da-literatura.md](08-metodologias-da-literatura.md).
+A base experimental está **fechada**: motor e fitness calibrados, os três sweeps
+exploratórios feitos e a bateria com n = 20 regerada sob o motor final (2026-09-18).
+Backlog técnico restante em [`../reference/10-known-issues.md`](../reference/10-known-issues.md)
+— nenhum item ali muda número já medido. Em termos de tese, falta a **redação**: a
+monografia e os artigos descrevem gerações anteriores do modelo, e o `values.tex` está
+inteiramente obsoleto (ver [`../../HANDOFF.md`](../../HANDOFF.md) §5). Os números a citar
+saem de `results/` e do `HANDOFF.md` §3 — nunca de rodadas anteriores ao motor atual, que
+foram geradas sob outro modelo.

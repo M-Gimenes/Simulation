@@ -1,8 +1,8 @@
 {
   "provenance": {
-    "generated_at": "2026-09-17T17:14:02-03:00",
-    "fingerprint": "3cfa2f90fc89",
-    "engine_digest": "f6b2cab6abdf",
+    "generated_at": "2026-09-18T05:08:04-03:00",
+    "fingerprint": "76e298ec305c",
+    "engine_digest": "0616241361e8",
     "archetypes_digest": "e37725dd4b7c",
     "config": {
       "ACTION_PERSISTENCE_SUBTICKS": 5,
@@ -173,8 +173,7 @@
         "w_defend",
         "w_aggressiveness"
       ]
-    },
-    "backfilled": "carimbo retroativo (2026-09-17): a bateria e anterior ao modulo de proveniencia, e o carimbo foi renovado apos o refactor que tornou os LAMBDA_* estado de processo (para o sweep). Em ambas as ocasioes a validade foi estabelecida por REPRODUCAO bit-exata sob o codigo do momento: results.json devolve fitness -0.233101660623 sob generation_seed(42,150) e os 5 representantes do nsga2_results.json devolvem os objetivos gravados. Os demais artefatos sao funcao deterministica desses dois mais o motor."
+    }
   },
   "individual": "nsga2_knee_point",
   "seeds": [
