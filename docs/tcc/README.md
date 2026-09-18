@@ -3,8 +3,8 @@
 Aqui mora o **"por quê"** e o **"o que significa"** — argumentação, interpretação,
 trajetória de decisões e o que apresentar — material de **redação** da monografia.
 O **"como funciona"** (mecânicas, fórmulas, parâmetros, assinaturas) é da referência
-técnica em [`../`](../reference/README.md) (`docs/01`–`docs/11`); aqui **não se duplica** isso,
-apenas se referencia.
+técnica em [`../reference/`](../reference/README.md) (`01`–`12`); aqui **não se duplica**
+isso, apenas se referencia.
 
 > **Contrato de auto-suficiência:** `docs/` (as duas árvores juntas) é o **retrato
 > completo do estado do sistema**. Uma sessão futura deve conseguir redigir o TCC
@@ -18,7 +18,12 @@ apenas se referencia.
 > artigos derivados dela (`artigo-SBC/`, `artigo-latinware-2026/`, este último um
 > short paper de 3–4 páginas comprimido do SBC) — e não é tocada por estes arquivos.
 > Os artigos compartilham `values.tex` como fonte única dos números experimentais.
-> Backlog de decisões/calibrações pendentes: [`../10-known-issues.md`](../reference/10-known-issues.md).
+> Pendências e limites do sistema: [`../reference/10-known-issues.md`](../reference/10-known-issues.md).
+
+> ⚠️ **Números de resultado.** Os números citados aqui são da bateria de 2026-09-18, medida
+> antes do CRN por luta — que troca todos os sorteios. A próxima bateria os substitui;
+> releia cada número contra ela antes de citar (ver
+> [`../reference/10-known-issues.md`](../reference/10-known-issues.md) §1).
 
 ## Mapa
 
@@ -36,5 +41,5 @@ apenas se referencia.
 ## Convenção
 
 Cada arquivo é **autocontido** num tema e marca onde entra na tese. Quando uma
-decisão de design mudar, atualizar o arquivo `tcc/` afetado **e** o `docs/*.md`
-técnico correspondente.
+decisão de design mudar, atualizar o arquivo `tcc/` afetado **e** o
+`docs/reference/*.md` técnico correspondente.

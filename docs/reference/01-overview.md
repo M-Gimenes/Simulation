@@ -14,27 +14,30 @@ Cachoeiro de Itapemirim.
 ## Diferencial acadêmico
 
 Propor e validar uma forma de **medir quantitativamente** se os arquétipos
-foram preservados após a evolução. A preservação **não é forçada**: o AG evolui
-livremente e medimos o quanto cada personagem derivou do seu perfil inicial.
+foram preservados após a evolução — e **o preço** dessa preservação: quanto
+equilíbrio se compra por unidade de identidade perdida.
 
 Equilíbrio com preservação e equilíbrio com homogeneização são **ambos
 resultados cientificamente válidos** — comparar os dois cenários é o experimento
 central.
 
-## Decisão metodológica crítica — não forçar identidade no fitness
+## Decisão metodológica crítica — o fitness codifica a premissa, nunca a resposta
 
-- Os valores canônicos dos arquétipos servem como **semente da população
-  inicial** e como **baseline de medição de drift**, nunca como restrição rígida.
-- O drift é penalizado via `LAMBDA_DRIFT` (AG escalar) ou exposto como objetivo
-  de Pareto (NSGA-II), mas o AG diverge livremente.
-- O **ciclo canônico de vantagens** (quem vence quem) **não é codificado em
-  nenhuma penalidade** — é reportado *post-hoc* como métrica de avaliação.
-- Por quê: codificar o ciclo no fitness tornaria a pergunta de pesquisa
-  **circular** ("o AG preserva identidade quando eu pago para preservar").
+- **Premissa** é o que cada arquétipo **é**: os valores canônicos e os
+  `defining_genes`. Ela **entra** no fitness, como penalidade de desvio
+  (`drift_penalty`, via `LAMBDA_DRIFT` no AG escalar, objetivo de Pareto no NSGA-II).
+- **Penalidade não é restrição**: o AG é livre para trocar identidade por equilíbrio,
+  e troca — o termo existe e pode perder. Os canônicos também servem de semente da
+  população inicial do AG escalar.
+- **Resposta** é quem vence quem, e se equilíbrio e identidade são compatíveis. O
+  **ciclo canônico de vantagens** **não é codificado em nenhuma penalidade** — é
+  reportado *post-hoc* como métrica de avaliação, junto da identidade funcional
+  (comportamento).
+- Por quê: codificar a resposta no fitness tornaria a pergunta de pesquisa
+  **circular**.
 
-Ver [10-known-issues.md](10-known-issues.md) para o status epistemológico do
-ciclo (construção do autor, operacionalização entre várias defensáveis) e os
-pontos em aberto.
+O status epistemológico do ciclo (construção do autor, uma operacionalização entre
+várias defensáveis) está em [tcc/02-ciclo-canonico.md](../tcc/02-ciclo-canonico.md).
 
 ## As duas camadas
 

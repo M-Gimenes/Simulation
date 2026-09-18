@@ -90,9 +90,8 @@ junto da estrutural (`archetype_validator`) e da de genes (`drift_table`). A
 agregação por personagem é o helper compartilhado `analyze_matchups.behavioral_profile`,
 também consumido pela Layer 3 do validador (fonte única). O DEFEND vem dividido para
 não contaminar a defesa real com o artefato de encurralamento (ver `04-combat-model.md`).
-O antigo "ATK" (fração de sub-ticks em estado ATTACK) foi substituído por
-`atk_landed` — ataque é evento instantâneo gated por cooldown, então a fração de
-sub-ticks era estruturalmente minúscula e enganosa.
+O ataque é contado como evento (`atk_landed`), não como fração de sub-ticks: ele é
+instantâneo e gated por cooldown.
 
 ```bash
 py -m src.tools.fingerprint              # canônico (baseline, Δ=0)
@@ -102,10 +101,10 @@ py -m src.tools.fingerprint --nsga2 knee_point
 
 ## `baselines` — modelos nulos: o piso de cada métrica
 
-Toda métrica de identidade do projeto vinha sendo lida contra o **teto** (o canônico),
-como se o piso fosse zero. Nenhuma tem piso zero, e isso invalidava as leituras:
-
-Medido com 35 nulos (5 espelhos + 30 aleatórios), na bateria atual:
+Nenhuma métrica de identidade do projeto tem piso zero, então nenhuma pode ser lida
+contra o teto (o canônico) sozinho. Medido com 35 nulos (5 espelhos + 30 aleatórios) na
+bateria de 2026-09-18 — os valores exatos dependem da semente de avaliação, e o tool os
+recalcula a cada execução:
 
 | métrica | piso medido | teto | o que o score cru parecia | o que era |
 |---|---|---|---|---|
@@ -124,18 +123,16 @@ Rosters de referência que o tool monta e mede:
 - **espelho** (5 cópias do mesmo arquétipo, um roster por arquétipo) — equilíbrio
   perfeito por simetria, identidade zero por construção. É a **solução trivial** do
   problema de equilíbrio, e portanto a resposta numérica à objeção *"por que não deixar
-  os cinco iguais?"*, que até aqui não tinha resposta medida.
+  os cinco iguais?"*.
 - **aleatório** (N rosters) — sem projeto nenhum. O chão absoluto.
 
 Saída: cada métrica como `posição = (valor − piso) / (teto − piso)`, o **pior nulo** (o
 melhor resultado que um roster sem estrutura alcançou) e um **p-valor empírico** — a
 fração dos nulos que igualam ou superam o observado. O piso é uma **distribuição**, não
-um ponto — e a resolução do p é 1/N: com os 35 nulos da bateria atual, nenhum nulo
-igualando o observado afirma `p < 0,03`; com os 13 da primeira medição afirmava só
-`p < 0,08`. Por isso o default de `--n-random` é **30**, o valor do protocolo: a bateria e o
-`report` o usam sem flag, e um default mais barato já rebaixou a resolução da bateria em
-silêncio (2026-09-18, ver [10-known-issues.md](10-known-issues.md) §3). Aumentá-lo além
-disso compra mais resolução, e é barato.
+um ponto — e a resolução do p é 1/N: com 35 nulos, nenhum nulo igualando o observado
+afirma `p < 0,03`. Por isso o default de `--n-random` é **30**, o valor do protocolo: a
+bateria e o `report` o usam sem flag. Aumentá-lo além disso compra mais resolução, e é
+barato.
 
 ```bash
 py -m src.tools.baselines                      # só os rosters de referência
@@ -176,11 +173,6 @@ Asserções de identidade em 3 camadas (rank ordinal entre os 5):
   maior `stun_inflicted`; Grappler = maior `guard_break` (dano arrancado pela guarda
   alheia).
 
-  Até 2026-09-16 a Layer 3 tinha **4 asserções para 5 arquétipos**: sem a mecânica de
-  agarrão, a identidade do Grappler não tinha expressão comportamental distinta do
-  corpo-a-corpo do Rushdown. A entrada do `grab_power` fechou a lacuna — e não por
-  acaso: era a mesma lacuna que o deixava com um único gene definidor e que deixava a
-  aresta "Grappler vence Turtle" do ciclo sem mecanismo no motor.
 
 > **Independência dos instrumentos.** As Layers 1-2 medem identidade **estrutural** —
 > o mesmo eixo que o `drift_penalty` otimiza, já que os `defining_genes` de cada
@@ -202,42 +194,27 @@ py -m src.tools.archetype_validator --n 0    # só estrutural (Layers 1-2)
 
 ## `sensitivity_analysis`
 
-> **Atualizado em 2026-09-16.** O piso de ruído deixou de ser estimado analiticamente e
-> passou a ser **medido**, e a classificação inteira sai dele — antes havia dois
-> critérios incompatíveis na mesma tabela (limiares fixos de 5%/3% na classificação, e um
-> piso binomial impresso que não entrava nela). O piso analítico também era o desvio de
-> **uma** proporção, enquanto o número classificado é uma **diferença** entre duas WRs.
->
-> O piso medido é o `|Δ WR|` entre **duas avaliações do mesmo roster, sem perturbação
-> nenhuma**, sob seeds diferentes (`--null-reps`): o Δ verdadeiro ali é zero, então tudo
-> que aparece é ruído. Seeds diferentes são necessárias — com a mesma seed e perturbação
-> zero as avaliações são bit-idênticas e o Δ sai exatamente 0. Quebrar o pareamento dá um
-> piso **conservador**, já que a medição real usa CRN pareado e tem menos ruído.
->
-> Critério único: `≤ piso` neutro · `≤ 2× piso` borderline · acima, visível.
->
-> Ganhou também `--evolved` / `--nsga2`. Importa: **no canônico o roster é saturado**
-> (Rushdown ~100%, Turtle ~0%), e com a WR presa no teto perturbar um gene não muda nada
-> — quase tudo sai "neutro" por efeito de teto, não por neutralidade. A afirmação "o AG
-> enxerga o cromossomo" precisa ser medida num roster equilibrado.
-
-
 Para cada (arquétipo, atributo), perturba o gene em ±σ e mede `Δ WR`. Atributos
 com `|Δ|` médio abaixo do **piso medido** são genes "neutros" (drift por random
 walk, sem pressão seletiva).
 
-Medido no indivíduo evoluído atual (bateria de 2026-09-18: 200 sims, `--null-reps 3`,
-piso 0,057): **4 dos 8** atributos saem visíveis — `range` 0,393 · `attack_cooldown`
-0,213 · `hp` 0,191 · `damage` 0,183 — e os outros 4 borderline: `grab_power` 0,110,
-`stun` 0,073, `speed` 0,071, `knockback` 0,067. Nenhum abaixo do piso. Uma medição mais
-fina (600 sims, `--null-reps 12`, piso 0,051) confirma a ordem e põe `speed` (0,059) e
-`knockback` (0,055) **no limiar**, com sinal/ruído ~1,1. É um resultado muito diferente do
-que o canônico saturado dava (quase tudo "neutro" por efeito de teto), e é ele que
-sustenta — ou limita — a afirmação "o AG enxerga o cromossomo". A análise é **local**:
-mede a paisagem em volta de um indivíduo, e muda com ele.
+**O piso é medido, não estimado.** É o `|Δ WR|` entre **duas avaliações do mesmo roster,
+sem perturbação nenhuma**, sob seeds diferentes (`--null-reps`): o Δ verdadeiro ali é
+zero, então tudo que aparece é ruído, na mesma grandeza que a tabela classifica (uma
+**diferença** entre duas WRs, não uma proporção). Seeds diferentes são necessárias — com
+a mesma seed e perturbação zero as avaliações são bit-idênticas. Quebrar o pareamento dá
+um piso **conservador**, já que a medição real usa CRN pareado. Critério único:
+`≤ piso` neutro · `≤ 2× piso` borderline · acima, visível.
+
+**Onde medir importa.** No canônico o roster é saturado (Rushdown ~100%, Turtle ~0%), e
+com a WR presa no teto perturbar um gene não muda nada — quase tudo sai "neutro" por
+efeito de teto. A medida citável é a de `--evolved` / `--nsga2`, num roster equilibrado.
+A análise é **local**: mede a paisagem em volta de um indivíduo, e muda com ele. Os
+números da bateria estão no [`../../HANDOFF.md`](../../HANDOFF.md) §2.
 
 ```bash
-py -m src.tools.sensitivity_analysis --sims 500 --workers 1
+py -m src.tools.sensitivity_analysis --evolved
+py -m src.tools.sensitivity_analysis --evolved --sims 600 --null-reps 12   # piso mais fino
 ```
 
 O pareamento +σ/−σ avalia os dois lados sob o mesmo seed-base (`set_seed_base`), e cada
@@ -298,20 +275,20 @@ não um ponto — qual ponto representa a execução é uma escolha explícita
   equilibrado sob o stream de treino, quantas **não sobreviveram** a um stream inédito.
   A razão entre os dois é o ajuste ao stream de RNG quantificado numa linha;
 - **sempre, por semente:** os `genes` do representante e o `history` por geração. Guardar
-  custa ~30 KB contra 7–14 min de execução, e é a diferença entre responder uma pergunta
+  custa ~30 KB contra 3–7 min de execução, e é a diferença entre responder uma pergunta
   nova a partir do artefato ou re-rodar o experimento. Com o histórico das N sementes a
   curva de convergência vira **média ± banda** em vez de uma única semente — que é o que
   a premissa deste tool exige (*"uma seed é amostra, não resultado"*).
 
 > **Regra que os artefatos deste tool seguem: gravar o que é caro de reproduzir.** Toda
 > métrica agregada se recalcula do `per_seed` em segundos; o que não se recalcula é o que
-> exigiu horas de busca — a fronteira, os genes, a trajetória. Foi por não guardar a
-> fronteira que o sweep de λ quase custou uma execução extra do NSGA-II por braço.
+> exigiu horas de busca — a fronteira, os genes, a trajetória. Com a fronteira guardada,
+> comparar um λ novo contra ela não exige re-rodar o NSGA-II.
 
 Parametrizado em `config.py` (`MULTI_RUN_*`) para escalar N facilmente. O default de
 `MULTI_RUN_N_SEEDS` é o protocolo (20), e é com ele que a bateria roda, sem flag. Mata a
-fragilidade de amostra única: um matchup travado (ex.: Combo×Rush) numa seed pode ser
-azar ou estrutural, e só N execuções respondem.
+fragilidade de amostra única: um matchup travado numa seed pode ser azar ou
+estrutural, e só N execuções respondem.
 
 ### Braços de sweep — variar a configuração sem editar o `config.py`
 
@@ -374,12 +351,9 @@ nada**: lê os dois artefatos do `multi_run` e aplica sobre as amostras por seme
   forte possível, não degenerescência. Sendo objetivo e decidido pelos dados, vale
   como regra declarada **antes** do teste: não é escolha de família feita depois de
   ver os p-valores. A métrica excluída segue na tabela como descritiva, e
-  `family_size` / `excluded_from_family` vão gravados no artefato.
-
-  Isso importa porque cada métrica na família **encarece todas as outras**: uma sem
-  variação não é teste, mas cobra pedágio. Medido na bateria de 2026-09-16, o mesmo
-  p bruto de `drift_penalty` (0,0257) sai 0,1030 numa família de 4 · **0,0772** na de
-  3 (a correta, hoje) · 0,0515 na de 2.
+  `family_size` / `excluded_from_family` vão gravados no artefato. Importa porque cada
+  métrica na família **encarece todas as outras**: uma sem variação não é teste, mas
+  cobraria pedágio.
 
 > Para o **porquê** de cada peça — o que a correção de Holm resolve, como o
 > procedimento funciona passo a passo e como ler o resultado — ver
@@ -388,7 +362,7 @@ nada**: lê os dois artefatos do `multi_run` e aplica sobre as amostras por seme
 Além dos testes, imprime e grava a **decomposição do `dominance_penalty`**: mediana
 dos três termos lado a lado, com o peso de cada um. É **descritiva** e fica
 deliberadamente **fora** da bateria inferencial — somar métricas ao Mann-Whitney
-infla a correção de Holm sobre as que já estão lá (item F da revisão). Serve para ler
+infla a correção de Holm sobre as que já estão lá. Serve para ler
 de **onde** vem a diferença: o termo primário é o `global_term`, e é ele que diz quem
 equilibra o roster melhor.
 
@@ -431,10 +405,7 @@ Reporta, salvando em `results/external_validation/external_validation_<label>.js
 
 O veredito é binário e conservador de propósito — 100 oportunidades de falhar —, e as
 contagens vão junto porque ele junta achados diferentes: um par fora em 9 das 10
-condições é sistemático; um que escapa em 1 ou 2 pode ser amostragem. Na bateria atual, o
-`best_dominance` reprova por Grappler × Turtle em **9/10**, e o `knee_point` tem sete pares
-em 9–10/10 ao lado de dois esporádicos (Zoner × Rushdown em 4/10, Combo Master × Turtle em
-6/10).
+condições é sistemático; um que escapa em 1 ou 2 pode ser amostragem.
 
 **Diferença vs `multi_run` (1.1):** lá varia-se a *execução evolutiva* (muitos
 indivíduos, uma seed de validação); aqui fixa-se UM indivíduo e varia-se a *avaliação*
@@ -456,6 +427,6 @@ py -m src.tools.web_viewer      # browser interativo em localhost:8080
 
 ## `nsga2_plots`
 
-Plot 2D da fronteira de Pareto (dominance × drift) com os 4 representantes
-destacados. Chamado automaticamente por `py main.py --algorithm nsga2`; salva em
+Plot 2D da fronteira de Pareto (dominance × drift) com os 5 representantes
+destacados, anotado com hipervolume e spacing. Chamado automaticamente por `py main.py --algorithm nsga2`; salva em
 `results/plots/nsga2/<timestamp>/pareto_front.png`.

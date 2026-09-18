@@ -19,11 +19,9 @@ O modelo separa **o que o lutador decide** de **o que a situação permite**:
 | **Ataque** | regra de resolução, não escolha | dispara quando cooldown pronto **e** oponente ao alcance **e** postura ≠ `DEFEND` |
 
 Avançar e recuar **batem**; só a `GUARDA` abre mão do golpe. É isso que torna o
-controle de espaço uma estratégia: zonear é atacar enquanto se segura a distância.
-Enquanto o ataque era uma postura exclusiva, recuar significava abrir mão do dano, o
-Zoner não tinha jogada e o `knockback` tinha derivada **negativa** — empurrar o alvo
-para fora do próprio alcance obrigava o atacante a persegui-lo. Trajetória e medições
-em [11-combat-review.md](11-combat-review.md).
+controle de espaço uma estratégia — zonear é atacar enquanto se segura a distância — e
+que dá ao `knockback` derivada positiva. Por que o ataque deixou de ser uma postura, com
+as medições: [11-combat-review.md](11-combat-review.md).
 
 ## Campo e colisão
 
@@ -91,17 +89,12 @@ regra não é explorável.
 > reseta o contador, e por ser stunado.
 
 Os pesos agem de forma **contínua**: um Δ em qualquer peso produz Δ proporcional
-na probabilidade da intenção, dando ao AG gradiente contínuo nesses genes. A
-versão antiga (comparação dura `w_aggressiveness > w_retreat AND ...`) tornava os
-pesos *categóricos* — só a ordem importava, magnitudes eram invisíveis à seleção.
+na probabilidade da intenção, dando ao AG gradiente contínuo nesses genes.
 
-> **Degenerescência de escala — resolvida no drift (2026-09-16).** O sorteio é
-> proporcional, então o comportamento depende só da **razão** entre os três pesos:
-> multiplicar os três por uma constante não muda nada no combate. Isso continua
-> valendo no motor (e é propriedade desejada), mas o `drift_penalty` deixou de cobrar
-> por essa diferença invisível — ele compara `fitness.drift_genes`, que reescala os 3
-> pesos para a soma canônica. Medido antes do conserto: 7,5% do drift médio era
-> cobrança por diferença indistinguível, pior caso Rushdown 15,1%.
+> **Só a razão entre os pesos importa.** O sorteio é proporcional, então multiplicar os
+> três por uma constante não muda nada no combate. Por isso o `drift_penalty` compara
+> `fitness.drift_genes`, que reescala os 3 pesos para a soma canônica antes de medir o
+> desvio — ver [05-genetic-algorithm.md](05-genetic-algorithm.md).
 
 ### Persistência de intenção (`ACTION_PERSISTENCE_SUBTICKS = 5`)
 
@@ -109,15 +102,10 @@ Uma vez sorteada, a intenção é reusada pelos próximos 5 sub-ticks — **exat
 tick lógico** (`TICK_SCALE`) e exatamente o **cooldown mínimo** — antes de re-sortear.
 Simula commitment/momentum e evita flip-flopping patológico (sem isso, o personagem
 re-sortearia a intenção 5× por tick lógico). O contador é **zerado** no impasse (que
-força ADVANCE) e quando o personagem é stunado.
-
-Era 10 até 2026-09-16, o que era **maior que o cooldown mínimo**: quem tem
-`attack_cooldown = 1` e sorteava GUARDA abria mão de **duas** janelas de ataque em vez
-de uma. A medição concordou com o argumento de coerência — a razão sinal/ruído da
-análise de sensibilidade melhora em **8/8 genes** a 5, com `speed` (+81%) e `stun`
-(+80%) saindo de baixo do piso de ruído. Persistência alta paga duas vezes: menos
-decisões independentes por luta dá sinal menor **e** piso de ruído maior (3,5% a 5
-contra 4,9% a 10).
+força ADVANCE) e quando o personagem é stunado. Casar a persistência com o cooldown
+mínimo faz quem tem `attack_cooldown = 1` e sorteia GUARDA abrir mão de exatamente
+**uma** janela de ataque; por que 5 e não 10, com as medições:
+[tcc/04](../tcc/04-caminhos-e-decisoes.md).
 
 ## Fluxo por sub-tick
 
@@ -170,9 +158,8 @@ contra 4,9% a 10).
   ponto flutuante. O gene `stun ∈ [0.0, 0.6]` é uma **fração do próprio cooldown do
   atacante** (em sub-ticks), não um valor absoluto.
   - O timer é **contínuo** (decremento de `1.0` por sub-tick, atordoado enquanto
-    `stun_rem > 0`). Com o antigo `round()` o gene tinha só 4 níveis efetivos para um
-    atacante de `cooldown = 1` — praticamente categórico, e a amplitude do gene a ±1σ
-    de mutação era de 6,8%. Com o timer contínuo passou a 17,4%.
+    `stun_rem > 0`). Arredondá-lo deixaria o gene com só 4 níveis efetivos para um
+    atacante de `cooldown = 1` — praticamente categórico.
   - Como `stun < 1.0` por bound, o stun aplicado é **estritamente menor que o
     cooldown do atacante** — o defensor sempre ganha uma janela livre antes do
     próximo hit. A invariante é garantida pelo bound do gene (não há
@@ -180,9 +167,8 @@ contra 4,9% a 10).
   - O stun só é aplicado se o novo valor exceder o residual atual
     (`stun_t > stun_rem`); não se acumula.
 - **Knockback:** empurra o defensor `knockback` unidades para longe do atacante
-  após cada hit, clamped ao campo. Com o canal de ataque paralelo o gene passou a ter
-  função: no contexto zoner×rusher, varrer o bound leva a WR do zoner de 27,4% a
-  71,6% (antes: 0,0% em toda a varredura).
+  após cada hit, clamped ao campo. No contexto zoner×rusher, varrer o bound leva a WR
+  do zoner de 27,4% a 71,6%.
 
 ### Decremento pós-ataque (decrement-stale)
 
@@ -199,14 +185,11 @@ preservado até o próximo. Garante que `stun` e `cooldown` mínimos tenham efei
   maior HP **percentual** (`hp_atual / hp_max`).
 - **Empate:** os dois terminam com a **mesma** fração de HP — KO duplo (ambos a zero
   no mesmo sub-tick) ou timeout sem diferença. No round-robin vale **meia vitória para
-  cada lado**; o score por-luta é `0.5` (margem nula), então a decisividade cai no piso
-  e o fitness já pune a luta sem resolução.
+  cada lado**, e o score por-luta é `0.5` (margem nula).
 
-> Sem o empate, o desempate cairia sempre para o lado A — que em
-> `_run_round_robin` é sempre o arquétipo de índice menor. Era um viés sistemático
-> na métrica que o fitness otimiza: medido em espelho, o Rushdown canônico dava
-> 54,90% para o lado A (10,3% de KO duplo). Com o empate, todos os espelhos voltam a
-> ~50%.
+> O empate existe porque, sem ele, o desempate cairia sempre para o lado A — que em
+> `_run_round_robin` é sempre o arquétipo de índice menor: um viés sistemático na métrica
+> que o fitness otimiza (medido em espelho, o Rushdown canônico dava 54,90% ao lado A).
 
 O fitness distingue KO de timeout via *score por-luta contínuo* — ver
 [05-genetic-algorithm.md](05-genetic-algorithm.md).

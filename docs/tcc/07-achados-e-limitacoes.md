@@ -4,19 +4,23 @@
 
 ## Achados
 
-- **O modelo representa bem os arquétipos** (revisão do combate,
-  [`../11-combat-review.md`](../reference/11-combat-review.md)): comportamento distinto e
-  on-concept — Rushdown rusha, Turtle muralha, Zoner kita; DEFEND/RETREAT e
-  espaçamento são usados de forma significativa. **Achado positivo** — o modelo não é
-  uma caixa-preta arbitrária; os pesos produzem identidade comportamental visível.
-- **O ciclo canônico não é trivialmente preservado em modo determinístico (baseline):**
+- **O modelo representa os arquétipos — depois da reforma de 2026-09-10** (auditoria do
+  combate, [`../reference/11-combat-review.md`](../reference/11-combat-review.md)). Uma
+  revisão anterior concluíra o mesmo medindo no canônico saturado, onde nenhuma mecânica
+  parece quebrada; a auditoria achou quatro defeitos que atingiam justamente os genes de
+  identidade do Zoner e do Combo Master, e os corrigiu. No motor atual o canônico passa
+  nas 23 asserções do validador, inclusive nas 5 comportamentais — Rushdown pressiona,
+  Turtle guarda, Zoner segura distância, Combo Master trava, Grappler quebra guarda.
+  **Achado positivo, com a ressalva de método**: auditar mecânica exige um ponto
+  não-saturado do espaço.
+- **O ciclo canônico não é trivialmente preservado no modelo quase-determinístico (baseline):**
   sem combo chaining / variância, muitos matchups do canônico ficam binários (100/0).
   Interpretação (ver [02](02-ciclo-canonico.md)): a estrutura FGC depende parcialmente
   de mecânicas estocásticas que foram removidas — é **achado, não falha**. *Cuidado*:
   distinguir esta quebra **do baseline** da quebra **pós-balanceamento** — esta última
   era forçada pelo objetivo antigo (WR por-matchup) e deixou de ser sob a reformulação
   **C2** (ver abaixo e [02](02-ciclo-canonico.md)).
-- **`LAMBDA_DRIFT` alto prende o AG no canônico** (V1): com 6.0, o melhor indivíduo
+- **`LAMBDA_DRIFT` alto prende o AG no canônico**: com 6.0, o melhor indivíduo
   ficava colado no canônico (drift ≈ 0) e desbalanceado, porque mover-se custava ~6× o
   ganho em equilíbrio. Daí a decisão de `LAMBDA_DRIFT = 1.0` e o foco no NSGA-II (ver
   [04](04-caminhos-e-decisoes.md)).
@@ -80,20 +84,21 @@ método, o último é sobre o objeto.
 ### Nenhuma métrica do projeto tinha piso (2026-09-16)
 
 Achado de método com consequência direta em toda leitura de resultado. As três réguas de
-identidade eram lidas contra o **teto**, como se o piso fosse zero. Medido com 13 rosters
-nulos (5 espelhos + 8 aleatórios):
+identidade eram lidas contra o **teto**, como se o piso fosse zero. Medido com 35 rosters
+nulos (5 espelhos + 30 aleatórios), bateria de 2026-09-18:
 
-| métrica | piso | pior nulo | teto |
+| métrica | piso médio | pior nulo | teto |
 |---|---|---|---|
-| validador (L1-L3) | ~6,8/21 | **12/21** | 21/21 |
-| `drift_penalty` | ~0,33 (espelho) · ~0,41 (aleatório) | 0,326 | 0,000 |
-| arestas do ciclo | 5/10 (analítico) | 8/10 | 10/10 |
+| validador (L1-L3) | 6,4/23 | **10/23** | 23/23 |
+| `drift_penalty` | 0,377 (espelho) · 0,415 (aleatório) | 0,327 | 0,000 |
+| arestas do ciclo | 5/10 (cada aresta é cara-ou-coroa) | 8/10 | 10/10 |
 
 Consequências para a redação:
 
 - **Nunca citar valor cru.** Reportar `posição = (valor − piso)/(teto − piso)` e o
-  p-valor empírico. O indivíduo antigo do `results.json`, lido como "8/21 = identidade
-  destruída", está **no piso** (p = 0,46) — indistinguível de um roster aleatório.
+  p-valor empírico. O indivíduo evoluído de antes da reforma do fitness, lido como "8/21 =
+  identidade destruída", estava **no piso** (p = 0,46) — indistinguível de um roster
+  aleatório.
 - **O espelho é a objeção com números.** Cinco personagens idênticos são a solução trivial
   do equilíbrio e perdem identidade por apenas ~0,04 de drift, então a tese precisa
   responder isso medindo, não argumentando. **A leitura virou favorável**: na bateria atual
@@ -166,9 +171,9 @@ As pendências de instrumentação de
 que resta lá são os limites estruturais, que são escopo declarado e vão para a Discussão.
 Uma operação pendente, **com** efeito em número: depois da bateria o CRN passou a semear
 cada luta, o que troca todos os sorteios. A bateria precisa rodar de novo, e os números
-desta pasta e do `HANDOFF.md` §3 — os achados acima inclusive — têm de ser relidos contra
+desta pasta e do `HANDOFF.md` §2 — os achados acima inclusive — têm de ser relidos contra
 ela antes de qualquer citação. Em termos de tese, falta a **redação**: a
 monografia e os artigos descrevem gerações anteriores do modelo, e o `values.tex` está
-inteiramente obsoleto (ver [`../../HANDOFF.md`](../../HANDOFF.md) §5). Os números a citar
-saem de `results/` e do `HANDOFF.md` §3 — nunca de rodadas anteriores ao motor atual, que
+inteiramente obsoleto (ver [`../../HANDOFF.md`](../../HANDOFF.md) §4). Os números a citar
+saem de `results/` e do `HANDOFF.md` §2 — nunca de rodadas anteriores ao motor atual, que
 foram geradas sob outro modelo.

@@ -17,7 +17,8 @@
 │   │   ├── fitness.py         # avaliação round-robin
 │   │   ├── operators.py       # seleção / crossover / mutação
 │   │   ├── ga.py              # loop do AG escalar
-│   │   └── nsga2.py           # loop do NSGA-II
+│   │   ├── nsga2.py           # loop do NSGA-II
+│   │   └── pareto_metrics.py  # hipervolume + spacing da fronteira
 │   ├── tools/                 # ferramentas que consomem o motor
 │   └── tests/                 # smoke tests
 └── results/                   # saídas (results.json, nsga2_results.json, plots)
@@ -47,36 +48,40 @@ Três níveis, do imutável ao mutável (`archetypes.py` → `character.py` →
 ```
 ArchetypeDefinition (frozen)        Character (mutável)            Individual
   id, name, description               archetype: ArchetypeDefinition  characters: List[Character] (5)
-  initial_attributes (7, frozen)      attributes: List[float] (7)     fitness, objectives, rank, crowding
+  initial_attributes (8, frozen)      attributes: List[float] (8)     fitness, objectives, rank, crowding
   initial_weights    (3, frozen)      weights:    List[float] (3)
+  defining_genes: Tuple[str, ...]
   beats: Tuple[ArchetypeID, ...]
 ```
 
 - **`ArchetypeDefinition`** — valores canônicos congelados; baseline de drift e
-  semente. Ver [03-archetypes.md](03-archetypes.md).
+  semente. `defining_genes` são os genes em que o arquétipo ocupa um extremo por
+  design, e pesam mais no drift. Ver [03-archetypes.md](03-archetypes.md).
 - **`Character`** — 11 genes mutáveis (8 atributos + 3 pesos), todos contínuos.
   `clip()` aplica os bounds.
 - **`Individual`** — lista de 5 `Character` + caches de avaliação. Construtores:
   `from_canonical()` (semente), `random()`, `from_results()` (melhor do AG),
   `from_nsga2(representative=...)` (representante do Pareto).
 
-**Total: 50 genes por indivíduo** (5 personagens × 10 genes).
+**Total: 55 genes por indivíduo** (5 personagens × 11 genes).
 
 ## Orquestração das duas camadas
 
 O AG (`ga.py` / `nsga2.py`) chama `fitness.py`, que roda o round-robin chamando
-`combat.simulate_combat` para cada par. Toda a lógica de combate vive
-**exclusivamente** em duas funções `@njit`:
+`combat.simulate_combat` para cada luta — semeada por `fitness.fight_seed` quando há
+seed-base (ver [09-reproducibility.md](09-reproducibility.md)). Toda a lógica de combate
+vive **exclusivamente** em duas funções `@njit`:
 
 - `_simulate_combat_jit` — fast path sem rastreio, usado pelo fitness;
 - `_simulate_combat_traced_jit` — grava estado tick a tick em arrays NumPy,
-  consumido pelas tools de instrumentação (viewer, analyze_matchups).
+  consumido pelas tools de instrumentação (viewer, analyze_matchups, fingerprint,
+  Layer 3 do validador).
 
-Não há reimplementação Python paralela do loop. Tools que precisam visualizar a
-luta consomem `CombatTrace` em vez de redobrar a lógica — eliminando a fonte
-tradicional de divergência entre Python e JIT. (Ver
-[10-known-issues.md](10-known-issues.md) para a única divergência residual
-conhecida, hoje corrigida.)
+As duas chamam os mesmos helpers `@njit` — `_decide_action` (postura),
+`_apply_movement` (movimento e colisão) e `_decide_winner` (desfecho) —, então não há
+cópias divergentes da lógica; um teste de paridade em `test_combat` garante isso. Não há
+reimplementação Python do loop: tools que precisam visualizar a luta consomem
+`CombatTrace` em vez de redobrar a lógica.
 
 ## Paralelismo
 

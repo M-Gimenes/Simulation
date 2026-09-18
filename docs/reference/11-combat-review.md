@@ -17,7 +17,8 @@ para viés posicional; e um AG curto para confirmar que a paisagem tem gradiente
 
 **O motor não estava quebrado no geral — mas tinha quatro defeitos específicos, e eles
 atingiam exatamente os arquétipos que o AG destruía primeiro.** No meio do espaço de
-genes cinco dos sete atributos já respondiam com gradiente limpo e monótono; os dois que
+genes cinco dos sete atributos de então (o `grab_power` veio depois) já respondiam com
+gradiente limpo e monótono; os dois que
 não respondiam (`knockback` e `stun`) são justamente os genes de identidade do Zoner e
 do Combo Master. Não era o AG sendo destrutivo: esses genes não pagavam, então mantê-los
 custava drift sem retorno.
@@ -134,9 +135,10 @@ Amplitude da WR a **±1σ de mutação** (σ = 10% do range do gene), corpo neut
   pesquisa, **espalhamento real por par**: 22% · 34% · 36% · 48% · 50% · 50% · 58% ·
   64% · 70% · 71%. No motor antigo o indivíduo evoluído ficava achatado em [43,5%, 58%].
   **Agora existe espaço para o ciclo de vantagens viver.**
-- Pendências que isso abriu (em [`../../REVIEW.md`](../../REVIEW.md) §2): a
-  hipersensibilidade dos genes de recurso e a decisividade caindo abaixo do
-  `MATCHUP_FLOOR`.
+- Duas consequências que isso abriu: a hipersensibilidade dos genes de recurso, hoje
+  limite declarado ([10-known-issues.md](10-known-issues.md) §2), e a decisividade caindo
+  abaixo do `MATCHUP_FLOOR`, resolvida rebaixando o piso para guarda de degenerescência
+  ([tcc/04](../tcc/04-caminhos-e-decisoes.md)).
 
 ## O que a revisão de 2026-06-23 concluiu, e por que errou
 
@@ -153,10 +155,10 @@ de RETREAT prova que a ação é **escolhida**, não que ela **serve para alguma
 Zoner recuava 39% do tempo e ainda assim perdia 100%, porque recuar era forfeit de dano.
 
 Era exatamente o mesmo efeito de teto que fazia a `sensitivity_analysis` classificar 6 dos
-7 atributos de então como "neutros" — o tool rodava fixo no canônico. Resolvido em
-2026-09-16 (item G da [`../../REVIEW.md`](../../REVIEW.md) §4): ele ganhou
-`--evolved` / `--nsga2` e o piso passou a ser medido. Num roster equilibrado o quadro é
-outro — **4 dos 8** atributos saem visíveis. A lição metodológica é a que este capítulo
+7 atributos de então como "neutros" — o tool rodava fixo no canônico. Ele ganhou
+`--evolved` / `--nsga2` e o piso passou a ser medido, e num roster equilibrado o quadro é
+outro: a maior parte dos atributos sai visível, e nenhum abaixo do piso. A lição
+metodológica é a que este capítulo
 já dizia, agora com o instrumento consertado: **auditar mecânica exige um ponto
 não-saturado do espaço** — corpo neutro para o gradiente bruto, contexto de projeto para
 genes relacionais.

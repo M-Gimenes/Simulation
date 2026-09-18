@@ -3,7 +3,7 @@
 **Entra em**: Introdução / Metodologia (e Discussão, se o ciclo quebrar).
 
 > O *conteúdo* do ciclo (quem vence quem, e por quê) está em
-> [`../03-archetypes.md`](../reference/03-archetypes.md). Aqui está o **status** dele: o que ele
+> [`../reference/03-archetypes.md`](../reference/03-archetypes.md). Aqui está o **status** dele: o que ele
 > é epistemologicamente, e por que a tese não depende dele estar "certo".
 
 ## O ciclo é uma construção do autor, não uma lei do sistema
@@ -17,17 +17,19 @@ produz.
 
 O sistema não tem obrigação de "entregar o ciclo"; tem obrigação de **equilibrar** e
 de **permitir medir** a preservação de identidade. Se o ciclo não se sustenta no
-modelo determinístico, isso **revela** algo: que a estrutura FGC depende parcialmente
-de elementos estocásticos/de combo (combo chaining, variância) que foram
-conscientemente removidos ou minimizados. Isso é resultado, não erro de método.
+modelo — quase-determinístico, com o sorteio de intenção como única fonte de sorte —,
+isso **revela** algo: que a estrutura FGC depende parcialmente de elementos de combo e
+variância (combo chaining, dano variável) que foram conscientemente deixados de fora.
+Isso é resultado, não erro de método.
 
 ### Duas quebras distintas — não confundir (reformulação C2)
 
 É preciso separar **duas** possíveis quebras do ciclo, com leituras diferentes:
 
-1. **No baseline (canônico):** o modelo de combate determinístico pode não produzir
-   o ciclo nem antes de qualquer otimização — leitura acima (mecânicas estocásticas
-   omitidas). **Segue válida.**
+1. **No baseline (canônico):** o modelo pode não produzir o ciclo nem antes de
+   qualquer otimização — leitura acima (mecânicas de combo e variância omitidas).
+   **Segue válida:** o canônico é deliberadamente desequilibrado, com vários pares em
+   100/0.
 2. **Após o balanceamento:** antes da reformulação **C2**, o objetivo tinha como
    termo primário a WR **por-matchup**, cujo ótimo é *todo par a 50%* — equilíbrio
    plano, que por construção é **incompatível com o ciclo** (um ciclo exige que
@@ -50,7 +52,7 @@ A atribuição das arestas é uma **operacionalização entre várias defensáve
 - há consenso FGC para a maioria (Rushdown × Zoner, Grappler × Turtle, Turtle ×
   Rushdown);
 - algumas admitem leituras alternativas conforme jogo/era/meta;
-- **cada aresta tem justificativa de domínio documentada** ([`../03-archetypes.md`](../reference/03-archetypes.md)) —
+- **cada aresta tem justificativa de domínio documentada** ([`../reference/03-archetypes.md`](../reference/03-archetypes.md)) —
   é estipulativo, não arbitrário (trocar uma exigiria nova justificativa, não sortear
   outro valor).
 
@@ -62,3 +64,14 @@ de teste.**
 > Análoga útil para a redação: ninguém trata "por que 5 arquétipos e não 4 ou 7?" como
 > falha metodológica — é operacionalização. "Por que esse ciclo e não outro?" é da
 > mesma natureza.
+
+## O ciclo específico não pode ser um resultado — a não-transitividade pode
+
+Medido depois, com os modelos nulos: o ciclo é um **torneio regular** (cada arquétipo
+vence 2 e perde 2), e existem **24** torneios regulares rotulados em 5 vértices. Acertar
+o rótulo específico é 1/24, e o acaso já entrega 5 das 10 arestas — então contar arestas
+"mantidas" não distingue preservação de sorte. O que é resultado, e dispensa autoria, é a
+**não-transitividade** em si: equilíbrio global e pedra-papel-tesoura são a mesma
+estrutura (um roster estritamente transitivo tem WRs 100/75/50/25/0, incompatível com
+todos perto de 50%), medida em tríades circulares. Números e leitura em
+[07-achados-e-limitacoes.md](07-achados-e-limitacoes.md).

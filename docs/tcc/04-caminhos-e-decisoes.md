@@ -3,8 +3,10 @@
 **Entra em**: Metodologia (justificativa das escolhas) e Discussão.
 
 > A **trajetória** das decisões — que problema cada mudança resolveu. Não é a
-> descrição do estado atual (isso é [`../04-combat-model.md`](../reference/04-combat-model.md) e
-> [`../05`](../reference/05-genetic-algorithm.md)); é o **raciocínio** que levou até ele.
+> descrição do estado atual (isso é [`../reference/04-combat-model.md`](../reference/04-combat-model.md) e
+> [`../reference/05`](../reference/05-genetic-algorithm.md)); é o **raciocínio** que levou até ele.
+> As seções estão em ordem cronológica: quando uma decisão foi revista depois, a seção
+> antiga aponta para a que a substituiu.
 > Mostrar essa evolução evidencia que o sistema foi refinado para fechar problemas
 > concretos, não montado arbitrariamente.
 
@@ -34,7 +36,8 @@ Cada item: **problema → mudança → resultado.**
   pesos, quando em range) e **(2) execução** dela; `defense` e `recovery` removidos;
   `stun` virou **fração** do cooldown do atacante. Resultado: menos parâmetros,
   invariantes garantidas por bound (stun < cooldown) e identidade ainda expressa
-  pelos pesos. Estado atual em [`../reference/04-combat-model.md`](../reference/04-combat-model.md).
+  pelos pesos. (O "execução da intenção" foi revisto na reforma de 2026-09-10, abaixo: a
+  intenção passou a governar só a postura, e o ataque virou regra de resolução.)
 
 ## Calibração das mecânicas (fechar exploits do AG)
 
@@ -69,8 +72,10 @@ Cada item: **problema → mudança → resultado.**
   Resultado: experimentos com `--seed` reprodutíveis, e todo indivíduo avaliado sob o
   mesmo stream → a diferença de fitness reflete genes, não sorteio (paisagem mais lisa).
   *(Uma versão intermediária semeava por hash-dos-genes — reprodutível, mas dava a cada
-  indivíduo um stream diferente, anulando o CRN; substituída.)* Detalhe em
-  [05](05-validacao-metodologica.md) e [`../09`](../reference/09-reproducibility.md).
+  indivíduo um stream diferente, anulando o CRN; substituída.)* O CRN foi refinado duas
+  vezes depois: o stream passou a rodar por geração ("O stream de avaliação") e a semente
+  passou a ser por luta ("O CRN passou a semear cada luta"). Detalhe em
+  [05](05-validacao-metodologica.md) e [`../reference/09`](../reference/09-reproducibility.md).
 
 ## A reformulação do objetivo (a decisão maior)
 
@@ -108,14 +113,17 @@ Cada item: **problema → mudança → resultado.**
   **expressável**; "ele emerge das identidades preservadas?" vira o achado real, e C2
   é robusto ao próprio fracasso (se o plano dominar mesmo com espaço, é achado honesto,
   não artefato). Interpretação em [03](03-formulacao-do-fitness.md) e
-  [02](02-ciclo-canonico.md). **Pesos/cap provisórios — a calibrar.**
+  [02](02-ciclo-canonico.md). Pesos e cap ficaram provisórios até a agenda de calibração
+  ("As constantes provisórias") e o sweep dos pesos ("Os pesos do dominance").
 
 ## Pesos do fitness
 
 - **`LAMBDA_DRIFT` 6.0 → 1.0.** Problema: com 6.0, mover-se para equilibrar custava ~6×
   o ganho em dominância — o AG escalar ficava **preso ao canônico** (drift ≈ 0) e
-  desbalanceado (achado V1). Mudança: 1.0, igual ao dominance. Resultado: o AG é livre
-  para usar o objetivo reformulado; e fica **simétrico ao NSGA-II** (que não pondera).
+  desbalanceado. Mudança: 1.0, igual ao dominance. Resultado: o AG é livre para usar o
+  objetivo reformulado; e fica **simétrico ao NSGA-II** (que não pondera). A escolha só
+  deixou de ser por eliminação com o sweep de λ ("O sweep de λ"), que a mediu como o
+  joelho da curva.
 - **`specialization_penalty` removido.** Problema: media spread *intra*-personagem, não
   diferenciação *entre* arquétipos (cinco builds idênticos passariam) — não fazia o que
   o nome diz, era redundante com o drift, e dava ao escalar um 3º termo que o NSGA-II
@@ -188,7 +196,19 @@ pergunta central fica ambígua — eu estaria forçando a preservação."*
   que nada no fitness referencia. Contrapartida declarada: as Layers 1-2 do validador
   ficaram **parcialmente endógenas**.
 - **Resultado:** a ordenação por drift passou a bater com a do validador, e a margem
-  entre indivíduos de identidade diferente dobrou. Mas a resposta em
+  entre indivíduos de identidade diferente dobrou. Medido nos quatro indivíduos de
+  referência do diagnóstico, sob o validador de 21 asserções que precedeu o `grab_power`
+  (critério: drift ascendente deve acompanhar validador descendente):
+
+  | variante | knee (19/21) | ideal (16/21) | best_dom (11/21) | AG (8/21) | ordem bate? | gap AG−best_dom |
+  |---|---|---|---|---|---|---|
+  | `x/hi` uniforme (antiga) | 0,0885 | 0,1554 | 0,2709 | 0,2607 | **não** | −0,010 |
+  | range, uniforme | 0,1302 | 0,2062 | 0,3245 | 0,3417 | sim | 0,017 |
+  | range, ponderada (peso 3,0) | 0,1279 | 0,2054 | 0,3150 | 0,3579 | sim | **0,043** |
+
+  A **normalização** conserta a ordenação; a **ponderação** alarga a margem. O peso
+  satura (gap 0,055 em 5,0; 0,073 em 12,0), e pesos altos tornam os genes não-definidores
+  quase gratuitos — 3,0 mantém os dois lados com preço. Mas a resposta em
   λ_drift = λ_dom = 1,0 **não mudou** — o AG continua trocando identidade por
   equilíbrio, com as falhas caindo exatamente sobre os genes definidores. Isso é o
   achado, não o bug: é o que empurra a resposta da tese para o **mapa do trade-off**
@@ -218,7 +238,15 @@ pergunta central fica ambígua — eu estaria forçando a preservação."*
   valor não-nulo é ~0,0015, então `1e-9` significava *exatamente zero*. `converged` era
   sempre `False` e todo o ramo de confirmação era código morto descrito na metodologia.
   Pior: a "reavaliação independente" rodava no **mesmo stream de RNG** do treino, então
-  não podia discordar do gate.
+  não podia discordar do gate. Medido no indivíduo que convergia:
+
+  | stream | equilibrado? | bonecos em banda | counters duros |
+  |---|---|---|---|
+  | treino (42) — o que a confirmação usava | **sim** | 5/5 | 0 |
+  | 9999 / 10000 / 10001 / 10002 | não | 5/5 | 1–2 |
+
+  O que quebra é sempre o par-a-par, nunca a WR global: o ajuste ao stream se concentra
+  ali.
 - **Mudança:** o gate virou o próprio critério (`roster_balanced`, agora fonte única da
   definição de equilíbrio do projeto), e a confirmação passou a rodar num stream que o AG
   nunca viu (`seed + CONVERGENCE_SEED_OFFSET`).
@@ -271,7 +299,10 @@ pergunta central fica ambígua — eu estaria forçando a preservação."*
   Contra alvo em `DEFEND` o multiplicador vira `defend_red + grab_power` — soma simples,
   então o teto **inverte** a vantagem de defender em vez de apenas anulá-la.
   Três escolhas de desenho, todas deliberadas: mesmo alcance e mesmo cooldown do ataque
-  normal; **efeito nenhum contra quem não defende**; e nunca supera um golpe limpo.
+  normal; **efeito nenhum contra quem não defende**; e nunca supera um golpe limpo. Nos
+  canônicos o multiplicador contra quem guarda fica em Zoner 0,65× · Turtle 0,75× ·
+  Rushdown 0,80× · Combo Master 0,90× · **Grappler 1,50×** — o único acima do ponto neutro
+  (0,40 de `grab_power`, 1,00×).
 - **Por que essas escolhas:** é o "efeito nenhum contra quem não defende" que faz do
   agarrão um **counter** em vez de um golpe superior — ele é uma leitura condicional, que
   vale contra quem bloqueia e é peso morto contra quem pressiona. E por ser uma
@@ -318,6 +349,12 @@ diagnóstico saiu **muito maior** que o item.
   estrutura, porque um roster estritamente transitivo teria WRs 100/75/50/25/0,
   incompatível com todos perto de 50%. Medida por `circular_triads` (Kendall & Babington
   Smith 1940), escala 0 (ordem estrita) · 2,5 (acaso) · 5 (máximo = equilíbrio perfeito).
+  Coberto por teste: o ciclo **invertido** dá 0/10 arestas e ainda 5 tríades — a estrutura
+  sobrevive à troca de rótulos, que é exatamente por que o rótulo não é o achado.
+- **Resolução do p-valor:** a primeira medição (13 nulos) só afirmava p ≈ 0,08; com 35 nulos
+  (5 espelhos + 30 aleatórios, o default do tool desde então) um valor que nenhum nulo
+  iguala afirma p < 0,03. Com 35 nulos, o roster evoluído passou a superar todos nos três
+  eixos de identidade.
 
 ## A família de testes estatísticos (2026-09-16)
 

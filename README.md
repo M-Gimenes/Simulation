@@ -55,7 +55,8 @@ py -m src.tools.report --evolved                # dossie completo do individuo (
 py -m src.tools.analyze_matchups                # all matchups, canonical
 py -m src.tools.analyze_matchups --evolved --n 50 # evolved individual, 50 sims
 py -m src.tools.archetype_validator             # structural + behavioral identity checks
-py -m src.tools.sensitivity_analysis            # +/-sigma delta-WR per gene
+py -m src.tools.sensitivity_analysis --evolved  # +/-sigma delta-WR per gene (no canonico satura)
+py -m src.tools.baselines --evolved             # modelos nulos: piso/teto de cada metrica
 py -m src.tools.multi_run --algorithm both      # N execucoes independentes + estatistica agregada
 py -m src.tools.compare_algorithms              # GA x NSGA-II: Mann-Whitney U + A12 + Holm
 py -m src.tools.external_validation --nsga2 knee_point  # robustez do equilibrio fora do laco
@@ -83,6 +84,14 @@ passo falhar. Enquanto roda, declara ao Windows que há trabalho em andamento vi
 `SetThreadExecutionState`, que impede suspensão/hibernação e **solta sozinho no fim**, em
 vez de mexer no plano de energia global que ninguém lembra de desfazer. Tudo com carimbo de
 hora em `results/overnight.log`.
+
+## Documentação
+
+- [`docs/reference/`](docs/reference/README.md) — como o sistema funciona, um arquivo por tema.
+- [`docs/tcc/`](docs/tcc/README.md) — material de redação: o porquê de cada decisão, o que apresentar.
+- [`HANDOFF.md`](HANDOFF.md) — o estado atual e os resultados da última bateria.
+- [`REVIEW.md`](REVIEW.md) — a auditoria de coerência do sistema e o que dela segue aberto.
+- [`CLAUDE.md`](CLAUDE.md) — guia de trabalho no repositório e resumo das decisões de design.
 
 ## Tests
 

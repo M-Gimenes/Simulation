@@ -48,14 +48,12 @@ CONVERGENCE_SEED_OFFSET = 100000
 
 # Stream de avaliação POR GERAÇÃO (ver `fitness.generation_seed`).
 #
-# O laço avalia toda uma geração sob o mesmo stream — CRN, para que a diferença de
-# fitness entre indivíduos reflita genes e não sorteio — e TROCA de stream a cada
-# geração. Sem a troca, as MAX_GENERATIONS inteiras correm sobre UMA realização do
-# RNG e a população se ajusta a ela: medido (60 gerações, 3 sementes), a razão entre
-# o `dominance` de dentro do laço e o de fora era ~3×, e caiu para ~1,25× com a
-# rotação — o número de dentro do laço passa a ser quase honesto. O equilíbrio REAL
-# (medido fora) também melhora, porque o AG deixa de poder comprar equilíbrio
-# explorando acidentes de uma realização específica.
+# O laço avalia toda uma geração sob os mesmos sorteios — CRN, uma semente por luta,
+# para que a diferença de fitness entre indivíduos reflita genes e não sorteio — e TROCA
+# de stream a cada geração. Sem a troca, as MAX_GENERATIONS inteiras correm sobre UMA
+# realização do RNG e a população se ajusta a ela: medido (5 sementes, 60 gerações), a
+# razão entre o `dominance` de dentro do laço e o de fora cai de 4,14 para 2,20 com a
+# rotação, melhorando em 5/5 sementes (ver docs/tcc/04).
 #
 # `seed * STRIDE + geração` com geração < STRIDE garante que duas sementes de treino
 # nunca compartilhem stream, e a família (42000+) não colide com nenhuma outra do
@@ -87,7 +85,7 @@ DOMINANCE_GLOBAL_WEIGHT = 1.0
 DOMINANCE_CAP_WEIGHT = 0.5
 DOMINANCE_DECIS_WEIGHT = 0.5
 
-# O `decis_term` sai 0.0000 nos indivíduos FINAIS das 10 sementes, nos dois
+# O `decis_term` sai 0.0000 nos indivíduos FINAIS de todas as sementes, nos dois
 # algoritmos — o que NÃO quer dizer que o termo seja morto. Ele é uma GUARDA, e uma
 # guarda que lê 0 no fim é uma guarda que funcionou: a busca saiu da região ruim.
 # Medido em 18 rosters (canônico + 5 espelhos + 8 aleatórios + 4 evoluídos), 180 pares:
@@ -216,7 +214,7 @@ ATTRIBUTE_NAMES = ["hp", "damage", "attack_cooldown", "range", "speed", "stun", 
                    "grab_power"]
 WEIGHT_NAMES = ["w_retreat", "w_defend", "w_aggressiveness"]
 
-# Os 10 genes do personagem na ordem de `Character.genes()` — fonte única para
+# Os 11 genes do personagem na ordem de `Character.genes()` — fonte única para
 # quem precisa percorrer genes por nome/bound (drift, tabela de drift, validador).
 GENE_NAMES = ATTRIBUTE_NAMES + WEIGHT_NAMES
 GENE_BOUNDS = ATTRIBUTE_BOUNDS + WEIGHT_BOUNDS

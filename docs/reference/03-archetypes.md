@@ -1,8 +1,10 @@
 # 03 — Arquétipos
 
 Definidos em `src/engine/archetypes.py` como `ArchetypeDefinition` congeladas.
-Os valores canônicos **não são hardcoded no motor** — servem como semente da
-população inicial e baseline de medição de drift. O AG diverge livremente.
+Os valores canônicos **não são hardcoded no motor** — servem como baseline de medição
+de drift e como semente da população inicial do AG escalar (o NSGA-II parte de uma
+população inteiramente aleatória; ver [06-nsga2.md](06-nsga2.md)). O AG é livre para se
+afastar deles: o desvio é penalizado, nunca restringido.
 
 ## Os 5 arquétipos
 
@@ -35,7 +37,7 @@ cooldown do atacante** (∈ [0, 0.6]) e `grab_power` é a **fração da guarda q
 
 O `grab_power` do Grappler é o valor que realiza, no motor, a justificativa FGC da
 aresta "Grappler vence Turtle" da tabela do ciclo: *"grab é o counter canônico ao
-bloqueio"*. Até 2026-09-16 essa justificativa não tinha mecanismo nenhum.
+bloqueio"*.
 
 ### Genes definidores
 
@@ -52,10 +54,8 @@ premissa) e pesam `DRIFT_DEFINING_WEIGHT` no `drift_penalty`.
 | Grappler | `damage`, `grab_power` |
 | Turtle | `hp`, `attack_cooldown`, `speed`, `w_defend` |
 
-A assimetria é informativa e não acidental. O **Combo Master** tem um gene definidor só
-(`stun`). O **Grappler** tinha só `damage` até a entrada do agarrão (2026-09-16), que lhe
-deu `grab_power` como segundo gene definidor **e** a assinatura comportamental que
-faltava na Layer 3 — as duas lacunas eram a mesma coisa.
+A assimetria é informativa e não acidental: o **Combo Master** tem um gene definidor só
+(`stun`), e o Turtle tem quatro.
 
 É declaração de **premissa** (o que o arquétipo é), nunca de resposta (quem vence
 quem — `beats`, que o fitness jamais referencia). Consequência: as Layers 1-2 do
@@ -72,10 +72,11 @@ endógenas**; a leitura post-hoc de identidade fica com a **Layer 3** e o ciclo.
 | Grappler | 0.10 | 0.40 | 0.70 |
 | Turtle | 0.40 | 0.70 | 0.20 |
 
-Os pesos ponderam o sorteio de **intenção** quando o personagem está em range
-(ver [04-combat-model.md](04-combat-model.md)): `w_aggressiveness` → FRENTE
-(ATTACK ou, se em cooldown, ADVANCE), `w_retreat` → RECUAR (RETREAT ou, sem
-espaço, DEFEND), `w_defend` → GUARDA (DEFEND). Semântica esperada:
+Os pesos ponderam o sorteio de **intenção**, que governa só a **postura** (ver
+[04-combat-model.md](04-combat-model.md)): `w_aggressiveness` → FRENTE (ADVANCE),
+`w_retreat` → RECUAR (RETREAT ou, sem espaço, DEFEND), `w_defend` → GUARDA (DEFEND).
+O ataque não é sorteado: é regra de resolução, e sai em qualquer postura exceto a
+guarda. Só a **razão** entre os três pesos afeta o combate. Semântica esperada:
 `w_aggressiveness` alto = empurra através de ameaças (Rushdown, Grappler, Combo
 Master); `w_retreat > w_defend` = pipoca/kita (Zoner); `w_defend ≥ w_retreat` =
 absorve segurando posição (Turtle).
@@ -109,9 +110,9 @@ no campo `beats` de cada `ArchetypeDefinition`.
 - **Combo Master:** encadeia combos via stun — Grappler lento não escapa, Zoner
   morre para um acerto convertido. Perde para pressão constante (Rushdown) e
   para quem bloqueia o setup (Turtle).
-- **Grappler:** se encosta, acabou — burst máximo. Grab é o counter canônico ao
-  bloqueio (Turtle). Sofre contra rápidos (Rushdown) e contra o stun do Combo
-  Master.
+- **Grappler:** se encosta, acabou — burst máximo, que pune a fuga e os combos
+  rápidos do Rushdown. Grab é o counter canônico ao bloqueio (Turtle). Sofre contra
+  quem controla o espaço (Zoner) e contra o stun do Combo Master.
 - **Turtle:** vive do erro do outro — destrói agressivos por atrito de HP%.
   Bloqueia o setup do Combo Master. Perde para controle de distância (Zoner) e
   para o grab do Grappler.

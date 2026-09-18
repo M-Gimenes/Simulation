@@ -13,8 +13,8 @@ Originalmente o sistema lia o resultado de **uma execução** (uma seed) por ins
 funciona*, mas frágil. A literatura de computação evolutiva e de balanceamento por
 busca dá um **protocolo experimental** que torna o resultado defensável e mais
 robusto. Os itens de **Tier 1** desse protocolo (mais o 3.2) **já foram incorporados**
-ao sistema — ver a seção de status ao final; os achados de seed única (ex.: o matchup
-Combo×Rush travado — [07](07-achados-e-limitacoes.md)) são exatamente o que ele pega.
+ao sistema — ver a seção de status ao final; os achados de seed única (um par travado
+numa seed) são exatamente o que ele pega.
 
 > **Nota:** os itens abaixo descrevem cada metodologia da literatura. O **estado de
 > adoção** de cada uma (implementado / citar / futuro) e o racional de escopo estão
@@ -82,13 +82,14 @@ sobreviver a um oponente que *se adapta* — não a uma política congelada.
 
 **No nosso sistema:** hoje o comportamento é a *soft-policy* fixa (pesos `w_*`). Um
 risco real: o equilíbrio observado pode ser **artefato da política fixa**. Proposta —
-manter as builds (os 7 atributos) e **coevoluir uma "estratégia adversária"** (os 3
+manter as builds (os 8 atributos) e **coevoluir uma "estratégia adversária"** (os 3
 pesos, ou uma política mais rica) que tenta *quebrar* o equilíbrio. Se um exploit
-existe (como o stun-lock Combo×Rush), a coevolução o encontra.
+existe contra o roster evoluído, a coevolução o encontra.
 
 **O que ganha:** responde a pergunta crítica *"o equilíbrio é robusto ou só vale
 para a política assumida?"* — uma das objeções mais fortes que a banca pode levantar.
-Transforma o stun-lock de achado anedótico em teste sistemático de robustez.
+Transforma a busca por exploits de inspeção anedótica em teste sistemático de
+robustez.
 
 **Custo/prioridade:** médio-alto (novo loop coevolutivo). **🟡 Média-alta** — forte
 candidato a *trabalho futuro* se não couber no escopo atual.
@@ -104,9 +105,9 @@ um jogador (proibindo uma ação, fixando um parâmetro) e observando o quanto o
 resultado muda. Se restringir a ação X não altera a WR, X é irrelevante ao balanço.
 
 **No nosso sistema:** generaliza o `sensitivity_analysis` (que já perturba ±σ por
-gene) para *restrição de ações*: rodar o combate desligando ATTACK/DEFEND/RETREAT de
-um lado e medir o Δ-WR. Aplicado ao Combo×Rush, mostra **quanto do 100/0 vem do
-stun-lock** (ex.: limitar o re-stun e ver a WR mover).
+gene) para *restrição de ações*: rodar o combate desligando uma postura
+(ADVANCE / RETREAT / DEFEND) ou o agarrão de um lado e medir o Δ-WR. Aplicado a um par
+travado, mostra **quanto do desequilíbrio vem de cada mecânica**.
 
 **O que ganha:** diagnóstico causal das mecânicas (não só "o gene importa", mas
 "*por qual mecânica* ele importa"), e uma ferramenta para classificar mecânicas
@@ -223,9 +224,10 @@ no `ga.py`/`nsga2.py`). Se a população colapsa cedo, justifica mexer em
 Revisão de escopo para um **TCC de graduação**: o objetivo é um sistema
 metodologicamente sólido **sem over-scoping**. O aparato de medição já está acima da
 régua de graduação; o risco a partir daqui não é falta de método, é o oposto — uma
-tese rica em maquinário e pobre em achados. **O valor seguinte está em rodar os
-experimentos reais (`multi_run` com 10+ seeds) e interpretar os números, não em
-construir mais ferramentas.** Decisão tomada:
+tese rica em maquinário e pobre em achados. **O valor seguinte estava em rodar os
+experimentos reais e interpretar os números, não em construir mais ferramentas** — e
+eles foram rodados: `multi_run` com 20 sementes, comparação estatística, validação
+externa e modelos nulos (resultados no `HANDOFF.md` §2). Decisão tomada:
 
 ### ✅ Implementado — entra como Metodologia + Resultados
 - **1.1 — N execuções + estatística agregada** (`src/tools/multi_run.py`): roda AG
@@ -241,8 +243,9 @@ construir mais ferramentas.** Decisão tomada:
   Resultados (qualidade/comparação de fronteiras sem inspeção visual).
 - **3.2 — Validação externa ao fitness** (`src/tools/external_validation.py`): fixa
   UM indivíduo e o reavalia sob K sementes de avaliação **novas** (≥10000), com
-  veredito robusto/frágil por matchup. → Metodologia (validação estilo Ludi; blinda
-  contra overfitting ao fitness).
+  veredito robusto/frágil do roster e a contagem de condições em que cada par e cada
+  boneco falham. → Metodologia (validação estilo Ludi; blinda contra overfitting ao
+  fitness).
 - **1.1 (parte estatística) — teste não-paramétrico** (`src/tools/compare_algorithms.py`):
   fecha o item que faltava do 1.1. Sobre as amostras por semente do `multi_run`, aplica
   **Mann-Whitney U** bicaudal + tamanho de efeito **Â₁₂ de Vargha-Delaney** + correção

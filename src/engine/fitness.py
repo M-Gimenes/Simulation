@@ -8,7 +8,8 @@ Os dois λ vêm de `config.py` mas são **estado de processo** (`set_lambdas` /
 `get_lambdas`), para que o sweep possa variá-los sem editar o arquivo.
 
 Os mesmos dois termos do NSGA-II — lá como objetivos de Pareto (sem ponderação),
-aqui como soma ponderada. O escalar é um ponto do trade-off que o NSGA-II mapeia.
+aqui como soma ponderada. Se o ponto do escalar cai sobre a fronteira do NSGA-II é
+medido, não suposto — ver `nsga2.scalar_objective`.
 
 `drift_penalty` mede identidade ESTRUTURAL (os genes continuam reconhecíveis). A
 identidade FUNCIONAL — como o personagem joga — e o ciclo de vantagens ficam fora
@@ -52,7 +53,7 @@ _DRIFT_WEIGHTS: Dict[ArchetypeID, List[float]] = {}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Reprodutibilidade — Common Random Numbers (reset ao seed-base)
+# Reprodutibilidade — Common Random Numbers (uma semente por luta)
 # ─────────────────────────────────────────────────────────────────────────────
 # Quando um seed-base é definido (via set_seed_base), cada LUTA do round-robin é semeada
 # por `fight_seed(seed_base, par, luta)`. Assim a luta k do par m recebe os mesmos sorteios
@@ -60,11 +61,12 @@ _DRIFT_WEIGHTS: Dict[ArchetypeID, List[float]] = {}
 # de fitness reflete genes, não sorteio → seleção menos enganada e paisagem mais lisa.
 # Reprodutível independente de qual worker/agendamento avalia.
 #
-# Semear por luta, e não uma vez por avaliação, é o que faz o pareamento valer: cada luta
-# consome um nº de sorteios proporcional à própria duração, então com um stream único a
-# primeira luta que durasse diferente em dois indivíduos deslocava a leitura de todas as
-# seguintes — inclusive as de pares idênticos nos dois —, e dali em diante a comparação
-# era entre sorteios independentes.
+# Semear por luta, e não uma vez por avaliação: cada luta consome um nº de sorteios
+# proporcional à própria duração, então com um stream único a primeira luta que durasse
+# diferente em dois indivíduos deslocava a leitura de todas as seguintes — inclusive as de
+# pares idênticos nos dois. Por luta, esses pares saem bit a bit iguais. O pareamento
+# ainda acaba DENTRO da luta de um personagem alterado: quando o gene muda o que acontece
+# nela, o resto se desenrola sob outros estados.
 
 _SEED_BASE: Optional[int] = None
 
@@ -243,7 +245,7 @@ class FitnessDetail:
 
 
 def drift_weights(archetype: ArchetypeDefinition) -> List[float]:
-    """Peso de cada um dos 10 genes no drift do arquétipo: DRIFT_DEFINING_WEIGHT
+    """Peso de cada um dos 11 genes no drift do arquétipo: DRIFT_DEFINING_WEIGHT
     para os `defining_genes`, 1.0 para o resto. Cacheado por arquétipo."""
     cached = _DRIFT_WEIGHTS.get(archetype.id)
     if cached is None:
@@ -257,7 +259,7 @@ def drift_weights(archetype: ArchetypeDefinition) -> List[float]:
 
 
 def canonical_genes(archetype: ArchetypeDefinition) -> List[float]:
-    """Os 10 genes canônicos na ordem de `Character.genes()`."""
+    """Os 11 genes canônicos na ordem de `Character.genes()`."""
     return list(archetype.initial_attributes) + list(archetype.initial_weights)
 
 

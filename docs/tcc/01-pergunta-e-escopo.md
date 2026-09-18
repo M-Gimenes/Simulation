@@ -7,25 +7,30 @@
 > Um Algoritmo Genético consegue atingir equilíbrio competitivo entre 5 arquétipos
 > distintos **sem destruir suas identidades funcionais**?
 
-## A decisão metodológica que sustenta a tese: não forçar identidade
+## A decisão metodológica que sustenta a tese: o fitness codifica a premissa, nunca a resposta
 
-- Os valores canônicos dos arquétipos servem como **semente da população inicial** e
-  como **baseline de medição de drift** — nunca como restrição rígida. O AG evolui
-  livremente; o desvio é *penalizado* de forma suave (`LAMBDA_DRIFT`), nunca
-  *hard-constrained*.
-- O **ciclo canônico de vantagens** (quem vence quem) **não é codificado em nenhuma
-  penalidade** — é medido *post-hoc*.
+- **Premissa** é o que cada arquétipo **é** — os valores canônicos e os genes que o
+  definem. Ela entra no fitness como **penalidade** de desvio (`drift_penalty`, via
+  `LAMBDA_DRIFT`), nunca como restrição rígida: o AG é livre para se afastar dela. Os
+  canônicos também servem de semente da população inicial do AG escalar.
+- **Resposta** é quem vence quem e se equilíbrio e identidade são compatíveis. O **ciclo
+  canônico de vantagens** **não é codificado em nenhuma penalidade** — é medido
+  *post-hoc*, junto da identidade **funcional** (como o personagem joga).
 
 ### O argumento de não-circularidade (central, deve aparecer explícito)
 
-Codificar o ciclo (ou a identidade) no fitness tornaria a pergunta **circular**: o AG
-"preservaria identidade" apenas porque foi pago para preservar. Ao manter identidade
-como algo **medido, não imposto**, o resultado — preservou ou não? — passa a ser um
-achado genuíno, não um artefato da função objetivo. Distinção fina, mas decisiva:
-- *penalizar* o drift (soft) = dar um custo à perda de identidade, mas deixar o AG
-  livre para pagá-lo se valer a pena → mede-se o trade-off;
+Codificar a resposta no fitness tornaria a pergunta **circular**: o ciclo apareceria só
+porque foi pago para aparecer. Distinção fina, mas decisiva:
+- *penalizar* o drift (soft) = dar um custo à perda de identidade estrutural, mas deixar
+  o AG livre para pagá-lo se valer a pena → mede-se o trade-off. E o AG paga: com a
+  penalidade ligada o tempo todo, ele troca identidade por equilíbrio — o termo existe e
+  pode perder;
 - *forçar* o ciclo (hard) = proibir certos resultados → não se mede nada, só se obtém
   o que foi imposto.
+
+A identidade que responde à pergunta — "identidades **funcionais**" — é medida por uma
+régua que o fitness não toca: comportamento e ciclo, post-hoc. Detalhe em
+[03-formulacao-do-fitness.md](03-formulacao-do-fitness.md).
 
 ## O experimento central
 
@@ -33,8 +38,10 @@ achado genuíno, não um artefato da função objetivo. Distinção fina, mas de
 resultados cientificamente válidos**. Comparar os dois cenários é o experimento:
 - o **NSGA-II** torna o trade-off explícito ao percorrer toda a fronteira (de "preserva
   e desequilibra" a "equilibra e homogeneíza");
-- o **AG escalar** dá um ponto dessa fronteira, com `LAMBDA_DRIFT = LAMBDA_DOMINANCE`
-  (pesos iguais).
+- o **AG escalar** dá uma solução do trade-off com pesos iguais
+  (`LAMBDA_DRIFT = LAMBDA_DOMINANCE`). Medido, ela não cai *sobre* a fronteira: fica além
+  da ponta de baixa dominância, e os dois são mutuamente não-dominados — cada algoritmo
+  alcança uma parte diferente do trade-off.
 
 Detalhe de como cada eixo é medido: [03-formulacao-do-fitness.md](03-formulacao-do-fitness.md).
 

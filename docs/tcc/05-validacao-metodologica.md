@@ -21,7 +21,7 @@ ferramenta está em [`../reference/08-tools.md`](../reference/08-tools.md).
   seed-base é propagado aos workers do paralelismo. Reprodutível independente de qual
   worker avalia, e a luta *k* do par *m* recebe os mesmos sorteios em todo indivíduo (a
   diferença de fitness reflete genes, não sorteio → seleção menos enganada). Detalhe técnico em
-  [`../09-reproducibility.md`](../reference/09-reproducibility.md).
+  [`../reference/09-reproducibility.md`](../reference/09-reproducibility.md).
 - **Ponto para a tese:** experimentos com `--seed` são **replicáveis** (afirmação que
   uma tese de método precisa poder fazer), e foi **verificado empiricamente**.
 
@@ -67,28 +67,27 @@ ferramenta está em [`../reference/08-tools.md`](../reference/08-tools.md).
 
 - **Pergunta:** um AG é estocástico — um resultado de **uma seed** é representativo, ou
   é azar/sorte daquela amostra?
-- **Como** (`multi_run`): rodar AG e NSGA-II sobre N sementes (10+), reavaliar o melhor
+- **Como** (`multi_run`): rodar AG e NSGA-II sobre N sementes (20 — o menor n com poder
+  ≥ 80% para um efeito grande), reavaliar o melhor
   indivíduo de cada uma sob uma seed de validação comum, e reportar **média ± desvio**
   de dominance/drift, **WR global por personagem** e a **fração de sementes que
   equilibram o roster** (5 bonecos em banda, 0 hard-counters). Fontes: Eiben & Smith 2015; Deb 2001.
 - **Para que serve na tese:** é o **piso metodológico** — substitui "numa execução, deu
   X" por *"em N execuções, X% equilibraram o roster; WR global média 50±k%"*.
-  Resolve diretamente a fragilidade de seed única (ex.: o Combo×Rush travado em uma
-  seed — [07](07-achados-e-limitacoes.md) — vira pergunta respondível: azar ou
-  estrutural?).
+  Resolve diretamente a fragilidade de seed única: um par travado numa seed vira
+  pergunta respondível — azar ou estrutural?
 
 ## Comparação estatística entre algoritmos (parte do item 1.1)
 
 - **Pergunta:** o `multi_run` dá média ± desvio de cada algoritmo. Quando a média de um
-  é melhor que a do outro, isso é diferença real ou amostragem de 10 execuções?
+  é melhor que a do outro, isso é diferença real ou amostragem de 20 execuções?
 - **Como** (`compare_algorithms`): sobre as amostras por semente já gravadas,
   **Mann-Whitney U** bicaudal (não-paramétrico, não assume normalidade) +
   **Â₁₂ de Vargha-Delaney** (tamanho de efeito — o `p` diz se a diferença existe, o Â₁₂
   diz se ela importa) + **Holm-Bonferroni** na família de métricas comparadas —
-  hoje 3, porque "bonecos em banda" dá 5/5 nas 20 execuções e Mann-Whitney é
-  indefinido em amostra conjunta constante. Fontes: Derrac
-  et al. 2011; Arcuri & Briand 2011; Vargha & Delaney 2000 (limiares do Â₁₂).
-  **Nenhuma das três está em `bibliografia.bib` ainda** — adicionar ao redigir.
+  hoje 3, porque "bonecos em banda" dá 5/5 em todas as execuções e Mann-Whitney é
+  indefinido em amostra conjunta constante. Fontes: Derrac et al. 2011; Arcuri & Briand
+  2011; Vargha & Delaney 2000 (limiares do Â₁₂); Holm 1979 — todas já nos três `.bib`.
   Explicação do aparato, do zero:
   [`../reference/12-statistical-testing.md`](../reference/12-statistical-testing.md).
 - **Para que serve na tese:** é o que separa "o AG escalar deu média menor" de "o AG
@@ -113,8 +112,9 @@ ferramenta está em [`../reference/08-tools.md`](../reference/08-tools.md).
   condições exatas (seed/sims) em que foi treinado?
 - **Como** (`external_validation`): fixar UM indivíduo e reavaliá-lo sob K sementes de
   avaliação **totalmente novas** (≥10000, fora do treino), com mais sims; marcar cada
-  matchup como **robusto** (equilibrado em TODAS as K condições) ou frágil, e dar um
-  **veredito do roster**. Fonte: Browne & Maire 2010 (Ludi).
+  boneco e cada matchup como **robusto** (em banda em TODAS as K condições) ou frágil,
+  contar em quantas condições cada um falha, e dar um **veredito do roster** binário.
+  Fonte: Browne & Maire 2010 (Ludi).
 - **Para que serve na tese:** blinda contra *overfitting ao fitness* — valida o
   artefato **fora do laço de otimização**, sobre condições que o AG nunca otimizou. A
   bateria de **identidade** (drift, fingerprint, validador) é determinística nos genes

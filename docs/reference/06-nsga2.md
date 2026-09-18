@@ -11,7 +11,7 @@ Otimiza **2 objetivos** simultaneamente, ambos minimizados, sem ponderação:
 | Objetivo | Significado |
 |---|---|
 | `dominance_penalty` | desbalanço: balanço global por personagem (primário) + teto de hard-counter + decisividade, RMS — ver [05](05-genetic-algorithm.md) |
-| `drift_penalty` | preservação de arquétipo (distância euclidiana ao canônico) |
+| `drift_penalty` | identidade estrutural: RMS ponderada dos desvios ao canônico, normalizados pelo range do bound — ver [05](05-genetic-algorithm.md) |
 
 `evaluate_objectives` retorna `(dominance_penalty, drift_penalty)` em escala
 bruta — os `LAMBDA_*` do fitness escalar são ignorados. O NSGA-II torna
@@ -42,8 +42,8 @@ Roda `NSGA2_GENERATIONS = 150` gerações fixas (fronteiras de Pareto não
 
 O NSGA-II usa `fitness.generation_seed(seed, g)`, a **mesma** função do AG escalar:
 protocolo de avaliação idêntico nos dois, senão a comparação entre eles confundiria
-"algoritmo" com "forma de avaliar" (justificativa e números em
-[09](09-reproducibility.md) e [05](05-genetic-algorithm.md)).
+"algoritmo" com "forma de avaliar" (mecanismo em [09](09-reproducibility.md), números em
+[tcc/04](../tcc/04-caminhos-e-decisoes.md)).
 
 A diferença é o **custo**. No AG escalar só os elites chegam medidos no stream
 anterior. Aqui, o passo (5) combina pais + filhos e re-ranqueia o conjunto inteiro —
@@ -67,27 +67,13 @@ alcançável** (o canônico *é* a referência, drift exatamente 0,0000), enquan
 `dominance` não é. Dominar `(dominance 1,2418, drift 0,0000)` exigiria `drift < 0`, que
 não existe — então o canônico é **imortal no rank 0**, por pior que seja o equilíbrio
 dele, e a mesma proteção se estende à vizinhança de drift ~0. O crowding não corrige:
-ele só poda quando um front **transborda** a população, e `front0` (78) nunca passou de
-120 na medição.
+ele só poda quando um front **transborda** a população. Com o seed, metade da fronteira
+era de rosters tão desequilibrados quanto o canônico intocado.
 
-Medido (pop 120, 60 gerações, seed 42, 80 sims/par), única diferença é a população
-inicial:
-
-| | com seed canônico | sem seed canônico |
-|---|---|---|
-| min `dominance` da fronteira | 0,2233 (estagnado) | **0,0896** (ainda caindo na gen 50) |
-| pontos com `dominance ≥ 1.0` | 40/78 (51%) | **1/44 (2%)** |
-| `front0` na geração 50 | 89/120 | **31/120** |
-| drift coberto pela fronteira | [0,000, 0,161] | [0,124, 0,300] |
-| queda do min dominance | 1ª metade −0,3970 · 2ª metade −0,0338 | monótona, sem platô |
-
-Metade da fronteira eram rosters tão desequilibrados quanto o canônico intocado,
-consumindo um terço da população **e um terço do esforço reprodutivo**.
-
-No **AG escalar o mesmo seed ajuda** e por isso fica: lá o fitness é um número só
-(`-(drift + dominance) = −1,2418`), o canônico é ruim nele e some da população depois de
-doar genes por crossover. Medido: com seed o escalar termina em drift 0,2874, sem seed em
-0,3365 — mesmo dominance.
+No **AG escalar o mesmo seed ajuda** e por isso fica: lá o fitness é um número só, o
+canônico é ruim nele e some da população depois de doar genes por crossover. As medições
+das duas metades estão em [tcc/04](../tcc/04-caminhos-e-decisoes.md) ("A população
+inicial do NSGA-II").
 
 > **Ressalva.** Isto remove a causa aguda (drift = 0 de graça na geração 0), não a
 > assimetria estrutural: o NSGA-II seleciona por drift baixo, então a população marcha
@@ -114,8 +100,9 @@ doar genes por crossover. Medido: com seed o escalar termina em drift 0,2874, se
   Por que ele existe: a afirmação "o escalar é *um ponto* do trade-off que o NSGA-II
   mapeia" só é testável contra o ponto que minimiza a **mesma** função que o escalar
   otimiza. O `ideal_point` minimiza a norma **L2**, que é outro ponto — com os LAMBDA
-  iguais, `scalar_optimum` é o mínimo **L1**. Sem esse representante a comparação entre
-  os dois algoritmos estava usando um comparável errado.
+  iguais, `scalar_optimum` é o mínimo **L1**. Medido no orçamento de produção, a afirmação
+  não vale literalmente: o ponto do escalar fica **além** da ponta de baixa dominância da
+  fronteira, e os dois são mutuamente não-dominados.
 
 ## Métricas de qualidade da fronteira (item 1.2 da metodologia)
 
@@ -136,7 +123,7 @@ configurações. `main.py` imprime ambos ao fim do run; `nsga2_plots` os anota n
 
 ## Saída
 
-`save_results` grava `results/nsga2_results.json` (fronteira completa, os 4
+`save_results` grava `results/nsga2_results.json` (fronteira completa, os 5
 representantes com genes e objetivos, e histórico por geração). Plots em
 `results/plots/nsga2/<timestamp>/` via `nsga2_plots.save_plots` (ver
 [08-tools.md](08-tools.md)) — anotados com hipervolume e spacing. Representantes

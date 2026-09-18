@@ -36,7 +36,7 @@ são reportadas sempre juntas, e é por isso que a tabela do tool tem as duas co
 
 ### Mann-Whitney U, em uma frase
 
-Teste **não-paramétrico** para duas amostras independentes: junta os 20 valores (10 de
+Teste **não-paramétrico** para duas amostras independentes: junta os 40 valores (20 de
 cada algoritmo), ordena, e pergunta se os do AG tendem a ficar sistematicamente acima
 ou abaixo dos do NSGA-II. Não assume normalidade — o que importa aqui, porque as
 métricas são limitadas por baixo em 0 e as inteiras (hard-counters) empatam muito.
@@ -175,7 +175,8 @@ julgamento entra depois de ver os p-valores.
 ## 6. O caso degenerado: quando não existe teste
 
 A métrica `n_chars_balanced` (quantos dos 5 personagens ficam em banda) deu **5 em
-todas as 20 execuções** — 10 do AG e 10 do NSGA-II.
+todas as execuções** dos dois algoritmos — 20 de 20 na bateria de 2026-09-16, 40 de 40 na
+de n = 20.
 
 Mann-Whitney devolve `p = nan`. Não é bug: o teste compara postos, e com todos os
 valores empatados a correção de empates zera o denominador da variância. Não há
@@ -249,8 +250,8 @@ concebível (2 métricas, só os dois objetivos do Pareto) leva o `drift` abaixo
 para em **0,0515**, acima por 0,0015. Não havia prêmio em escolher a família menor.
 
 O gargalo era **poder amostral**, e o remédio foi subir o número de sementes para 20
-(agenda de calibração, [`../../REVIEW.md`](../../REVIEW.md) §9 (7): 44,4% de poder a
-n = 10 contra 85,9% a n = 20). Foi aditivo, como previsto — as sementes 42–51 reproduziram
+(simulação de poder: 44,4% a n = 10 contra 85,9% a n = 20 — ver
+[`../tcc/04-caminhos-e-decisoes.md`](../tcc/04-caminhos-e-decisoes.md)). Foi aditivo, como previsto — as sementes 42–51 reproduziram
 bit a bit na bateria de n = 20.
 
 ### O que o n = 20 mostrou sobre o tamanho do efeito
@@ -313,6 +314,6 @@ Ordem sugerida — do que explica o procedimento para o que justifica usá-lo aq
 | **Vargha, A. & Delaney, H. D. (2000).** *A Critique and Improvement of the CL Common Language Effect Size Statistics…* JEBS 25(2), 101–132. | De onde vem o Â₁₂ e os limiares de magnitude. |
 | **Mann, H. B. & Whitney, D. R. (1947).** Annals of Mathematical Statistics 18(1), 50–60. | O teste original. |
 
-> ⚠️ **Nenhuma dessas está nos `.bib` do projeto** — nem em `overleaf/TCC/bibliografia.bib`,
-> nem nos dois `referencias.bib`. Item aberto, registrado em [`../../REVIEW.md`](../../REVIEW.md) §6.
+> Holm, Derrac, Arcuri & Briand, Vargha & Delaney e Mann & Whitney estão nos três `.bib`
+> do projeto (`overleaf/TCC/bibliografia.bib` e os dois `referencias.bib`); Dunn não está.
 > Verificar cada entrada na fonte antes de citar.

@@ -2,7 +2,7 @@
 
 **Entra em**: Metodologia (formulação do AG).
 
-> As **fórmulas** estão em [`../05-genetic-algorithm.md`](../reference/05-genetic-algorithm.md).
+> As **fórmulas** estão em [`../reference/05-genetic-algorithm.md`](../reference/05-genetic-algorithm.md).
 > Aqui está o **significado e a justificativa** de cada escolha, para o texto da
 > metodologia.
 
@@ -71,7 +71,9 @@ funcionado, e o texto precisa dizer isso.
 ## `drift_penalty` — a operacionalização de "identidade estrutural"
 
 **RMS ponderada** dos desvios normalizados de cada personagem ao seu perfil canônico
-(sobre os 10 genes). **É a tradução numérica de "preservação de identidade estrutural"**
+(sobre os 11 genes, com os 3 pesos comportamentais reescalados para a soma canônica —
+só a razão entre eles afeta o combate). **É a tradução numérica de "preservação de
+identidade estrutural"**
 — o eixo que a pergunta de pesquisa coloca em tensão com o equilíbrio — e o **verdadeiro
 mecanismo anti-homogeneização** (puxa cada personagem para um canônico distinto). Com
 `LAMBDA_DRIFT = LAMBDA_DOMINANCE`, identidade e equilíbrio pesam na mesma escala.
