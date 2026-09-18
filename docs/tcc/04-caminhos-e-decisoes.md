@@ -1018,3 +1018,34 @@ Turtle, fora em **9/10** condições — sistemático. O `knee_point` tem sete p
 dois **esporádicos**, Zoner × Rushdown em 4/10 e Combo Master × Turtle em 6/10: ali o
 veredito FRÁGIL é certo pelos sete, e os dois são o tipo de caso que a contagem existe para
 não confundir com eles.
+
+## O pool de processos ficou persistente (2026-09-18)
+
+**Problema.** A avaliação paralela criava um `ProcessPoolExecutor` novo a cada geração, e
+cada worker novo re-importa o motor e recarrega o JIT. Numa geração de 300 indivíduos isso
+custava mais que a própria avaliação: **3,87 s com pool novo contra 1,04 s com o pool
+vivo**. A bateria de n = 20 levou 5h54 e os sweeps ~3h, grande parte gasta subindo
+processos. Estava registrado por que não se fazia: com workers vivos, as mudanças de estado
+do pai depois que eles nascem — o seed-base a cada geração (rotação do stream), os pesos a
+cada braço de sweep — não chegariam a eles, e um worker avaliaria sob o estado velho sem
+sintoma nenhum.
+
+**Mudança.** Inverter onde o estado mora. O `RuntimeState` (seed-base, λ, pesos do
+dominance) deixou de ir no `initializer` do pool e passou a viajar com **cada tarefa**; o
+worker o aplica antes de toda avaliação (`fitness.parallel_map`). Com isso o pool pode viver
+o processo inteiro — todas as gerações e todas as sementes de um `multi_run` — sem nenhum
+worker jamais avaliar sob estado velho. `N_WORKERS` virou `min(8, os.cpu_count())`: o teto de
+8 protege do `WinError 1455`, e com o pool vivo 8, 12 e 16 workers ficam dentro do ruído.
+
+**Resultado.** Nenhum número muda, e isso foi verificado, não inferido. O teste de paridade
+paralelo × serial passou a trocar seed-base e pesos entre avaliações servidas pelo mesmo pool
+vivo. E a seed 42 de produção reproduziu **bit a bit** nos dois algoritmos: o AG no fitness,
+no `converged_at` 39 e nas 150 gerações do histórico, em **3,0 min contra 6,7**; o NSGA-II na
+fronteira inteira de 64 pontos e nos 5 representantes, em **5,8 min contra 9,7**. O ganho por
+execução (2,2× e 1,7×) é menor que o por geração porque a avaliação de rosters evoluídos
+pesa mais que a de aleatórios, e o spawn vira fração menor.
+
+**Consequência declarada:** a mudança altera o código de `src/engine/`, logo o digest de
+todo artefato, e `results/` passa a ler "obsoleto" mesmo com os números idênticos. A regra da
+seção anterior vale aqui: re-carimbar exige reproduzir **cada** artefato, e reproduzir todos
+é rodar a bateria. Ela custa agora ~3h20 estimadas, e os sweeps ~1h20.

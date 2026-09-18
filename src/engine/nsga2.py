@@ -12,10 +12,8 @@ from __future__ import annotations
 
 import json
 import math
-import os
 import random
 import time
-from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
 import numpy as np
@@ -33,8 +31,7 @@ from .fitness import (
     generation_seed,
     get_lambdas,
     get_seed_base,
-    init_worker,
-    runtime_state,
+    parallel_map,
     set_seed_base,
 )
 from .individual import Individual
@@ -236,11 +233,7 @@ def _evaluate_population(pop: List[Individual]) -> None:
         for ind in unevaluated:
             evaluate_objectives(ind)
         return
-    with ProcessPoolExecutor(
-        max_workers=N_WORKERS, initializer=init_worker, initargs=(runtime_state(),)
-    ) as executor:
-        results = list(executor.map(_objectives_worker, unevaluated))
-    for ind, objs in zip(unevaluated, results):
+    for ind, objs in zip(unevaluated, parallel_map(_objectives_worker, unevaluated)):
         ind.objectives = objs
 
 
@@ -323,9 +316,8 @@ def run(
     _assign_rank_and_crowding(population)
 
     if verbose:
-        n_workers = N_WORKERS if N_WORKERS is not None else os.cpu_count()
         print(
-            f"NSGA-II | pop={pop_size}  gens={n_generations}  workers={n_workers}  "
+            f"NSGA-II | pop={pop_size}  gens={n_generations}  workers={N_WORKERS}  "
             f"objectives=(dominance, drift)"
         )
 
@@ -344,12 +336,8 @@ def run(
             for ind in population:
                 ind.invalidate_fitness()
 
-        # UMA chamada para pais + filhos, não duas. `_evaluate_population` já filtra
-        # quem tem objetivo em cache, então sem rotação isto avalia só os filhos —
-        # mesmo comportamento de antes. Com rotação, avaliar em duas chamadas criava
-        # DOIS `ProcessPoolExecutor` por geração, cada um subindo N_WORKERS processos
-        # que carregam llvmlite: a bateria de 2026-09-16 morreu por estouro de commit
-        # do Windows exatamente aí (o mesmo modo de falha já registrado em N_WORKERS).
+        # Pais + filhos numa chamada só: `_evaluate_population` filtra quem tem objetivo
+        # em cache, então sem rotação isto avalia só os filhos.
         combined = population + offspring
         _evaluate_population(combined)
         fronts   = _assign_rank_and_crowding(combined)

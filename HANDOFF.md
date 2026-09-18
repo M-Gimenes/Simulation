@@ -18,11 +18,16 @@ e da **run noturna de 2026-09-18**: os três sweeps exploratórios e a bateria c
 
 1. **O ambiente não sobe sozinho.** `.venv/` é gitignored e o Python do sistema (3.14)
    não tem `numpy`/`numba`/`scipy`. Rode `setup.ps1` antes de qualquer coisa.
-2. **`results/` está ATUAL e COMPLETO** — bateria de **2026-09-18 com n = 20**, sob o
-   motor final (rotação do stream, persistência 5, drift invariante à escala dos pesos).
-   Rodou à noite: `run_sweeps.ps1` (16 braços, ~3h) e, emendada por `run_overnight.ps1`,
-   a bateria (11 passos, 5h54), sem nenhuma falha; `test_provenance` dá todos os
-   artefatos como atuais. As sementes 42–51
+2. **`results/` está COMPLETO, mas carimbado como OBSOLETO até a próxima bateria** — e os
+   números não mudam. Depois da bateria, o pool de processos ficou persistente (§4): muda o
+   código de `src/engine/`, logo o digest de todo artefato, sem mudar número nenhum — a
+   seed 42 reproduziu bit a bit nos dois algoritmos. **Rodar `.\run_overnight.ps1`** (16
+   braços + bateria, ~4h40 estimadas contra as ~9h da última vez) e conferir com
+   `test_provenance`.
+   Os números são os da bateria de **2026-09-18 com n = 20**, sob o motor final (rotação
+   do stream, persistência 5, drift invariante à escala dos pesos). Ela rodou à noite:
+   `run_sweeps.ps1` (16 braços, ~3h) e, emendada por `run_overnight.ps1`, a bateria (11
+   passos, 5h54), sem nenhuma falha. As sementes 42–51
    reproduziram **bit a bit** a bateria de n = 10, e os artefatos da seed 42 saíram
    idênticos aos de 2026-09-17. Números em §3. Headlines: as **três métricas da família de
    Holm seguem significativas a n = 20**, todas com efeito grande; a degradação entre o
@@ -831,7 +836,7 @@ Inventário completo e comentado em
   script agora são os tempos medidos). As três métricas de Holm seguem significativas.
   Números na §3.
 
-**Instrumentação — fechada em 2026-09-17** (§1.2 e §4 do known-issues):
+**Instrumentação — fechada** (§1.2 e §4 do known-issues):
 
 - ✅ **Carimbo de proveniência em todo artefato** (`src/engine/provenance.py`): timestamp,
   `fingerprint`, toda constante de `config.py` valor a valor, digest dos canônicos e digest
@@ -845,8 +850,22 @@ Inventário completo e comentado em
   `convergence` (taxa + geração média entre as que convergiram). A assimetria com o
   NSGA-II fica declarada: ele devolve `None` e a chave não aparece no agregado dele.
   **Medido sobre as 20 sementes** (§3).
-- Segue aberto: pool de processos recriado a cada geração; `N_WORKERS = 8` é específico
-  desta máquina.
+- ✅ **`MULTI_RUN_N_SEEDS = 20` e fora do carimbo** (2026-09-18). A bateria rodava com
+  `--n-seeds 20` sobre um default de 10, e um `multi_run` sem o flag gravaria n = 10 por
+  cima dela. A constante só define o tamanho da amostra, que o corpo do artefato já grava,
+  então saiu do carimbo como `N_WORKERS` — e `compare` a ignora também do lado gravado,
+  senão a exclusão invalidaria a bateria que existe para proteger.
+- ✅ **Pool de processos persistente** (2026-09-18). Recriado a cada geração, ele custava
+  mais que a própria avaliação: **3,87 s → 1,04 s** por geração de 300. O `RuntimeState`
+  viaja com cada tarefa em vez de ir no `initializer`, então um worker vivo nunca avalia
+  sob o seed-base de uma geração anterior. Reprodução da seed 42 com o pool novo, **bit a
+  bit** igual nos dois algoritmos: o AG no fitness, no `converged_at` 39 e nas 150 gerações
+  do histórico (3,0 min contra 6,7); o NSGA-II na fronteira inteira de 64 pontos e nos 5
+  representantes (5,8 min contra 9,7). `N_WORKERS = min(8, os.cpu_count())`: o teto protege do
+  `WinError 1455`, e com o pool vivo 8, 12 e 16 workers ficam dentro do ruído.
+- ✅ **Veredito da validação externa com contagem** (2026-09-18). O veredito segue binário;
+  o relato passou a dizer em quantas das 10 condições cada par vira counter e cada boneco
+  fica na banda (§3).
 
 **Limites estruturais — escopo declarado, não conserto** (§2): política fixa (a objeção
 mais forte ao resultado) e **cega ao estado**; crossover só por bloco de personagem;

@@ -48,7 +48,7 @@ Menores (sem impacto em resultado, mas sujeira para banca) em §7.
 
 ## 1. Ambiente e execução
 
-- [ ] **Pool de processos recriado a cada geração.** *Fato:* `fitness.evaluate_population`
+- [x] **Pool de processos recriado a cada geração.** *Fato:* `fitness.evaluate_population`
   (e o equivalente em `nsga2.py`) cria um `ProcessPoolExecutor` novo por geração, então
   o custo de spawn escala com o nº de workers. Medido nesta máquina, uma geração de 300
   indivíduos: 1w 4,56s | 4w 1,66s | **8w 1,28s** | 12w 1,41s | 16w 1,62s | 20w 1,91s |
@@ -57,11 +57,21 @@ Menores (sem impacto em resultado, mas sujeira para banca) em §7.
   `N_WORKERS = 8`. *Pergunta:* vale trocar por um pool persistente? Ganho provável
   grande, mas exige propagar mudanças de `_SEED_BASE` para workers vivos — plumbing de
   reprodutibilidade.
-- [ ] **`N_WORKERS = 8` é específico desta máquina.** *Pergunta:* deixar fixo e
+  **Fechado em 2026-09-18: pool persistente.** A plumbing ficou trivial ao inverter onde o
+  estado mora: o `RuntimeState` viaja com **cada tarefa**, em vez de ir no `initializer`, e
+  o worker o aplica antes de toda avaliação — nunca há estado velho num worker vivo. Medido
+  numa geração de 300: **3,87 s → 1,04 s**, bit-idêntico. O teste de paridade paralelo ×
+  serial passou a trocar seed-base e pesos entre avaliações no mesmo pool, e a seed 42 de
+  produção reproduziu bit a bit nos dois algoritmos (AG 6,7 → 3,0 min; NSGA-II 9,7 → 5,8).
+- [x] **`N_WORKERS = 8` é específico desta máquina.** *Pergunta:* deixar fixo e
   documentado (hoje), ou derivar de `os.cpu_count()` com teto?
   **Verificado:** a decisão não é respeitada em toda parte — `sensitivity_analysis` tem
   `--workers` com default `None`, que resolve para todos os núcleos e reabre exatamente
   o cenário do `WinError 1455`. Ver §7.
+  **Fechado em 2026-09-18:** `N_WORKERS = min(8, os.cpu_count())` — o teto de 8 protege
+  do `WinError 1455`, e numa máquina menor o pool usa o que ela tem. Com o pool
+  persistente, 8, 12 e 16 workers ficam dentro do ruído entre si. O `sensitivity_analysis`
+  já usa `N_WORKERS` como default.
 - [ ] **Alinhamento CRN imperfeito depois do 1º matchup.** *Fato:* cada luta consome um
   nº variável de sorteios, então a posição do stream diverge entre indivíduos nos
   matchups seguintes. *Pergunta:* aceitar (documentado) ou semear por
@@ -256,10 +266,11 @@ corrigidos; o quadro macro do modelo ficou registrado abaixo.
   1,2690) — o ponto de partida do problema. Os três passam. Detalhe, mais as duas limitações
   declaradas junto (5 genes colados no bound, 4 deles definidores; e a mudança de canônico
   invalidar todo drift já medido), na §9 (4).
-- [ ] **Turtle no teto do bound de HP (450).** *Pergunta:* um canônico colado no bound
+- [x] **Turtle no teto do bound de HP (450).** *Pergunta:* um canônico colado no bound
   limita a exploração do AG num lado só; é intencional?
   **Verificado:** na prática o AG foi para o **outro** lado — o Turtle evoluído tem
-  HP 287,6 (o mínimo do bound é 250). O teto não foi o que restringiu.
+  HP 287,6 (o mínimo do bound é 250). O teto não foi o que restringiu. Fechado junto com
+  os canônicos (item acima): colado no bound por design, e declarado como limitação.
 - [x] **Normalização do drift usa `x / hi`** (fração do máximo do bound), não
   `(x − lo) / (hi − lo)`. *Pergunta:* a escolha é deliberada? Ela faz genes com `lo`
   alto (ex.: HP, mín 250) parecerem menos deslocados do que estão.
@@ -569,7 +580,9 @@ corrigidos; o quadro macro do modelo ficou registrado abaixo.
   dispara **50%** das vezes, em 0,20 um 7-3 verdadeiro escapa **50%**. Em **0,15** — o ponto
   médio do único vão que importa — um 6-4 dispara 10,6% e um 7-3 é pego 90,9%. Subir sims
   estreita as duas caudas sem mexer no cap.
-- [ ] **Pesos 1.0 / 0.5 / 0.5 dos três termos do dominance.** Nunca variados.
+- [x] ~~**Pesos 1.0 / 0.5 / 0.5 dos três termos do dominance.** Nunca variados.~~
+  **Varridos em 2026-09-17** — os secundários são indispensáveis (sem eles, 10/10 counters
+  duros) e a repartição fica. Tabela em [`docs/tcc/04`](docs/tcc/04-caminhos-e-decisoes.md).
   *Pergunta:* o que muda na fronteira ao mexer neles? (ver (B): hoje o termo com peso
   0,5 de decisividade é o que decide a comparação entre algoritmos).
 - [x] ~~**A análise de sensibilidade mede no ponto errado do espaço.**~~ *Fato:* ela roda
@@ -969,6 +982,7 @@ tudo o que muda número tem de ser resolvido **antes** de uma única regeneraç�
 | 11 | **instrumentação** — proveniência nos artefatos + marcos de convergência por semente | um artefato que não carrega a config que o produziu não se auto-verifica; e sem os marcos, "velocidade" é n = 1 | ✅ 2026-09-17 |
 | 12 | **sweeps** de `LAMBDA_DRIFT`, pesos do dominance e elitismo/torneio, em orçamento reduzido | exploratório quer ORDENAÇÃO, e ordenação transfere de orçamento — ~10 min por braço | ✅ 2026-09-17/18: os três testaram o valor vigente e ele passou; `config.py` inalterado |
 | 13 | **bateria** — `run_battery.ps1` (n = 20) | poder estatístico: 44,4% → 85,9% | ✅ 2026-09-18: as três métricas de Holm significativas |
+| 14 | **pendências do known-issues** — default de sementes fora do carimbo, pool persistente, contagem no veredito externo | nenhuma muda número; o pool muda o digest do motor | ✅ 2026-09-18; falta re-rodar sweeps + bateria (`run_overnight.ps1`) para re-carimbar |
 
 > Fechado o passo 7, a decisão seguinte não é um item desta tabela e sim a
 > **[agenda de calibração (§9)](#9-agenda-de-calibração--as-constantes-provisórias-com-evidência)**:

@@ -67,22 +67,22 @@ py -m src.tools.web_viewer                      # browser viewer em localhost:80
 Scripts retomáveis (`-From N` retoma de um passo; `-WhatIf` só lista e estima o custo):
 
 ```powershell
-.\run_sweeps.ps1     # 16 bracos exploratorios em orcamento reduzido (~2h56)
-.\run_battery.ps1    # a bateria citavel, n = 20 sementes (~6h)
+.\run_sweeps.ps1     # 16 bracos exploratorios em orcamento reduzido (~1h20)
+.\run_battery.ps1    # a bateria citavel, n = 20 sementes (~3h20)
 .\run_overnight.ps1  # encadeia os dois e roda desassistido
 ```
 
 > **Nesta ordem.** Implementar um braço de sweep mexe no motor, e mexer no motor depois da
-> bateria faria 6h de artefato nascerem carimbados como obsoletos. A bateria é sempre a
+> bateria faria horas de artefato nascerem carimbados como obsoletos. A bateria é sempre a
 > última coisa a rodar.
 
-`run_overnight.ps1` é para deixar rodando sozinho: ele espera os sweeps terminarem (rodar
-os dois ao mesmo tempo dobra o tempo de ambos e arrisca estourar o limite de commit do
-Windows), declara ao Windows que há trabalho em andamento — via `SetThreadExecutionState`,
-que impede suspensão/hibernação enquanto ele vive e **solta sozinho no fim**, em vez de
-mexer no plano de energia global que ninguém lembra de desfazer —, e emenda a bateria com
-**uma** retomada automática se um passo falhar. Tudo com carimbo de hora em
-`results/overnight.log`.
+`run_overnight.ps1` é para deixar rodando sozinho. Ele roda os sweeps, ou espera terminarem
+se já estiverem rodando (os dois ao mesmo tempo dobram o tempo de ambos e arriscam estourar
+o limite de commit do Windows), e emenda a bateria com **uma** retomada automática se um
+passo falhar. Enquanto roda, declara ao Windows que há trabalho em andamento via
+`SetThreadExecutionState`, que impede suspensão/hibernação e **solta sozinho no fim**, em
+vez de mexer no plano de energia global que ninguém lembra de desfazer. Tudo com carimbo de
+hora em `results/overnight.log`.
 
 ## Tests
 

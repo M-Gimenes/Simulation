@@ -21,7 +21,7 @@ import math
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass, field
 from itertools import combinations
-from typing import Dict, List, NamedTuple, Optional, Tuple
+from typing import Callable, Dict, List, NamedTuple, Optional, Tuple, TypeVar
 
 from .combat import seed_combat, simulate_combat
 from .archetypes import ArchetypeDefinition, ArchetypeID
@@ -81,8 +81,8 @@ def get_seed_base() -> Optional[int]:
 # `from .config import X` congela o valor no import.
 #
 # Mesmo padrão do `_SEED_BASE`, inclusive na parte que mais importa — a propagação aos
-# workers (ver `runtime_state` / `init_worker`): no Windows o pool nasce por spawn e
-# re-importa o módulo, então sem propagar explicitamente os workers avaliariam com os
+# workers (ver `runtime_state` / `apply_runtime_state`): no Windows o pool nasce por spawn
+# e re-importa o módulo, então sem propagar explicitamente os workers avaliariam com os
 # pesos do `config.py` enquanto o pai usa os do braço, e a divergência sairia como
 # RESULTADO em vez de erro — um braço inteiro medindo a configuração errada, sem sintoma.
 #
@@ -139,7 +139,7 @@ def get_dominance_weights() -> Tuple[float, float, float]:
 class RuntimeState(NamedTuple):
     """Todo o estado de processo que um worker **não** herda por spawn.
 
-    Existe como um objeto só, e não como argumentos soltos do `init_worker`, porque o modo
+    Existe como um objeto só, e não como argumentos soltos, porque o modo
     de falha aqui é *esquecer de propagar um*: o pool passaria a avaliar sob uma
     configuração diferente da do pai e o resultado sairia como número plausível. Com um
     bundle, acrescentar um peso novo ao estado o propaga automaticamente — e os nomes
@@ -477,17 +477,50 @@ def evaluate(individual: Individual) -> float:
 # ─────────────────────────────────────────────────────────────────────────────
 # Avaliação em lote
 # ─────────────────────────────────────────────────────────────────────────────
+#
+# O pool de processos é PERSISTENTE: sobe na primeira avaliação paralela e serve todas as
+# gerações — e todas as sementes de um `multi_run`. Recriá-lo por geração custava mais que
+# a própria avaliação, porque cada worker novo re-importa o motor e recarrega o JIT: numa
+# geração de 300 indivíduos, 3,87 s com pool novo contra 1,04 s com o pool vivo.
+#
+# O preço de manter os workers vivos é que o estado de processo muda DEPOIS que eles
+# nascem — o `_SEED_BASE` a cada geração (rotação do stream), os pesos a cada braço de
+# sweep. Por isso o `RuntimeState` viaja com cada tarefa, e não no `initializer`: o worker
+# aplica o estado do pai antes de toda avaliação e nunca avalia sob um estado velho.
+
+_T = TypeVar("_T")
+_POOL: Optional[ProcessPoolExecutor] = None
+
+
+def _pool() -> ProcessPoolExecutor:
+    global _POOL
+    if _POOL is None:
+        _POOL = ProcessPoolExecutor(max_workers=N_WORKERS)
+    return _POOL
+
+
+def apply_runtime_state(state: RuntimeState) -> None:
+    """Aplica neste processo o estado de processo do pai. Ver `RuntimeState`."""
+    set_seed_base(state.seed_base)
+    set_lambdas(state.lambda_drift, state.lambda_dominance)
+    set_dominance_weights(state.dominance_global, state.dominance_cap, state.dominance_decis)
+
+
+def _run_task(task: Tuple[RuntimeState, Callable[[Individual], _T], Individual]) -> _T:
+    state, worker, individual = task
+    apply_runtime_state(state)
+    return worker(individual)
+
+
+def parallel_map(worker: Callable[[Individual], _T], individuals: List[Individual]) -> List[_T]:
+    """`worker` aplicado a cada indivíduo no pool persistente, sob o estado vigente do pai.
+    `worker` tem de ser função de nível de módulo — ela viaja ao worker por nome."""
+    state = runtime_state()
+    return list(_pool().map(_run_task, [(state, worker, ind) for ind in individuals]))
 
 
 def _eval_worker(ind: Individual) -> float:
     return evaluate_detail(ind).fitness
-
-
-def init_worker(state: RuntimeState) -> None:
-    """Aplica no worker o estado de processo do pai. Ver `RuntimeState`."""
-    set_seed_base(state.seed_base)
-    set_lambdas(state.lambda_drift, state.lambda_dominance)
-    set_dominance_weights(state.dominance_global, state.dominance_cap, state.dominance_decis)
 
 
 def evaluate_population(population: List[Individual]) -> None:
@@ -500,12 +533,7 @@ def evaluate_population(population: List[Individual]) -> None:
             evaluate(ind)
         return
 
-    with ProcessPoolExecutor(
-        max_workers=N_WORKERS, initializer=init_worker, initargs=(runtime_state(),)
-    ) as executor:
-        fitnesses = list(executor.map(_eval_worker, unevaluated))
-
-    for ind, fit in zip(unevaluated, fitnesses):
+    for ind, fit in zip(unevaluated, parallel_map(_eval_worker, unevaluated)):
         ind.fitness = fit
 
 

@@ -81,6 +81,9 @@ conhecida, hoje corrigida.)
 ## Paralelismo
 
 `fitness.evaluate_population` e `nsga2._evaluate_population` distribuem as
-avaliações por `ProcessPoolExecutor` (`N_WORKERS = None` → todos os núcleos).
-Cada indivíduo é avaliado num worker independente. Implicações de
+avaliações por `fitness.parallel_map`, sobre um `ProcessPoolExecutor` **persistente**:
+sobe na primeira avaliação paralela e serve todas as gerações (e todas as sementes de um
+`multi_run`), com `N_WORKERS = min(8, núcleos)` processos. O estado de processo do pai
+(`RuntimeState`) viaja com cada tarefa, e não no `initializer`, porque muda depois que os
+workers nascem — o seed-base a cada geração, os pesos a cada braço de sweep. Implicações de
 reprodutibilidade em [09-reproducibility.md](09-reproducibility.md).

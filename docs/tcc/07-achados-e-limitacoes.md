@@ -161,8 +161,13 @@ Consequências para a redação:
 
 A base experimental está **fechada**: motor e fitness calibrados, os três sweeps
 exploratórios feitos e a bateria com n = 20 regerada sob o motor final (2026-09-18).
-Backlog técnico restante em [`../reference/10-known-issues.md`](../reference/10-known-issues.md)
-— nenhum item ali muda número já medido. Em termos de tese, falta a **redação**: a
+As pendências de instrumentação de
+[`../reference/10-known-issues.md`](../reference/10-known-issues.md) também estão fechadas; o
+que resta lá são os limites estruturais, que são escopo declarado e vão para a Discussão.
+Uma operação pendente, sem efeito em número: o pool de processos ficou persistente depois da
+bateria, o que mudou o digest do motor, e a bateria precisa rodar de novo para os artefatos
+voltarem a ler "atual" — a seed 42 já reproduziu bit a bit. Em termos de tese, falta a
+**redação**: a
 monografia e os artigos descrevem gerações anteriores do modelo, e o `values.tex` está
 inteiramente obsoleto (ver [`../../HANDOFF.md`](../../HANDOFF.md) §5). Os números a citar
 saem de `results/` e do `HANDOFF.md` §3 — nunca de rodadas anteriores ao motor atual, que

@@ -141,8 +141,10 @@ Como funciona:
   antes do round-robin. Todo indivíduo de uma mesma geração é avaliado sob o mesmo
   stream de RNG → a diferença de fitness reflete **genes, não sorteio** (CRN),
   tornando a seleção menos enganada e a paisagem mais lisa. Reprodutível
-  independente de qual worker a avalia ou do agendamento do `ProcessPoolExecutor`
-  (o seed-base é propagado aos workers via `initializer`).
+  independente de qual worker a avalia ou do agendamento do `ProcessPoolExecutor`: o
+  pool é persistente, e o estado do pai (`RuntimeState` — seed-base, λ, pesos do
+  dominance) viaja com **cada tarefa**, então um worker vivo nunca avalia sob o
+  seed-base de uma geração anterior.
 - **O stream MUDA a cada geração** (`fitness.generation_seed(base, geração)` =
   `base × GENERATION_SEED_STRIDE + geração`), e é a fonte única do protocolo,
   consumida pelos **dois** algoritmos. O CRN vale **dentro** da geração, não através
@@ -181,4 +183,5 @@ Como funciona:
 - **`analyze_matchups --seed`** semeia o combate também.
 
 Verificado empiricamente: determinismo por-indivíduo, seeds-base distintos dão
-fitness distinta, e paralelo == serial (propagação aos workers).
+fitness distinta, e paralelo == serial (propagação aos workers) — inclusive com o pool
+vivo atravessando trocas de seed-base e de pesos (`test_provenance`).

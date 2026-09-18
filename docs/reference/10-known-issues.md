@@ -119,18 +119,9 @@ flags no `multi_run` e o registro em `provenance.override`.
 
 ### 1.2 Instrumentação
 
-Os dois itens que estavam aqui — carimbo de proveniência nos artefatos e marcos de
-convergência por semente — foram **fechados em 2026-09-17**; ver §4. O que resta:
-
-- **O pool de processos é recriado a cada geração.** `fitness.evaluate_population` (e o
-  equivalente no `nsga2.py`) instancia um `ProcessPoolExecutor` novo por geração, então o
-  custo de spawn escala com o nº de workers. Medido nesta máquina, uma geração de 300
-  indivíduos: 1w 4,56s | 4w 1,66s | **8w 1,28s** | 12w 1,41s | 16w 1,62s | 20w 1,91s |
-  28w 2,77s. Com o default (`None` → 28 núcleos) os processos carregando llvmlite
-  estouravam o limite de commit do Windows (`WinError 1455`), daí `N_WORKERS = 8` fixo —
-  valor **específico desta máquina**. Um pool persistente teria ganho provável grande, mas
-  exige propagar mudanças de `_SEED_BASE` para workers vivos: plumbing de
-  reprodutibilidade, e a rotação do stream por geração torna isso mais delicado, não menos.
+**Nenhuma aberta.** Os quatro itens que estiveram aqui — carimbo de proveniência, marcos
+de convergência por semente (2026-09-17), o default de `MULTI_RUN_N_SEEDS` e o pool de
+processos (2026-09-18) — estão fechados; ver §4.
 
 ## 2. Limites estruturais do método (decisões, não bugs)
 
@@ -177,10 +168,14 @@ Precisam aparecer explicitamente na Discussão, não só em Trabalhos Futuros.
 
 ## 3. Estado dos artefatos em `results/`
 
-> ✅ **`results/` está ATUAL e COMPLETO** — bateria de 2026-09-18 com **n = 20**, sob o
-> motor final (rotação do stream por geração, `ACTION_PERSISTENCE_SUBTICKS = 5`, drift
-> invariante à escala dos pesos), a primeira gerada inteira com o carimbo de proveniência.
-> Números no [`../../HANDOFF.md`](../../HANDOFF.md) §3.
+> ⚠️ **`results/` está COMPLETO, mas carimbado como OBSOLETO até a próxima bateria.** Os
+> números são os da bateria de 2026-09-18 com **n = 20**, sob o motor final (rotação do
+> stream por geração, `ACTION_PERSISTENCE_SUBTICKS = 5`, drift invariante à escala dos
+> pesos) — números no [`../../HANDOFF.md`](../../HANDOFF.md) §3. Depois dela, o pool de
+> processos ficou persistente: isso muda o código de `src/engine/` e portanto o digest de
+> todo artefato, embora não mude número nenhum (seed 42 reproduzida bit a bit, §4). A
+> regra é regerar, não re-carimbar por inferência: `.\run_overnight.ps1` roda os 16
+> braços e a bateria, e ao fim `test_provenance` deve dar tudo como atual.
 
 **Regra que continua valendo:** ao mexer em `config.py`, nos canônicos ou no motor, todo
 `results/` fica obsoleto **de uma vez** — não há versionamento parcial; o carimbo de
@@ -321,6 +316,17 @@ Resolvido e verificado; o raciocínio completo está em
   carimbo faria a troca do default invalidar a bateria inteira sem mudar número nenhum —
   o mesmo motivo de `N_WORKERS`. `compare` ignora constantes excluídas também do lado
   gravado, então os artefatos carimbados antes seguem atuais.
+- **Pool de processos persistente (2026-09-18)** — o `ProcessPoolExecutor` era recriado a
+  cada geração, e cada worker novo re-importava o motor e recarregava o JIT: numa geração de
+  300 indivíduos, **3,87 s com pool novo contra 1,04 s com o pool vivo**. O obstáculo
+  registrado era propagar mudanças de `_SEED_BASE` a workers vivos; ele sumiu ao inverter
+  onde o estado mora — o `RuntimeState` viaja com cada tarefa em vez de ir no `initializer`
+  (`fitness.parallel_map`), e o worker o aplica antes de toda avaliação. `N_WORKERS` virou
+  `min(8, os.cpu_count())`: o teto protege do `WinError 1455`, e com o pool vivo 8, 12 e 16
+  workers ficam dentro do ruído. `test_provenance` troca seed-base e pesos entre avaliações
+  no mesmo pool e compara com o serial, e a seed 42 de produção reproduziu **bit a bit** nos
+  dois algoritmos — AG em 3,0 min contra 6,7, NSGA-II (fronteira de 64 pontos e os 5
+  representantes) em 5,8 contra 9,7.
 - **Veredito binário da validação externa — mantido, com contagem (2026-09-18)** — o roster
   só é ROBUSTO se nenhum par virar counter duro em nenhuma das 10 condições, escolha
   conservadora que **discrimina** (o AG escalar passa limpo, o `best_dominance` reprova por

@@ -3,6 +3,8 @@ Hiperparâmetros do AG e da simulação de combate — single source.
 Tabela comentada completa e notas de calibração em docs/reference/07-configuration.md.
 """
 
+import os
+
 # ── AG: população e parada ───────────────────────────────────────────────────
 
 POPULATION_SIZE = 300
@@ -149,16 +151,14 @@ MATCHUP_FLOOR = 0.02       # piso: guarda de degenerescência (não morde em ope
 MATCHUP_THRESHOLD = 0.20   # teto: acima é blowout (vencedor fecha ~40% HP)
 
 # ── Paralelismo ──────────────────────────────────────────────────────────────
-# `evaluate_population` cria um pool novo a cada geração, então o custo de spawn
-# escala com o nº de workers e, passado o ótimo, domina o ganho de paralelismo.
-# Medido nesta máquina (28 núcleos lógicos), uma geração de 300 indivíduos:
-#   1w 4.56s | 4w 1.66s | 8w 1.28s | 12w 1.41s | 16w 1.62s | 20w 1.91s | 28w 2.77s
-# Com 28 (o default `None`) além de mais lento, os 28 processos carregando llvmlite
-# estouravam o limite de commit do Windows (WinError 1455). O resultado não depende
-# do nº de workers — a semeadura reset-ao-base é propagada aos workers (verificado:
-# fitness idêntica em todas as contagens acima).
+# Workers do pool persistente de `fitness.parallel_map`. Teto de 8: com todos os núcleos,
+# os processos carregando llvmlite estouravam o limite de commit do Windows (WinError
+# 1455), e acima de 8 o ganho some no ruído — medido numa geração de 300 indivíduos com o
+# pool vivo: 8w 1.04s | 12w ~1.0s | 16w ~0.9s. Abaixo do teto, o nº de núcleos da
+# máquina. O resultado não depende do nº de workers: cada avaliação resemeia o combate ao
+# `_SEED_BASE`, e o estado do pai viaja com cada tarefa. 1 = avaliação serial.
 
-N_WORKERS = 8   # None = todos os núcleos da CPU; 1 = avaliação serial
+N_WORKERS = min(8, os.cpu_count() or 1)
 
 # ── Simulação de combate ─────────────────────────────────────────────────────
 

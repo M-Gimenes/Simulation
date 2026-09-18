@@ -8,20 +8,24 @@
 #      impede suspensao e hibernacao ENQUANTO ele roda e solta sozinho quando termina.
 #      E o mecanismo certo: mexer no plano de energia global resolve a noite de hoje e
 #      deixa a maquina sem hibernar para sempre, o que ninguem lembra de desfazer.
-#   2. Espera os sweeps terminarem, se estiverem rodando. Nao adianta so enfileirar: os
-#      dois competindo por CPU dobram o tempo dos dois e aumentam o risco de estourar o
-#      limite de commit do Windows (WinError 1455, que ja matou uma bateria no meio).
+#   2. Roda os sweeps (run_sweeps.ps1) - ou, se ja estiverem rodando, espera terminarem.
+#      Nao adianta so enfileirar: os dois competindo por CPU dobram o tempo dos dois e
+#      aumentam o risco de estourar o limite de commit do Windows (WinError 1455, que ja
+#      matou uma bateria no meio). Os sweeps vem ANTES porque os bracos exploratorios
+#      tambem levam o carimbo do motor: uma mudanca de motor deixa os 16 obsoletos, e a
+#      bateria nao os regera.
 #   3. Roda a bateria, com UMA retomada automatica se um passo falhar.
 #
 # POR QUE UMA retomada e nao varias: WinError 1455 e pressao de memoria e costuma passar
 # na segunda tentativa; um defeito de verdade repete, e ai insistir so queima a noite
 # escondendo a causa. A retomada usa `-From N` do passo que falhou, entao nada ja feito e
-# refeito.
+# refeito. Os sweeps nao tem retomada automatica: se falharem, o log diz de onde retomar a
+# mao e a bateria roda mesmo assim - ela e o que a tese cita.
 #
 # Uso:
-#   .\run_overnight.ps1              # espera os sweeps e emenda a bateria
-#   .\run_overnight.ps1 -SkipSweeps  # nao espera nada, vai direto para a bateria
-#   .\run_overnight.ps1 -From 5      # comeca a bateria no passo 5
+#   .\run_overnight.ps1              # sweeps (ou espera os que ja rodam) e depois a bateria
+#   .\run_overnight.ps1 -SkipSweeps  # vai direto para a bateria
+#   .\run_overnight.ps1 -From 5      # retoma a bateria no passo 5 (sem sweeps)
 
 param(
     [int]    $From = 1,
@@ -39,7 +43,7 @@ function Escreve($msg) {
     Add-Content -Path $log -Value $linha -Encoding utf8
 }
 
-# ── 1. Segura a maquina acordada ─────────────────────────────────────────────
+# -- 1. Segura a maquina acordada ---------------------------------------------------------
 # ES_CONTINUOUS | ES_SYSTEM_REQUIRED: "ha trabalho, nao durma".
 # Sem ES_DISPLAY_REQUIRED de proposito - o monitor pode desligar, nao atrapalha em nada.
 #
@@ -66,12 +70,15 @@ try {
 Escreve "=============================================================="
 Escreve "INICIO - encadeamento sweeps -> bateria"
 
-# ── 2. Espera os sweeps ──────────────────────────────────────────────────────
+# -- 2. Sweeps ----------------------------------------------------------------------------
 function Sweeps-Rodando {
     $procs = Get-CimInstance Win32_Process -Filter "Name='python.exe'" -ErrorAction SilentlyContinue |
              Where-Object { $_.CommandLine -like "*src.tools.multi_run*" }
     return ($procs | Measure-Object).Count -gt 0
 }
+
+# Retomar a bateria no meio implica que os sweeps ja rodaram.
+if ($From -gt 1) { $SkipSweeps = $true }
 
 if (-not $SkipSweeps) {
     if (Sweeps-Rodando) {
@@ -90,27 +97,35 @@ if (-not $SkipSweeps) {
         }
         Escreve "sweeps terminaram"
     } else {
-        Escreve "nenhum sweep rodando - seguindo direto"
+        Escreve "rodando os sweeps (run_sweeps.ps1)"
+        $LASTEXITCODE = 0
+        # `*>&1` e nao `2>&1`: os scripts falam por Write-Host, que desde o PS 5.0 vai para
+        # o stream de INFORMACAO (6) e nao para o de erro.
+        & (Join-Path $raiz "run_sweeps.ps1") *>&1 | ForEach-Object { Escreve "  | $_" }
+        $codigoSweeps = if ($null -eq $LASTEXITCODE) { 0 } else { $LASTEXITCODE }
+        if ($codigoSweeps -ne 0) {
+            Escreve "sweeps FALHARAM (exit $codigoSweeps) - seguindo para a bateria mesmo assim."
+            Escreve "Retome os sweeps a mao com .\run_sweeps.ps1 -From N (o N esta nas linhas acima)."
+        }
     }
 
     $bracos = @(Get-ChildItem (Join-Path $raiz "results\multi_run\exploratory") -Filter "*.json" -ErrorAction SilentlyContinue)
     Escreve "bracos exploratorios no disco: $($bracos.Count) (esperado 16)"
 }
 
-# ── 3. Bateria, com uma retomada ─────────────────────────────────────────────
+# -- 3. Bateria, com uma retomada ---------------------------------------------------------
 $bateria = Join-Path $raiz "run_battery.ps1"
 Escreve "iniciando a bateria a partir do passo $From"
-# `*>&1` e nao `2>&1`: o run_battery.ps1 fala por Write-Host, que desde o PS 5.0 vai para
-# o stream de INFORMACAO (6) e nao para o de erro. Com `2>&1` o log perderia justamente as
-# linhas "=== passo N/11" - e e delas que sai o ponto de retomada abaixo.
+# O ponto de retomada sai das linhas "=== passo N/11" que a bateria escreve no log. Conta-se
+# o log a partir daqui, senao as linhas "=== passo N/16" dos sweeps entrariam na busca.
+$linhasAntes = @(Get-Content $log).Count
 $LASTEXITCODE = 0
 & $bateria -From $From *>&1 | ForEach-Object { Escreve "  | $_" }
 $codigo = if ($null -eq $LASTEXITCODE) { 0 } else { $LASTEXITCODE }
 
 if ($codigo -ne 0) {
-    # De qual passo retomar: a ultima linha "=== passo N/11" que o log registrou.
-    $ultimo = Select-String -Path $log -Pattern "=== passo (\d+)/" -AllMatches |
-              Select-Object -Last 1
+    $ultimo = Get-Content $log | Select-Object -Skip $linhasAntes |
+              Select-String -Pattern "=== passo (\d+)/" | Select-Object -Last 1
     $passo = if ($ultimo) { [int]$ultimo.Matches[0].Groups[1].Value } else { $From }
     Escreve "bateria FALHOU (exit $codigo) no passo $passo - UMA retomada automatica"
     $LASTEXITCODE = 0

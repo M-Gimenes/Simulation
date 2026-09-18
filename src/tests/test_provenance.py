@@ -192,23 +192,31 @@ def test_weights_reach_workers():
     # Os dois grupos de peso são testados porque o risco não é "esquecer de propagar",
     # é "esquecer de propagar O PRÓXIMO". `RuntimeState` existe para que acrescentar um
     # peso ao estado já o propague; este teste é o que verifica que ainda vale.
+    #
+    # E o pool é PERSISTENTE: os workers nascem na primeira avaliação e o estado do pai
+    # muda depois — o seed-base a cada geração, os pesos a cada braço. Por isso o seed-base
+    # também muda entre as iterações, todas servidas pelo mesmo pool vivo.
     _reset()
     random.seed(7)
+    passo = 0
     for rótulo, aplicar in (
         ("λ_drift",    lambda v: set_lambdas_override(v, config.LAMBDA_DOMINANCE)),
         ("dom_cap",    lambda v: set_dominance_weights_override(1.0, v, 0.5)),
     ):
         for valor in (0.0, 4.0):
             aplicar(valor)
-            set_seed_base(42)
+            semente = 42 + passo
+            passo += 1
+            set_seed_base(semente)
             pop = [Individual.random() for _ in range(12)]
             evaluate_population(pop)                      # caminho paralelo
             paralelo = pop[0].fitness
             pop[0].invalidate_fitness()
-            set_seed_base(42)
+            set_seed_base(semente)
             serial = evaluate_detail(pop[0]).fitness      # serial, mesmo indivíduo
             assert abs(paralelo - serial) < 1e-12, (rótulo, valor, paralelo, serial)
-            print(f"  {rótulo}={valor:<5} worker={paralelo:.6f} == serial={serial:.6f}")
+            print(f"  {rótulo}={valor:<5} seed={semente}  worker={paralelo:.6f} == "
+                  f"serial={serial:.6f}")
             _reset()
 
     # E o bundle tem de cobrir TODO peso que existe: se alguém adicionar um `set_*` sem
