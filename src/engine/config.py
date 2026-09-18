@@ -14,14 +14,17 @@ POPULATION_SIZE = 300
 ELITE_RATE = 0.10
 ELITE_SIZE = round(POPULATION_SIZE * ELITE_RATE)
 MAX_GENERATIONS = 150
-STAGNATION_LIMIT = 30                      # gerações sem melhoria > 0.001 antes de parar
+STAGNATION_LIMIT = 30                      # gerações sem melhoria > 0.001 até REGISTRAR
+                                           # `stagnated_at` — evento, não parada: o AG
+                                           # sempre roda MAX_GENERATIONS
 # Convergência do AG (C2) = balanço global (abaixo) + ausência de hard-counter
 # (MATCHUP_WR_CAP, na seção de fitness).
 GLOBAL_CONVERGENCE_THRESHOLD = 0.10        # |WR global − 0.5| máx por personagem (ninguém domina o roster)
 
 # ── AG: operadores ───────────────────────────────────────────────────────────
 
-TOURNAMENT_SIZE = 3              # candidatos por seleção por torneio
+TOURNAMENT_SIZE = 3              # candidatos por seleção por torneio — SÓ o AG escalar;
+                                 # o NSGA-II usa torneio binário por rank + crowding
 MUTATION_RATE = 0.05            # probabilidade de mutação por gene
 ATTRIBUTE_MUTATION_SIGMA = 0.1   # sigma da mutação, como fração do range do atributo
 WEIGHT_MUTATION_SIGMA = 0.025    # idem para os pesos (menor = mais inércia)

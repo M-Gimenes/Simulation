@@ -8,7 +8,13 @@ random.seed(42)
 
 from src.engine.individual import Individual
 from src.engine.operators import tournament_selection, crossover, mutate, next_generation
-from src.engine.config import ATTRIBUTE_BOUNDS, ELITE_SIZE, POPULATION_SIZE, WEIGHT_BOUNDS
+from src.engine.config import (
+    ATTRIBUTE_BOUNDS,
+    ELITE_SIZE,
+    POPULATION_SIZE,
+    TOURNAMENT_SIZE,
+    WEIGHT_BOUNDS,
+)
 
 
 def separator(title: str) -> None:
@@ -169,6 +175,44 @@ filhos = [ind for ind in nova if not ind.is_evaluated]
 assert len(nova) == 12, f"tamanho não preservado: {len(nova)}"
 assert len(filhos) == 12 - elite_count(12), "a população reduzida não gerou filhos"
 print(f"  pop=12 real: {len(filhos)} filhos gerados (com a contagem absoluta seriam 0) ✓")
+
+
+# ── Seleção como estado de processo (braços do sweep) ────────────────────────
+
+separator("set_selection: elitismo e torneio variam sem editar o config")
+
+from src.engine.operators import get_selection, set_selection
+
+assert get_selection() == (ELITE_RATE, TOURNAMENT_SIZE), (
+    f"estado inicial {get_selection()} não veio do config "
+    f"({ELITE_RATE}, {TOURNAMENT_SIZE})"
+)
+print(f"  estado inicial == config ({ELITE_RATE:g}, {TOURNAMENT_SIZE}) ✓")
+
+# O modo de falha que isto cobre: `from .config import ELITE_RATE` congela o valor no
+# import, então um braço do sweep rodaria no valor do arquivo sem sintoma nenhum.
+set_selection(0.30, 7)
+assert get_selection() == (0.30, 7), f"set_selection não pegou: {get_selection()}"
+assert elite_count(100) == 30, f"elite_count ignorou a taxa do braço: {elite_count(100)}"
+grande = [Individual.random() for _ in range(40)]
+for i, ind in enumerate(grande):
+    ind.fitness = -float(i)
+vencedor = tournament_selection(grande)
+assert vencedor.fitness is not None
+print(f"  taxa 0,30 -> elite_count(100) = {elite_count(100)}; torneio 7 aceito ✓")
+
+# O braço "sem elitismo" precisa ser MESMO sem elitismo: arredondar para 1 o
+# descaracterizaria, e ele existe justamente para mostrar o que o elitismo segura.
+set_selection(0.0, TOURNAMENT_SIZE)
+assert elite_count(300) == 0, f"taxa 0 preservou {elite_count(300)} elites"
+sem_elite = next_generation(pequena)
+assert all(not ind.is_evaluated for ind in sem_elite), "taxa 0 ainda clonou alguém"
+assert len(sem_elite) == 12
+print("  taxa 0,0: nenhum elite preservado, geração 100% de filhos ✓")
+
+set_selection(ELITE_RATE, TOURNAMENT_SIZE)
+assert elite_count(POPULATION_SIZE) == ELITE_SIZE, "o default não voltou"
+print(f"  restaurado para o default ({ELITE_RATE:g}, {TOURNAMENT_SIZE}) ✓")
 
 
 separator("Todos os testes de operadores passaram ✓")

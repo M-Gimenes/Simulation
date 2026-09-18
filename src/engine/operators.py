@@ -3,26 +3,67 @@
 from __future__ import annotations
 
 import random
-from typing import List
+from typing import List, Optional, Tuple
 
 from .config import (
     ATTRIBUTE_BOUNDS,
     ATTRIBUTE_MUTATION_SIGMA,
     ELITE_RATE,
     MUTATION_RATE,
+    POPULATION_SIZE,
     TOURNAMENT_SIZE,
     WEIGHT_BOUNDS,
     WEIGHT_MUTATION_SIGMA,
 )
 from .individual import Individual
+from .provenance import override as _register_override
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Parâmetros de seleção como ESTADO DE PROCESSO
+# ─────────────────────────────────────────────────────────────────────────────
+# Mesma razão dos λ e dos pesos do dominance (ver `fitness.py`): um sweep os varia entre
+# execuções, e `from .config import X` congela o valor no import — mudar `config.ELITE_RATE`
+# em tempo de execução não teria efeito nenhum aqui.
+#
+# **Mas sem a plumbing de `RuntimeState`**, e isso é o ponto: estes dois são lidos
+# exclusivamente por `next_generation` e `tournament_selection`, que rodam só no processo
+# PAI — os workers avaliam fitness, nunca reproduzem. Logo não atravessam o spawn, e
+# propagá-los ao pool seria cerimônia sem efeito.
+
+_ELITE_RATE:      float = ELITE_RATE
+_TOURNAMENT_SIZE: int   = TOURNAMENT_SIZE
+
+
+def set_selection(elite_rate: float, tournament_size: int) -> None:
+    """Define os parâmetros de seleção neste processo."""
+    global _ELITE_RATE, _TOURNAMENT_SIZE
+    _ELITE_RATE, _TOURNAMENT_SIZE = elite_rate, tournament_size
+
+
+def set_selection_override(elite_rate: float, tournament_size: int) -> None:
+    """Como `set_selection`, e registra no carimbo. É o ponto de entrada das tools."""
+    set_selection(elite_rate, tournament_size)
+    _register_override("ELITE_RATE", elite_rate)
+    _register_override("TOURNAMENT_SIZE", tournament_size)
+    # `ELITE_SIZE` é derivada de `ELITE_RATE` no `config.py`. Sem recalcular aqui, o
+    # carimbo de um braço afirmaria a taxa do braço ao lado da contagem do arquivo —
+    # duas constantes descrevendo elitismos diferentes no mesmo artefato.
+    _register_override("ELITE_SIZE", elite_count(POPULATION_SIZE))
+
+
+def get_selection() -> Tuple[float, int]:
+    """`(elite_rate, tournament_size)` em vigor."""
+    return _ELITE_RATE, _TOURNAMENT_SIZE
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Seleção por torneio
 # ─────────────────────────────────────────────────────────────────────────────
 
-def tournament_selection(population: List[Individual], k: int = TOURNAMENT_SIZE) -> Individual:
-    candidates = random.sample(population, k)
+def tournament_selection(population: List[Individual], k: Optional[int] = None) -> Individual:
+    """`k = None` usa o tamanho de torneio em vigor; um `k` explícito o sobrepõe (testes)."""
+    candidates = random.sample(population, _TOURNAMENT_SIZE if k is None else k)
     return max(candidates, key=lambda ind: ind.fitness)
 
 
@@ -68,14 +109,19 @@ def mutate(individual: Individual, mutation_rate: float = MUTATION_RATE) -> Indi
 def elite_count(pop_size: int) -> int:
     """Quantos indivíduos o elitismo preserva numa população deste tamanho.
 
-    Derivado de `ELITE_RATE` sobre o tamanho REAL, e não a constante `ELITE_SIZE` do
-    orçamento default: com a contagem absoluta, uma execução de orçamento reduzido
-    mantinha 30 elites e o elitismo efetivo ia de 10% para 25% (pop 120) ou 100%
-    (pop 30) — aí o `while` abaixo nunca roda e a geração seguinte é só clones, ou
-    seja o AG para de buscar sem dar sinal nenhum.
+    Derivado da TAXA sobre o tamanho REAL, e não da constante `ELITE_SIZE` do orçamento
+    default: com a contagem absoluta, uma execução de orçamento reduzido mantinha 30
+    elites e o elitismo efetivo ia de 10% para 25% (pop 120) ou 100% (pop 30) — aí o
+    `while` abaixo nunca roda e a geração seguinte é só clones, ou seja o AG para de
+    buscar sem dar sinal nenhum.
 
-    Mínimo de 1: uma população pequena demais para 10% ainda preserva o melhor."""
-    return max(1, round(pop_size * ELITE_RATE))
+    Mínimo de 1 **quando a taxa é positiva**: uma população pequena demais para 10% ainda
+    preserva o melhor. Taxa exatamente 0 é o braço "sem elitismo" do sweep e devolve 0 —
+    arredondar para 1 ali descaracterizaria o braço que existe para mostrar o que o
+    elitismo segura."""
+    if _ELITE_RATE <= 0.0:
+        return 0
+    return max(1, round(pop_size * _ELITE_RATE))
 
 
 def next_generation(population: List[Individual]) -> List[Individual]:

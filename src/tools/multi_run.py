@@ -46,6 +46,7 @@ from src.engine.config import (
     DOMINANCE_CAP_WEIGHT,
     DOMINANCE_DECIS_WEIGHT,
     DOMINANCE_GLOBAL_WEIGHT,
+    ELITE_RATE,
     HYPERVOLUME_REFERENCE,
     LAMBDA_DOMINANCE,
     LAMBDA_DRIFT,
@@ -55,6 +56,7 @@ from src.engine.config import (
     MULTI_RUN_SIMS,
     MULTI_RUN_VALIDATION_SEED,
     POPULATION_SIZE,
+    TOURNAMENT_SIZE,
 )
 from src.engine.fitness import (
     FitnessDetail,
@@ -70,6 +72,7 @@ from src.engine.fitness import (
 )
 from src.engine.ga import run as run_ga
 from src.engine.nsga2 import run as run_nsga2
+from src.engine.operators import get_selection, set_selection_override
 from src.engine.pareto_metrics import hypervolume_2d, spacing
 from src.engine.paths import (
     EXPLORATORY_DIR,
@@ -305,6 +308,7 @@ def aggregate_algorithm(algorithm: str, seeds: List[int], sims: int,
         "lambda_drift": lambda_drift,
         "lambda_dominance": lambda_dominance,
         "dominance_weights": dict(zip(("global", "cap", "decis"), get_dominance_weights())),
+        "selection": dict(zip(("elite_rate", "tournament_size"), get_selection())),
         "n_seeds": len(seeds),
         "seeds": seeds,
         "validation_seed": MULTI_RUN_VALIDATION_SEED,
@@ -373,7 +377,8 @@ def _print_summary(result: dict) -> None:
         print(f"      {label:<28s} WR {wr['mean']:.0%}±{wr['std']:.0%}   counter em {rate_hc:.0%}{flag}")
 
 
-def _artifact_path(algorithm: str, lambdas, dom_weights, pop_size: int, n_generations: int) -> Path:
+def _artifact_path(algorithm: str, lambdas, dom_weights, selection,
+                   pop_size: int, n_generations: int) -> Path:
     """Onde o artefato desta execução é gravado.
 
     Só a execução **inteiramente no default** — λ e orçamento — grava nos caminhos
@@ -393,13 +398,18 @@ def _artifact_path(algorithm: str, lambdas, dom_weights, pop_size: int, n_genera
     if dom_weights != (DOMINANCE_GLOBAL_WEIGHT, DOMINANCE_CAP_WEIGHT, DOMINANCE_DECIS_WEIGHT):
         g, c, d = dom_weights
         partes.append(f"domw{g:g}-{c:g}-{d:g}")
+    elite_rate, tournament_size = selection
+    if elite_rate != ELITE_RATE:
+        partes.append(f"elite{elite_rate:g}")
+    if tournament_size != TOURNAMENT_SIZE:
+        partes.append(f"tour{tournament_size:g}")
     if not partes:
         return MULTI_RUN_GA_PATH if algorithm == "ga" else MULTI_RUN_NSGA2_PATH
     return EXPLORATORY_DIR / f"multi_run_{algorithm}_{'_'.join(partes)}.json"
 
 
 def _save(result: dict, algorithm: str) -> None:
-    path = _artifact_path(algorithm, get_lambdas(), get_dominance_weights(),
+    path = _artifact_path(algorithm, get_lambdas(), get_dominance_weights(), get_selection(),
                           result["pop_size"], result["n_generations"])
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8") as fh:
@@ -441,6 +451,12 @@ def parse_args():
                         help=f"Peso do cap_term (default: {DOMINANCE_CAP_WEIGHT})")
     parser.add_argument("--dom-decis", type=float, default=DOMINANCE_DECIS_WEIGHT,
                         help=f"Peso do decis_term (default: {DOMINANCE_DECIS_WEIGHT})")
+    parser.add_argument("--elite-rate", type=float, default=ELITE_RATE,
+                        help=f"Fração da população preservada por elitismo "
+                             f"(default: {ELITE_RATE}). Só o AG escalar; 0 desliga")
+    parser.add_argument("--tournament-size", type=int, default=TOURNAMENT_SIZE,
+                        help=f"Candidatos por torneio (default: {TOURNAMENT_SIZE}). Só o AG "
+                             f"escalar — o NSGA-II usa torneio binário por dominância")
     parser.add_argument("--nsga2-representative", default="best_dominance",
                         choices=["best_dominance", "best_drift", "knee_point", "ideal_point",
                                  "scalar_optimum"],
@@ -458,6 +474,15 @@ def main():
     # workers), e fica registrado no carimbo de proveniência do artefato.
     set_lambdas_override(args.lambda_drift, args.lambda_dominance)
     set_dominance_weights_override(args.dom_global, args.dom_cap, args.dom_decis)
+    set_selection_override(args.elite_rate, args.tournament_size)
+    selecao = (args.elite_rate, args.tournament_size)
+    if selecao != (ELITE_RATE, TOURNAMENT_SIZE):
+        print(f"\n  SELEÇÃO — elitismo={args.elite_rate:g} torneio={args.tournament_size:g} "
+              f"(config: {ELITE_RATE:g} / {TOURNAMENT_SIZE:g})")
+        if "nsga2" in algorithms:
+            print("  ⚠ Os dois valem SÓ para o AG escalar. O NSGA-II não tem elitismo por "
+                  "fitness\n    (a elite dele é o rank de Pareto) nem torneio de tamanho k "
+                  "— rodá-lo por\n    braço mede o mesmo número N vezes.")
     pesos = (args.dom_global, args.dom_cap, args.dom_decis)
     if pesos != (DOMINANCE_GLOBAL_WEIGHT, DOMINANCE_CAP_WEIGHT, DOMINANCE_DECIS_WEIGHT):
         print(f"\n  PESOS DO DOMINANCE — global={args.dom_global:g} cap={args.dom_cap:g} "

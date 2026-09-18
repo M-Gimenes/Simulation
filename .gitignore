@@ -1,3 +1,8 @@
 __pycache__/
 .claude/
 .venv/
+
+# Logs de execucao desassistida: diagnostico da noite, nao artefato de resultado.
+results/overnight.log
+results/sweeps_stdout.log
+results/sweeps_stderr.log
