@@ -164,10 +164,10 @@ exploratórios feitos e a bateria com n = 20 regerada sob o motor final (2026-09
 As pendências de instrumentação de
 [`../reference/10-known-issues.md`](../reference/10-known-issues.md) também estão fechadas; o
 que resta lá são os limites estruturais, que são escopo declarado e vão para a Discussão.
-Uma operação pendente, sem efeito em número: o pool de processos ficou persistente depois da
-bateria, o que mudou o digest do motor, e a bateria precisa rodar de novo para os artefatos
-voltarem a ler "atual" — a seed 42 já reproduziu bit a bit. Em termos de tese, falta a
-**redação**: a
+Uma operação pendente, **com** efeito em número: depois da bateria o CRN passou a semear
+cada luta, o que troca todos os sorteios. A bateria precisa rodar de novo, e os números
+desta pasta e do `HANDOFF.md` §3 — os achados acima inclusive — têm de ser relidos contra
+ela antes de qualquer citação. Em termos de tese, falta a **redação**: a
 monografia e os artigos descrevem gerações anteriores do modelo, e o `values.tex` está
 inteiramente obsoleto (ver [`../../HANDOFF.md`](../../HANDOFF.md) §5). Os números a citar
 saem de `results/` e do `HANDOFF.md` §3 — nunca de rodadas anteriores ao motor atual, que

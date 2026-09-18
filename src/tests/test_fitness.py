@@ -3,6 +3,8 @@ Smoke test da função de fitness.
 Rode com: py -m src.tests.test_fitness
 """
 
+import random
+
 from src.engine.individual import Individual
 from src.engine.fitness import (
     N_WEIGHT_GENES,
@@ -13,9 +15,15 @@ from src.engine.fitness import (
     evaluate,
     evaluate_detail,
     evaluate_population,
+    set_seed_base,
 )
 from src.engine.archetypes import ARCHETYPE_ORDER, ARCHETYPES
-from src.engine.config import DRIFT_DEFINING_WEIGHT, GENE_BOUNDS, GENE_NAMES
+from src.engine.config import (
+    ATTRIBUTE_NAMES,
+    DRIFT_DEFINING_WEIGHT,
+    GENE_BOUNDS,
+    GENE_NAMES,
+)
 
 
 def separator(title: str) -> None:
@@ -203,5 +211,37 @@ print("  ✓ trocar a RAZÃO entre os pesos muda o drift (não ficou cega a eles
 _probe = _ind.clone().get(ARCHETYPE_ORDER[1])
 assert drift_genes(_probe)[:-N_WEIGHT_GENES] == list(_probe.attributes)
 print("  ✓ os 8 atributos passam intactos; só os 3 pesos são reescalados")
+
+
+# ── CRN: uma semente por luta ────────────────────────────────────────────────
+
+separator("CRN: par sem personagem alterado dá resultado idêntico")
+
+# Sob o mesmo seed-base, a luta k do par m recebe os mesmos sorteios em qualquer roster.
+# Então mudar um gene do Zoner só pode mexer nos pares em que o Zoner luta: os outros seis
+# têm de sair bit a bit iguais. Com um stream único por avaliação isso falhava — a primeira
+# luta que durasse diferente deslocava a leitura de todas as seguintes.
+random.seed(3)
+_x = Individual.random()
+_x_mod = _x.clone()
+_zoner = _x_mod.characters[0]
+_range = ATTRIBUTE_NAMES.index("range")
+_zoner.attributes[_range] += 1.5
+_zoner.clip()
+_x_mod.invalidate_fitness()
+
+set_seed_base(1234)
+_d, _d_mod = evaluate_detail(_x), evaluate_detail(_x_mod)
+set_seed_base(None)
+
+_sem_zoner = [par for par in _d.matchup_scores if 0 not in par]
+_com_zoner = [par for par in _d.matchup_scores if 0 in par]
+for par in _sem_zoner:
+    assert _d.matchup_scores[par] == _d_mod.matchup_scores[par], par
+    assert _d.matchup_winrates[par] == _d_mod.matchup_winrates[par], par
+assert any(_d.matchup_scores[p] != _d_mod.matchup_scores[p] for p in _com_zoner), (
+    "mudar o range do Zoner não mexeu em nenhum par dele — o teste não testaria nada"
+)
+print(f"  ✓ os {len(_sem_zoner)} pares sem o Zoner saem idênticos; os dele mudam")
 
 separator("Todos os testes de fitness passaram ✓")

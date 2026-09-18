@@ -159,23 +159,23 @@ Precisam aparecer explicitamente na Discussão, não só em Trabalhos Futuros.
   mal enxerga esses dois genes em volta desse indivíduo. Nenhum fica abaixo do piso. A
   análise é local — no indivíduo em que se decidiu a persistência, o `speed` tinha
   sinal/ruído 2,0 e o `knockback` 0,7.
-- **Alinhamento CRN imperfeito depois do 1º matchup.** Toda avaliação reseta o RNG do
-  combate ao mesmo seed-base, mas cada luta consome um número variável de sorteios —
-  a posição do stream diverge entre indivíduos nos matchups seguintes. Muito melhor
-  que seeds independentes; alinhamento perfeito exigiria semear por
-  `(base, matchup_idx, sim_idx)`. Detalhe em
-  [09-reproducibility.md](09-reproducibility.md).
+- **O pareamento CRN acaba dentro da luta.** Com uma semente por luta, dois indivíduos
+  recebem os mesmos sorteios em cada luta; mas quando um gene muda o que acontece numa
+  luta, o resto dela se desenrola diferente e os sorteios seguintes caem em estados
+  diferentes. É o ruído que sobra na comparação — e é por isso que semear por luta
+  melhorou o sinal só 1,0–1,3× (§4). Sincronizar os sorteios por instante (sub-tick ×
+  lado) atacaria isso, com ganho não medido; fica como trabalho futuro.
 
 ## 3. Estado dos artefatos em `results/`
 
 > ⚠️ **`results/` está COMPLETO, mas carimbado como OBSOLETO até a próxima bateria.** Os
-> números são os da bateria de 2026-09-18 com **n = 20**, sob o motor final (rotação do
-> stream por geração, `ACTION_PERSISTENCE_SUBTICKS = 5`, drift invariante à escala dos
-> pesos) — números no [`../../HANDOFF.md`](../../HANDOFF.md) §3. Depois dela, o pool de
-> processos ficou persistente: isso muda o código de `src/engine/` e portanto o digest de
-> todo artefato, embora não mude número nenhum (seed 42 reproduzida bit a bit, §4). A
-> regra é regerar, não re-carimbar por inferência: `.\run_overnight.ps1` roda os 16
-> braços e a bateria, e ao fim `test_provenance` deve dar tudo como atual.
+> números são os da bateria de 2026-09-18 com **n = 20** — números no
+> [`../../HANDOFF.md`](../../HANDOFF.md) §3. Depois dela o motor mudou duas vezes: o pool
+> de processos ficou persistente (não muda número — seed 42 reproduzida bit a bit) e o CRN
+> passou a semear **cada luta** (muda **todos** os sorteios, logo todos os números). A
+> próxima bateria não re-carimba: ela **substitui** os resultados. `.\run_overnight.ps1`
+> roda os 16 braços e a bateria; depois, `test_provenance` deve dar tudo como atual, e os
+> números do HANDOFF §3, do `tcc/` e as conclusões dos sweeps precisam ser relidos.
 
 **Regra que continua valendo:** ao mexer em `config.py`, nos canônicos ou no motor, todo
 `results/` fica obsoleto **de uma vez** — não há versionamento parcial; o carimbo de
@@ -327,6 +327,14 @@ Resolvido e verificado; o raciocínio completo está em
   no mesmo pool e compara com o serial, e a seed 42 de produção reproduziu **bit a bit** nos
   dois algoritmos — AG em 3,0 min contra 6,7, NSGA-II (fronteira de 64 pontos e os 5
   representantes) em 5,8 contra 9,7.
+- **CRN com uma semente por luta (2026-09-18)** — o stream único por avaliação perdia o
+  pareamento a partir da primeira luta que durasse diferente em dois indivíduos, inclusive
+  em pares idênticos nos dois. Agora `fitness.fight_seed(seed_base, par, luta)` semeia cada
+  luta. Medido no roster evoluído contra ele mesmo com um gene a +σ, em 40 seed-bases: o
+  par sem o personagem alterado passa de DP 0,019 a **exatamente 0**, mas o DP da diferença pareada f(X') − f(X) cai só 1,0–1,3× (Zoner `range` 0,0328 → 0,0276; Turtle `stun` 0,0209 → 0,0213; Grappler `knockback` 0,0165 → 0,0127). O
+  ganho é pequeno porque o ruído que resta é intra-luta (§2), e o custo é +13% por
+  avaliação. Mantido pelo contrato exato nos pares não alterados e pelo ganho, ainda que
+  pequeno; muda todos os números, então entrou antes da bateria que já precisava rodar.
 - **Veredito binário da validação externa — mantido, com contagem (2026-09-18)** — o roster
   só é ROBUSTO se nenhum par virar counter duro em nenhuma das 10 condições, escolha
   conservadora que **discrimina** (o AG escalar passa limpo, o `best_dominance` reprova por

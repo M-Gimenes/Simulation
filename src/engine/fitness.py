@@ -54,11 +54,17 @@ _DRIFT_WEIGHTS: Dict[ArchetypeID, List[float]] = {}
 # ─────────────────────────────────────────────────────────────────────────────
 # Reprodutibilidade — Common Random Numbers (reset ao seed-base)
 # ─────────────────────────────────────────────────────────────────────────────
-# Quando um seed-base é definido (via set_seed_base), toda avaliação reseta o RNG
-# do combate ao MESMO _SEED_BASE antes do round-robin. Assim todo indivíduo é
-# avaliado sob o mesmo stream de RNG (Common Random Numbers): a diferença de
-# fitness reflete genes, não sorteio → seleção menos enganada e paisagem mais lisa.
+# Quando um seed-base é definido (via set_seed_base), cada LUTA do round-robin é semeada
+# por `fight_seed(seed_base, par, luta)`. Assim a luta k do par m recebe os mesmos sorteios
+# em todo indivíduo avaliado sob o mesmo seed-base (Common Random Numbers): a diferença
+# de fitness reflete genes, não sorteio → seleção menos enganada e paisagem mais lisa.
 # Reprodutível independente de qual worker/agendamento avalia.
+#
+# Semear por luta, e não uma vez por avaliação, é o que faz o pareamento valer: cada luta
+# consome um nº de sorteios proporcional à própria duração, então com um stream único a
+# primeira luta que durasse diferente em dois indivíduos deslocava a leitura de todas as
+# seguintes — inclusive as de pares idênticos nos dois —, e dali em diante a comparação
+# era entre sorteios independentes.
 
 _SEED_BASE: Optional[int] = None
 
@@ -167,6 +173,25 @@ def generation_seed(base: int, generation: int) -> int:
     que impede a população de se ajustar a uma realização específica do RNG — ver o
     comentário de `GENERATION_SEED_STRIDE` no `config.py` para os números."""
     return base * GENERATION_SEED_STRIDE + generation
+
+
+_MASK64 = (1 << 64) - 1
+
+
+def _splitmix64(x: int) -> int:
+    """Finalizador do SplitMix64: espalha entradas vizinhas por todo o espaço de 64 bits,
+    para que sementes de lutas adjacentes não gerem streams correlacionados."""
+    x = (x + 0x9E3779B97F4A7C15) & _MASK64
+    x = ((x ^ (x >> 30)) * 0xBF58476D1CE4E5B9) & _MASK64
+    x = ((x ^ (x >> 27)) * 0x94D049BB133111EB) & _MASK64
+    return x ^ (x >> 31)
+
+
+def fight_seed(seed_base: int, pair: int, fight: int) -> int:
+    """Semente da luta `fight` do par `pair` (índice em `combinations(range(5), 2)`) sob
+    `seed_base` — o que dá a cada luta sorteios próprios, independentes do que as
+    anteriores consumiram."""
+    return _splitmix64(_splitmix64(_splitmix64(seed_base) ^ pair) ^ fight)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -377,7 +402,7 @@ def roster_balanced(detail: "FitnessDetail") -> bool:
 
 
 def _run_round_robin(
-    chars: List, sims: int
+    chars: List, sims: int, seed_base: Optional[int]
 ) -> Tuple[
     List[float],
     List[int],
@@ -392,11 +417,13 @@ def _run_round_robin(
     matchup_scores:       Dict[Tuple[int, int], float] = {}
     matchup_decisiveness: Dict[Tuple[int, int], float] = {}
 
-    for i, j in combinations(range(n), 2):
+    for pair, (i, j) in enumerate(combinations(range(n), 2)):
         matchup_wins[(i, j)] = 0.0
         score_sum = 0.0
         decis_sum = 0.0
-        for _ in range(sims):
+        for fight in range(sims):
+            if seed_base is not None:
+                seed_combat(fight_seed(seed_base, pair, fight))
             result = simulate_combat(chars[i], chars[j])
             if result.winner == 0:
                 wins[i] += 1.0
@@ -426,14 +453,11 @@ def _run_round_robin(
 
 
 def evaluate_detail_n(individual: Individual, sims: int) -> FitnessDetail:
-    if _SEED_BASE is not None:
-        seed_combat(_SEED_BASE)
-
     chars = individual.characters
     n     = len(chars)
 
     wins, total_games, matchup_wins, matchup_scores, matchup_decisiveness = (
-        _run_round_robin(chars, sims)
+        _run_round_robin(chars, sims, _SEED_BASE)
     )
 
     winrates         = [wins[i] / total_games[i] for i in range(n)]

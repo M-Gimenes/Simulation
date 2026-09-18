@@ -38,15 +38,16 @@ $env:PYTHONIOENCODING = "utf-8"
 
 # Os `Min` sao ESTIMATIVAS com o pool persistente: os tempos medidos na bateria de
 # 2026-09-18 (pool recriado por geracao) escalados pela razao medida na seed 42 - AG
-# 6,7 -> 3,0 min, NSGA-II 9,7 -> 5,8 min. Os passos 6-11 levam segundos.
+# 6,7 -> 3,0 min, NSGA-II 9,7 -> 5,8 min - e por +13% da semente por luta (CRN). Os
+# passos 6-11 levam segundos.
 #
 # Ordem deliberada: o que serve os DOIS experimentos vem primeiro, para que uma
 # interrupcao no meio ainda deixe a bateria principal completa e citavel.
 $passos = @(
-    @{ N = 1; Min = 121; Nome = "NSGA-II, 20 sementes"
+    @{ N = 1; Min = 137; Nome = "NSGA-II, 20 sementes"
        Args = @("-m", "src.tools.multi_run", "--algorithm", "nsga2") }
 
-    @{ N = 2; Min = 61; Nome = "AG escalar, 20 sementes"
+    @{ N = 2; Min = 69; Nome = "AG escalar, 20 sementes"
        Args = @("-m", "src.tools.multi_run", "--algorithm", "ga") }
 
     @{ N = 3; Min = 1; Nome = "compare_algorithms (n=20) - checa proveniencia dos dois"
@@ -54,10 +55,10 @@ $passos = @(
 
     # Os individuais da seed 42 e as metricas post-hoc vem por ultimo: dependem do motor,
     # nao do sweep, e sao baratos perto dos bracos.
-    @{ N = 4;  Min = 3;  Nome = "AG seed 42 (results.json)"
+    @{ N = 4;  Min = 4;  Nome = "AG seed 42 (results.json)"
        Args = @("main.py", "--seed", "42") }
 
-    @{ N = 5;  Min = 6; Nome = "NSGA-II seed 42 (nsga2_results.json + plots)"
+    @{ N = 5;  Min = 7; Nome = "NSGA-II seed 42 (nsga2_results.json + plots)"
        Args = @("main.py", "--algorithm", "nsga2", "--seed", "42") }
 
     @{ N = 6; Min = 1;  Nome = "external_validation - canonico"

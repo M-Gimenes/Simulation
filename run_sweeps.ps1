@@ -41,50 +41,50 @@ $base = @("-m", "src.tools.multi_run", "--algorithm", "ga", "--n-seeds", "5",
 
 # Os `Min` sao ESTIMATIVAS com o pool persistente: ~10,4 min por braco medidos em
 # 2026-09-18 com o pool recriado por geracao, escalados pela razao que o AG mostrou na
-# seed 42 (6,7 -> 3,0 min).
+# seed 42 (6,7 -> 3,0 min) e por +13% da semente por luta (CRN).
 #
 # O default vem primeiro: os tres sweeps o usam como ancora, e uma interrupcao no meio
 # ainda deixa a ancora no disco.
 $passos = @(
-    @{ N = 1; Min = 5; Nome = "ANCORA - default (elitismo 0,10 | torneio 3 | lambda 1,0)"
+    @{ N = 1; Min = 6; Nome = "ANCORA - default (elitismo 0,10 | torneio 3 | lambda 1,0)"
        Args = $base }
 
     # --- elitismo: o braco 0 e o informativo, como o 1/0/0 foi nos pesos do dominance ---
-    @{ N = 2; Min = 5; Nome = "elitismo 0,00 - sem elitismo (mostra o que ele segura)"
+    @{ N = 2; Min = 6; Nome = "elitismo 0,00 - sem elitismo (mostra o que ele segura)"
        Args = $base + @("--elite-rate", "0") }
-    @{ N = 3; Min = 5; Nome = "elitismo 0,05"
+    @{ N = 3; Min = 6; Nome = "elitismo 0,05"
        Args = $base + @("--elite-rate", "0.05") }
-    @{ N = 4; Min = 5; Nome = "elitismo 0,20"
+    @{ N = 4; Min = 6; Nome = "elitismo 0,20"
        Args = $base + @("--elite-rate", "0.20") }
-    @{ N = 5; Min = 5; Nome = "elitismo 0,30"
+    @{ N = 5; Min = 6; Nome = "elitismo 0,30"
        Args = $base + @("--elite-rate", "0.30") }
 
     # --- torneio: pressao seletiva; 2 e quase aleatorio, 7 e quase greedy ---
-    @{ N = 6; Min = 5; Nome = "torneio 2 - pressao seletiva minima"
+    @{ N = 6; Min = 6; Nome = "torneio 2 - pressao seletiva minima"
        Args = $base + @("--tournament-size", "2") }
-    @{ N = 7; Min = 5; Nome = "torneio 5"
+    @{ N = 7; Min = 6; Nome = "torneio 5"
        Args = $base + @("--tournament-size", "5") }
-    @{ N = 8; Min = 5; Nome = "torneio 7 - pressao seletiva alta"
+    @{ N = 8; Min = 6; Nome = "torneio 7 - pressao seletiva alta"
        Args = $base + @("--tournament-size", "7") }
 
     # --- lambda: re-rodados sob o motor final (ver o cabecalho) ---
-    @{ N = 9;  Min = 5; Nome = "lambda_drift 0,25 - equilibrio pesa 4x"
+    @{ N = 9;  Min = 6; Nome = "lambda_drift 0,25 - equilibrio pesa 4x"
        Args = $base + @("--lambda-drift", "0.25") }
-    @{ N = 10; Min = 5; Nome = "lambda_drift 0,5"
+    @{ N = 10; Min = 6; Nome = "lambda_drift 0,5"
        Args = $base + @("--lambda-drift", "0.5") }
-    @{ N = 11; Min = 5; Nome = "lambda_drift 2,0"
+    @{ N = 11; Min = 6; Nome = "lambda_drift 2,0"
        Args = $base + @("--lambda-drift", "2") }
-    @{ N = 12; Min = 5; Nome = "lambda_drift 4,0 - identidade pesa 4x"
+    @{ N = 12; Min = 6; Nome = "lambda_drift 4,0 - identidade pesa 4x"
        Args = $base + @("--lambda-drift", "4") }
 
     # --- pesos do dominance: idem. Comparar pelos TERMOS, nunca pelo composto ---
-    @{ N = 13; Min = 5; Nome = "pesos 1 / 2 / 0,5 - cap dobrado"
+    @{ N = 13; Min = 6; Nome = "pesos 1 / 2 / 0,5 - cap dobrado"
        Args = $base + @("--dom-cap", "2") }
-    @{ N = 14; Min = 5; Nome = "pesos 1 / 1 / 1 - secundarios no peso do primario"
+    @{ N = 14; Min = 6; Nome = "pesos 1 / 1 / 1 - secundarios no peso do primario"
        Args = $base + @("--dom-cap", "1", "--dom-decis", "1") }
-    @{ N = 15; Min = 5; Nome = "pesos 1 / 0,5 / 0 - sem o piso de decisividade"
+    @{ N = 15; Min = 6; Nome = "pesos 1 / 0,5 / 0 - sem o piso de decisividade"
        Args = $base + @("--dom-decis", "0") }
-    @{ N = 16; Min = 5; Nome = "pesos 1 / 0 / 0 - a falsificacao: so o termo primario"
+    @{ N = 16; Min = 6; Nome = "pesos 1 / 0 / 0 - a falsificacao: so o termo primario"
        Args = $base + @("--dom-cap", "0", "--dom-decis", "0") }
 )
 

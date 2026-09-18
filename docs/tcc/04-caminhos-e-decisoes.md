@@ -1048,4 +1048,48 @@ pesa mais que a de aleatórios, e o spawn vira fração menor.
 **Consequência declarada:** a mudança altera o código de `src/engine/`, logo o digest de
 todo artefato, e `results/` passa a ler "obsoleto" mesmo com os números idênticos. A regra da
 seção anterior vale aqui: re-carimbar exige reproduzir **cada** artefato, e reproduzir todos
-é rodar a bateria. Ela custa agora ~3h20 estimadas, e os sweeps ~1h20.
+é rodar a bateria. Com o pool novo ela custa ~3h45 estimadas, e os sweeps ~1h40. (Na
+mesma noite o CRN passou a semear cada luta — seção seguinte —, e aí a bateria deixa de ser
+re-carimbo e passa a substituir os resultados.)
+
+## O CRN passou a semear cada luta (2026-09-18)
+
+**Problema.** O CRN semeava o RNG **uma vez** por avaliação, e as 1500 lutas do round-robin
+consumiam o mesmo stream em sequência. Cada luta gasta um número de sorteios proporcional à
+própria duração, então a primeira luta que durasse diferente em dois indivíduos deslocava a
+leitura de **todas** as seguintes — inclusive as de pares idênticos nos dois. Mudar um gene
+do Zoner mexia, por sorteio, no resultado de Rushdown × Turtle.
+
+**Mudança.** `fitness.fight_seed(seed_base, par, luta)`, misturado por SplitMix64, semeia
+cada luta: a luta *k* do par *m* recebe os mesmos sorteios em todo indivíduo avaliado sob o
+mesmo seed-base, não importa o que as anteriores consumiram. A rotação do stream por geração
+fica igual — as sementes das lutas derivam do seed-base da geração. A `sensitivity_analysis`,
+que semeava o combate direto, passou a usar o mesmo mecanismo.
+
+**Resultado — o ganho é menor do que se esperava, e o registro precisa dizer isso.** A
+proposta foi feita esperando um ganho possivelmente grande, sob a leitura de que, depois da
+primeira luta divergente, os dois indivíduos ficavam como se tivessem sementes
+independentes. A medição desmentiu as duas coisas. Roster evoluído contra ele mesmo com um
+gene a +σ, 40 seed-bases:
+
+| diferença pareada, mesma seed-base | stream único | uma semente por luta | ganho |
+|---|---|---|---|
+| f(X') − f(X), Zoner `range` +σ | DP 0,0328 | 0,0276 | 1,2× |
+| f(X') − f(X), Turtle `stun` +σ | DP 0,0209 | 0,0213 | 1,0× |
+| f(X') − f(X), Grappler `knockback` +σ | DP 0,0165 | 0,0127 | 1,3× |
+| Rushdown × Turtle, com o Zoner alterado | DP 0,0190 | **0** | exato |
+
+O stream único já preservava boa parte do pareamento: no par não afetado o DP da diferença
+era 0,019, contra ~0,058 se as amostras fossem independentes. A semente por luta zera esse
+resíduo, mas ele não era o ruído que pesa. O que sobra está **dentro** das lutas do
+personagem alterado: quando o gene muda o que acontece numa luta, o resto dela se desenrola
+diferente e os sorteios seguintes caem em estados diferentes. Semear por luta não alcança
+isso; sincronizar por instante (sub-tick × lado) alcançaria, com ganho não medido. O custo é
++13% por avaliação.
+
+**Por que ficou mesmo assim:** decisão do autor, com os números acima na mesa. O contrato
+exato nos pares não alterados é uma propriedade limpa e testável (`test_fitness`: mudar um
+gene do Zoner deixa os 6 pares sem ele bit a bit iguais), o ganho existe ainda que pequeno,
+e a bateria já teria de rodar pelo pool persistente. **Consequência declarada:** todos os
+sorteios mudam, logo todos os números da tese — a bateria seguinte substitui os resultados,
+e as conclusões (incluindo as dos três sweeps) precisam ser relidas contra ela.

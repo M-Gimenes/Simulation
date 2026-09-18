@@ -170,16 +170,22 @@ Como funciona:
   - *Antes:* `crc32(genes) XOR seed_base` (hash-por-genes). Era reprodutível, mas
     congelava o ruído MC numa função descontínua dos genes — cada indivíduo via um
     stream diferente, anulando a redução de variância do CRN.
-  - *Caveat conhecido (aceito, não corrigido):* o alinhamento CRN é perfeito só até
-    o 1º matchup; como cada luta consome um nº variável de sorteios, a posição do
-    stream diverge entre indivíduos nos matchups seguintes. Ainda assim é muito
-    melhor que seeds independentes por indivíduo. Alinhamento perfeito exigiria
-    semear por `(base, matchup_idx, sim_idx)` — fora de escopo.
+  - **Uma semente por luta** (`fitness.fight_seed(seed_base, par, luta)`, misturada por
+    SplitMix64): a luta *k* do par *m* recebe os mesmos sorteios em todo indivíduo
+    avaliado sob o mesmo seed-base, não importa quanto as lutas anteriores consumiram.
+    Com um stream único por avaliação, a primeira luta que durasse diferente em dois
+    indivíduos deslocava a leitura de todas as seguintes, inclusive as de pares idênticos
+    nos dois. Medido (roster evoluído × o mesmo com um gene a +σ, 40 seed-bases): num
+    par sem o personagem alterado a diferença vai de DP 0,019 a **exatamente 0**, mas a
+    diferença de fitness melhora só 1,0–1,3× — o ruído que resta é **dentro** das lutas
+    do personagem alterado, onde a trajetória diverge e o resto da luta se desenrola
+    diferente. Custo: +13% por avaliação. `test_fitness` cobre o contrato: mudar um gene
+    do Zoner deixa os 6 pares sem ele bit a bit iguais.
 - **`ga.run`/`nsga2.run`** semeiam `random`, `np.random` e `seed_combat` no início
   e definem o seed-base. Sem seed → entropia (não reprodutível, por escolha).
-- **`sensitivity_analysis`** usa `seed_combat(seed)` no pareamento +σ/−σ → os dois
-  compartilham os mesmos sorteios (common random numbers), e a redução de variância
-  agora funciona de fato.
+- **`sensitivity_analysis`** avalia +σ e −σ sob o mesmo seed-base (`set_seed_base`), então
+  cada luta dos dois recebe os mesmos sorteios (common random numbers, uma semente por
+  luta).
 - **`analyze_matchups --seed`** semeia o combate também.
 
 Verificado empiricamente: determinismo por-indivíduo, seeds-base distintos dão

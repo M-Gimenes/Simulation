@@ -72,10 +72,15 @@ Menores (sem impacto em resultado, mas sujeira para banca) em §7.
   do `WinError 1455`, e numa máquina menor o pool usa o que ela tem. Com o pool
   persistente, 8, 12 e 16 workers ficam dentro do ruído entre si. O `sensitivity_analysis`
   já usa `N_WORKERS` como default.
-- [ ] **Alinhamento CRN imperfeito depois do 1º matchup.** *Fato:* cada luta consome um
+- [x] **Alinhamento CRN imperfeito depois do 1º matchup.** *Fato:* cada luta consome um
   nº variável de sorteios, então a posição do stream diverge entre indivíduos nos
   matchups seguintes. *Pergunta:* aceitar (documentado) ou semear por
   `(base, matchup_idx, sim_idx)`?
+  **Fechado em 2026-09-18: semeado por luta** (`fitness.fight_seed`). Medido antes de
+  commitar: pares sem o personagem alterado passam a sair bit a bit iguais (DP da
+  diferença 0,019 → 0), mas o sinal de seleção melhora só 1,0–1,3× no DP da diferença
+  pareada, com +13% de tempo — o ruído que resta é intra-luta. Mantido; muda todos os
+  números.
 - [x] **O ambiente não sobe sozinho.** *Verificado:* `.venv/` não existia no repositório
   e o Python do sistema (3.14) não tem `numpy`/`numba`/`scipy` — nenhuma tool roda até
   `.\setup.ps1`. Recriado nesta sessão; `requirements.txt` instala limpo em 3.14 e os
@@ -982,7 +987,7 @@ tudo o que muda número tem de ser resolvido **antes** de uma única regeneraç�
 | 11 | **instrumentação** — proveniência nos artefatos + marcos de convergência por semente | um artefato que não carrega a config que o produziu não se auto-verifica; e sem os marcos, "velocidade" é n = 1 | ✅ 2026-09-17 |
 | 12 | **sweeps** de `LAMBDA_DRIFT`, pesos do dominance e elitismo/torneio, em orçamento reduzido | exploratório quer ORDENAÇÃO, e ordenação transfere de orçamento — ~10 min por braço | ✅ 2026-09-17/18: os três testaram o valor vigente e ele passou; `config.py` inalterado |
 | 13 | **bateria** — `run_battery.ps1` (n = 20) | poder estatístico: 44,4% → 85,9% | ✅ 2026-09-18: as três métricas de Holm significativas |
-| 14 | **pendências do known-issues** — default de sementes fora do carimbo, pool persistente, contagem no veredito externo | nenhuma muda número; o pool muda o digest do motor | ✅ 2026-09-18; falta re-rodar sweeps + bateria (`run_overnight.ps1`) para re-carimbar |
+| 14 | **pendências do known-issues** — default de sementes fora do carimbo, pool persistente, contagem no veredito externo, CRN por luta | o CRN por luta muda todos os sorteios | ✅ 2026-09-18; falta re-rodar sweeps + bateria (`run_overnight.ps1`) e reler todos os resultados |
 
 > Fechado o passo 7, a decisão seguinte não é um item desta tabela e sim a
 > **[agenda de calibração (§9)](#9-agenda-de-calibração--as-constantes-provisórias-com-evidência)**:

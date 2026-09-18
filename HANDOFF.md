@@ -18,13 +18,15 @@ e da **run noturna de 2026-09-18**: os três sweeps exploratórios e a bateria c
 
 1. **O ambiente não sobe sozinho.** `.venv/` é gitignored e o Python do sistema (3.14)
    não tem `numpy`/`numba`/`scipy`. Rode `setup.ps1` antes de qualquer coisa.
-2. **`results/` está COMPLETO, mas carimbado como OBSOLETO até a próxima bateria** — e os
-   números não mudam. Depois da bateria, o pool de processos ficou persistente (§4): muda o
-   código de `src/engine/`, logo o digest de todo artefato, sem mudar número nenhum — a
-   seed 42 reproduziu bit a bit nos dois algoritmos. **Rodar `.\run_overnight.ps1`** (16
-   braços + bateria, ~4h40 estimadas contra as ~9h da última vez) e conferir com
-   `test_provenance`.
-   Os números são os da bateria de **2026-09-18 com n = 20**, sob o motor final (rotação
+2. **`results/` está COMPLETO, mas OBSOLETO — e os números VÃO MUDAR.** Depois da
+   bateria o motor mudou duas vezes (§4): o pool de processos ficou persistente, que não
+   muda número (seed 42 reproduzida bit a bit), e o CRN passou a semear **cada luta**, que
+   troca todos os sorteios e portanto todos os números. **Rodar `.\run_overnight.ps1`**
+   (16 braços + bateria, ~5h20 estimadas contra as ~9h da última vez), conferir com
+   `test_provenance` e então **reler tudo o que é resultado**: as tabelas da §3, o
+   `docs/tcc/`, o `CLAUDE.md` e as conclusões dos três sweeps — a expectativa é que se
+   mantenham, mas é isso que a bateria vai dizer.
+   Os números abaixo e na §3 são os da bateria de **2026-09-18 com n = 20**, sob o motor final (rotação
    do stream, persistência 5, drift invariante à escala dos pesos). Ela rodou à noite:
    `run_sweeps.ps1` (16 braços, ~3h) e, emendada por `run_overnight.ps1`, a bateria (11
    passos, 5h54), sem nenhuma falha. As sementes 42–51
@@ -552,6 +554,10 @@ sementes 42–51 são determinísticas), **não** no de compute: `multi_run` nã
 
 ## 3. Resultados da bateria (2026-09-18, n = 20) — sob rotação, persistência 5 e drift invariante
 
+> ⚠️ **Estes números são de ANTES do CRN por luta (§4), que troca todos os sorteios.** A
+> próxima bateria os substitui. Esta seção precisa ser reescrita contra ela — tabelas,
+> leituras e as conclusões dos sweeps —, e nada daqui deve ser citado até lá.
+
 `results/` está **atual e coerente**. Bateria: AG e NSGA-II na seed 42, `multi_run` com
 **20 sementes** × 2 algoritmos, `compare_algorithms`, os quatro rótulos de
 `external_validation`, `sensitivity_analysis` e `baselines` com 30 nulos.
@@ -863,6 +869,14 @@ Inventário completo e comentado em
   do histórico (3,0 min contra 6,7); o NSGA-II na fronteira inteira de 64 pontos e nos 5
   representantes (5,8 min contra 9,7). `N_WORKERS = min(8, os.cpu_count())`: o teto protege do
   `WinError 1455`, e com o pool vivo 8, 12 e 16 workers ficam dentro do ruído.
+- ✅ **CRN com uma semente por luta** (2026-09-18). Com um stream único por avaliação, a
+  primeira luta que durasse diferente em dois indivíduos deslocava os sorteios de todas as
+  seguintes, até em pares idênticos nos dois. `fitness.fight_seed(seed_base, par, luta)`
+  semeia cada luta. Medido antes de decidir, e o ganho é **menor** do que eu tinha estimado
+  ao propor: o par sem o personagem alterado vai de DP 0,019 a exatamente 0, mas a
+  diferença de fitness pareada melhora só 1,0–1,3×, porque o ruído que pesa é **dentro**
+  das lutas do personagem alterado. Custo +13% por avaliação. Mantido por decisão do
+  autor; **muda todos os números**.
 - ✅ **Veredito da validação externa com contagem** (2026-09-18). O veredito segue binário;
   o relato passou a dizer em quantas das 10 condições cada par vira counter e cada boneco
   fica na banda (§3).
@@ -870,7 +884,7 @@ Inventário completo e comentado em
 **Limites estruturais — escopo declarado, não conserto** (§2): política fixa (a objeção
 mais forte ao resultado) e **cega ao estado**; crossover só por bloco de personagem;
 round-robin uniforme; hipersensibilidade dos genes de recurso; `knockback` e `speed` no
-limiar do piso de ruído; alinhamento CRN imperfeito depois do 1º matchup.
+limiar do piso de ruído; o pareamento CRN acaba dentro da luta.
 
 ## 5. Aberto — redação
 

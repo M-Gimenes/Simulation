@@ -2,8 +2,10 @@
 Análise de sensibilidade — Δ WR por (arquétipo × atributo) ao perturbar genes em ±σ.
 
 Responde "o AG enxerga este gene?": um gene cujo deslocamento de ±σ não move a WR não
-tem gradiente de seleção. Usa pareamento de seeds — `seed_combat` fixa o mesmo stream
-antes de `+σ` e `−σ` (common random numbers), isolando o efeito do gene do sorteio.
+tem gradiente de seleção. Usa pareamento de seeds — `+σ` e `−σ` são avaliados sob o
+mesmo seed-base, então cada luta dos dois recebe os mesmos sorteios (common random
+numbers, uma semente por luta — ver `fitness.fight_seed`), isolando o efeito do gene do
+sorteio.
 
 **O piso é medido, não estimado.** A versão anterior imprimia um piso binomial
 analítico (`√(0.25/4·sims)`) que nem sequer entrava na classificação — ela usava
@@ -43,14 +45,13 @@ from concurrent.futures import ProcessPoolExecutor
 from typing import List, Sequence, Tuple
 
 from src.engine.archetypes import ARCHETYPE_ORDER, ARCHETYPES
-from src.engine.combat import seed_combat
 from src.engine.config import (
     ATTRIBUTE_BOUNDS,
     ATTRIBUTE_MUTATION_SIGMA,
     ATTRIBUTE_NAMES,
     N_WORKERS,
 )
-from src.engine.fitness import evaluate_detail_n
+from src.engine.fitness import evaluate_detail_n, set_seed_base
 from src.engine.individual import Individual
 from src.engine.paths import PROJECT_ROOT, SENSITIVITY_DIR, SENSITIVITY_PATH
 from src.engine.provenance import stamp
@@ -78,7 +79,7 @@ def _individual_from(genes: Genes) -> Individual:
 def _eval_task(task: Task) -> float:
     genes, char_idx, attr_idx, sign, magnitude, sims, seed = task
 
-    seed_combat(seed)  # mesmo seed em +σ e −σ → mesmos sorteios (common random numbers)
+    set_seed_base(seed)  # mesmo seed em +σ e −σ → mesmos sorteios (common random numbers)
     ind = _individual_from(genes)
     char = ind.characters[char_idx]
     lo, hi = ATTRIBUTE_BOUNDS[attr_idx]

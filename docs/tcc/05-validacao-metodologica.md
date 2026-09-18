@@ -16,11 +16,11 @@ ferramenta está em [`../reference/08-tools.md`](../reference/08-tools.md).
   do `np.random` de nível Python e **só semeável de dentro de um `@njit`**. Por isso a
   reprodutibilidade não é trivial — e era um ponto silenciosamente quebrado (ver a
   trajetória em [04-caminhos-e-decisoes.md](04-caminhos-e-decisoes.md)).
-- **Como é garantida hoje:** **reset ao seed-base (Common Random Numbers)** — toda
-  avaliação reseta o RNG do combate ao mesmo seed-base, propagado aos workers do
-  paralelismo. Reprodutível independente de qual worker avalia, e todo indivíduo é
-  avaliado sob o mesmo stream de RNG (a diferença de fitness reflete genes, não sorteio
-  → seleção menos enganada). Detalhe técnico em
+- **Como é garantida hoje:** **Common Random Numbers com uma semente por luta** — cada
+  luta do round-robin é semeada a partir do seed-base, do par e do número da luta, e o
+  seed-base é propagado aos workers do paralelismo. Reprodutível independente de qual
+  worker avalia, e a luta *k* do par *m* recebe os mesmos sorteios em todo indivíduo (a
+  diferença de fitness reflete genes, não sorteio → seleção menos enganada). Detalhe técnico em
   [`../09-reproducibility.md`](../reference/09-reproducibility.md).
 - **Ponto para a tese:** experimentos com `--seed` são **replicáveis** (afirmação que
   uma tese de método precisa poder fazer), e foi **verificado empiricamente**.

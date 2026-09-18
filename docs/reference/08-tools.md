@@ -240,9 +240,9 @@ mede a paisagem em volta de um indivíduo, e muda com ele.
 py -m src.tools.sensitivity_analysis --sims 500 --workers 1
 ```
 
-O pareamento +σ/−σ é feito com `seed_combat(seed)` (o RNG do combate é interno ao
-Numba — `random.seed` não o afeta), então os dois lados do par compartilham o mesmo
-stream: o Δ medido é efeito do gene, não do sorteio. Ver
+O pareamento +σ/−σ avalia os dois lados sob o mesmo seed-base (`set_seed_base`), e cada
+luta é semeada por `fitness.fight_seed`: os dois lados recebem os mesmos sorteios luta a
+luta, e o Δ medido é efeito do gene, não do sorteio. Ver
 [09-reproducibility.md](09-reproducibility.md).
 
 Salva a matriz completa em `results/sensitivity/sensitivity_analysis.json` (Δ WR por

@@ -67,8 +67,8 @@ py -m src.tools.web_viewer                      # browser viewer em localhost:80
 Scripts retomáveis (`-From N` retoma de um passo; `-WhatIf` só lista e estima o custo):
 
 ```powershell
-.\run_sweeps.ps1     # 16 bracos exploratorios em orcamento reduzido (~1h20)
-.\run_battery.ps1    # a bateria citavel, n = 20 sementes (~3h20)
+.\run_sweeps.ps1     # 16 bracos exploratorios em orcamento reduzido (~1h40)
+.\run_battery.ps1    # a bateria citavel, n = 20 sementes (~3h45)
 .\run_overnight.ps1  # encadeia os dois e roda desassistido
 ```
 
