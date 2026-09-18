@@ -20,9 +20,13 @@ Três escolhas de projeto, cada uma contra um modo de falha específico:
 3. **`config.py` fica fora do digest de código, porque seus valores são gravados um a um.**
    "`MATCHUP_WR_CAP` foi de 0,15 para 0,20" é acionável; "o hash mudou" não é.
 
-`N_WORKERS` não entra: `evaluate_detail` resemeia o combate ao `_SEED_BASE` antes de cada
-round-robin, então o resultado independe de quantos workers avaliam. Carimbá-lo faria uma
-mudança inócua invalidar a bateria inteira, e um alarme que dispara à toa deixa de ser lido.
+Duas constantes não entram, pela mesma razão — carimbá-las faria uma mudança inócua
+invalidar a bateria inteira, e um alarme que dispara à toa deixa de ser lido:
+
+- `N_WORKERS`: `evaluate_detail` resemeia o combate ao `_SEED_BASE` antes de cada
+  round-robin, então o resultado independe de quantos workers avaliam.
+- `MULTI_RUN_N_SEEDS`: é só o tamanho da amostra do `multi_run`, que o artefato dele já
+  grava no corpo (`n_seeds`, `seeds`); nenhum outro artefato depende dela.
 """
 
 from __future__ import annotations
@@ -44,7 +48,7 @@ _ENGINE_DIR = Path(__file__).resolve().parent
 # próprio módulo porque carimbar o carimbador é auto-referência sem ganho.
 _SOURCE_EXCLUDED = frozenset({"config.py", "paths.py", "provenance.py"})
 
-_CONFIG_EXCLUDED = frozenset({"N_WORKERS"})
+_CONFIG_EXCLUDED = frozenset({"N_WORKERS", "MULTI_RUN_N_SEEDS"})
 
 _DIGEST_LEN = 12
 
@@ -286,7 +290,10 @@ def compare(recorded: Optional[Dict[str, Any]],
     div.engine_changed     = recorded.get("engine_digest") != ref_engine
     div.archetypes_changed = recorded.get("archetypes_digest") != ref_archetypes
 
-    for name in sorted(set(recorded.get("config", {})) | set(ref_config)):
+    # Uma constante excluída nunca diverge — nem num artefato carimbado antes de ela sair
+    # do carimbo, que ainda a traz gravada.
+    names = (set(recorded.get("config", {})) | set(ref_config)) - _CONFIG_EXCLUDED
+    for name in sorted(names):
         was = recorded.get("config", {}).get(name, "<ausente>")
         now = ref_config.get(name, "<removida>")
         if was != now:

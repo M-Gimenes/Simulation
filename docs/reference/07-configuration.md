@@ -88,7 +88,7 @@ foi removido).
 | `NSGA2_OBJECTIVES` | (dominance, drift) | objetivos do NSGA-II |
 | `HYPERVOLUME_REFERENCE` | (2.0, 1.0) | ponto de referência do hipervolume (piores valores de dominance/drift; dominance vai a 2.0 sob C2) |
 | `MULTI_RUN_SEED_START` | 42 | primeira semente da agregação `multi_run` |
-| `MULTI_RUN_N_SEEDS` | 10 | nº de execuções independentes a agregar. **O protocolo é 20** (poder medido — n=10 dá 44,4%, n=20 dá 85,9% para Â₁₂ = 0,80 com a família de Holm de 3), e a bateria de 2026-09-18 rodou com `--n-seeds 20`; as sementes 42..51 reproduziram bit a bit as da bateria de n = 10. O default segue 10 — **pendência**: sem o flag, o `multi_run` sobrescreve a bateria com n = 10 (ver [10-known-issues](10-known-issues.md) §1.2) |
+| `MULTI_RUN_N_SEEDS` | 20 | nº de execuções independentes a agregar — o menor n com poder ≥ 80% (n=10 dá 44,4%, n=20 dá 85,9% para Â₁₂ = 0,80 com a família de Holm de 3). **Fora do carimbo de proveniência**, como `N_WORKERS`: só define o tamanho da amostra, que o artefato do `multi_run` grava no corpo |
 | `MULTI_RUN_VALIDATION_SEED` | 9999 | semente de validação (reavaliação independente do treino, comum a todas as execuções) |
 | `MULTI_RUN_SIMS` | 200 | sims/matchup na reavaliação independente (= `SIMS_CONVERGENCE_CHECK`) |
 | `EXTERNAL_VALIDATION_SEED_START` | 10000 | primeira semente de avaliação da validação externa (item 3.2) |

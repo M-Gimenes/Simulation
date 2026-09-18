@@ -231,13 +231,12 @@ HYPERVOLUME_REFERENCE = (2.0, 1.0)  # piores valores (dominance ≤ 2.0, drift �
 # ── Multi-run: N execuções independentes + estatística agregada ──────────────
 
 MULTI_RUN_SEED_START = 42         # primeira semente; execuções usam 42, 43, ..., 42+N−1
-# nº de execuções independentes a agregar.
-# DECIDIDO: 20. Poder medido por simulação (4000 réplicas, Â₁₂ = 0.80, critério
-# `3 × p < 0.05` com a família de Holm corrigida): n=10 → 44.4% · n=15 → 73.1% ·
-# n=20 → 85.9% · n=30 → 97.3%. n=20 é o menor que passa do patamar de 80%.
-# Mantido em 10 NESTA rodada por custo (a bateria dobra); as sementes 42..51 são
-# determinísticas, então subir para 20 depois reproduz estas 10 exatamente.
-MULTI_RUN_N_SEEDS = 10
+# nº de execuções independentes a agregar. Poder medido por simulação (4000 réplicas,
+# Â₁₂ = 0.80, critério `3 × p < 0.05` com a família de Holm corrigida): n=10 → 44.4% ·
+# n=15 → 73.1% · n=20 → 85.9% · n=30 → 97.3%. 20 é o menor que passa do patamar de 80%.
+# Fora do carimbo de proveniência: define só o tamanho da amostra, que o artefato do
+# `multi_run` grava no corpo.
+MULTI_RUN_N_SEEDS = 20
 MULTI_RUN_VALIDATION_SEED = 9999  # seed comum de reavaliação (CRN): desacopla a métrica da seed de treino
 MULTI_RUN_SIMS = SIMS_CONVERGENCE_CHECK  # sims/matchup na reavaliação independente
 

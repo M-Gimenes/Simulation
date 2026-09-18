@@ -806,7 +806,8 @@ corrigidos; o quadro macro do modelo ficou registrado abaixo.
   — `dominance` p 0,0123 (Â₁₂ 0,27), `drift` p 0,00007 (0,89), counters p 0,0018 (0,21),
   todas com efeito grande. Os Â₁₂ andaram na direção de 0,5 em relação ao n = 10 (0,20 ·
   0,94 · 0,14): o efeito a n = 10 estava inflado, como é típico de amostra pequena, e o de
-  n = 20 é o que se cita.
+  n = 20 é o que se cita. O default também passou a 20 — e a constante saiu do carimbo de
+  proveniência, como `N_WORKERS`, para que a troca não invalidasse a bateria.
 - [x] **(F) Holm rodava sobre 4 métricas, uma delas degenerada.** *Fato:*
   `n_chars_balanced` é **5/5 nas 20 execuções** (10 por algoritmo) — amostra conjunta
   constante, e `mannwhitneyu` devolve `p = nan` porque a correção de empates zera o

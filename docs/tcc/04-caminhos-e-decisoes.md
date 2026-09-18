@@ -966,10 +966,14 @@ de linha de comando, e o carimbo registra a config, não os argumentos.
 30, o valor do protocolo, para que a bateria e o dossiê (`report`) não dependam de um flag; o
 `baselines.json` regerado saiu idêntico ao de 2026-09-17. Duas regras ficaram: **carimbo
 retroativo só por reprodução do próprio artefato**, e **o default de uma ferramenta é o valor
-do protocolo**, não um atalho mais barato. A segunda ainda não vale para o `multi_run`: o
-`MULTI_RUN_N_SEEDS` segue 10 no `config.py`, e mudá-lo marcaria todos os artefatos como
-obsoletos, porque o carimbo grava toda constante — pendência registrada em
-[`../reference/10-known-issues.md`](../reference/10-known-issues.md) §1.2.
+do protocolo**, não um atalho mais barato. No `multi_run` a segunda regra esbarrava no
+próprio carimbo: `MULTI_RUN_N_SEEDS` seguia 10 com a bateria passando `--n-seeds 20`, e
+subir o default marcaria todos os artefatos como obsoletos, porque o carimbo grava toda
+constante. A saída foi tirá-la do carimbo, com o mesmo argumento de `N_WORKERS`: ela só
+define o tamanho da amostra, que o corpo do artefato do `multi_run` já grava (`n_seeds`,
+`seeds`), e nenhum outro artefato depende dela. O default passou a 20, e o `compare` ignora
+constantes excluídas também do lado gravado — sem isso, excluí-la invalidaria a bateria que
+a exclusão existe para proteger.
 
 **Resultado — a primeira medição de sensibilidade sobre o indivíduo atual.** Com 600 sims e 12
 repetições do piso, para decidir o `knockback`:

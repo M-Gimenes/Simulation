@@ -78,6 +78,17 @@ def test_every_constant_is_covered():
     assert "N_WORKERS" not in gravadas
     print("  ✓ N_WORKERS excluído (não muda número)")
 
+    # MULTI_RUN_N_SEEDS também não: é o tamanho da amostra do multi_run, gravado no corpo
+    # do artefato dele. E um artefato carimbado quando ela ainda entrava no carimbo, com
+    # outro valor, continua atual — senão excluí-la invalidaria a bateria que a exclusão
+    # existe para proteger.
+    assert "MULTI_RUN_N_SEEDS" not in gravadas
+    antigo = stamp()
+    antigo["config"]["MULTI_RUN_N_SEEDS"] = config.MULTI_RUN_N_SEEDS // 2
+    antigo["fingerprint"] = "de-quando-ela-entrava"
+    assert compare(antigo).is_current
+    print("  ✓ MULTI_RUN_N_SEEDS excluído, e um artefato que ainda a grava segue atual")
+
     # As que decidem o que É equilíbrio precisam estar lá — são as que a agenda de
     # calibração fechou, e mudar qualquer uma invalida a bateria inteira.
     for crítica in ("MATCHUP_WR_CAP", "MATCHUP_FLOOR", "MATCHUP_THRESHOLD", "LAMBDA_DRIFT",

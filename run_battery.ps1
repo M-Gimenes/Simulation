@@ -43,10 +43,10 @@ $env:PYTHONIOENCODING = "utf-8"
 # interrupcao no meio ainda deixe a bateria principal completa e citavel.
 $passos = @(
     @{ N = 1; Min = 202; Nome = "NSGA-II, 20 sementes"
-       Args = @("-m", "src.tools.multi_run", "--algorithm", "nsga2", "--n-seeds", "20") }
+       Args = @("-m", "src.tools.multi_run", "--algorithm", "nsga2") }
 
     @{ N = 2; Min = 135; Nome = "AG escalar, 20 sementes"
-       Args = @("-m", "src.tools.multi_run", "--algorithm", "ga", "--n-seeds", "20") }
+       Args = @("-m", "src.tools.multi_run", "--algorithm", "ga") }
 
     @{ N = 3; Min = 1; Nome = "compare_algorithms (n=20) - checa proveniencia dos dois"
        Args = @("-m", "src.tools.compare_algorithms") }

@@ -131,15 +131,6 @@ convergência por semente — foram **fechados em 2026-09-17**; ver §4. O que r
   valor **específico desta máquina**. Um pool persistente teria ganho provável grande, mas
   exige propagar mudanças de `_SEED_BASE` para workers vivos: plumbing de
   reprodutibilidade, e a rotação do stream por geração torna isso mais delicado, não menos.
-- **`MULTI_RUN_N_SEEDS` segue em 10 no `config.py`, e a bateria depende de um flag.** O
-  n = 20 roda porque o `run_battery.ps1` passa `--n-seeds 20`; um `multi_run --algorithm
-  both` sem o flag grava n = 10 **por cima** dos artefatos da bateria, no mesmo caminho e
-  sem erro. É a mesma classe de falha que baixou o `baselines` para 8 nulos na bateria de
-  2026-09-18 (§3), lá corrigida no default. Aqui o conserto não é trocar a constante: todo
-  artefato carimba as constantes de `config.py` valor a valor, então mudar o default marca
-  **todos** como obsoletos, embora nenhum número dependa dele — o mesmo motivo de
-  `N_WORKERS` ficar fora do carimbo. Decidir entre tirá-la do carimbo (ela só define o
-  tamanho da amostra, que o corpo do artefato já grava em `n_seeds`) e re-rodar a bateria.
 
 ## 2. Limites estruturais do método (decisões, não bugs)
 
@@ -208,7 +199,7 @@ bateria inteira precisa rodar antes de qualquer número ser citado. A bateria co
 ```bash
 py main.py --seed 42                                    # results.json
 py main.py --algorithm nsga2 --seed 42                  # nsga2_results.json + plots
-py -m src.tools.multi_run --algorithm both --n-seeds 20 # multi_run_{ga,nsga2}.json
+py -m src.tools.multi_run --algorithm both            # multi_run_{ga,nsga2}.json
 py -m src.tools.compare_algorithms                      # comparison_ga_vs_nsga2.json
 py -m src.tools.external_validation                     # canônico
 py -m src.tools.external_validation --evolved           # AG escalar
@@ -246,8 +237,8 @@ ser refeito.
 > `baselines` rodou com 8 nulos aleatórios porque o default do tool era 8 e o script não
 > passava flag — o p caiu de < 0,03 para < 0,08 sem nenhum erro, e o carimbo dava o
 > artefato como atual, porque **era**: a config do motor não mudou, o que mudou foi um
-> argumento de linha de comando. Corrigido tornando 30 o default. O mesmo risco segue
-> aberto no `multi_run` (§1.2).
+> argumento de linha de comando. Corrigido tornando 30 o default, e o mesmo risco no
+> `multi_run` fechado do mesmo jeito (`MULTI_RUN_N_SEEDS = 20`, ver §4).
 
 ## 4. Encerrado (para não reabrir por engano)
 
@@ -331,8 +322,14 @@ Resolvido e verificado; o raciocínio completo está em
   `fitness.drift_genes` reescala os 3 pesos à soma canônica antes de comparar; sem isso o
   drift cobrava por um grau de liberdade invisível ao simulador (7,5% do drift médio,
   pior caso Rushdown 15,1%).
-- **`MULTI_RUN_N_SEEDS`: n = 20 executado (2026-09-18)** — as três métricas de Holm
-  seguem significativas; o default do `config.py` é pendência à parte (§1.2).
+- **`MULTI_RUN_N_SEEDS`: n = 20 executado, e virou o default (2026-09-18)** — as três
+  métricas de Holm seguem significativas. A bateria rodava com `--n-seeds 20` sobre um
+  default de 10, e um `multi_run` sem o flag gravaria n = 10 por cima dela — a mesma classe
+  de falha do `baselines` com 8 nulos. O default passou a 20 e a constante saiu do carimbo:
+  ela só define o tamanho da amostra, que o corpo do artefato já grava, e mantê-la no
+  carimbo faria a troca do default invalidar a bateria inteira sem mudar número nenhum —
+  o mesmo motivo de `N_WORKERS`. `compare` ignora constantes excluídas também do lado
+  gravado, então os artefatos carimbados antes seguem atuais.
 - **Elitismo 10% / torneio 3 mantidos (2026-09-18)** — sweep de 7 braços sem braço que
   supere o default; ver §1.1.
 

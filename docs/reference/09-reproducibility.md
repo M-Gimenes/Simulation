@@ -72,7 +72,7 @@ não o da geração. Em 2026-09-17 foi assim que três artefatos de `external_va
 atravessaram uma troca de motor inteira, e o efeito chegou à tabela de resultados como
 um número plausível.
 
-Quatro decisões de projeto, cada uma contra um modo de falha:
+Cinco decisões de projeto, cada uma contra um modo de falha:
 
 - **As constantes são enumeradas de `config.py`, não listadas à mão** — uma lista curada
   apodrece em silêncio, e a próxima constante adicionada ficaria invisível ao carimbo.
@@ -83,6 +83,10 @@ Quatro decisões de projeto, cada uma contra um modo de falha:
 - **`N_WORKERS` não entra** — a avaliação resemeia ao `_SEED_BASE` antes de cada
   round-robin, então o resultado independe de quantos workers avaliam. Carimbá-lo faria
   uma mudança inócua invalidar a bateria, e um alarme que dispara à toa deixa de ser lido.
+- **`MULTI_RUN_N_SEEDS` também não** — é só o tamanho da amostra do `multi_run`, que o
+  artefato dele grava no corpo (`n_seeds`, `seeds`); nenhum outro artefato depende dela.
+  Uma constante excluída nunca diverge, nem num artefato carimbado quando ela ainda
+  entrava — senão excluí-la invalidaria a bateria que a exclusão existe para proteger.
 
 **A verificação acontece sozinha.** `Individual.from_results` e `Individual.from_nsga2`
 chamam `warn_if_stale` — os dois construtores são o gargalo por onde toda ferramenta
@@ -118,9 +122,9 @@ sem a checagem. O aviso diz o que mudou, não só que mudou:
 > motor (`config.py`, canônicos, código), não os flags com que a ferramenta foi chamada.
 > Um artefato gerado com `--n-random 8` ou `--n-seeds 10` sai carimbado como atual, porque
 > **é** — a config não mudou. A defesa é o default de cada ferramenta ser o valor do
-> protocolo (`baselines` já é: 30 nulos) e o corpo do artefato gravar os parâmetros da
-> execução (`n_random`, `n_seeds`, `sims_per_matchup`). O `multi_run` ainda tem default 10
-> contra o protocolo de 20 — ver [10-known-issues.md](10-known-issues.md) §1.2.
+> protocolo e o corpo do artefato gravar os parâmetros da
+> execução (`n_random`, `n_seeds`, `sims_per_matchup`). As duas ferramentas da bateria
+> seguem a regra: `baselines` com 30 nulos, `multi_run` com 20 sementes.
 
 ## Reprodutibilidade ✅
 

@@ -308,9 +308,8 @@ não um ponto — qual ponto representa a execução é uma escolha explícita
 > exigiu horas de busca — a fronteira, os genes, a trajetória. Foi por não guardar a
 > fronteira que o sweep de λ quase custou uma execução extra do NSGA-II por braço.
 
-Parametrizado em `config.py` (`MULTI_RUN_*`) para escalar N facilmente. O protocolo é
-n = 20 (`--n-seeds 20`, como o `run_battery.ps1` passa); o default `MULTI_RUN_N_SEEDS` ainda
-é 10 — pendência em [10-known-issues.md](10-known-issues.md) §1.2. Mata a
+Parametrizado em `config.py` (`MULTI_RUN_*`) para escalar N facilmente. O default de
+`MULTI_RUN_N_SEEDS` é o protocolo (20), e é com ele que a bateria roda, sem flag. Mata a
 fragilidade de amostra única: um matchup travado (ex.: Combo×Rush) numa seed pode ser
 azar ou estrutural, e só N execuções respondem.
 
@@ -394,7 +393,7 @@ de **onde** vem a diferença: o termo primário é o `global_term`, e é ele que
 equilibra o roster melhor.
 
 ```bash
-py -m src.tools.multi_run --algorithm both --n-seeds 20   # gera os dois artefatos
+py -m src.tools.multi_run --algorithm both   # gera os dois artefatos (20 sementes)
 py -m src.tools.compare_algorithms           # compara e salva
 ```
 
