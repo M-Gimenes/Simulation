@@ -457,6 +457,15 @@ reavaliados junto, 2×pop por geração em vez de pop. Isso está comentado no c
 porque é exatamente o tipo de reavaliação que alguém removeria como "redundante",
 quebrando a validade da fronteira em silêncio.
 
+### Por que não subir as simulações por par
+
+A alternativa óbvia ao ajuste ao stream era subir `SIMS_PER_MATCHUP`, e ela ficou em 150
+porque atacava o sintoma. O desvio binomial de um par a 150 lutas é ±4,1% (±2,9% a 300,
+±2,0% a 600) — já folgado contra um cap de 15%. O que degradava o resultado fora do laço
+não era a precisão da medida, e sim o protocolo: uma realização do RNG para a busca
+inteira. Dobrar as lutas reduziria o ruído só por √2, dobraria o custo e deixaria a causa
+intacta; a rotação custa ~1,8× no escalar e remove a causa.
+
 ### Consequência colateral a declarar
 
 Sob rotação o fitness flutua entre gerações por troca de stream, então
@@ -495,6 +504,11 @@ convergência é o predicado de equilíbrio (`roster_balanced`), não o valor do
   tempo. `knockback` continua abaixo do piso e segue como limitação declarada. (Remedido em
   2026-09-18 no indivíduo atual: no **limiar** do piso, junto com o `speed`, e não abaixo
   dele — ver "O carimbo retroativo por inferência falhou num artefato".)
+
+- **E o `TICK_SCALE` ficou em 5.** A pergunta junto era se a própria resolução sub-tick
+  devia mudar. Não: com o timer de stun contínuo, o único acoplamento que restou com ela é o
+  cooldown, quantizado em `round(cd × TICK_SCALE)` — de 5 a 25 sub-ticks —, e é justamente
+  o cooldown mínimo de 5 sub-ticks que ancora a persistência nova.
 
 ## O drift deixou de cobrar pela escala dos pesos (2026-09-16)
 

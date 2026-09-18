@@ -195,7 +195,7 @@ Each individual = 5 characters (one per archetype) = 55 genes total (8 attrs + 3
 
 ## Key Design Decisions
 
-Current state only; the *why* behind each decision, with the numbers, is in `docs/tcc/04-caminhos-e-decisoes.md`.
+Current state only; the *why* behind each decision, with the numbers, is in `docs/tcc/04-caminhos-e-decisoes.md`. Every value and choice, tagged with the kind of evidence behind it (`[medido]` / `[domínio]` / `[coerência]` / `[projeto]`), is catalogued in `docs/tcc/09-valores-e-escolhas.md` — when a value or its evidence changes, update its entry there too.
 
 > **Numbers quoted below that come from a battery are from the 2026-09-18 one, measured before per-fight CRN seeding.** That change replaces every draw, so the next battery (`run_overnight.ps1`) replaces them — reread each against it before relying on it.
 

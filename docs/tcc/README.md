@@ -37,6 +37,7 @@ isso, apenas se referencia.
 | [06-resultados-a-apresentar.md](06-resultados-a-apresentar.md) | Quais saídas mostrar (dossiê, histórico do AG, fronteira NSGA-II…) e o que cada uma evidencia | Resultados |
 | [07-achados-e-limitacoes.md](07-achados-e-limitacoes.md) | Achados, limitações e o que ainda falta investigar | Resultados / Discussão / Limitações |
 | [08-metodologias-da-literatura.md](08-metodologias-da-literatura.md) | Metodologias dos papers do `.bib`, priorizadas, **+ status de implementação e decisão de escopo** (o que está feito vs citar vs trabalho futuro) | Metodologia / Discussão / Trabalhos Futuros |
+| [09-valores-e-escolhas.md](09-valores-e-escolhas.md) | Catálogo de **todo valor e toda escolha** do sistema, cada um com o tipo de evidência que o sustenta (`[medido]`, `[domínio]`, `[coerência]`, `[projeto]`) e o ponteiro para o porquê — inclui os valores sem justificativa registrada, declarados como tal | Metodologia (todos os subcapítulos) / Limitações |
 
 ## Convenção
 
