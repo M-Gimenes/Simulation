@@ -4,10 +4,9 @@ Toda métrica de identidade do projeto vinha sendo lida contra o **teto** (o can
 como se o piso fosse zero. Nenhuma tem piso zero:
 
   • validador  — cinco personagens IDÊNTICOS (identidade zero por construção) tiram
-    ~7/21, e rosters aleatórios chegaram a 12/21 numa das sementes medidas, porque
-    asserção de ranking com empate se resolve por ordem de índice e algumas acertam
-    por acidente;
-  • drift      — o espelho dá ~0.33 e um roster aleatório ~0.42, então entre
+    6–9/23, e rosters aleatórios chegam a 10/23, porque asserção de ranking com empate
+    se resolve por ordem de índice e algumas acertam por acidente;
+  • drift      — o espelho dá ~0.38 e um roster aleatório ~0.42, então entre
     "identidade preservada" e "aniquilação total" cabem ~0.04;
   • ciclo      — cada aresta é cara-ou-coroa, então o acaso já entrega 5/10.
 
@@ -15,7 +14,7 @@ Os valores exatos dependem da semente de avaliação: por isso o piso é reporta
 **distribuição** (média, pior nulo, p-valor empírico) e recalculado junto do alvo, nunca
 fixado como constante.
 
-Ler `8/21` como "38% da identidade sobreviveu" é o mesmo erro de ler 20% numa prova de
+Ler `13/23` como "57% da identidade sobreviveu" é o mesmo erro de ler 20% numa prova de
 cinco alternativas como "sabe 20% da matéria". Este tool mede o piso e reporta cada
 métrica como **posição entre piso e teto**.
 
@@ -30,7 +29,7 @@ Uso:
     py -m src.tools.baselines                    # só os baselines
     py -m src.tools.baselines --evolved          # + posiciona o melhor do AG
     py -m src.tools.baselines --nsga2 scalar_optimum
-    py -m src.tools.baselines --n-random 10 --sims 200
+    py -m src.tools.baselines --n-random 60 --sims 400   # mais resolução no p
 """
 
 from __future__ import annotations
@@ -58,7 +57,10 @@ from src.engine.provenance import stamp
 from src.tools.analyze_matchups import expected_winner
 from src.tools.archetype_validator import run_validation
 
-N_RANDOM_DEFAULT = 8
+# A resolução do p-valor empírico é 1/N: com 5 espelhos + 30 aleatórios, nenhum nulo
+# igualando o observado afirma p < 0,03. O default é o valor do protocolo, porque a
+# bateria (`run_battery.ps1`) e o dossiê (`report`) o usam sem flag.
+N_RANDOM_DEFAULT = 30
 BEHAVIORAL_SIMS = 120
 
 
