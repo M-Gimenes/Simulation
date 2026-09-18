@@ -43,7 +43,7 @@ Roda `NSGA2_GENERATIONS = 150` gerações fixas (fronteiras de Pareto não
 O NSGA-II usa `fitness.generation_seed(seed, g)`, a **mesma** função do AG escalar:
 protocolo de avaliação idêntico nos dois, senão a comparação entre eles confundiria
 "algoritmo" com "forma de avaliar" (mecanismo em [09](09-reproducibility.md), números em
-[tcc/04](../tcc/04-caminhos-e-decisoes.md)).
+[thesis/04](../thesis/04-design-decisions.md)).
 
 A diferença é o **custo**. No AG escalar só os elites chegam medidos no stream
 anterior. Aqui, o passo (5) combina pais + filhos e re-ranqueia o conjunto inteiro —
@@ -72,7 +72,7 @@ era de rosters tão desequilibrados quanto o canônico intocado.
 
 No **AG escalar o mesmo seed ajuda** e por isso fica: lá o fitness é um número só, o
 canônico é ruim nele e some da população depois de doar genes por crossover. As medições
-das duas metades estão em [tcc/04](../tcc/04-caminhos-e-decisoes.md) ("A população
+das duas metades estão em [thesis/04](../thesis/04-design-decisions.md) ("A população
 inicial do NSGA-II").
 
 > **Ressalva.** Isto remove a causa aguda (drift = 0 de graça na geração 0), não a
@@ -128,8 +128,8 @@ configurações. `main.py` imprime ambos ao fim do run; `nsga2_plots` os anota n
 
 ## Saída
 
-`save_results` grava `results/nsga2_results.json` (fronteira completa, os 5
+`save_results` grava `results/single_run/nsga2.json` (fronteira completa, os 5
 representantes com genes e objetivos, e histórico por geração). Plots em
-`results/plots/nsga2/<timestamp>/` via `nsga2_plots.save_plots` (ver
+`results/single_run/plots/<timestamp>/` via `nsga2_plots.save_plots` (ver
 [08-tools.md](08-tools.md)) — anotados com hipervolume e spacing. Representantes
 consumidos por tools via `Individual.from_nsga2(representative=...)`.

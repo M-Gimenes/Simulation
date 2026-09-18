@@ -8,7 +8,7 @@ from itertools import combinations
 
 from src.engine.archetypes import ARCHETYPE_ORDER, ARCHETYPES
 from src.engine.fitness import FitnessDetail
-from src.tools.baselines import (
+from src.experiments.baselines import (
     circular_triads,
     cycle_edges_kept,
     empirical_p,

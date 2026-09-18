@@ -10,7 +10,7 @@ trocar o registro de cada semente, sem tocar no resto do artefato.
 Rode com: py -m src.tests.test_compare_algorithms
 """
 
-from src.tools.compare_algorithms import (
+from src.experiments.compare_algorithms import (
     ALPHA,
     METRICS,
     _holm,

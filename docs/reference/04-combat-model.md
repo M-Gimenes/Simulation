@@ -105,7 +105,7 @@ re-sortearia a intenção 5× por tick lógico). O contador é **zerado** no imp
 força ADVANCE) e quando o personagem é stunado. Casar a persistência com o cooldown
 mínimo faz quem tem `attack_cooldown = 1` e sorteia GUARDA abrir mão de exatamente
 **uma** janela de ataque; por que 5 e não 10, com as medições:
-[tcc/04](../tcc/04-caminhos-e-decisoes.md).
+[thesis/04](../thesis/04-design-decisions.md).
 
 ## Fluxo por sub-tick
 

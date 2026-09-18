@@ -47,7 +47,7 @@ print("OK")
 # ── Task 2 ────────────────────────────────────────────────────────────────────
 
 def test_datastructures():
-    from src.tools.archetype_validator import ArchetypeCheck, ArchetypeValidationReport
+    from src.analysis.archetype_validator import ArchetypeCheck, ArchetypeValidationReport
     from src.engine.archetypes import ArchetypeID
 
     check = ArchetypeCheck(
@@ -71,7 +71,7 @@ print("OK")
 # ── Task 3 ────────────────────────────────────────────────────────────────────
 
 def test_structural_inter_canonical():
-    from src.tools.archetype_validator import _INTER_ASSERTIONS, _check_structural_inter
+    from src.analysis.archetype_validator import _INTER_ASSERTIONS, _check_structural_inter
     from src.engine.individual import Individual
 
     canon = Individual.from_canonical()
@@ -91,7 +91,7 @@ print("OK")
 # ── Task 4 ────────────────────────────────────────────────────────────────────
 
 def test_structural_intra_canonical():
-    from src.tools.archetype_validator import _INTRA_ASSERTIONS, _check_structural_intra
+    from src.analysis.archetype_validator import _INTRA_ASSERTIONS, _check_structural_intra
     from src.engine.individual import Individual
 
     canon = Individual.from_canonical()
@@ -111,7 +111,7 @@ print("OK")
 # ── Task 5 ────────────────────────────────────────────────────────────────────
 
 def test_run_validation_canonical():
-    from src.tools.archetype_validator import (
+    from src.analysis.archetype_validator import (
         _INTER_ASSERTIONS, _INTRA_ASSERTIONS, run_validation,
     )
     from src.engine.individual import Individual

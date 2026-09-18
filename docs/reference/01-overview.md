@@ -37,7 +37,7 @@ central.
   **circular**.
 
 O status epistemológico do ciclo (construção do autor, uma operacionalização entre
-várias defensáveis) está em [tcc/02-ciclo-canonico.md](../tcc/02-ciclo-canonico.md).
+várias defensáveis) está em [thesis/02-canonical-cycle.md](../thesis/02-canonical-cycle.md).
 
 ## As duas camadas
 
@@ -64,4 +64,4 @@ simultaneamente.
   matchmaking onde jogadores escolhem matchups favoráveis.
 
 Detalhes em [10-known-issues.md](10-known-issues.md) e, para a redação da tese
-(pergunta, escopo, limitações), em [tcc/](../tcc/README.md).
+(pergunta, escopo, limitações), em [thesis/](../thesis/README.md).

@@ -8,7 +8,7 @@ import datetime
 
 from src.engine.config import MAX_GENERATIONS, POPULATION_SIZE
 from src.engine.ga import run as run_ga, save_results as save_ga_results
-from src.engine.paths import GA_RESULTS_PATH, NSGA2_PLOTS_DIR, NSGA2_RESULTS_PATH, PROJECT_ROOT, RESULTS_DIR
+from src.engine.paths import GA_RESULTS_PATH, NSGA2_PLOTS_DIR, NSGA2_RESULTS_PATH, PROJECT_ROOT
 from src.engine.provenance import override_budget
 
 
@@ -36,27 +36,27 @@ def _main_ga(args):
         n_generations=args.generations,
     )
 
-    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    GA_RESULTS_PATH.parent.mkdir(parents=True, exist_ok=True)
     save_ga_results(result, GA_RESULTS_PATH)
 
     d = result.best_detail
     print(f"\nParada: {result.stop_reason} (geração {result.generation})")
     print(f"fitness={result.best.fitness:+.4f}  dom={d.dominance_penalty:.4f}  drift={d.drift_penalty:.4f}")
     print(f"Salvo em {GA_RESULTS_PATH.relative_to(PROJECT_ROOT)}")
-    print("→ py -m src.tools.report --evolved")
+    print("→ py -m src.analysis.report --evolved")
 
 
 def _main_nsga2(args):
     from src.engine.config import HYPERVOLUME_REFERENCE
     from src.engine.nsga2 import run as run_nsga2, save_results
     from src.engine.pareto_metrics import hypervolume_2d, spacing
-    from src.tools.nsga2_plots import save_plots
+    from src.visualization.nsga2_plots import save_plots
 
     override_budget(args.pop, args.generations, "nsga2")
     result = run_nsga2(seed=args.seed, verbose=not args.quiet,
                        pop_size=args.pop, n_generations=args.generations)
 
-    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    NSGA2_RESULTS_PATH.parent.mkdir(parents=True, exist_ok=True)
     save_results(result, NSGA2_RESULTS_PATH)
     print(f"\nFronteira salva em {NSGA2_RESULTS_PATH.relative_to(PROJECT_ROOT)}  ({len(result.pareto_front)} indivíduos)")
 
@@ -74,7 +74,7 @@ def _main_nsga2(args):
     for name, ind in result.representatives.items():
         dom, drift = ind.objectives
         print(f"  {name:15s}  dom={dom:.4f}  drift={drift:.4f}")
-    print("\n→ py -m src.tools.report --nsga2 [knee_point|best_dominance|best_drift|ideal_point]")
+    print("\n→ py -m src.analysis.report --nsga2 [knee_point|best_dominance|best_drift|ideal_point]")
 
 
 def main():

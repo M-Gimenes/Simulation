@@ -118,4 +118,4 @@ no campo `beats` de cada `ArchetypeDefinition`.
   para o grab do Grappler.
 
 O status epistemológico do ciclo (construção do autor, operacionalização entre
-várias defensáveis) está em [tcc/02-ciclo-canonico.md](../tcc/02-ciclo-canonico.md).
+várias defensáveis) está em [thesis/02-canonical-cycle.md](../thesis/02-canonical-cycle.md).

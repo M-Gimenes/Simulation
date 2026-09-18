@@ -1,10 +1,16 @@
 # 08 — Ferramentas
 
-Em `src/tools/`. Todas rodam como módulo a partir da raiz (`py -m src.tools.<nome>`)
-e operam sobre o canônico, o melhor do AG (`--evolved`) ou um representante do
-NSGA-II (`--nsga2 [rep]`).
+Tudo o que consome o motor, em três pacotes divididos pelo que fazem com um roster
+(critério em [02-architecture.md](02-architecture.md)). Todos rodam como módulo a partir
+da raiz: `py -m src.analysis.<nome>`, `py -m src.experiments.<nome>`,
+`py -m src.visualization.<nome>`.
 
-## `report` — dossiê do indivíduo (porta de entrada)
+## `src.analysis` — inspecionar um roster
+
+Imprimem e não gravam nada. Operam sobre o canônico, o melhor do AG (`--evolved`) ou um
+representante do NSGA-II (`--nsga2 [rep]`).
+
+### `report` — dossiê do indivíduo (porta de entrada)
 
 **Um comando** que compõe os tools de avaliação num relatório único: cabeçalho de
 fitness (fitness, drift_penalty, dominance_penalty) + matchups (equilíbrio) + drift
@@ -19,26 +25,26 @@ estão longe de zero. Os rosters de referência são **recalculados a cada execu
 que o dossiê existe para evitar.
 
 ```bash
-py -m src.tools.report --evolved              # dossiê completo do melhor do AG
-py -m src.tools.report --nsga2 scalar_optimum
-py -m src.tools.report --evolved --n-random 60   # mais nulos = mais resolução no p
+py -m src.analysis.report --evolved              # dossiê completo do melhor do AG
+py -m src.analysis.report --nsga2 scalar_optimum
+py -m src.analysis.report --evolved --n-random 60   # mais nulos = mais resolução no p
 ```
 
 Os tools abaixo continuam rodando isolados (pra quando você quer só um ângulo), e
 os de propósito diferente (`sensitivity_analysis`, `viewer`, `nsga2_plots`) ficam
 **fora** do dossiê.
 
-## `analyze_matchups`
+### `analyze_matchups`
 
 Roda os 10 matchups (ou um par específico) com N simulações cada e reporta
 estatísticas, matriz de WR e resumos.
 
 ```bash
-py -m src.tools.analyze_matchups                       # todos, canônico, N=1000
-py -m src.tools.analyze_matchups rushdown zoner        # par específico
-py -m src.tools.analyze_matchups --evolved --n 50      # indivíduo evoluído
-py -m src.tools.analyze_matchups --nsga2 knee_point    # representante do Pareto
-py -m src.tools.analyze_matchups --seed 42             # ver ressalva de seed abaixo
+py -m src.analysis.analyze_matchups                       # todos, canônico, N=1000
+py -m src.analysis.analyze_matchups rushdown zoner        # par específico
+py -m src.analysis.analyze_matchups --evolved --n 50      # indivíduo evoluído
+py -m src.analysis.analyze_matchups --nsga2 knee_point    # representante do Pareto
+py -m src.analysis.analyze_matchups --seed 42             # ver ressalva de seed abaixo
 ```
 
 Saídas: estatísticas por luta (hits, dano, stun, ticks em/fora de range, mix de
@@ -56,7 +62,7 @@ headline **C2**):
   vencedor esperado pelo ciclo? `→ mantido` / `↯ invertido`. O ciclo é métrica
   *post-hoc*, nunca alvo.
 
-## `drift_table`
+### `drift_table`
 
 Decompõe o `drift_penalty` por personagem e por gene: canônico vs evoluído, Δ
 absoluto, Δ normalizado e o **peso do gene no drift**. Mesma normalização do fitness
@@ -68,9 +74,9 @@ a média dos 5 é o próprio `drift_penalty`. Mostra **o preço pago** pela evol
 a visão que faltava do trade-off central da tese.
 
 ```bash
-py -m src.tools.drift_table              # canônico (sanity — drift ≈ 0)
-py -m src.tools.drift_table --evolved    # melhor do AG
-py -m src.tools.drift_table --nsga2 knee_point
+py -m src.analysis.drift_table              # canônico (sanity — drift ≈ 0)
+py -m src.analysis.drift_table --evolved    # melhor do AG
+py -m src.analysis.drift_table --nsga2 knee_point
 ```
 
 Complementa o `archetype_validator`: o validator checa **ordem** (Turtle ainda é o
@@ -79,7 +85,7 @@ No fim, reporta a **diferenciação** (distância média par-a-par dos 5 vs a do
 canônico, como `ratio`): `ratio ~1` = os 5 seguem distintos; `< 1` = homogeneização
 (convergiram entre si). É o medidor direto do eixo *homogeneização* da tese.
 
-## `fingerprint`
+### `fingerprint`
 
 Retrato de **como cada personagem joga**, agregado sobre seus 4 matchups: ataques
 conectados por luta (`atk_landed`), mix de ações (ADV/RET + **DEF dividido em
@@ -94,68 +100,12 @@ O ataque é contado como evento (`atk_landed`), não como fração de sub-ticks:
 instantâneo e gated por cooldown.
 
 ```bash
-py -m src.tools.fingerprint              # canônico (baseline, Δ=0)
-py -m src.tools.fingerprint --evolved    # evoluído vs canônico
-py -m src.tools.fingerprint --nsga2 knee_point
+py -m src.analysis.fingerprint              # canônico (baseline, Δ=0)
+py -m src.analysis.fingerprint --evolved    # evoluído vs canônico
+py -m src.analysis.fingerprint --nsga2 knee_point
 ```
 
-## `baselines` — modelos nulos: o piso de cada métrica
-
-Nenhuma métrica de identidade do projeto tem piso zero, então nenhuma pode ser lida
-contra o teto (o canônico) sozinho. Medido com 35 nulos (5 espelhos + 30 aleatórios) na
-bateria de 2026-09-18 — os valores exatos dependem da semente de avaliação, e o tool os
-recalcula a cada execução:
-
-| métrica | piso medido | teto | o que o score cru parecia | o que era |
-|---|---|---|---|---|
-| validador (L1-L3) | **6,4/23**, com nulo chegando a **10/23** | 23/23 | "% preservado" | no acaso |
-| validador (L1-L2) | **5,4/18**, com nulo chegando a **9/18** | 18/18 | idem | idem |
-| `drift_penalty` | **0,377** (espelho) · 0,415 (aleatório) | 0,000 | — | 0,04 separa "preservado" de aniquilado |
-| `dominance_penalty` | 1,136 (aleatório); o **espelho** chega a 0,025 | 0,046 (média dos espelhos) | — | o teto de equilíbrio é a solução trivial |
-| arestas do ciclo | **5/10** (cada aresta é cara-ou-coroa) | 10/10 | — | sem sinal possível |
-
-Ler um score cru como "essa fração da identidade sobreviveu" é o mesmo erro de ler 20%
-numa prova de cinco alternativas como "sabe 20% da matéria".
-
-Rosters de referência que o tool monta e mede:
-
-- **canônico** — identidade intacta, equilíbrio terrível. O teto de identidade.
-- **espelho** (5 cópias do mesmo arquétipo, um roster por arquétipo) — equilíbrio
-  perfeito por simetria, identidade zero por construção. É a **solução trivial** do
-  problema de equilíbrio, e portanto a resposta numérica à objeção *"por que não deixar
-  os cinco iguais?"*.
-- **aleatório** (N rosters) — sem projeto nenhum. O chão absoluto.
-
-Saída: cada métrica como `posição = (valor − piso) / (teto − piso)`, o **pior nulo** (o
-melhor resultado que um roster sem estrutura alcançou) e um **p-valor empírico** — a
-fração dos nulos que igualam ou superam o observado. O piso é uma **distribuição**, não
-um ponto — e a resolução do p é 1/N: com 35 nulos, nenhum nulo igualando o observado
-afirma `p < 0,03`. Por isso o default de `--n-random` é **30**, o valor do protocolo: a
-bateria e o `report` o usam sem flag. Aumentá-lo além disso compra mais resolução, e é
-barato.
-
-```bash
-py -m src.tools.baselines                      # só os rosters de referência
-py -m src.tools.baselines --evolved            # + posiciona o melhor do AG
-py -m src.tools.baselines --nsga2 scalar_optimum
-py -m src.tools.baselines --n-random 60 --sims 400   # mais nulos = mais resolução no p
-```
-
-Também reporta **tríades circulares** (Kendall & Babington Smith 1940) como medida de
-estrutura **sem autoria**: `C(n,3) − Σ C(dᵢ,2)`, na escala 0 (ordem estrita) · 2,5
-(acaso) · 5 (máximo em 5 personagens). O máximo é exatamente o torneio **regular**, que
-é o mesmo que equilíbrio global perfeito — um roster estritamente transitivo teria WRs
-100/75/50/25/0, incompatível com todos perto de 50%. Por isso **equilíbrio global não é
-achatamento: ele força estrutura não-transitiva**. A contagem só significa algo com
-arestas *decididas*, então o espalhamento das WR por par vem sempre ao lado.
-
-> **Por que o ciclo canônico não pode ser um achado.** Ele é um torneio regular (cada
-> arquétipo vence 2 e perde 2) e existem **24** torneios regulares rotulados em 5
-> vértices — acertar o rótulo específico é 1/24. O que sobrevive à troca de rótulos é a
-> estrutura, não a atribuição; por isso `circular_triads` mede algo e
-> `cycle_edges_kept` não.
-
-## `archetype_validator`
+### `archetype_validator`
 
 Asserções de identidade em 3 camadas (rank ordinal entre os 5):
 
@@ -188,46 +138,16 @@ em vez de kitar). A Layer 3 fecha essa lacuna. É opt-in (`behavioral_n>0` em
 `run_validation`); o standalone e o `report` a rodam por default (`--n`, `--seed`).
 
 ```bash
-py -m src.tools.archetype_validator [--evolved | --nsga2 [rep]] [--n 200] [--seed 42]
-py -m src.tools.archetype_validator --n 0    # só estrutural (Layers 1-2)
+py -m src.analysis.archetype_validator [--evolved | --nsga2 [rep]] [--n 200] [--seed 42]
+py -m src.analysis.archetype_validator --n 0    # só estrutural (Layers 1-2)
 ```
 
-## `sensitivity_analysis`
+## `src.experiments` — o protocolo
 
-Para cada (arquétipo, atributo), perturba o gene em ±σ e mede `Δ WR`. Atributos
-com `|Δ|` médio abaixo do **piso medido** são genes "neutros" (drift por random
-walk, sem pressão seletiva).
+Cada um grava um artefato em `results/` (uma pasta por tool) com o carimbo de
+proveniência. São os passos da bateria (`scripts/run_battery.ps1`).
 
-**O piso é medido, não estimado.** É o `|Δ WR|` entre **duas avaliações do mesmo roster,
-sem perturbação nenhuma**, sob seeds diferentes (`--null-reps`): o Δ verdadeiro ali é
-zero, então tudo que aparece é ruído, na mesma grandeza que a tabela classifica (uma
-**diferença** entre duas WRs, não uma proporção). Seeds diferentes são necessárias — com
-a mesma seed e perturbação zero as avaliações são bit-idênticas. Quebrar o pareamento dá
-um piso **conservador**, já que a medição real usa CRN pareado. Critério único:
-`≤ piso` neutro · `≤ 2× piso` borderline · acima, visível.
-
-**Onde medir importa.** No canônico o roster é saturado (Rushdown ~100%, Turtle ~0%), e
-com a WR presa no teto perturbar um gene não muda nada — quase tudo sai "neutro" por
-efeito de teto. A medida citável é a de `--evolved` / `--nsga2`, num roster equilibrado.
-A análise é **local**: mede a paisagem em volta de um indivíduo, e muda com ele. Os
-números da bateria estão no [`../../HANDOFF.md`](../../HANDOFF.md) §2.
-
-```bash
-py -m src.tools.sensitivity_analysis --evolved
-py -m src.tools.sensitivity_analysis --evolved --sims 600 --null-reps 12   # piso mais fino
-```
-
-O pareamento +σ/−σ avalia os dois lados sob o mesmo seed-base (`set_seed_base`), e cada
-luta é semeada por `fitness.fight_seed`: os dois lados recebem os mesmos sorteios luta a
-luta, e o Δ medido é efeito do gene, não do sorteio. Ver
-[09-reproducibility.md](09-reproducibility.md).
-
-Salva a matriz completa em `results/sensitivity/sensitivity_analysis.json` (Δ WR por
-arquétipo × atributo, σ usado por gene, o piso **medido** — `noise_floor_measured` e
-`noise_floor_mean` — e a classificação visível/borderline/neutro) — o console é volátil
-e a tabela é citada na validação metodológica.
-
-## `multi_run` — N execuções independentes + estatística agregada
+### `multi_run` — N execuções independentes + estatística agregada
 
 Item 1.1 da metodologia (Eiben & Smith 2015; Deb 2001): um EA é estocástico, então
 uma seed é uma **amostra**, não um resultado. Roda o algoritmo escolhido sobre N
@@ -236,10 +156,10 @@ cada execução sob uma **semente de validação fixa** (`MULTI_RUN_VALIDATION_S
 independente do treino e comum a todas as execuções (Common Random Numbers) — e agrega.
 
 ```bash
-py -m src.tools.multi_run                    # ambos os algoritmos, defaults do config
-py -m src.tools.multi_run --algorithm nsga2  # só NSGA-II (best_dominance por seed)
-py -m src.tools.multi_run --algorithm ga     # só AG escalar (best por seed)
-py -m src.tools.multi_run --n-seeds 30       # escala o experimento
+py -m src.experiments.multi_run                    # ambos os algoritmos, defaults do config
+py -m src.experiments.multi_run --algorithm nsga2  # só NSGA-II (best_dominance por seed)
+py -m src.experiments.multi_run --algorithm ga     # só AG escalar (best por seed)
+py -m src.experiments.multi_run --n-seeds 30       # escala o experimento
 ```
 
 Representante por execução: AG escalar → `best`. O NSGA-II devolve uma **fronteira**,
@@ -296,7 +216,7 @@ Parametrizado em `config.py` (`MULTI_RUN_*`) para escalar N facilmente. O defaul
 fragilidade de amostra única: um matchup travado numa seed pode ser azar ou
 estrutural, e só N execuções respondem.
 
-### Braços de sweep — variar a configuração sem editar o `config.py`
+#### Braços de sweep — variar a configuração sem editar o `config.py`
 
 Quatro grupos de flags variam a configuração **em tempo de execução**, para os sweeps
 exploratórios (`run_sweeps.ps1`, pop 120 × 60 gerações, 5 sementes por braço):
@@ -335,7 +255,7 @@ e pelas métricas post-hoc. No de elitismo/torneio avisa que os dois valem só p
 escalar (o NSGA-II usa rank de Pareto e torneio binário), então rodá-lo por braço mediria
 o mesmo número N vezes.
 
-## `compare_algorithms` — comparação estatística AG × NSGA-II
+### `compare_algorithms` — comparação estatística AG × NSGA-II
 
 O `multi_run` agrega média ± desvio de cada algoritmo, mas média ± desvio não decide
 se a diferença entre os dois é real ou ruído de amostragem. Este tool **não roda
@@ -373,9 +293,9 @@ de **onde** vem a diferença: o termo primário é o `global_term`, e é ele que
 equilibra o roster melhor.
 
 ```bash
-py -m src.tools.multi_run --algorithm both   # gera os dois artefatos (20 sementes)
-py -m src.tools.compare_algorithms           # compara e salva
-py -m src.tools.compare_algorithms --nsga2-representative scalar_optimum
+py -m src.experiments.multi_run --algorithm both   # gera os dois artefatos (20 sementes)
+py -m src.experiments.compare_algorithms           # compara e salva
+py -m src.experiments.compare_algorithms --nsga2-representative scalar_optimum
 ```
 
 Aborta se os dois `multi_run` não compartilharem sementes, semente de validação e
@@ -391,7 +311,7 @@ passo próprio. A comparação por outro ponto grava em
 `comparison_ga_vs_nsga2_<REP>.json`, sem sobrescrever a da bateria; um artefato anterior
 aos cinco representantes é recusado, com a instrução de regerá-lo.
 
-## `external_validation` — validação externa ao fitness (estilo Ludi)
+### `external_validation` — validação externa ao fitness (estilo Ludi)
 
 Item 3.2 da metodologia (Browne & Maire 2010): não confiar num único número de
 fitness — validar o artefato evoluído **fora do laço de otimização**, sob condições
@@ -401,10 +321,10 @@ a partir de 10000 — fora do range de treino 42.. e da seed do `multi_run` 9999
 uma com mais sims (`EXTERNAL_VALIDATION_SIMS=500`) para CI apertado.
 
 ```bash
-py -m src.tools.external_validation                    # canônico
-py -m src.tools.external_validation --evolved          # melhor do AG
-py -m src.tools.external_validation --nsga2 best_dominance
-py -m src.tools.external_validation --n-seeds 30 --sims 1000
+py -m src.experiments.external_validation                    # canônico
+py -m src.experiments.external_validation --evolved          # melhor do AG
+py -m src.experiments.external_validation --nsga2 best_dominance
+py -m src.experiments.external_validation --n-seeds 30 --sims 1000
 ```
 
 Reporta, salvando em `results/external_validation/external_validation_<label>.json`:
@@ -431,17 +351,110 @@ genes e já vive no `report`; este tool cobre o eixo **estocástico** (equilíbr
 o overfitting ao fitness se esconde. A parte "contra política diferente" do método
 liga-se ao item 2.1 (coevolução), fora do escopo deste tool.
 
-## `viewer` / `web_viewer`
+### `sensitivity_analysis`
+
+Para cada (arquétipo, atributo), perturba o gene em ±σ e mede `Δ WR`. Atributos
+com `|Δ|` médio abaixo do **piso medido** são genes "neutros" (drift por random
+walk, sem pressão seletiva).
+
+**O piso é medido, não estimado.** É o `|Δ WR|` entre **duas avaliações do mesmo roster,
+sem perturbação nenhuma**, sob seeds diferentes (`--null-reps`): o Δ verdadeiro ali é
+zero, então tudo que aparece é ruído, na mesma grandeza que a tabela classifica (uma
+**diferença** entre duas WRs, não uma proporção). Seeds diferentes são necessárias — com
+a mesma seed e perturbação zero as avaliações são bit-idênticas. Quebrar o pareamento dá
+um piso **conservador**, já que a medição real usa CRN pareado. Critério único:
+`≤ piso` neutro · `≤ 2× piso` borderline · acima, visível.
+
+**Onde medir importa.** No canônico o roster é saturado (Rushdown ~100%, Turtle ~0%), e
+com a WR presa no teto perturbar um gene não muda nada — quase tudo sai "neutro" por
+efeito de teto. A medida citável é a de `--evolved` / `--nsga2`, num roster equilibrado.
+A análise é **local**: mede a paisagem em volta de um indivíduo, e muda com ele. Os
+números da bateria estão no [`../status/HANDOFF.md`](../status/HANDOFF.md) §2.
+
+```bash
+py -m src.experiments.sensitivity_analysis --evolved
+py -m src.experiments.sensitivity_analysis --evolved --sims 600 --null-reps 12   # piso mais fino
+```
+
+O pareamento +σ/−σ avalia os dois lados sob o mesmo seed-base (`set_seed_base`), e cada
+luta é semeada por `fitness.fight_seed`: os dois lados recebem os mesmos sorteios luta a
+luta, e o Δ medido é efeito do gene, não do sorteio. Ver
+[09-reproducibility.md](09-reproducibility.md).
+
+Salva a matriz completa em `results/sensitivity/sensitivity_analysis.json` (Δ WR por
+arquétipo × atributo, σ usado por gene, o piso **medido** — `noise_floor_measured` e
+`noise_floor_mean` — e a classificação visível/borderline/neutro) — o console é volátil
+e a tabela é citada na validação metodológica.
+
+### `baselines` — modelos nulos: o piso de cada métrica
+
+Nenhuma métrica de identidade do projeto tem piso zero, então nenhuma pode ser lida
+contra o teto (o canônico) sozinho. Medido com 35 nulos (5 espelhos + 30 aleatórios) na
+bateria de 2026-09-18 — os valores exatos dependem da semente de avaliação, e o tool os
+recalcula a cada execução:
+
+| métrica | piso medido | teto | o que o score cru parecia | o que era |
+|---|---|---|---|---|
+| validador (L1-L3) | **6,4/23**, com nulo chegando a **10/23** | 23/23 | "% preservado" | no acaso |
+| validador (L1-L2) | **5,4/18**, com nulo chegando a **9/18** | 18/18 | idem | idem |
+| `drift_penalty` | **0,377** (espelho) · 0,415 (aleatório) | 0,000 | — | 0,04 separa "preservado" de aniquilado |
+| `dominance_penalty` | 1,136 (aleatório); o **espelho** chega a 0,025 | 0,046 (média dos espelhos) | — | o teto de equilíbrio é a solução trivial |
+| arestas do ciclo | **5/10** (cada aresta é cara-ou-coroa) | 10/10 | — | sem sinal possível |
+
+Ler um score cru como "essa fração da identidade sobreviveu" é o mesmo erro de ler 20%
+numa prova de cinco alternativas como "sabe 20% da matéria".
+
+Rosters de referência que o tool monta e mede:
+
+- **canônico** — identidade intacta, equilíbrio terrível. O teto de identidade.
+- **espelho** (5 cópias do mesmo arquétipo, um roster por arquétipo) — equilíbrio
+  perfeito por simetria, identidade zero por construção. É a **solução trivial** do
+  problema de equilíbrio, e portanto a resposta numérica à objeção *"por que não deixar
+  os cinco iguais?"*.
+- **aleatório** (N rosters) — sem projeto nenhum. O chão absoluto.
+
+Saída: cada métrica como `posição = (valor − piso) / (teto − piso)`, o **pior nulo** (o
+melhor resultado que um roster sem estrutura alcançou) e um **p-valor empírico** — a
+fração dos nulos que igualam ou superam o observado. O piso é uma **distribuição**, não
+um ponto — e a resolução do p é 1/N: com 35 nulos, nenhum nulo igualando o observado
+afirma `p < 0,03`. Por isso o default de `--n-random` é **30**, o valor do protocolo: a
+bateria e o `report` o usam sem flag. Aumentá-lo além disso compra mais resolução, e é
+barato.
+
+```bash
+py -m src.experiments.baselines                      # só os rosters de referência
+py -m src.experiments.baselines --evolved            # + posiciona o melhor do AG
+py -m src.experiments.baselines --nsga2 scalar_optimum
+py -m src.experiments.baselines --n-random 60 --sims 400   # mais nulos = mais resolução no p
+```
+
+Também reporta **tríades circulares** (Kendall & Babington Smith 1940) como medida de
+estrutura **sem autoria**: `C(n,3) − Σ C(dᵢ,2)`, na escala 0 (ordem estrita) · 2,5
+(acaso) · 5 (máximo em 5 personagens). O máximo é exatamente o torneio **regular**, que
+é o mesmo que equilíbrio global perfeito — um roster estritamente transitivo teria WRs
+100/75/50/25/0, incompatível com todos perto de 50%. Por isso **equilíbrio global não é
+achatamento: ele força estrutura não-transitiva**. A contagem só significa algo com
+arestas *decididas*, então o espalhamento das WR por par vem sempre ao lado.
+
+> **Por que o ciclo canônico não pode ser um achado.** Ele é um torneio regular (cada
+> arquétipo vence 2 e perde 2) e existem **24** torneios regulares rotulados em 5
+> vértices — acertar o rótulo específico é 1/24. O que sobrevive à troca de rótulos é a
+> estrutura, não a atribuição; por isso `circular_triads` mede algo e
+> `cycle_edges_kept` não.
+
+## `src.visualization` — viewers e plots
+
+### `viewer` / `web_viewer`
 
 Visualizadores de uma luta, consumindo `CombatTrace`:
 
 ```bash
-py -m src.tools.viewer          # ASCII no terminal
-py -m src.tools.web_viewer      # browser interativo em localhost:8080
+py -m src.visualization.viewer          # ASCII no terminal
+py -m src.visualization.web_viewer      # browser interativo em localhost:8080
 ```
 
-## `nsga2_plots`
+### `nsga2_plots`
 
 Plot 2D da fronteira de Pareto (dominance × drift) com os 5 representantes
 destacados, anotado com hipervolume e spacing. Chamado automaticamente por `py main.py --algorithm nsga2`; salva em
-`results/plots/nsga2/<timestamp>/pareto_front.png`.
+`results/single_run/plots/<timestamp>/pareto_front.png`.

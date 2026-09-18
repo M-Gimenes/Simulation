@@ -3,7 +3,7 @@
 O que **ainda está aberto** no sistema: as pendências e os limites conhecidos, para que
 nenhum deles seja descoberto por acidente na hora de escrever. Não é histórico — a
 trajetória das decisões (que problema cada mudança resolveu) vive em
-[`../tcc/04-caminhos-e-decisoes.md`](../tcc/04-caminhos-e-decisoes.md), e o estado atual
+[`../thesis/04-design-decisions.md`](../thesis/04-design-decisions.md), e o estado atual
 do sistema nos docs 01–09.
 
 ---
@@ -13,18 +13,18 @@ do sistema nos docs 01–09.
 **Uma só: regerar os resultados.** Depois da bateria de 2026-09-18 o motor mudou duas
 vezes — o pool de processos ficou persistente (não muda número) e o CRN passou a semear
 cada luta (muda **todos** os sorteios). Até a próxima bateria, `results/` lê "obsoleto" e
-os números citados em `HANDOFF.md` §2, no `docs/tcc/` e no `CLAUDE.md` são de antes da
+os números citados em `docs/status/HANDOFF.md` §2, no `docs/thesis/` e no `CLAUDE.md` são de antes da
 troca. Sequência:
 
-1. `.\run_overnight.ps1` — os 16 braços de sweep e a bateria completa (~5h20 estimadas).
+1. `.\scripts\run_overnight.ps1` — os 16 braços de sweep e a bateria completa (~5h20 estimadas).
 2. `py -m src.tests.test_provenance` — tudo deve sair como *atual* ou *braço de
    experimento*.
 3. Reler cada resultado contra a bateria nova: as tabelas do HANDOFF §2, os achados do
-   `tcc/`, os números do `CLAUDE.md` e as conclusões dos três sweeps (joelho em λ = 1,0,
+   `thesis/`, os números do `CLAUDE.md` e as conclusões dos três sweeps (joelho em λ = 1,0,
    secundários indispensáveis, elitismo 10% / torneio 3). E ler, pela primeira vez, a
    comparação contra o `scalar_optimum` (`comparison_ga_vs_nsga2_scalar_optimum.json`).
 4. Tirar do git o diretório de plot da fronteira anterior — cada bateria grava um novo em
-   `results/plots/nsga2/<timestamp>/`, e só o da bateria vigente descreve o motor.
+   `results/single_run/plots/<timestamp>/`, e só o da bateria vigente descreve o motor.
 
 Nenhum experimento decidido está por rodar, e não há pendência de instrumentação.
 
@@ -37,7 +37,7 @@ Precisam aparecer explicitamente na Discussão, não só em Trabalhos Futuros.
   política: os personagens não aprendem, e ninguém procura exploits contra o roster
   evoluído. Se existir uma estratégia dominante que a política sorteada não visita, o
   equilíbrio medido não a enxerga. É o item 2.1 (coevolução) de
-  [`../tcc/08-metodologias-da-literatura.md`](../tcc/08-metodologias-da-literatura.md),
+  [`../thesis/08-literature-methods.md`](../thesis/08-literature-methods.md),
   decidido como trabalho futuro — decisão legítima, mas **é a objeção mais forte ao
   resultado**.
 - **A política é cega ao estado.** A intenção não depende de HP, distância, cooldown
@@ -86,17 +86,17 @@ obsoleto **de uma vez** — não há versionamento parcial. O carimbo de proveni
 o regenera, e a bateria inteira precisa rodar antes de qualquer número ser citado:
 
 ```bash
-py -m src.tools.multi_run --algorithm both            # multi_run_{ga,nsga2}.json
-py -m src.tools.compare_algorithms                      # comparison_ga_vs_nsga2.json
-py -m src.tools.compare_algorithms --nsga2-representative scalar_optimum
-py main.py --seed 42                                    # results.json
-py main.py --algorithm nsga2 --seed 42                  # nsga2_results.json + plots
-py -m src.tools.external_validation                     # canônico
-py -m src.tools.external_validation --evolved           # AG escalar
-py -m src.tools.external_validation --nsga2 best_dominance
-py -m src.tools.external_validation --nsga2 knee_point
-py -m src.tools.sensitivity_analysis --evolved          # sensitivity_analysis.json
-py -m src.tools.baselines --evolved                     # baselines.json
+py -m src.experiments.multi_run --algorithm both            # multi_run_{ga,nsga2}.json
+py -m src.experiments.compare_algorithms                      # comparison_ga_vs_nsga2.json
+py -m src.experiments.compare_algorithms --nsga2-representative scalar_optimum
+py main.py --seed 42                                    # single_run/ga.json
+py main.py --algorithm nsga2 --seed 42                  # single_run/nsga2.json + plots
+py -m src.experiments.external_validation                     # canônico
+py -m src.experiments.external_validation --evolved           # AG escalar
+py -m src.experiments.external_validation --nsga2 best_dominance
+py -m src.experiments.external_validation --nsga2 knee_point
+py -m src.experiments.sensitivity_analysis --evolved          # sensitivity_analysis.json
+py -m src.experiments.baselines --evolved                     # baselines.json
 ```
 
 `run_battery.ps1` é essa bateria, em passos retomáveis (`-From N`) — cada passo salva seu
@@ -122,7 +122,7 @@ Três armadilhas que já morderam, nenhuma detectável pelo carimbo:
 ## 4. Encerrado (para não reabrir por engano)
 
 Resolvido e verificado; o raciocínio e os números estão em
-[`../tcc/04-caminhos-e-decisoes.md`](../tcc/04-caminhos-e-decisoes.md).
+[`../thesis/04-design-decisions.md`](../thesis/04-design-decisions.md).
 
 **Fitness e critérios:**
 

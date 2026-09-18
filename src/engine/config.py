@@ -53,7 +53,7 @@ CONVERGENCE_SEED_OFFSET = 100000
 # de stream a cada geração. Sem a troca, as MAX_GENERATIONS inteiras correm sobre UMA
 # realização do RNG e a população se ajusta a ela: medido (5 sementes, 60 gerações), a
 # razão entre o `dominance` de dentro do laço e o de fora cai de 4,14 para 2,20 com a
-# rotação, melhorando em 5/5 sementes (ver docs/tcc/04).
+# rotação, melhorando em 5/5 sementes (ver docs/thesis/04).
 #
 # `seed * STRIDE + geração` com geração < STRIDE garante que duas sementes de treino
 # nunca compartilhem stream, e a família (42000+) não colide com nenhuma outra do

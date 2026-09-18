@@ -2,19 +2,19 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-> **Instrução permanente (docs)**: a referência técnica detalhada vive em `docs/reference/` (índice em `docs/reference/README.md`) — um arquivo por tema (combate, AG, NSGA-II, config, tools, reprodutibilidade, known-issues, revisão do combate). O material de redação da tese fica em `docs/tcc/`. **Sempre que o código mudar, atualize o(s) `docs/reference/*.md` do tema afetado antes de encerrar a tarefa**, mantendo-os fiéis ao estado atual. Este CLAUDE.md é o guia operacional + resumo de decisões; o detalhe completo é dos docs.
+> **Instrução permanente (docs)**: a referência técnica detalhada vive em `docs/reference/` (índice em `docs/reference/README.md`) — um arquivo por tema (combate, AG, NSGA-II, config, tools, reprodutibilidade, known-issues, revisão do combate). O material de redação da tese fica em `docs/thesis/`. **Sempre que o código mudar, atualize o(s) `docs/reference/*.md` do tema afetado antes de encerrar a tarefa**, mantendo-os fiéis ao estado atual. Este CLAUDE.md é o guia operacional + resumo de decisões; o detalhe completo é dos docs.
 
-> **Convenção de idioma**: nomes de arquivos e pastas em **inglês**; o **texto** dos `.md` e dos comentários pode ser em português (incl. `docs/reference/` e `docs/tcc/`).
+> **Convenção de idioma**: nomes de arquivos e pastas em **inglês**; o **texto** dos `.md` e dos comentários pode ser em português (incl. `docs/reference/` e `docs/thesis/`).
 
 > **Instrução permanente**: sempre que qualquer decisão de design do sistema for alterada — comportamento do combate, semântica dos parâmetros, lógica do GA, ciclo de vantagens, constantes do fitness, protocolo experimental — atualize **três** lugares antes de encerrar a tarefa:
 > 1. a seção **Key Design Decisions** neste arquivo e o `docs/reference/*.md` do tema — ambos descrevem o **estado atual** do código, não o histórico;
-> 2. **`docs/tcc/04-caminhos-e-decisoes.md`** — o **porquê**, no formato *problema → mudança → resultado*, com os números que sustentam a decisão. Este é o destino obrigatório: mensagem de commit, `REVIEW.md` e `HANDOFF.md` são registros de trabalho e **não** são consultáveis na hora de redigir. Uma decisão que só existe em commit está perdida para a tese.
+> 2. **`docs/thesis/04-design-decisions.md`** — o **porquê**, no formato *problema → mudança → resultado*, com os números que sustentam a decisão. Este é o destino obrigatório: mensagem de commit, `docs/status/REVIEW.md` e `docs/status/HANDOFF.md` são registros de trabalho e **não** são consultáveis na hora de redigir. Uma decisão que só existe em commit está perdida para a tese.
 >
 > Vale também para decisões que **mantiveram** o valor vigente: "manteve-se X porque Y" é resultado, e sem o registro a justificativa se perde igual.
 
 > **Padrão de qualidade**: este é um TCC a ser apresentado para banca. O código deve ser o mais limpo possível — sem variáveis mortas, sem campos diagnósticos desnecessários, sem rastros de decisões anteriores. Prefira nomes explícitos que se auto-documentem. Quando algo for removido, remova completamente — não deixe comentários explicando que foi removido.
 
-> **Foco no sistema, não na narrativa pra banca**: enquanto estamos refinando mecânicas, o objetivo é deixar o sistema o mais redondo possível. **Não** antecipar inline em respostas como o usuário deveria justificar X ou Y resultado para a banca — isso é prematuro enquanto há pontos a refinar. Pontos relevantes para a redação da tese vão para `docs/tcc/` (destrinchado por tema — ver `docs/tcc/README.md`), não para discussão inline. Discutir "defensibilidade na banca" só quando o usuário pedir explicitamente.
+> **Foco no sistema, não na narrativa pra banca**: enquanto estamos refinando mecânicas, o objetivo é deixar o sistema o mais redondo possível. **Não** antecipar inline em respostas como o usuário deveria justificar X ou Y resultado para a banca — isso é prematuro enquanto há pontos a refinar. Pontos relevantes para a redação da tese vão para `docs/thesis/` (destrinchado por tema — ver `docs/thesis/README.md`), não para discussão inline. Discutir "defensibilidade na banca" só quando o usuário pedir explicitamente.
 
 ## Project Context
 
@@ -43,8 +43,8 @@ A penalty is not a constraint, and the distinction is empirical here, not rhetor
 Versões pinadas em `requirements.txt`. Para subir o ambiente:
 
 ```powershell
-.\setup.ps1                 # cria .venv e instala tudo
-.\setup.ps1 -Recreate       # apaga .venv existente e refaz do zero
+.\scripts\setup.ps1                 # cria .venv e instala tudo
+.\scripts\setup.ps1 -Recreate       # apaga .venv existente e refaz do zero
 ```
 
 Ou manualmente:
@@ -55,21 +55,21 @@ py -m venv .venv
 pip install -r requirements.txt
 ```
 
-`numba` é usado para JIT-compilar o loop de combate (`src.engine.combat._simulate_combat_jit`) — speedup de ~150× sobre Python puro. Primeira chamada compila (~2.5s); depois fica em cache. Sem numba, o sistema não roda — `simulate_combat()` chama o JIT direto. `scipy` entra só no `src.tools.compare_algorithms` (Mann-Whitney U); o motor não depende dele.
+`numba` é usado para JIT-compilar o loop de combate (`src.engine.combat._simulate_combat_jit`) — speedup de ~150× sobre Python puro. Primeira chamada compila (~2.5s); depois fica em cache. Sem numba, o sistema não roda — `simulate_combat()` chama o JIT direto. `scipy` entra só no `src.experiments.compare_algorithms` (Mann-Whitney U); o motor não depende dele.
 
 ## Layout
 
 ```
 .
-├── main.py                    # entry point (GA / NSGA-II)
-├── setup.ps1                  # cria o .venv
-├── run_sweeps.ps1             # os 16 braços exploratórios (orçamento reduzido)
-├── run_battery.ps1            # a bateria citável (n = 20), em passos retomáveis
-├── run_overnight.ps1          # sweeps + bateria, desassistido
-├── HANDOFF.md                 # estado atual + resultados da última bateria
-├── REVIEW.md                  # a auditoria de coerência e o que dela segue aberto
+├── main.py                    # entry point: uma execução do AG escalar ou do NSGA-II
+├── requirements.txt
+├── scripts/                   # PowerShell; rodam a partir da raiz, de onde forem chamados
+│   ├── setup.ps1              # cria o .venv
+│   ├── run_sweeps.ps1         # os 16 braços exploratórios (orçamento reduzido)
+│   ├── run_battery.ps1        # a bateria citável (n = 20), em passos retomáveis
+│   └── run_overnight.ps1      # sweeps + bateria, desassistido
 ├── src/                       # pacote raiz (importável como `src`)
-│   ├── engine/                # motor (importável como pacote `src.engine`)
+│   ├── engine/                # o modelo: combate, fitness e os dois algoritmos
 │   │   ├── paths.py           # PROJECT_ROOT + paths derivados — single source
 │   │   ├── provenance.py      # carimbo de config/motor nos artefatos + aviso de obsoleto
 │   │   ├── config.py          # All hyperparameters
@@ -82,56 +82,64 @@ pip install -r requirements.txt
 │   │   ├── ga.py              # scalar GA loop
 │   │   ├── nsga2.py           # NSGA-II loop
 │   │   └── pareto_metrics.py  # hipervolume + spacing da fronteira (metodologia 1.2)
-│   ├── tools/                 # ferramentas que consomem o motor
-│   │   ├── report.py          # dossiê do indivíduo (compõe os tools abaixo)
-│   │   ├── analyze_matchups.py
-│   │   ├── drift_table.py     # drift por gene + diferenciação
-│   │   ├── fingerprint.py     # assinatura comportamental por personagem
-│   │   ├── archetype_validator.py
-│   │   ├── sensitivity_analysis.py
-│   │   ├── baselines.py       # modelos nulos: piso/teto de cada métrica post-hoc
+│   ├── experiments/           # o protocolo da tese — cada um GRAVA um artefato em results/
 │   │   ├── multi_run.py       # N execuções + estatística agregada (metodologia 1.1)
 │   │   ├── compare_algorithms.py   # AG × NSGA-II: Mann-Whitney U + Â₁₂ + Holm
 │   │   ├── external_validation.py  # robustez do equilíbrio fora do laço (metodologia 3.2)
+│   │   ├── sensitivity_analysis.py # Δ WR por gene contra o piso de ruído medido
+│   │   └── baselines.py       # modelos nulos: piso/teto de cada métrica post-hoc
+│   ├── analysis/              # inspeciona UM roster e imprime — não grava nada
+│   │   ├── report.py          # dossiê do indivíduo (compõe os outros)
+│   │   ├── analyze_matchups.py
+│   │   ├── drift_table.py     # drift por gene + diferenciação
+│   │   ├── fingerprint.py     # assinatura comportamental por personagem
+│   │   └── archetype_validator.py
+│   ├── visualization/         # viewers e plots
 │   │   ├── viewer.py          # ASCII viewer
 │   │   ├── web_viewer.py      # browser viewer
 │   │   └── nsga2_plots.py     # Pareto plots
 │   └── tests/                 # smoke tests
 ├── docs/
 │   ├── reference/             # como o sistema funciona, um arquivo por tema
-│   └── tcc/                   # material de redação: o porquê, o que apresentar
-└── results/                   # artefatos versionados — ver Output Files
+│   ├── thesis/                # material de redação: o porquê, o que apresentar
+│   └── status/                # registros de trabalho: HANDOFF (estado + última bateria), REVIEW (auditoria)
+├── results/                   # artefatos versionados, uma pasta por produtor — ver Output Files
+└── overleaf/                  # os textos redigidos (monografia e artigos)
 ```
 
-> **Convenção de imports**: dentro de `src/engine/` use relativos (`from .combat import ...`); fora dele (em `main.py`, `src/tools/`, `src/tests/`) use absolutos a partir do motor (`from src.engine.combat import ...`). Tools/tests referenciam umas às outras também por caminho absoluto (`from src.tools.archetype_validator import ...`).
-> **Convenção de paths**: nunca hardcode strings. Importe os constants de `src.engine.paths` (`PROJECT_ROOT`, `RESULTS_DIR`, `GA_RESULTS_PATH`, `NSGA2_RESULTS_PATH`, `NSGA2_PLOTS_DIR`). Eles são derivados de `Path(__file__).parent.parent.parent` — funcionam independente do cwd.
+The three packages outside `engine/` are split by **what they do with a roster**: `experiments/` runs the protocol and writes the artifacts the thesis cites; `analysis/` inspects one roster and only prints; `visualization/` draws. `analysis/` may call into `experiments/` (the dossier shows the null models) and vice versa for shared measurements (`baselines` scores rosters with the validator) — the split is by output, not a layering.
+
+> **Convenção de imports**: dentro de `src/engine/` use relativos (`from .combat import ...`); fora dele (em `main.py`, `src/experiments/`, `src/analysis/`, `src/visualization/`, `src/tests/`) use absolutos a partir do pacote (`from src.engine.combat import ...`, `from src.analysis.archetype_validator import ...`).
+> **Convenção de paths**: nunca hardcode strings. Importe os constants de `src.engine.paths` (`PROJECT_ROOT`, `RESULTS_DIR`, `GA_RESULTS_PATH`, `NSGA2_RESULTS_PATH`, `NSGA2_PLOTS_DIR`, …). Eles são derivados de `Path(__file__).parent.parent.parent` — funcionam independente do cwd.
 
 ## Running
 
-Tudo roda a partir da raiz do projeto. Scripts em `src/tools/` e `src/tests/` são executados como módulo (`-m`) para que `src` esteja no path.
+Tudo roda a partir da raiz do projeto, como módulo (`-m`), para que `src` esteja no path.
 
 ```bash
-# Full GA run
+# Uma execução de cada algoritmo
 py main.py
 py main.py --algorithm nsga2 --seed 42 --quiet
 
-# Analysis tools
-py -m src.tools.report --evolved                 # dossiê completo do indivíduo, já com os modelos nulos (porta de entrada)
-py -m src.tools.analyze_matchups                 # all matchups, canonical (default 1000 sims)
-py -m src.tools.analyze_matchups rushdown zoner  # specific matchup
-py -m src.tools.drift_table --evolved            # drift por gene + diferenciação
-py -m src.tools.fingerprint --evolved            # assinatura comportamental
-py -m src.tools.archetype_validator              # identity checks: structural (L1-2) + behavioral (L3)
-py -m src.tools.baselines --evolved              # modelos nulos: posição de cada métrica entre piso e teto
-py -m src.tools.sensitivity_analysis --evolved   # ±σ Δ-WR per gene, contra piso de ruído MEDIDO
-py -m src.tools.multi_run --algorithm both       # N execuções + estatística agregada (metodologia 1.1)
-py -m src.tools.multi_run --algorithm ga --lambda-drift 0.25   # braço de sweep (grava em multi_run/exploratory/)
-py -m src.tools.compare_algorithms               # AG × NSGA-II: Mann-Whitney U + Â₁₂ + Holm
-py -m src.tools.compare_algorithms --nsga2-representative scalar_optimum   # o mesmo, contra o comparável do escalar
-py -m src.tools.external_validation --nsga2 best_dominance  # robustez do equilíbrio fora do laço (metodologia 3.2)
+# src.analysis — inspecionar um roster (só imprime)
+py -m src.analysis.report --evolved                 # dossiê completo do indivíduo, já com os modelos nulos (porta de entrada)
+py -m src.analysis.analyze_matchups                 # all matchups, canonical (default 1000 sims)
+py -m src.analysis.analyze_matchups rushdown zoner  # specific matchup
+py -m src.analysis.drift_table --evolved            # drift por gene + diferenciação
+py -m src.analysis.fingerprint --evolved            # assinatura comportamental
+py -m src.analysis.archetype_validator              # identity checks: structural (L1-2) + behavioral (L3)
 
-# Web viewer (opens browser at localhost:8080)
-py -m src.tools.web_viewer
+# src.experiments — o protocolo (cada um grava em results/)
+py -m src.experiments.multi_run --algorithm both       # N execuções + estatística agregada (metodologia 1.1)
+py -m src.experiments.multi_run --algorithm ga --lambda-drift 0.25   # braço de sweep (grava em results/exploratory/)
+py -m src.experiments.compare_algorithms               # AG × NSGA-II: Mann-Whitney U + Â₁₂ + Holm
+py -m src.experiments.compare_algorithms --nsga2-representative scalar_optimum   # o mesmo, contra o comparável do escalar
+py -m src.experiments.external_validation --nsga2 best_dominance  # robustez do equilíbrio fora do laço (metodologia 3.2)
+py -m src.experiments.sensitivity_analysis --evolved   # ±σ Δ-WR per gene, contra piso de ruído MEDIDO
+py -m src.experiments.baselines --evolved              # modelos nulos: posição de cada métrica entre piso e teto
+
+# src.visualization
+py -m src.visualization.web_viewer                     # browser viewer em localhost:8080
 
 # Smoke tests (run individually — no test runner configured)
 py -m src.tests.test_base
@@ -146,7 +154,7 @@ py -m src.tests.test_archetype_validator
 py -m src.tests.test_compare_algorithms
 ```
 
-Experimentos completos (PowerShell, retomáveis com `-From N`, custo com `-WhatIf`): `.\run_sweeps.ps1`, `.\run_battery.ps1`, ou `.\run_overnight.ps1` para os dois em sequência. Os sweeps vêm **antes** da bateria.
+Experimentos completos (PowerShell): `.\scripts\run_sweeps.ps1` e `.\scripts\run_battery.ps1` são retomáveis com `-From N` e estimam o custo com `-WhatIf`; `.\scripts\run_overnight.ps1` encadeia os dois e **não** tem `-WhatIf` — chamado, ele roda. Os sweeps vêm **antes** da bateria.
 
 > **Windows note:** Use `py` não `python`/`python3`. Scripts output Unicode (box-drawing); via bash pipe use `PYTHONIOENCODING=utf-8` ou passe `--quiet`.
 
@@ -156,16 +164,17 @@ All GA/NSGA-II outputs go to `results/` (created automatically on first run). **
 
 | File | Source |
 |---|---|
-| `results/results.json` | `py main.py` (GA) |
-| `results/nsga2_results.json` | `py main.py --algorithm nsga2` |
-| `results/plots/nsga2/<timestamp>/` | NSGA-II projection plots |
-| `results/multi_run/multi_run_<algo>.json` | `py -m src.tools.multi_run` (estatística agregada de N execuções) |
-| `results/multi_run/comparison_ga_vs_nsga2.json` | `py -m src.tools.compare_algorithms` (teste estatístico entre os dois algoritmos) |
-| `results/multi_run/comparison_ga_vs_nsga2_<rep>.json` | `py -m src.tools.compare_algorithms --nsga2-representative <rep>` (a mesma comparação contra outro ponto da fronteira — a bateria roda `scalar_optimum`) |
-| `results/external_validation/external_validation_<label>.json` | `py -m src.tools.external_validation` (robustez do equilíbrio fora do laço) |
-| `results/sensitivity/sensitivity_analysis.json` | `py -m src.tools.sensitivity_analysis` (matriz Δ WR por gene) |
-| `results/baselines.json` | `py -m src.tools.baselines` (rosters de referência + piso/teto/posição de cada métrica) |
-| `results/multi_run/exploratory/multi_run_ga_<desvios>.json` | braços de sweep — `run_sweeps.ps1`. O nome é montado pelos desvios **reais** do default (orçamento, λ, pesos do dominance, elitismo/torneio), então dois braços nunca se sobrescrevem e uma execução barata nunca cai no caminho da bateria |
+| `results/single_run/ga.json` | `py main.py` (GA) |
+| `results/single_run/nsga2.json` | `py main.py --algorithm nsga2` |
+| `results/single_run/plots/<timestamp>/` | NSGA-II projection plots |
+| `results/multi_run/multi_run_<algo>.json` | `py -m src.experiments.multi_run` (estatística agregada de N execuções) |
+| `results/multi_run/comparison_ga_vs_nsga2.json` | `py -m src.experiments.compare_algorithms` (teste estatístico entre os dois algoritmos) |
+| `results/multi_run/comparison_ga_vs_nsga2_<rep>.json` | `py -m src.experiments.compare_algorithms --nsga2-representative <rep>` (a mesma comparação contra outro ponto da fronteira — a bateria roda `scalar_optimum`) |
+| `results/external_validation/external_validation_<label>.json` | `py -m src.experiments.external_validation` (robustez do equilíbrio fora do laço) |
+| `results/sensitivity/sensitivity_analysis.json` | `py -m src.experiments.sensitivity_analysis` (matriz Δ WR por gene) |
+| `results/baselines/baselines.json` | `py -m src.experiments.baselines` (rosters de referência + piso/teto/posição de cada métrica) |
+| `results/exploratory/multi_run_ga_<desvios>.json` | braços de sweep — `run_sweeps.ps1`. O nome é montado pelos desvios **reais** do default (orçamento, λ, pesos do dominance, elitismo/torneio), então dois braços nunca se sobrescrevem e uma execução barata nunca cai no caminho da bateria |
+| `results/logs/` | logs do `run_overnight.ps1` — diagnóstico da noite, fora do git |
 
 ## Architecture
 
@@ -197,7 +206,7 @@ Each individual = 5 characters (one per archetype) = 55 genes total (8 attrs + 3
 
 ## Key Design Decisions
 
-Current state only; the *why* behind each decision, with the numbers, is in `docs/tcc/04-caminhos-e-decisoes.md`. Every value and choice, tagged with the kind of evidence behind it (`[medido]` / `[domínio]` / `[coerência]` / `[projeto]`), is catalogued in `docs/tcc/09-valores-e-escolhas.md` — when a value or its evidence changes, update its entry there too.
+Current state only; the *why* behind each decision, with the numbers, is in `docs/thesis/04-design-decisions.md`. Every value and choice, tagged with the kind of evidence behind it (`[medido]` / `[domínio]` / `[coerência]` / `[projeto]`), is catalogued in `docs/thesis/09-values-and-choices.md` — when a value or its evidence changes, update its entry there too.
 
 > **Numbers quoted below that come from a battery are from the 2026-09-18 one, measured before per-fight CRN seeding.** That change replaces every draw, so the next battery (`run_overnight.ps1`) replaces them — reread each against it before relying on it.
 
@@ -245,13 +254,13 @@ Current state only; the *why* behind each decision, with the numbers, is in `doc
 
 **Elitism 10% and tournament 3 are tested values.** Swept against elitism 0 / 5% / 20% / 30% and tournament 2 / 5 / 7: no arm beats the default, which has the fewest hard counters; at n = 5 the differences do not separate from noise, so the claim is "tested, nothing beats them", not "optimal". Both are read only by `operators.py` in the parent process. `ELITE_RATE` is a **fraction** of the actual population size — an absolute count would silently turn a reduced-budget run into a clone machine.
 
-**Process state for anything a sweep varies, and a persistent pool.** λ, the dominance weights, elitism and tournament are process state (`set_*` / `set_*_override`), because `from .config import X` freezes the value at import. What the workers read travels in a `RuntimeState` with **every task** to the persistent pool (`fitness.parallel_map`) — so a live worker never evaluates under a stale seed base or weight; covered by a parallel-vs-serial test that changes both between evaluations. The pool lives the whole process (3.87 s → 1.04 s per generation of 300), `N_WORKERS = min(8, os.cpu_count())` (the cap guards against `WinError 1455`). Sweep overrides register in the provenance stamp (`provenance.override`), and `multi_run` routes any run that deviates from the defaults in budget, λ, dominance weights or selection to `results/multi_run/exploratory/`, with the deviation in the name.
+**Process state for anything a sweep varies, and a persistent pool.** λ, the dominance weights, elitism and tournament are process state (`set_*` / `set_*_override`), because `from .config import X` freezes the value at import. What the workers read travels in a `RuntimeState` with **every task** to the persistent pool (`fitness.parallel_map`) — so a live worker never evaluates under a stale seed base or weight; covered by a parallel-vs-serial test that changes both between evaluations. The pool lives the whole process (3.87 s → 1.04 s per generation of 300), `N_WORKERS = min(8, os.cpu_count())` (the cap guards against `WinError 1455`). Sweep overrides register in the provenance stamp (`provenance.override`), and `multi_run` routes any run that deviates from the defaults in budget, λ, dominance weights or selection to `results/exploratory/`, with the deviation in the name.
 
 ### Measurement
 
 **Every artifact carries the configuration that produced it, and checks itself on load.** `src/engine/provenance.py` stamps every JSON in `results/`: timestamp, `fingerprint`, every public constant of `config.py` value by value, a digest of the canonicals (genes + `defining_genes` + `beats`) and a digest of `src/engine/`'s source. `Individual.from_results` / `from_nsga2` call `warn_if_stale` — the chokepoint every tool goes through — and the warning names what changed. Constants are **enumerated**, not hand-listed; the engine **source** is hashed, not only its constants; `config.py` is out of the source digest because its values are recorded one by one. `N_WORKERS` and `MULTI_RUN_N_SEEDS` are out of the stamp — neither changes a number in any artifact (the sample size is recorded in the `multi_run` body), and `compare` ignores excluded constants on the recorded side too. `Divergence.is_experiment_arm` separates a sweep arm from a stale artifact, strictly. Operating rules: re-stamp one artifact at a time, under its own overrides; a retroactive stamp is valid only by reproducing **that** artifact; the stamp does not cover command-line arguments, so each tool's default is the protocol value (`baselines` 30 null rosters, `multi_run` 20 seeds). A recorded number is measured on the **last generation's** stream (`generation_seed(seed, MAX_GENERATIONS)`) — reproducing it means reproducing that stream.
 
-**Every post-hoc metric is read against a measured floor, never against the ceiling.** None of the identity metrics has a floor of zero: `src/tools/baselines.py` measures them on 35 null rosters (5 mirrors + 30 random) — the validator's chance floor is ~6.4/23 with a null reaching 10/23 (rank assertions resolve ties by index), drift reads ~0.38 for a mirror (identity zero by construction) against ~0.42 for a random roster, and the cycle's floor is 5/10 (every edge a coin flip). Every metric is reported as `position = (value − floor) / (ceiling − floor)` plus an empirical p-value (resolution 1/N). The **mirror roster is the trivial solution** to balance — the numeric answer to "why not make all five identical?". **The authored cycle cannot be a result**: it is one of 24 labelled regular tournaments on 5 vertices; what is a result, without authorship, is **intransitivity itself** — a strictly transitive roster has WRs 100/75/50/25/0, incompatible with everyone near 50% — measured by `circular_triads` (0 strict order / 2.5 random / 5 maximum), meaningful only when the pair WRs are decided.
+**Every post-hoc metric is read against a measured floor, never against the ceiling.** None of the identity metrics has a floor of zero: `src/experiments/baselines.py` measures them on 35 null rosters (5 mirrors + 30 random) — the validator's chance floor is ~6.4/23 with a null reaching 10/23 (rank assertions resolve ties by index), drift reads ~0.38 for a mirror (identity zero by construction) against ~0.42 for a random roster, and the cycle's floor is 5/10 (every edge a coin flip). Every metric is reported as `position = (value − floor) / (ceiling − floor)` plus an empirical p-value (resolution 1/N). The **mirror roster is the trivial solution** to balance — the numeric answer to "why not make all five identical?". **The authored cycle cannot be a result**: it is one of 24 labelled regular tournaments on 5 vertices; what is a result, without authorship, is **intransitivity itself** — a strictly transitive roster has WRs 100/75/50/25/0, incompatible with everyone near 50% — measured by `circular_triads` (0 strict order / 2.5 random / 5 maximum), meaningful only when the pair WRs are decided.
 
 **External validation keeps a binary verdict, with counts.** A roster is ROBUST only if no character leaves the band and no pair becomes a hard counter in **any** of 10 unseen conditions; the report also counts in how many conditions each pair and character fails, which separates a systematic failure from a sporadic one.
 
@@ -260,12 +269,12 @@ Current state only; the *why* behind each decision, with the numbers, is in `doc
 ## Quick Matchup Check
 
 ```bash
-py -m src.tools.report --evolved              # dossiê completo do indivíduo (porta de entrada)
-py -m src.tools.analyze_matchups --evolved    # só os matchups
-py -m src.tools.drift_table --evolved         # só o drift por gene + diferenciação
-py -m src.tools.fingerprint --evolved         # só o comportamento
-py -m src.tools.baselines --evolved           # só os modelos nulos (piso/teto/posição)
-py -m src.tools.analyze_matchups rushdown zoner --n 100   # par específico
+py -m src.analysis.report --evolved              # dossiê completo do indivíduo (porta de entrada)
+py -m src.analysis.analyze_matchups --evolved    # só os matchups
+py -m src.analysis.drift_table --evolved         # só o drift por gene + diferenciação
+py -m src.analysis.fingerprint --evolved         # só o comportamento
+py -m src.experiments.baselines --evolved           # só os modelos nulos (piso/teto/posição)
+py -m src.analysis.analyze_matchups rushdown zoner --n 100   # par específico
 ```
 
 ## Hyperparameters

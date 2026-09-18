@@ -28,7 +28,7 @@ Todos os genes são contínuos.
 ### Por que estes bounds
 
 Bounds e canônicos estão **fechados** (declarados finais em 2026-09-16): os canônicos
-são a premissa, não variável a otimizar — ver [tcc/04](../tcc/04-caminhos-e-decisoes.md).
+são a premissa, não variável a otimizar — ver [thesis/04](../thesis/04-design-decisions.md).
 
 - **Stun ∈ [0, 0.6] (fração, timer contínuo):** o stun é uma fração do cooldown do
   próprio atacante, aplicada como `stun × attack_cooldown × TICK_SCALE` em ponto
@@ -64,18 +64,18 @@ são a premissa, não variável a otimizar — ver [tcc/04](../tcc/04-caminhos-e
 | `GENERATION_SEED_STRIDE` | 1000 | passo entre os streams de avaliação de gerações consecutivas: `fitness.generation_seed(base, g)` = `base × STRIDE + g`. O CRN vale **dentro** de uma geração (uma semente por luta, `fitness.fight_seed`); entre gerações o stream muda, para que a busca não possa se ajustar a uma realização do RNG. Com geração < STRIDE, duas sementes de treino nunca compartilham stream |
 | `CONVERGENCE_SEED_OFFSET` | 100000 | deslocamento do stream de RNG da **confirmação** de convergência. O laço usa CRN (correto para seleção); reavaliar no mesmo stream não confirma nada — mede a mesma realização do RNG com mais amostras. Somado à semente de treino, dá a cada execução um hold-out próprio. Não colide com treino 42+, `MULTI_RUN_VALIDATION_SEED` 9999 nem `EXTERNAL_VALIDATION_SEED_START` 10000+ |
 | `LAMBDA_DRIFT` | 1.0 | peso da drift_penalty (só AG escalar) — igual ao dominance; trade-off central. **Joelho da curva** no sweep de λ: `dominance` fica plano até aqui e só então explode. Só a RAZÃO entre os dois λ importa — a seleção é ordinal |
-| `DRIFT_DEFINING_WEIGHT` | 3.0 | peso dos `defining_genes` de cada arquétipo no drift (demais genes = 1.0). Mede identidade **estrutural**: mover o alcance do Zoner custa mais que mover o stun dele. `1.0` volta ao drift uniforme. Calibrado medindo a concordância com o validador — ver [tcc/04](../tcc/04-caminhos-e-decisoes.md) |
+| `DRIFT_DEFINING_WEIGHT` | 3.0 | peso dos `defining_genes` de cada arquétipo no drift (demais genes = 1.0). Mede identidade **estrutural**: mover o alcance do Zoner custa mais que mover o stun dele. `1.0` volta ao drift uniforme. Calibrado medindo a concordância com o validador — ver [thesis/04](../thesis/04-design-decisions.md) |
 | `LAMBDA_DOMINANCE` | 1.0 | peso da dominance_penalty (só AG escalar) |
 | `MATCHUP_THRESHOLD` | 0.20 | teto da banda de decisividade (vencedor fecha ~40% HP — acima = blowout) |
 | `MATCHUP_FLOOR` | 0.02 | piso da banda de decisividade — **guarda de degenerescência**, não banda de qualidade: toda luta termina em KO, então `D` baixo é KO no fio. Fica na base da faixa dos espelhos, abaixo do que dois personagens idênticos produzem, e não morde pares de personagens distintos |
 | `DOMINANCE_GLOBAL_WEIGHT` | 1.0 | peso do termo **primário** (balanço global por personagem) do dominance_penalty |
-| `DOMINANCE_CAP_WEIGHT` | 0.5 | peso do teto de hard-counter (excesso de `\|WR−0.5\|` acima de `MATCHUP_WR_CAP`). O sweep dos pesos mostrou os secundários como carga estrutural: sem eles o AG entrega todos os pares como counter duro — ver [tcc/04](../tcc/04-caminhos-e-decisoes.md) |
+| `DOMINANCE_CAP_WEIGHT` | 0.5 | peso do teto de hard-counter (excesso de `\|WR−0.5\|` acima de `MATCHUP_WR_CAP`). O sweep dos pesos mostrou os secundários como carga estrutural: sem eles o AG entrega todos os pares como counter duro — ver [thesis/04](../thesis/04-design-decisions.md) |
 | `DOMINANCE_DECIS_WEIGHT` | 0.5 | peso do termo de decisividade — o teto guarda contra blowout-coinflip; o piso, contra degenerescência. Lê 0 nos indivíduos evoluídos porque funciona: dispara no canônico e nos aleatórios, e desligá-lo multiplica os hard-counters |
 | `MATCHUP_WR_CAP` | 0.15 | meia-banda do hard-counter: par é counter duro se `\|WR−0.5\| > 0.15` (fora de [0.35, 0.65]). Ponto médio entre 6-4 (0.10, vantagem) e 7-3 (0.20, counter) na grade da FGC — justificativa e tabela de ruído no comentário do `config.py` |
 | `N_WORKERS` | `min(8, núcleos)` | processos do pool persistente (1 = serial). Teto de 8: com todos os núcleos os processos carregando llvmlite estouravam o limite de commit do Windows, e acima de 8 o ganho some no ruído (8w 1,04 s · 12w ~1,0 s · 16w ~0,9 s por geração de 300). Não afeta o resultado (o estado do pai viaja com cada tarefa) e fica fora do carimbo |
 | `FIELD_SIZE` | 100 | tamanho do campo |
 | `INITIAL_DISTANCE` | 50 | distância inicial entre lutadores (> todos os `range`, então a luta começa em impasse) |
-| `ACTION_PERSISTENCE_SUBTICKS` | 5 | sub-ticks que uma intenção sorteada é mantida (zerado no impasse e ao ser stunado). 5 = 1 tick = cooldown mínimo, então GUARDA custa exatamente **uma** janela de ataque — ver [tcc/04](../tcc/04-caminhos-e-decisoes.md) |
+| `ACTION_PERSISTENCE_SUBTICKS` | 5 | sub-ticks que uma intenção sorteada é mantida (zerado no impasse e ao ser stunado). 5 = 1 tick = cooldown mínimo, então GUARDA custa exatamente **uma** janela de ataque — ver [thesis/04](../thesis/04-design-decisions.md) |
 | `TICK_SCALE` | 5 | resolução sub-tick de cooldown/stun/movimento |
 | `MAX_TICKS` | 2500 | `500 × TICK_SCALE` — duração máxima de uma luta |
 | `DEFEND_DAMAGE_REDUCTION` | 0.6 (= 1 − 0.4) | multiplicador no dano ao defender (recebe 60% = **40% de redução**) |

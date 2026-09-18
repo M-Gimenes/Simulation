@@ -20,8 +20,8 @@ The system evolves a set of 5 characters (one per archetype) through a GA, evalu
 Use the helper script to create the venv and install pinned dependencies:
 
 ```powershell
-.\setup.ps1                 # cria .venv e instala requirements.txt
-.\setup.ps1 -Recreate       # apaga .venv existente e refaz do zero
+.\scripts\setup.ps1                 # cria .venv e instala requirements.txt
+.\scripts\setup.ps1 -Recreate       # apaga .venv existente e refaz do zero
 ```
 
 Ative o ambiente antes de rodar qualquer comando (necessário em cada nova sessão do terminal):
@@ -48,29 +48,37 @@ py main.py                                      # GA escalar
 py main.py --algorithm nsga2 --seed 42 --quiet  # NSGA-II
 ```
 
-### Analysis tools
+### Ferramentas
+
+Três pacotes, divididos pelo que fazem com um roster:
 
 ```powershell
-py -m src.tools.report --evolved                # dossie completo do individuo (porta de entrada)
-py -m src.tools.analyze_matchups                # all matchups, canonical
-py -m src.tools.analyze_matchups --evolved --n 50 # evolved individual, 50 sims
-py -m src.tools.archetype_validator             # structural + behavioral identity checks
-py -m src.tools.sensitivity_analysis --evolved  # +/-sigma delta-WR per gene (no canonico satura)
-py -m src.tools.baselines --evolved             # modelos nulos: piso/teto de cada metrica
-py -m src.tools.multi_run --algorithm both      # N execucoes independentes + estatistica agregada
-py -m src.tools.compare_algorithms              # GA x NSGA-II: Mann-Whitney U + A12 + Holm
-py -m src.tools.external_validation --nsga2 knee_point  # robustez do equilibrio fora do laco
-py -m src.tools.web_viewer                      # browser viewer em localhost:8080
+# src.analysis — inspeciona um roster e imprime (nao grava nada)
+py -m src.analysis.report --evolved                   # dossie completo do individuo (porta de entrada)
+py -m src.analysis.analyze_matchups                   # all matchups, canonical
+py -m src.analysis.analyze_matchups --evolved --n 50  # evolved individual, 50 sims
+py -m src.analysis.archetype_validator                # structural + behavioral identity checks
+
+# src.experiments — o protocolo da tese (cada um grava um artefato em results/)
+py -m src.experiments.multi_run --algorithm both      # N execucoes independentes + estatistica agregada
+py -m src.experiments.compare_algorithms              # GA x NSGA-II: Mann-Whitney U + A12 + Holm
+py -m src.experiments.external_validation --nsga2 knee_point  # robustez do equilibrio fora do laco
+py -m src.experiments.sensitivity_analysis --evolved  # +/-sigma delta-WR per gene (no canonico satura)
+py -m src.experiments.baselines --evolved             # modelos nulos: piso/teto de cada metrica
+
+# src.visualization
+py -m src.visualization.web_viewer                    # browser viewer em localhost:8080
 ```
 
 ### Experimentos completos
 
-Scripts retomáveis (`-From N` retoma de um passo; `-WhatIf` só lista e estima o custo):
+Em `scripts/`. Os dois primeiros são retomáveis (`-From N` retoma de um passo; `-WhatIf`
+só lista e estima o custo); o `run_overnight.ps1` não tem `-WhatIf` — chamado, ele roda:
 
 ```powershell
-.\run_sweeps.ps1     # 16 bracos exploratorios em orcamento reduzido (~1h40)
-.\run_battery.ps1    # a bateria citavel, n = 20 sementes (~3h45)
-.\run_overnight.ps1  # encadeia os dois e roda desassistido
+.\scripts\run_sweeps.ps1     # 16 bracos exploratorios em orcamento reduzido (~1h40)
+.\scripts\run_battery.ps1    # a bateria citavel, n = 20 sementes (~3h45)
+.\scripts\run_overnight.ps1  # encadeia os dois e roda desassistido
 ```
 
 > **Nesta ordem.** Implementar um braço de sweep mexe no motor, e mexer no motor depois da
@@ -83,14 +91,26 @@ o limite de commit do Windows), e emenda a bateria com **uma** retomada automát
 passo falhar. Enquanto roda, declara ao Windows que há trabalho em andamento via
 `SetThreadExecutionState`, que impede suspensão/hibernação e **solta sozinho no fim**, em
 vez de mexer no plano de energia global que ninguém lembra de desfazer. Tudo com carimbo de
-hora em `results/overnight.log`.
+hora em `results/logs/overnight.log`.
+
+## Onde fica o quê
+
+```
+main.py        uma execução do AG ou do NSGA-II
+scripts/       setup do ambiente, sweeps, bateria, a noite desassistida
+src/engine/    o modelo: combate, fitness, os dois algoritmos
+src/experiments/  analysis/  visualization/  tests/
+docs/          reference/ (como funciona) · thesis/ (o porquê) · status/ (estado atual)
+results/       artefatos, uma pasta por produtor
+overleaf/      monografia e artigos
+```
 
 ## Documentação
 
 - [`docs/reference/`](docs/reference/README.md) — como o sistema funciona, um arquivo por tema.
-- [`docs/tcc/`](docs/tcc/README.md) — material de redação: o porquê de cada decisão, o que apresentar.
-- [`HANDOFF.md`](HANDOFF.md) — o estado atual e os resultados da última bateria.
-- [`REVIEW.md`](REVIEW.md) — a auditoria de coerência do sistema e o que dela segue aberto.
+- [`docs/thesis/`](docs/thesis/README.md) — material de redação: o porquê de cada decisão, o que apresentar.
+- [`docs/status/HANDOFF.md`](docs/status/HANDOFF.md) — o estado atual e os resultados da última bateria.
+- [`docs/status/REVIEW.md`](docs/status/REVIEW.md) — a auditoria de coerência do sistema e o que dela segue aberto.
 - [`CLAUDE.md`](CLAUDE.md) — guia de trabalho no repositório e resumo das decisões de design.
 
 ## Tests

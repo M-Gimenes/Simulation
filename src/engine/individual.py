@@ -67,7 +67,7 @@ class Individual:
             raise FileNotFoundError(f"'{path}' não encontrado — rode main.py --algorithm nsga2 primeiro.")
         with open(path) as fh:
             data = json.load(fh)
-        warn_if_stale(data.get("provenance"), path.name)
+        warn_if_stale(data.get("provenance"), f"{path.parent.name}/{path.name}")
         reps = data.get("representatives", {})
         if representative not in reps:
             available = ", ".join(reps.keys()) if reps else "nenhum"
@@ -86,7 +86,7 @@ class Individual:
             raise FileNotFoundError(f"'{path}' não encontrado — rode main.py primeiro.")
         with open(path) as fh:
             data = json.load(fh)
-        warn_if_stale(data.get("provenance"), path.name)
+        warn_if_stale(data.get("provenance"), f"{path.parent.name}/{path.name}")
         if "best_individual" not in data:
             raise KeyError(f"'{path}' não contém 'best_individual'.")
         return cls._from_genes(data["best_individual"])

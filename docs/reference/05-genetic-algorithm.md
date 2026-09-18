@@ -32,7 +32,7 @@ completo**: C(5,2) = 10 matchups × `SIMS_PER_MATCHUP = 150` lutas, cada luta se
 Só a **razão** entre os dois importa (a seleção por torneio é ordinal), e o sweep de
 `LAMBDA_DRIFT` mostrou 1,0 como o joelho da curva: o `dominance` fica plano até ali e só
 então explode. O mapa completo do trade-off vem do NSGA-II. Trajetória em
-[tcc/04](../tcc/04-caminhos-e-decisoes.md).
+[thesis/04](../thesis/04-design-decisions.md).
 
 ### `drift_penalty` — identidade estrutural ponderada
 
@@ -62,7 +62,7 @@ Layer 1 do validador — Zoner: `range`/`knockback`/`w_retreat`; Rushdown:
 `DRIFT_DEFINING_WEIGHT = 3.0` contra 1.0 dos demais: mover o alcance do Zoner custa
 mais que mover o stun dele. 3,0 mantém os genes não-definidores com preço; pesos altos
 os tornariam quase gratuitos. A medição que decidiu normalização e peso está em
-[tcc/04](../tcc/04-caminhos-e-decisoes.md) ("A régua de identidade").
+[thesis/04](../thesis/04-design-decisions.md) ("A régua de identidade").
 
 É **declaração de premissa** (o que o arquétipo é), não de resposta (quem vence quem)
 — ver a linha premissa/resposta no `CLAUDE.md`. Consequência: as Layers 1-2 do
@@ -95,7 +95,7 @@ Com `DOMINANCE_GLOBAL_WEIGHT = 1.0`, `DOMINANCE_CAP_WEIGHT = 0.5`,
   **não** força cada par a 50%: um boneco a 50% global pode vencer 2 e perder 2 —
   exatamente o espaço em que o ciclo de vantagens pode existir. Um termo primário por
   matchup teria como ótimo todo par a 50%, incompatível com o ciclo por construção (ver
-  [tcc/02-ciclo-canonico.md](../tcc/02-ciclo-canonico.md)).
+  [thesis/02-canonical-cycle.md](../thesis/02-canonical-cycle.md)).
 - **Secundário — teto de hard-counter (`cap_term`):** penaliza só o excesso de
   `|WR_par − 0.5|` **acima** de `MATCHUP_WR_CAP` (RMS sobre os 10 pares). Mantém as
   arestas do ciclo como **vantagens** dentro de uma banda (`[0.35, 0.65]` com cap
@@ -122,7 +122,7 @@ decis_excess  = max(0, D − MATCHUP_THRESHOLD)/(0.5 − MATCHUP_THRESHOLD)   # 
 
 - **Os secundários são carga estrutural**, e isso é medido: sem eles o AG alcança o
   melhor `global_term` e entrega todos os pares como counter duro — o blowout-coinflip
-  que o cap existe para barrar. Sweep dos pesos em [tcc/04](../tcc/04-caminhos-e-decisoes.md).
+  que o cap existe para barrar. Sweep dos pesos em [thesis/04](../thesis/04-design-decisions.md).
 - **Os três termos são reportados separados:** `_dominance_penalty` devolve um
   `DominanceTerms` (`global_term`, `cap_term`, `decis_term`), guardado no
   `FitnessDetail`. O `multi_run` grava os três por semente e agregados; o
@@ -178,7 +178,7 @@ escala bruta. Mudar qualquer `LAMBDA_*` não afeta o NSGA-II.
 
 **Os dois valores foram testados** (sweep de 7 braços: elitismo 0 · 5% · 20% · 30%,
 torneio 2 · 5 · 7) e nenhum braço supera 10% / 3. Tabela e leitura em
-[tcc/04](../tcc/04-caminhos-e-decisoes.md).
+[thesis/04](../thesis/04-design-decisions.md).
 
 ## Critérios de convergência e parada
 
@@ -230,7 +230,7 @@ dois e a comparação não confunda "algoritmo" com "forma de avaliar".
 luta); **entre** gerações o stream muda. Sem a troca, as `MAX_GENERATIONS` inteiras
 correriam sobre uma realização só do RNG, e a população teria o orçamento completo para
 se ajustar àquela sequência de sorteios em vez de ao jogo. Medições em
-[tcc/04](../tcc/04-caminhos-e-decisoes.md).
+[thesis/04](../thesis/04-design-decisions.md).
 
 Como os elites chegam medidos no stream anterior, a geração inteira é reavaliada —
 custo ~1,8× (no NSGA-II é ~2×, ver [06](06-nsga2.md)). O fitness passa a flutuar
@@ -259,12 +259,12 @@ convergiu, e cada disparo custa `SIMS_CONVERGENCE_CHECK` simulações extras.
 
 ## Saída
 
-`py main.py` evolui, salva o melhor indivíduo em `results/results.json` (lista de
+`py main.py` evolui, salva o melhor indivíduo em `results/single_run/ga.json` (lista de
 genes por personagem, consumida por tools via `Individual.from_results()`) e imprime
 apenas um **headline curto** — motivo de parada, geração, `fitness/dom/drift` — e o
-ponteiro `→ py -m src.tools.report --evolved`. A avaliação completa (matchups, drift
+ponteiro `→ py -m src.analysis.report --evolved`. A avaliação completa (matchups, drift
 por gene, fingerprint, validador) vive **só** no dossiê do `report`, não no `main`.
 
 `run()` ainda acumula `history` (lista de `GenerationStats`: `best/mean/worst
 fitness`, `drift_penalty`, `dominance_penalty`, `elapsed_s` por geração) para a curva
-de convergência da tese — ver [tcc/06-resultados-a-apresentar.md](../tcc/06-resultados-a-apresentar.md).
+de convergência da tese — ver [thesis/06-results-to-present.md](../thesis/06-results-to-present.md).

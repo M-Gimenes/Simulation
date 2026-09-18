@@ -312,7 +312,7 @@ def test_save_results_roundtrip_genes():
     os.unlink(path)
 
 
-from src.tools.nsga2_plots import save_plots
+from src.visualization.nsga2_plots import save_plots
 
 
 def test_save_plots_creates_pareto_png():

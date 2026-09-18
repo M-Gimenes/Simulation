@@ -7,8 +7,8 @@ loop de combate (~150× sobre Python puro); a primeira chamada compila (~2.5s),
 depois fica em cache.
 
 ```powershell
-.\setup.ps1                 # cria .venv e instala tudo
-.\setup.ps1 -Recreate       # apaga .venv e refaz do zero
+.\scripts\setup.ps1                 # cria .venv e instala tudo
+.\scripts\setup.ps1 -Recreate       # apaga .venv e refaz do zero
 ```
 
 No Windows use `py` (não `python`/`python3`). Scripts emitem Unicode
@@ -17,8 +17,8 @@ No Windows use `py` (não `python`/`python3`). Scripts emitem Unicode
 ## Rodar
 
 ```bash
-py main.py                                      # AG escalar  → results/results.json
-py main.py --algorithm nsga2 --seed 42 --quiet  # NSGA-II      → results/nsga2_results.json
+py main.py                                      # AG escalar  → results/single_run/ga.json
+py main.py --algorithm nsga2 --seed 42 --quiet  # NSGA-II      → results/single_run/nsga2.json
 ```
 
 Tools e tests rodam como módulo a partir da raiz — ver [08-tools.md](08-tools.md). A
@@ -29,16 +29,16 @@ bateria completa e os sweeps rodam pelos scripts da raiz (`run_battery.ps1`,
 
 | Arquivo | Origem |
 |---|---|
-| `results/results.json` | `py main.py` (AG escalar) |
-| `results/nsga2_results.json` | `py main.py --algorithm nsga2` |
-| `results/plots/nsga2/<timestamp>/` | plots da fronteira |
-| `results/multi_run/multi_run_<algo>.json` | `py -m src.tools.multi_run` |
-| `results/multi_run/exploratory/multi_run_ga_<desvios>.json` | braços de sweep (`run_sweeps.ps1`) |
-| `results/multi_run/comparison_ga_vs_nsga2.json` | `py -m src.tools.compare_algorithms` |
-| `results/multi_run/comparison_ga_vs_nsga2_<rep>.json` | `py -m src.tools.compare_algorithms --nsga2-representative <rep>` |
-| `results/external_validation/external_validation_<label>.json` | `py -m src.tools.external_validation` |
-| `results/sensitivity/sensitivity_analysis.json` | `py -m src.tools.sensitivity_analysis` |
-| `results/baselines.json` | `py -m src.tools.baselines` |
+| `results/single_run/ga.json` | `py main.py` (AG escalar) |
+| `results/single_run/nsga2.json` | `py main.py --algorithm nsga2` |
+| `results/single_run/plots/<timestamp>/` | plots da fronteira |
+| `results/multi_run/multi_run_<algo>.json` | `py -m src.experiments.multi_run` |
+| `results/exploratory/multi_run_ga_<desvios>.json` | braços de sweep (`run_sweeps.ps1`) |
+| `results/multi_run/comparison_ga_vs_nsga2.json` | `py -m src.experiments.compare_algorithms` |
+| `results/multi_run/comparison_ga_vs_nsga2_<rep>.json` | `py -m src.experiments.compare_algorithms --nsga2-representative <rep>` |
+| `results/external_validation/external_validation_<label>.json` | `py -m src.experiments.external_validation` |
+| `results/sensitivity/sensitivity_analysis.json` | `py -m src.experiments.sensitivity_analysis` |
+| `results/baselines/baselines.json` | `py -m src.experiments.baselines` |
 
 ### O que cada artefato de execução registra
 
@@ -46,7 +46,7 @@ Os dois algoritmos gravam o **mesmo contrato** (`ga.save_results` e
 `nsga2.save_results`): o que basta para reproduzir a execução e reconstruir a
 trajetória sem re-rodar.
 
-| Campo | `results.json` (AG) | `nsga2_results.json` |
+| Campo | `single_run/ga.json` (AG) | `single_run/nsga2.json` |
 |---|---|---|
 | `provenance` | ✓ | ✓ |
 | `algorithm`, `seed`, `generations_run` | ✓ | ✓ |
@@ -98,7 +98,7 @@ carrega um indivíduo evoluído, então checar num só lugar impede que a próxi
 sem a checagem. O aviso diz o que mudou, não só que mudou:
 
 ```
-  ⚠ ARTEFATO OBSOLETO — 'results.json' não descreve o sistema atual:
+  ⚠ ARTEFATO OBSOLETO — 'single_run/ga.json' não descreve o sistema atual:
       · o CÓDIGO do motor mudou desde a geração
       · ACTION_PERSISTENCE_SUBTICKS: 10 → 5
       gerado em 2026-09-17T14:20:14-03:00
@@ -111,7 +111,7 @@ devolve a obsoleto. `py -m src.tests.test_provenance` lista o estado de todo art
 `results/`.
 
 Três regras de operação, cada uma aprendida com uma falha registrada no
-[tcc/04](../tcc/04-caminhos-e-decisoes.md):
+[thesis/04](../thesis/04-design-decisions.md):
 
 - **Re-carimbar é operação de um artefato por vez**, sob os mesmos overrides que o
   produziram: `stamp()` lê os overrides do processo que chama, então aplicado em lote
@@ -155,7 +155,7 @@ Como funciona:
   consumida pelos **dois** algoritmos. O CRN vale **dentro** da geração, não através
   delas: sem a troca, a população teria o orçamento inteiro para se ajustar a **uma**
   realização do RNG. É o mesmo princípio da confirmação de convergência — CRN serve para
-  **seleção**, não para validação. Medições em [tcc/04](../tcc/04-caminhos-e-decisoes.md).
+  **seleção**, não para validação. Medições em [thesis/04](../thesis/04-design-decisions.md).
   - *Custo:* quem sobrevive foi medido no stream anterior e tem de ser reavaliado —
     ~1,8× no AG escalar (os elites) e **~2× no NSGA-II**, onde a ordenação por
     dominância compara pais e filhos no mesmo conjunto combinado e objetivos de

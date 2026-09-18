@@ -1,13 +1,13 @@
 # Teste estatístico da comparação AG × NSGA-II
 
-Doc **didático** do aparato estatístico usado em `src/tools/compare_algorithms.py`:
+Doc **didático** do aparato estatístico usado em `src/experiments/compare_algorithms.py`:
 Mann-Whitney U, Â₁₂ de Vargha-Delaney e a **correção de Holm-Bonferroni**. O foco é o
 Holm — é a peça menos óbvia e a que mais decide o que pode ser afirmado na tese.
 
 Os outros docs descrevem *o que o sistema faz*. Este explica *por que a comparação é
 feita assim*, do zero. Para a descrição operacional do tool, ver
 [08-tools.md](08-tools.md); para o lugar disso na metodologia da tese, ver
-[`../tcc/05-validacao-metodologica.md`](../tcc/05-validacao-metodologica.md).
+[`../thesis/05-methodological-validation.md`](../thesis/05-methodological-validation.md).
 
 ---
 
@@ -251,7 +251,7 @@ para em **0,0515**, acima por 0,0015. Não havia prêmio em escolher a família 
 
 O gargalo era **poder amostral**, e o remédio foi subir o número de sementes para 20
 (simulação de poder: 44,4% a n = 10 contra 85,9% a n = 20 — ver
-[`../tcc/04-caminhos-e-decisoes.md`](../tcc/04-caminhos-e-decisoes.md)). Foi aditivo, como previsto — as sementes 42–51 reproduziram
+[`../thesis/04-design-decisions.md`](../thesis/04-design-decisions.md)). Foi aditivo, como previsto — as sementes 42–51 reproduziram
 bit a bit na bateria de n = 20.
 
 ### O que o n = 20 mostrou sobre o tamanho do efeito
@@ -284,7 +284,7 @@ real. O efeito continua grande nos três, e o de n = 20 é a estimativa a citar.
 
 | peça | símbolo |
 |---|---|
-| α da bateria | `ALPHA` em `src/tools/compare_algorithms.py` |
+| α da bateria | `ALPHA` em `src/experiments/compare_algorithms.py` |
 | métricas candidatas | `METRICS` (idem) |
 | critério de família | `_is_degenerate` (idem) |
 | procedimento de Holm | `_holm` (idem) |

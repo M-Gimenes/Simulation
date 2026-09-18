@@ -3,7 +3,7 @@
 Referência do sistema, separada por tema e **atualizada conforme o código atual**
 (`src/engine`). Para instruções de trabalho com o repositório, ver `CLAUDE.md` (raiz);
 para instalação e execução rápida, ver o `README.md` da raiz. Material de redação da
-tese fica em [`../tcc/`](../tcc/README.md).
+tese fica em [`../thesis/`](../thesis/README.md).
 
 ## Mapa
 

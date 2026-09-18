@@ -138,7 +138,7 @@ Amplitude da WR a **±1σ de mutação** (σ = 10% do range do gene), corpo neut
 - Duas consequências que isso abriu: a hipersensibilidade dos genes de recurso, hoje
   limite declarado ([10-known-issues.md](10-known-issues.md) §2), e a decisividade caindo
   abaixo do `MATCHUP_FLOOR`, resolvida rebaixando o piso para guarda de degenerescência
-  ([tcc/04](../tcc/04-caminhos-e-decisoes.md)).
+  ([thesis/04](../thesis/04-design-decisions.md)).
 
 ## O que a revisão de 2026-06-23 concluiu, e por que errou
 
@@ -164,6 +164,6 @@ não-saturado do espaço** — corpo neutro para o gradiente bruto, contexto de 
 genes relacionais.
 
 Duas conclusões daquela revisão continuam de pé e estão registradas em
-[`../tcc/04-caminhos-e-decisoes.md`](../tcc/04-caminhos-e-decisoes.md): a hipótese "luta
+[`../thesis/04-design-decisions.md`](../thesis/04-design-decisions.md): a hipótese "luta
 apertada ⟹ WR ~50%" foi falsificada empiricamente (a decisividade é cega à frequência de
 vitória), e por isso a WR voltou como termo primário do `dominance_penalty`.
