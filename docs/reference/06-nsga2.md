@@ -104,6 +104,11 @@ inicial do NSGA-II").
   não vale literalmente: o ponto do escalar fica **além** da ponta de baixa dominância da
   fronteira, e os dois são mutuamente não-dominados.
 
+  No teste entre algoritmos (n = 20) o NSGA-II entra pelo `best_dominance`. Como o
+  `multi_run` grava os cinco representantes de cada semente, a mesma comparação contra o
+  `scalar_optimum` sai de `compare_algorithms --nsga2-representative scalar_optimum`, sem
+  re-rodar o NSGA-II ([08-tools.md](08-tools.md)).
+
 ## Métricas de qualidade da fronteira (item 1.2 da metodologia)
 
 Comparar fronteiras "no olho" não escala (Deb 2001/2002). Em `src/engine/pareto_metrics.py`:

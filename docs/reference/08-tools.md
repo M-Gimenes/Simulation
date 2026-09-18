@@ -245,7 +245,11 @@ py -m src.tools.multi_run --n-seeds 30       # escala o experimento
 Representante por execução: AG escalar → `best`. O NSGA-II devolve uma **fronteira**,
 não um ponto — qual ponto representa a execução é uma escolha explícita
 (`--nsga2-representative`, default `best_dominance`), gravada no artefato como
-`nsga2_representative`. Saídas agregadas (impressas + salvas em `results/multi_run/multi_run_<algo>.json`):
+`nsga2_representative`. Os **cinco** representantes de cada semente ficam gravados ao lado
+dele, em `representatives`, cada um reavaliado exatamente como o de topo — o escolhido
+inclusive, para que qualquer um se leia pelo mesmo caminho. É o que deixa o
+`compare_algorithms` refazer a comparação contra outro ponto (o `scalar_optimum`, em
+especial) sem re-rodar o NSGA-II, a ~0,15 s por semente. Saídas agregadas (impressas + salvas em `results/multi_run/multi_run_<algo>.json`):
 
 - **média ± desvio** de `dominance_penalty` — **decomposto** nos três termos
   (`global_term`, `cap_term`, `decis_term`, gravados por semente e agregados) — e de
@@ -269,12 +273,13 @@ não um ponto — qual ponto representa a execução é uma escolha explícita
   um valor, e o único honesto ("não convergiu") não é um número; a taxa carrega essa
   metade, e as duas são lidas juntas. O NSGA-II **não** tem equivalente: "o roster está
   equilibrado?" não é pergunta que se faça a uma fronteira, que contém de propósito
-  pontos desequilibrados-mas-fiéis. Ele devolve dict vazio e a chave não aparece no
+  pontos desequilibrados-mas-fiéis. As chaves não existem nele e não aparecem no
   agregado dele — melhor que gravar zeros que alguém agregaria sem perceber. Junto vão
   `convergence_gate_fired` e `convergence_rejected`: de quantas vezes o roster **pareceu**
   equilibrado sob o stream de treino, quantas **não sobreviveram** a um stream inédito.
   A razão entre os dois é o ajuste ao stream de RNG quantificado numa linha;
-- **sempre, por semente:** os `genes` do representante e o `history` por geração. Guardar
+- **sempre, por semente:** os `genes` do representante (no NSGA-II, também os de cada um
+  dos cinco) e a trajetória por geração (`history` no escalar, `front_history` no NSGA-II). Guardar
   custa ~30 KB contra 3–7 min de execução, e é a diferença entre responder uma pergunta
   nova a partir do artefato ou re-rodar o experimento. Com o histórico das N sementes a
   curva de convergência vira **média ± banda** em vez de uma única semente — que é o que
@@ -282,7 +287,8 @@ não um ponto — qual ponto representa a execução é uma escolha explícita
 
 > **Regra que os artefatos deste tool seguem: gravar o que é caro de reproduzir.** Toda
 > métrica agregada se recalcula do `per_seed` em segundos; o que não se recalcula é o que
-> exigiu horas de busca — a fronteira, os genes, a trajetória. Com a fronteira guardada,
+> exigiu horas de busca — a fronteira, os genes (dos cinco representantes, no NSGA-II), a
+> trajetória. Com a fronteira guardada,
 > comparar um λ novo contra ela não exige re-rodar o NSGA-II.
 
 Parametrizado em `config.py` (`MULTI_RUN_*`) para escalar N facilmente. O default de
@@ -369,12 +375,21 @@ equilibra o roster melhor.
 ```bash
 py -m src.tools.multi_run --algorithm both   # gera os dois artefatos (20 sementes)
 py -m src.tools.compare_algorithms           # compara e salva
+py -m src.tools.compare_algorithms --nsga2-representative scalar_optimum
 ```
 
 Aborta se os dois `multi_run` não compartilharem sementes, semente de validação e
 sims/matchup — comparar execuções sob condições diferentes não é comparação. Salva em
 `results/multi_run/comparison_ga_vs_nsga2.json`, registrando também qual representante
 da fronteira representou o NSGA-II.
+
+O NSGA-II entra pelo representante registrado no artefato (`best_dominance` na bateria).
+`--nsga2-representative` troca o ponto: cada semente passa a contribuir o registro daquele
+representante, lido de `representatives` — nada é re-rodado. O `scalar_optimum` é o
+comparável do escalar (minimiza a mesma função), e a bateria roda essa comparação como
+passo próprio. A comparação por outro ponto grava em
+`comparison_ga_vs_nsga2_<REP>.json`, sem sobrescrever a da bateria; um artefato anterior
+aos cinco representantes é recusado, com a instrução de regerá-lo.
 
 ## `external_validation` — validação externa ao fitness (estilo Ludi)
 

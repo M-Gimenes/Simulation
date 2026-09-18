@@ -21,13 +21,21 @@ Não roda nada: lê os dois artefatos do `multi_run`. Se eles não compartilham
 sementes, semente de validação e sims/matchup, a comparação não é pareada em
 condição e o tool aborta.
 
+O NSGA-II entra pelo representante registrado no artefato (`best_dominance` na
+bateria). Como o `multi_run` grava os cinco representantes de cada semente, já
+reavaliados, `--nsga2-representative` refaz a comparação contra outro ponto — o
+`scalar_optimum` é o comparável do escalar — e grava num arquivo à parte, sem
+sobrescrever a comparação da bateria.
+
 Uso:
     py -m src.tools.multi_run --algorithm both   # gera os artefatos
     py -m src.tools.compare_algorithms           # compara
+    py -m src.tools.compare_algorithms --nsga2-representative scalar_optimum
 """
 
 from __future__ import annotations
 
+import argparse
 import json
 from typing import List, Tuple
 
@@ -65,6 +73,29 @@ def _load(path) -> dict:
         )
     with open(path, encoding="utf-8") as fh:
         return json.load(fh)
+
+
+def with_representative(nsga2: dict, name: str) -> dict:
+    """O artefato do NSGA-II visto por outro representante: cada semente contribui o
+    registro daquele ponto em vez do de topo. Não re-roda nada — o `multi_run` grava os
+    cinco já reavaliados sob a mesma semente de validação."""
+    if name == nsga2["nsga2_representative"]:
+        return nsga2
+    first = nsga2["per_seed"][0]
+    if "representatives" not in first:
+        raise ValueError(
+            f"O multi_run do NSGA-II grava só o representante "
+            f"'{nsga2['nsga2_representative']}' — foi gerado antes de o multi_run "
+            f"guardar os cinco. Rode `py -m src.tools.multi_run --algorithm nsga2` de novo."
+        )
+    if name not in first["representatives"]:
+        raise ValueError(
+            f"Representante '{name}' desconhecido — disponíveis: "
+            f"{', '.join(first['representatives'])}."
+        )
+    per_seed = [{"seed": record["seed"], **record["representatives"][name]}
+                for record in nsga2["per_seed"]]
+    return {**nsga2, "per_seed": per_seed, "nsga2_representative": name}
 
 
 def _check_comparable(ga: dict, nsga2: dict) -> None:
@@ -223,7 +254,7 @@ def compare(ga: dict, nsga2: dict) -> dict:
         "seeds": ga["seeds"],
         "validation_seed": ga["validation_seed"],
         "sims_per_matchup": ga["sims_per_matchup"],
-        "nsga2_representative": nsga2.get("nsga2_representative"),
+        "nsga2_representative": nsga2["nsga2_representative"],
         "family_size": len(family),
         "excluded_from_family": [t["metric"] for t in tests if t["degenerate"]],
         "metrics": tests,
@@ -305,17 +336,33 @@ def print_report(result: dict) -> None:
           "roster melhor.")
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(description="AG escalar × NSGA-II: Mann-Whitney U "
+                                                 "+ Â₁₂ + Holm sobre os artefatos do multi_run")
+    parser.add_argument("--nsga2-representative", metavar="REP", default=None,
+                        help="Ponto da fronteira que representa o NSGA-II (default: o "
+                             "registrado no artefato). Outro ponto grava em "
+                             "comparison_ga_vs_nsga2_<REP>.json")
+    return parser.parse_args()
+
+
 def main() -> None:
+    args = parse_args()
     ga = _load(MULTI_RUN_GA_PATH)
     nsga2 = _load(MULTI_RUN_NSGA2_PATH)
-    result = compare(ga, nsga2)
+    recorded = nsga2["nsga2_representative"]
+    representative = args.nsga2_representative or recorded
+    result = compare(ga, with_representative(nsga2, representative))
     print_report(result)
 
-    MULTI_RUN_COMPARISON_PATH.parent.mkdir(parents=True, exist_ok=True)
-    with open(MULTI_RUN_COMPARISON_PATH, "w", encoding="utf-8") as fh:
+    path = MULTI_RUN_COMPARISON_PATH
+    if representative != recorded:
+        path = path.with_name(f"{path.stem}_{representative}{path.suffix}")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as fh:
         json.dump({"provenance": stamp(), **result}, fh, indent=2, ensure_ascii=False)
     print("")
-    print(f"  Salvo em {MULTI_RUN_COMPARISON_PATH.relative_to(PROJECT_ROOT)}")
+    print(f"  Salvo em {path.relative_to(PROJECT_ROOT)}")
 
 
 if __name__ == "__main__":

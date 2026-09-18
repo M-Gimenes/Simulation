@@ -39,7 +39,7 @@ $env:PYTHONIOENCODING = "utf-8"
 # Os `Min` sao ESTIMATIVAS com o pool persistente: os tempos medidos na bateria de
 # 2026-09-18 (pool recriado por geracao) escalados pela razao medida na seed 42 - AG
 # 6,7 -> 3,0 min, NSGA-II 9,7 -> 5,8 min - e por +13% da semente por luta (CRN). Os
-# passos 6-11 levam segundos.
+# passos 3, 4 e 7-12 levam segundos.
 #
 # Ordem deliberada: o que serve os DOIS experimentos vem primeiro, para que uma
 # interrupcao no meio ainda deixe a bateria principal completa e citavel.
@@ -53,30 +53,35 @@ $passos = @(
     @{ N = 3; Min = 1; Nome = "compare_algorithms (n=20) - checa proveniencia dos dois"
        Args = @("-m", "src.tools.compare_algorithms") }
 
+    # O comparavel do escalar na fronteira. O multi_run grava os cinco representantes por
+    # semente, ja reavaliados, entao isto so rele os dois artefatos - segundos.
+    @{ N = 4; Min = 1; Nome = "compare_algorithms contra o scalar_optimum"
+       Args = @("-m", "src.tools.compare_algorithms", "--nsga2-representative", "scalar_optimum") }
+
     # Os individuais da seed 42 e as metricas post-hoc vem por ultimo: dependem do motor,
     # nao do sweep, e sao baratos perto dos bracos.
-    @{ N = 4;  Min = 4;  Nome = "AG seed 42 (results.json)"
+    @{ N = 5;  Min = 4;  Nome = "AG seed 42 (results.json)"
        Args = @("main.py", "--seed", "42") }
 
-    @{ N = 5;  Min = 7; Nome = "NSGA-II seed 42 (nsga2_results.json + plots)"
+    @{ N = 6;  Min = 7; Nome = "NSGA-II seed 42 (nsga2_results.json + plots)"
        Args = @("main.py", "--algorithm", "nsga2", "--seed", "42") }
 
-    @{ N = 6; Min = 1;  Nome = "external_validation - canonico"
+    @{ N = 7; Min = 1;  Nome = "external_validation - canonico"
        Args = @("-m", "src.tools.external_validation") }
 
-    @{ N = 7; Min = 1;  Nome = "external_validation - AG escalar"
+    @{ N = 8; Min = 1;  Nome = "external_validation - AG escalar"
        Args = @("-m", "src.tools.external_validation", "--evolved") }
 
-    @{ N = 8; Min = 1;  Nome = "external_validation - NSGA-II best_dominance"
+    @{ N = 9; Min = 1;  Nome = "external_validation - NSGA-II best_dominance"
        Args = @("-m", "src.tools.external_validation", "--nsga2", "best_dominance") }
 
-    @{ N = 9; Min = 1;  Nome = "external_validation - NSGA-II knee_point"
+    @{ N = 10; Min = 1;  Nome = "external_validation - NSGA-II knee_point"
        Args = @("-m", "src.tools.external_validation", "--nsga2", "knee_point") }
 
-    @{ N = 10; Min = 1;  Nome = "sensitivity_analysis no evoluido (o canonico e saturado)"
+    @{ N = 11; Min = 1;  Nome = "sensitivity_analysis no evoluido (o canonico e saturado)"
        Args = @("-m", "src.tools.sensitivity_analysis", "--evolved") }
 
-    @{ N = 11; Min = 1; Nome = "baselines (modelos nulos)"
+    @{ N = 12; Min = 1; Nome = "baselines (modelos nulos)"
        Args = @("-m", "src.tools.baselines", "--evolved") }
 )
 

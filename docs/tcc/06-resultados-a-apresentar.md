@@ -139,7 +139,9 @@ Quatro números/figuras que a redação deve usar:
 - **O representante `scalar_optimum` marcado na fronteira.** É o comparável correto do AG
   escalar (mínimo da soma ponderada que ele otimiza); o `ideal_point` minimiza a norma L2
   e é outro ponto. Ao comparar escalar × NSGA-II, dizer qual representante está sendo
-  usado — sempre.
+  usado — sempre. A bateria grava as duas comparações: contra o `best_dominance`
+  (`comparison_ga_vs_nsga2.json`) e contra o `scalar_optimum`
+  (`comparison_ga_vs_nsga2_scalar_optimum.json`).
 
 ## O fio condutor dos Resultados
 

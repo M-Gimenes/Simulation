@@ -127,6 +127,7 @@ py -m src.tools.sensitivity_analysis --evolved   # ±σ Δ-WR per gene, contra p
 py -m src.tools.multi_run --algorithm both       # N execuções + estatística agregada (metodologia 1.1)
 py -m src.tools.multi_run --algorithm ga --lambda-drift 0.25   # braço de sweep (grava em multi_run/exploratory/)
 py -m src.tools.compare_algorithms               # AG × NSGA-II: Mann-Whitney U + Â₁₂ + Holm
+py -m src.tools.compare_algorithms --nsga2-representative scalar_optimum   # o mesmo, contra o comparável do escalar
 py -m src.tools.external_validation --nsga2 best_dominance  # robustez do equilíbrio fora do laço (metodologia 3.2)
 
 # Web viewer (opens browser at localhost:8080)
@@ -160,6 +161,7 @@ All GA/NSGA-II outputs go to `results/` (created automatically on first run). **
 | `results/plots/nsga2/<timestamp>/` | NSGA-II projection plots |
 | `results/multi_run/multi_run_<algo>.json` | `py -m src.tools.multi_run` (estatística agregada de N execuções) |
 | `results/multi_run/comparison_ga_vs_nsga2.json` | `py -m src.tools.compare_algorithms` (teste estatístico entre os dois algoritmos) |
+| `results/multi_run/comparison_ga_vs_nsga2_<rep>.json` | `py -m src.tools.compare_algorithms --nsga2-representative <rep>` (a mesma comparação contra outro ponto da fronteira — a bateria roda `scalar_optimum`) |
 | `results/external_validation/external_validation_<label>.json` | `py -m src.tools.external_validation` (robustez do equilíbrio fora do laço) |
 | `results/sensitivity/sensitivity_analysis.json` | `py -m src.tools.sensitivity_analysis` (matriz Δ WR por gene) |
 | `results/baselines.json` | `py -m src.tools.baselines` (rosters de referência + piso/teto/posição de cada métrica) |
@@ -239,7 +241,7 @@ Current state only; the *why* behind each decision, with the numbers, is in `doc
 
 **NSGA-II starts from a fully random population; the scalar GA keeps the canonical seed.** `drift` has a reachable floor of 0 (the canonical *is* the reference) while `dominance` does not, so a seeded canonical is **immortal in rank 0** however unbalanced, and crowding only prunes an overflowing front — with the seed, half the front was rosters as unbalanced as the untouched canonical. In the scalar GA the seed helps and stays: the canonical is bad on the single fitness number and disappears after donating genes.
 
-**`scalar_optimum` is the comparable for the scalar GA.** The fifth representative minimizes `LAMBDA_DOMINANCE·dominance + LAMBDA_DRIFT·drift` — the scalar GA's own function — and is the only place NSGA-II reads `LAMBDA_*` (reporting, never search; the front itself is λ-independent, so a λ comparison against it needs no NSGA-II re-run, only `front_objectives`). Measured at the production budget, the scalar GA's point lies *past* the front's low-dominance end and the two are mutually non-dominated; on its own objective the scalar wins. A claim about relative quality is only made from the battery: at a reduced budget the ordering reverses.
+**`scalar_optimum` is the comparable for the scalar GA.** The fifth representative minimizes `LAMBDA_DOMINANCE·dominance + LAMBDA_DRIFT·drift` — the scalar GA's own function — and is the only place NSGA-II reads `LAMBDA_*` (reporting, never search; the front itself is λ-independent, so a λ comparison against it needs no NSGA-II re-run, only `front_objectives`). Measured at the production budget, the scalar GA's point lies *past* the front's low-dominance end and the two are mutually non-dominated; on its own objective the scalar wins. A claim about relative quality is only made from the battery: at a reduced budget the ordering reverses. `multi_run` records all five representatives per seed, each re-evaluated like the headline one, so `compare_algorithms --nsga2-representative scalar_optimum` tests the scalar GA against its comparable at n = 20 without re-running NSGA-II; the battery runs both comparisons, and the headline stays `best_dominance`.
 
 **Elitism 10% and tournament 3 are tested values.** Swept against elitism 0 / 5% / 20% / 30% and tournament 2 / 5 / 7: no arm beats the default, which has the fewest hard counters; at n = 5 the differences do not separate from noise, so the claim is "tested, nothing beats them", not "optimal". Both are read only by `operators.py` in the parent process. `ELITE_RATE` is a **fraction** of the actual population size — an absolute count would silently turn a reduced-budget run into a clone machine.
 

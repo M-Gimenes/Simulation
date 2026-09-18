@@ -35,6 +35,7 @@ bateria completa e os sweeps rodam pelos scripts da raiz (`run_battery.ps1`,
 | `results/multi_run/multi_run_<algo>.json` | `py -m src.tools.multi_run` |
 | `results/multi_run/exploratory/multi_run_ga_<desvios>.json` | braços de sweep (`run_sweeps.ps1`) |
 | `results/multi_run/comparison_ga_vs_nsga2.json` | `py -m src.tools.compare_algorithms` |
+| `results/multi_run/comparison_ga_vs_nsga2_<rep>.json` | `py -m src.tools.compare_algorithms --nsga2-representative <rep>` |
 | `results/external_validation/external_validation_<label>.json` | `py -m src.tools.external_validation` |
 | `results/sensitivity/sensitivity_analysis.json` | `py -m src.tools.sensitivity_analysis` |
 | `results/baselines.json` | `py -m src.tools.baselines` |

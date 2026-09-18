@@ -210,8 +210,9 @@ defensável que um que separa os que foram medidos dos que são escolha.
   leitura que o desenho permite: é o ponto mais equilibrado de cada fronteira, logo o melhor
   caso do NSGA-II em `dominance` e o pior em drift. O AG vencer em `dominance` contra ele, e o
   NSGA-II vencer em drift mesmo nele, são por isso resultados fortes nas duas direções. A
-  comparação contra o `scalar_optimum` nas 20 sementes não foi feita: o `multi_run` grava os
-  genes só do representante escolhido.
+  comparação contra o `scalar_optimum`, o comparável do escalar, sai da mesma bateria: o
+  `multi_run` grava e reavalia os cinco representantes de cada semente. Resultado pendente
+  da próxima bateria. → [04](04-caminhos-e-decisoes.md) "Os cinco representantes".
 - **Sweeps em orçamento reduzido (pop 120 × 60, 5 sementes)** — **[medido]** como limite: ordenam
   configurações, não declaram vencedor entre algoritmos (há contraexemplo medido), e a n = 5
   diferenças pequenas não se separam do ruído. → [`10-known-issues`](../reference/10-known-issues.md) §2.

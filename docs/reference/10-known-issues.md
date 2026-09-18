@@ -21,7 +21,8 @@ troca. Sequência:
    experimento*.
 3. Reler cada resultado contra a bateria nova: as tabelas do HANDOFF §2, os achados do
    `tcc/`, os números do `CLAUDE.md` e as conclusões dos três sweeps (joelho em λ = 1,0,
-   secundários indispensáveis, elitismo 10% / torneio 3).
+   secundários indispensáveis, elitismo 10% / torneio 3). E ler, pela primeira vez, a
+   comparação contra o `scalar_optimum` (`comparison_ga_vs_nsga2_scalar_optimum.json`).
 4. Tirar do git o diretório de plot da fronteira anterior — cada bateria grava um novo em
    `results/plots/nsga2/<timestamp>/`, e só o da bateria vigente descreve o motor.
 
@@ -87,6 +88,7 @@ o regenera, e a bateria inteira precisa rodar antes de qualquer número ser cita
 ```bash
 py -m src.tools.multi_run --algorithm both            # multi_run_{ga,nsga2}.json
 py -m src.tools.compare_algorithms                      # comparison_ga_vs_nsga2.json
+py -m src.tools.compare_algorithms --nsga2-representative scalar_optimum
 py main.py --seed 42                                    # results.json
 py main.py --algorithm nsga2 --seed 42                  # nsga2_results.json + plots
 py -m src.tools.external_validation                     # canônico

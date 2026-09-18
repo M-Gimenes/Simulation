@@ -1144,3 +1144,24 @@ gene do Zoner deixa os 6 pares sem ele bit a bit iguais), o ganho existe ainda q
 e a bateria já teria de rodar pelo pool persistente. **Consequência declarada:** todos os
 sorteios mudam, logo todos os números da tese — a bateria seguinte substitui os resultados,
 e as conclusões (incluindo as dos três sweeps) precisam ser relidas contra ela.
+
+## Os cinco representantes do NSGA-II por semente (2026-09-18)
+
+**Problema.** O teste entre algoritmos a n = 20 representava cada execução do NSGA-II pelo
+`best_dominance`, escolha sem porquê registrado. O comparável que o próprio projeto declara
+honesto — o `scalar_optimum`, mínimo da mesma função que o escalar otimiza — só era medido
+na seed 42. O `multi_run` gravava os genes apenas do representante escolhido, então testar
+contra outro ponto exigiria re-rodar o NSGA-II nas 20 sementes (~2h17).
+
+**Mudança.** O `multi_run` grava os cinco representantes de cada semente, cada um
+reavaliado sob a semente de validação exatamente como o de topo. O `compare_algorithms`
+ganhou `--nsga2-representative`: troca o registro que cada semente contribui, sem re-rodar
+nada, e grava em arquivo à parte (`comparison_ga_vs_nsga2_<REP>.json`). A bateria roda as
+duas comparações: contra o `best_dominance` e contra o `scalar_optimum`.
+
+**Resultado.** Custo de ~0,15 s por semente (cinco reavaliações de 0,03 s), contra minutos
+de execução; o registro de topo sai idêntico ao do mesmo ponto em `representatives`
+(conferido num ensaio de 2 sementes). O `best_dominance` **manteve-se** como representante
+padrão, pela continuidade com as baterias anteriores: a escolha de qual comparação vira a
+principal fica para depois da próxima bateria, com os dois resultados em mãos. O que a
+comparação contra o `scalar_optimum` mostra é resultado dessa bateria.

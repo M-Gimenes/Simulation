@@ -4,12 +4,19 @@ Smoke test da comparação estatística — a família de Holm e o que fica fora
 O ponto do teste: uma métrica sem variação não é um teste, e mantê-la na família
 encarece as outras sem contrapartida. O critério de exclusão tem de ser objetivo
 (decidido pelos dados, não pelos p-valores) e o `nan` tem de ser recusado em vez
-de corromper a ordenação em silêncio.
+de corromper a ordenação em silêncio. E trocar o representante do NSGA-II tem de
+trocar o registro de cada semente, sem tocar no resto do artefato.
 
 Rode com: py -m src.tests.test_compare_algorithms
 """
 
-from src.tools.compare_algorithms import ALPHA, METRICS, _holm, _is_degenerate
+from src.tools.compare_algorithms import (
+    ALPHA,
+    METRICS,
+    _holm,
+    _is_degenerate,
+    with_representative,
+)
 
 
 def separator(title: str) -> None:
@@ -96,5 +103,54 @@ separator("METRICS: contrato da tabela")
 assert len(METRICS) == len({key for key, _, _ in METRICS}), "chaves duplicadas"
 assert all(direction in ("lower", "higher") for _, _, direction in METRICS)
 print(f"  ✓ {len(METRICS)} métricas, chaves únicas, direções válidas")
+
+
+# ── 6. Trocar de representante troca o registro, não o artefato ────────────
+
+separator("with_representative: o NSGA-II visto por outro ponto")
+
+def _roster(dominance: float) -> dict:
+    return {"dominance_penalty": dominance, "drift_penalty": 0.3,
+            "n_hard_counters": 0, "n_chars_balanced": 5}
+
+nsga2 = {
+    "seeds": [42, 43],
+    "nsga2_representative": "best_dominance",
+    "per_seed": [
+        {"seed": seed, **_roster(0.01), "front_size": 50,
+         "representatives": {"best_dominance": _roster(0.01),
+                             "scalar_optimum": _roster(0.02 + i)}}
+        for i, seed in enumerate((42, 43))
+    ],
+}
+
+assert with_representative(nsga2, "best_dominance") is nsga2
+print("  ✓ o representante registrado devolve o próprio artefato")
+
+view = with_representative(nsga2, "scalar_optimum")
+assert view["nsga2_representative"] == "scalar_optimum"
+assert [r["seed"] for r in view["per_seed"]] == [42, 43], "a semente acompanha o registro"
+assert [r["dominance_penalty"] for r in view["per_seed"]] == [0.02, 1.02]
+assert view["seeds"] == nsga2["seeds"]
+assert nsga2["nsga2_representative"] == "best_dominance", "o original não é alterado"
+print("  ✓ outro ponto: cada semente contribui o registro dele, com a semente")
+
+try:
+    with_representative(nsga2, "knee_point")
+except ValueError as exc:
+    assert "scalar_optimum" in str(exc), "a mensagem lista os disponíveis"
+    print("  ✓ nome desconhecido é recusado listando os disponíveis")
+else:
+    raise AssertionError("aceitou um representante que o artefato não tem")
+
+legacy = {**nsga2, "per_seed": [{k: v for k, v in r.items() if k != "representatives"}
+                                for r in nsga2["per_seed"]]}
+try:
+    with_representative(legacy, "scalar_optimum")
+except ValueError as exc:
+    assert "multi_run" in str(exc), "a mensagem aponta o conserto"
+    print("  ✓ artefato anterior aos cinco representantes é recusado, apontando o multi_run")
+else:
+    raise AssertionError("inventou um representante que o artefato não gravou")
 
 separator("Todos os testes de compare_algorithms passaram ✓")

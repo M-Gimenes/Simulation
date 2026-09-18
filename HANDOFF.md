@@ -121,7 +121,7 @@ retrai, o representante piora. **A piora é a correção.**
 
 ### Contra os modelos nulos (melhor do AG, 30 nulos)
 
-> ⚠️ **O passo 11 da bateria rodou com 8 nulos aleatórios, não 30.** O `run_battery.ps1`
+> ⚠️ **O passo das `baselines` na bateria rodou com 8 nulos aleatórios, não 30.** O `run_battery.ps1`
 > chamava `baselines --evolved` sem `--n-random`, e o default do tool era 8 — a resolução
 > do p caiu de < 0,03 para < 0,08 sem nenhum erro. Corrigido em 2026-09-18 na fonte:
 > `N_RANDOM_DEFAULT` passou a 30, o valor do protocolo, e o artefato foi regerado — saiu
@@ -323,6 +323,10 @@ Tudo testado e commitado; detalhe e números no
   Custo +13%. Mantido por decisão do autor; **muda todos os números**.
 - **Validação externa com contagem.** O veredito segue binário; o relato diz em quantas
   das 10 condições cada par vira counter e cada boneco fica na banda.
+- **Os cinco representantes do NSGA-II por semente.** O `multi_run` grava e reavalia os
+  cinco, e `compare_algorithms --nsga2-representative scalar_optimum` compara o escalar com
+  o comparável dele a n = 20, sem re-rodar o NSGA-II. A bateria faz isso no passo 4 (agora
+  são 12). O representante padrão segue `best_dominance`.
 
 **Limites estruturais — escopo declarado, não conserto**
 ([`10-known-issues`](docs/reference/10-known-issues.md) §2): política fixa (a objeção mais
