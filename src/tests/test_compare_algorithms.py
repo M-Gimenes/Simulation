@@ -153,4 +153,23 @@ except ValueError as exc:
 else:
     raise AssertionError("inventou um representante que o artefato não gravou")
 
+# ── 7. Relação de Pareto: o ponto do AG contra a fronteira inteira ──────────
+
+separator("pareto_relation: domina, não-dominado ou dominado — exclusivos")
+
+from src.experiments.compare_algorithms import pareto_relation
+
+front = [[0.05, 0.40], [0.20, 0.20], [0.60, 0.05]]
+ga_runs = {"per_seed": [
+    {"seed": 1, "in_loop_objectives": [0.10, 0.19]},   # domina (0.20, 0.20)
+    {"seed": 2, "in_loop_objectives": [0.02, 0.45]},   # fora da fronteira, sem dominar
+    {"seed": 3, "in_loop_objectives": [0.30, 0.30]},   # dominado por (0.20, 0.20)
+]}
+nsga2_runs = {"per_seed": [{"seed": s, "front_objectives": front} for s in (1, 2, 3)]}
+relation = pareto_relation(ga_runs, nsga2_runs)
+assert [r["relation"] for r in relation["per_seed"]] == ["domina", "não-dominado", "dominado"]
+assert relation["per_seed"][0]["front_points_dominated"] == 1
+assert relation["counts"] == {"domina": 1, "não-dominado": 1, "dominado": 1}
+print("  ✓ as três relações, com a contagem de pontos da fronteira dominados")
+
 separator("Todos os testes de compare_algorithms passaram ✓")

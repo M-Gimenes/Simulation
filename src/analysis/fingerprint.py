@@ -4,9 +4,14 @@ os 4 matchups dele. Mede identidade *comportamental* (o Zoner evoluído ainda ki
 complementando o `archetype_validator` (identidade estrutural/ranking) e a
 `drift_table` (identidade de genes/distância).
 
-Mostra, por personagem, o canônico vs o evoluído + Δ (em pontos percentuais) das
-métricas: mix de ações (ATK/ADV/RET/DEF), % do tempo fora de range (espaçamento) e
-% stunado. Rodado no canônico, os Δ ficam ~0 (sanity).
+Mostra, por personagem, o canônico vs o evoluído + Δ das métricas: ataques conectados
+por luta, mix de posturas (ADV/RET/DEF, com DEF dividido em guarda escolhida e parede
+forçada), % do tempo fora de range, % stunado, distância média, stun aplicado e dano
+arrancado pela guarda. Rodado no canônico, os Δ ficam ~0 (sanity).
+
+Cada perfil é medido no roster do próprio indivíduo: o do evoluído, contra os oponentes
+evoluídos; o do canônico, contra os canônicos. O Δ mistura, portanto, o que o personagem
+mudou com o que os oponentes mudaram.
 
 Uso:
     py -m src.analysis.fingerprint              # canônico (baseline)
@@ -39,6 +44,7 @@ _METRICS: Tuple[Tuple[str, str, str], ...] = (
     ("stunned",        "% stunado",          "pct"),
     ("mean_dist",      "dist. média",        "count"),
     ("stun_inflicted", "stun aplic./luta",   "count"),
+    ("guard_break",    "dano pela guarda",   "count"),
 )
 
 

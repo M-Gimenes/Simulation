@@ -10,7 +10,6 @@ from .config import (
     ATTRIBUTE_MUTATION_SIGMA,
     ELITE_RATE,
     MUTATION_RATE,
-    POPULATION_SIZE,
     TOURNAMENT_SIZE,
     WEIGHT_BOUNDS,
     WEIGHT_MUTATION_SIGMA,
@@ -46,10 +45,6 @@ def set_selection_override(elite_rate: float, tournament_size: int) -> None:
     set_selection(elite_rate, tournament_size)
     _register_override("ELITE_RATE", elite_rate)
     _register_override("TOURNAMENT_SIZE", tournament_size)
-    # `ELITE_SIZE` é derivada de `ELITE_RATE` no `config.py`. Sem recalcular aqui, o
-    # carimbo de um braço afirmaria a taxa do braço ao lado da contagem do arquivo —
-    # duas constantes descrevendo elitismos diferentes no mesmo artefato.
-    _register_override("ELITE_SIZE", elite_count(POPULATION_SIZE))
 
 
 def get_selection() -> Tuple[float, int]:
@@ -109,8 +104,8 @@ def mutate(individual: Individual, mutation_rate: float = MUTATION_RATE) -> Indi
 def elite_count(pop_size: int) -> int:
     """Quantos indivíduos o elitismo preserva numa população deste tamanho.
 
-    Derivado da TAXA sobre o tamanho REAL, e não da constante `ELITE_SIZE` do orçamento
-    default: com a contagem absoluta, uma execução de orçamento reduzido mantinha 30
+    Derivado da TAXA sobre o tamanho REAL, e não de uma contagem fixa: com a contagem
+    absoluta do orçamento default, uma execução de orçamento reduzido mantinha 30
     elites e o elitismo efetivo ia de 10% para 25% (pop 120) ou 100% (pop 30) — aí o
     `while` abaixo nunca roda e a geração seguinte é só clones, ou seja o AG para de
     buscar sem dar sinal nenhum.

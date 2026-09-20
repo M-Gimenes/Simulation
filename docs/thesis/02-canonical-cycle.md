@@ -65,13 +65,25 @@ de teste.**
 > falha metodológica — é operacionalização. "Por que esse ciclo e não outro?" é da
 > mesma natureza.
 
-## O ciclo específico não pode ser um resultado — a não-transitividade pode
+## O ciclo autoral não serve de régua — e por quê
 
-Medido depois, com os modelos nulos: o ciclo é um **torneio regular** (cada arquétipo
-vence 2 e perde 2), e existem **24** torneios regulares rotulados em 5 vértices. Acertar
-o rótulo específico é 1/24, e o acaso já entrega 5 das 10 arestas — então contar arestas
-"mantidas" não distingue preservação de sorte. O que é resultado, e dispensa autoria, é a
-**não-transitividade** em si: equilíbrio global e pedra-papel-tesoura são a mesma
-estrutura (um roster estritamente transitivo tem WRs 100/75/50/25/0, incompatível com
-todos perto de 50%), medida em tríades circulares. Números e leitura em
-[07-findings-and-limitations.md](07-findings-and-limitations.md).
+Contar arestas mantidas **é** informativo quando os pares estão decididos: realizar as 10
+teria p = 1/1024 sob cara-ou-coroa. O que impede o ciclo de servir de régua de preservação
+é outra coisa, medida: **o próprio canônico realiza só 6 das 10 arestas** no motor (o
+Turtle canônico perde para todos). Não se preserva o que a premissa não tinha — o ciclo é
+hipótese do autor sobre como os arquétipos deveriam se enfrentar, e o modelo não a
+realiza nem antes da otimização.
+
+Duas leituras substituem a contagem de arestas, e nenhuma depende de autoria:
+
+- **as direções que o canônico realiza** — consequência da premissa, não da autoria: o
+  favorito de cada confronto sobrevive ao equilíbrio? Medido no evoluído da bateria de
+  2026-09-18 (2000 lutas por par): 5/10, exatamente o acaso;
+- **a estrutura não-transitiva** (tríades circulares). Ela não depende do rótulo, mas é em
+  boa parte **implicada** pelo objetivo: um roster estritamente transitivo tem WRs
+  100/75/50/25/0, incompatível com todos perto de 50%, então equilíbrio global com pares
+  decididos força intransitividade. O que o objetivo não implica é os pares seguirem
+  decididos — e só uma amostra grande mostra isso: a 200 lutas por par, um espelho (puro
+  ruído) chega às mesmas tríades.
+
+Números e leitura em [07-findings-and-limitations.md](07-findings-and-limitations.md).

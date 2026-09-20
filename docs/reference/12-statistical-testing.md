@@ -157,7 +157,7 @@ outras.** O mesmo `p` bruto de `drift_penalty` (0,0257) sai assim:
 | tamanho da família | `p` ajustado |
 |---|---|
 | 2 | 0,0515 |
-| **3 — a atual** | **0,0772** |
+| **3 — a da bateria de 2026-09-16** | **0,0772** |
 | 4 | 0,1030 |
 | 5 | 0,1287 |
 
@@ -166,9 +166,19 @@ p-valores, está fabricando o resultado. Cortar métricas até o seu achado pass
 é uma forma clássica de *p-hacking*, e é indefensável mesmo quando cada corte
 individual parece razoável.
 
-**A regra do projeto**, para não cair nisso: a família é montada por um **critério
+**A regra do projeto**, para não cair nisso: a família é **fixa e declarada antes da
+bateria** — `METRICS`, 7 métricas: equilíbrio (`dominance_penalty`, hard-counters, bonecos
+em banda) e identidade (`drift_penalty`, validador estrutural, validador comportamental,
+concordância de ranking), as duas metades da pergunta de pesquisa — e é a **mesma em toda
+comparação** (AG × NSGA-II e AG × cada controle). A única exclusão é por um **critério
 objetivo, decidido pelos dados e declarável antes do teste** — `_is_degenerate`. Nenhum
 julgamento entra depois de ver os p-valores.
+
+Até a bateria de 2026-09-18 a família eram as 4 primeiras (3 depois da exclusão); as
+métricas de identidade entraram quando a comparação passou a responder também "o método
+preserva identidade?" — antes da bateria que as mede. Com n = 20 e os efeitos grandes
+medidos (p brutos de 0,0018 a 0,00007), o multiplicador 7 não muda o que é significativo
+nelas.
 
 ---
 
@@ -196,7 +206,7 @@ amostra separada.
 | `[5,5,…,5]` | `[5,5,…,5]` | **sim** | nada varia em lugar nenhum |
 | `[5,5,…,5]` | `[3,3,…,3]` | **não** | cada uma é constante, mas a separação entre elas é **perfeita** — a diferença mais forte que existe |
 
-Por isso `_is_degenerate` testa `len(set(sample_ga + sample_nsga2)) == 1`.
+Por isso `_is_degenerate` testa `len(set(sample_a + sample_b)) == 1`.
 
 ### E o `nan` tinha um segundo defeito, silencioso
 
@@ -216,7 +226,9 @@ e é um resultado forte por si só: os dois algoritmos põem os 5 personagens em
 
 ## 7. Como ler o resultado
 
-A leitura atual — bateria de 2026-09-18, n = 20 sementes, família de 3:
+A leitura da bateria de 2026-09-18 — n = 20 sementes, família de 3, NSGA-II representado
+pelo `best_dominance` (a bateria seguinte usa a família de 7 e o `scalar_optimum` como
+manchete):
 
 ```
 dominance_penalty   p_Holm 0,0123    Â₁₂ 0,27 (grande)   AG escalar melhor
@@ -285,19 +297,22 @@ real. O efeito continua grande nos três, e o de n = 20 é a estimativa a citar.
 | peça | símbolo |
 |---|---|
 | α da bateria | `ALPHA` em `src/experiments/compare_algorithms.py` |
-| métricas candidatas | `METRICS` (idem) |
-| critério de família | `_is_degenerate` (idem) |
+| a família | `METRICS` (idem) |
+| critério de exclusão | `_is_degenerate` (idem) |
 | procedimento de Holm | `_holm` (idem) |
 | limiares do Â₁₂ | `_effect_magnitude` (idem) |
-| Mann-Whitney | `scipy.stats.mannwhitneyu`, em `compare` |
+| Mann-Whitney | `scipy.stats.mannwhitneyu`, em `compare(a, b, label_a, label_b)` |
+| o que torna dois artefatos comparáveis | `_PAIRED_FIELDS`: sementes, semente de validação, sims/matchup e orçamento |
+| relação de Pareto por semente (descritiva) | `pareto_relation` |
 
-O artefato `results/multi_run/comparison_ga_vs_nsga2.json` grava `family_size` e
-`excluded_from_family`, então dá para auditar a família de qualquer bateria antiga sem
-re-rodar nada.
+`compare` é genérico: compara quaisquer dois artefatos do `multi_run` que passem no
+pareamento — AG × NSGA-II ou AG × um controle. Os artefatos gravam `family_size` e
+`excluded_from_family`, então dá para auditar a família de qualquer bateria sem re-rodar
+nada.
 
 Contrato coberto em `src/tests/test_compare_algorithms.py`: o critério ser da amostra
 conjunta, o `nan` recusado em vez de ordenado por sorte, o custo de cada métrica na
-família, e o fato de que filtrar não fabrica significância.
+família, o fato de que filtrar não fabrica significância, e as três relações de Pareto.
 
 ---
 

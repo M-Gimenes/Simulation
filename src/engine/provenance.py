@@ -19,18 +19,27 @@ Três escolhas de projeto, cada uma contra um modo de falha específico:
    *código*. Um carimbo só de constantes teria dito "atual" com o motor já diferente.
 3. **`config.py` fica fora do digest de código, porque seus valores são gravados um a um.**
    "`MATCHUP_WR_CAP` foi de 0,15 para 0,20" é acionável; "o hash mudou" não é.
+4. **O código de MEDIÇÃO entra por artefato.** Um número post-hoc — o placar do
+   validador, a posição entre piso e teto, o veredito da validação externa — é produzido
+   por código fora do motor. Cada ferramenta que grava um artefato declara o próprio
+   módulo, e o carimbo guarda o digest dele e de tudo de `src/` fora de `src/engine/`
+   que ele importa, transitivamente. Mudar as asserções do validador invalida os
+   artefatos que as usaram — e só eles, não a bateria inteira. A lista de módulos é
+   derivada das importações, não escrita à mão, pela mesma razão do item 1.
 
 Duas constantes não entram, pela mesma razão — carimbá-las faria uma mudança inócua
 invalidar a bateria inteira, e um alarme que dispara à toa deixa de ser lido:
 
-- `N_WORKERS`: `evaluate_detail` resemeia o combate ao `_SEED_BASE` antes de cada
-  round-robin, então o resultado independe de quantos workers avaliam.
+- `N_WORKERS`: cada luta é semeada por `fitness.fight_seed` a partir do `_SEED_BASE`, e
+  o estado do pai viaja com cada tarefa, então o resultado independe de quantos workers
+  avaliam.
 - `MULTI_RUN_N_SEEDS`: é só o tamanho da amostra do `multi_run`, que o artefato dele já
   grava no corpo (`n_seeds`, `seeds`); nenhum outro artefato depende dela.
 """
 
 from __future__ import annotations
 
+import ast
 import hashlib
 import json
 from dataclasses import dataclass, field
@@ -42,6 +51,7 @@ from . import config
 from .archetypes import ARCHETYPE_ORDER, ARCHETYPES
 
 _ENGINE_DIR = Path(__file__).resolve().parent
+_PROJECT_ROOT = _ENGINE_DIR.parent.parent
 
 # Fora do digest de código: `config.py` porque seus valores vão gravados um a um (mais
 # informativo que um hash), `paths.py` porque layout de arquivo não muda número, e este
@@ -179,6 +189,43 @@ def archetypes_digest() -> str:
     return _digest("\n".join(parts))
 
 
+def _module_path(module: str) -> Path:
+    return _PROJECT_ROOT.joinpath(*module.split(".")).with_suffix(".py")
+
+
+def measurement_modules(tool: str) -> List[str]:
+    """Os módulos cujo código produz os números de `tool`, fora do motor: o próprio e
+    todo módulo de `src.` fora de `src.engine` que ele importa, transitivamente. O motor
+    já está no `engine_digest`."""
+    seen: set = set()
+    pending = [tool]
+    while pending:
+        module = pending.pop()
+        if module in seen:
+            continue
+        seen.add(module)
+        for node in ast.walk(ast.parse(_module_path(module).read_text(encoding="utf-8"))):
+            if isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+                targets = [node.module]
+            elif isinstance(node, ast.Import):
+                targets = [alias.name for alias in node.names]
+            else:
+                continue
+            pending += [t for t in targets
+                        if t.startswith("src.") and not t.startswith("src.engine")
+                        and _module_path(t).exists()]
+    return sorted(seen)
+
+
+def measurement_digest(tool: str) -> str:
+    """Digest do código de medição de `tool` — ver `measurement_modules`."""
+    parts = [
+        f"{module}\n" + "\n".join(_module_path(module).read_text(encoding="utf-8").splitlines())
+        for module in measurement_modules(tool)
+    ]
+    return _digest("\n".join(parts))
+
+
 def fingerprint() -> str:
     """Identidade única da configuração vigente: constantes + premissa + motor."""
     return _digest(
@@ -188,8 +235,10 @@ def fingerprint() -> str:
     )
 
 
-def stamp() -> Dict[str, Any]:
-    """O carimbo a gravar dentro de cada artefato."""
+def stamp(tool: Optional[str] = None) -> Dict[str, Any]:
+    """O carimbo a gravar dentro de cada artefato. `tool` é o módulo da ferramenta que
+    grava o artefato (ex.: `src.experiments.baselines`); com ele, o carimbo inclui o
+    digest do código de medição — ver o item 4 do cabeçalho."""
     data: Dict[str, Any] = {
         "generated_at": datetime.now().astimezone().isoformat(timespec="seconds"),
         "fingerprint": fingerprint(),
@@ -197,6 +246,12 @@ def stamp() -> Dict[str, Any]:
         "archetypes_digest": archetypes_digest(),
         "config": config_values(),
     }
+    if tool is not None:
+        data["measurement"] = {
+            "tool":    tool,
+            "modules": measurement_modules(tool),
+            "digest":  measurement_digest(tool),
+        }
     if _OVERRIDES:
         # Redundante com `config` de propósito: ali o valor está misturado com as outras
         # 44 constantes, aqui fica dito que ESTE artefato é de um braço de experimento.
@@ -215,17 +270,18 @@ def stamp() -> Dict[str, Any]:
 class Divergence:
     """O que mudou entre o carimbo de um artefato e a configuração de agora."""
 
-    missing:            bool                  = False   # artefato sem carimbo
-    engine_changed:     bool                  = False
-    archetypes_changed: bool                  = False
+    missing:             bool                  = False   # artefato sem carimbo
+    engine_changed:      bool                  = False
+    archetypes_changed:  bool                  = False
+    measurement_changed: bool                  = False   # código da ferramenta que o gravou
     config_changed:     Dict[str, Any]        = field(default_factory=dict)  # nome → (gravado, atual)
     overridden:         Dict[str, Any]        = field(default_factory=dict)  # os que o artefato declarou variar
     generated_at:       Optional[str]         = None
 
     @property
     def is_current(self) -> bool:
-        return not (self.missing or self.engine_changed
-                    or self.archetypes_changed or self.config_changed)
+        return not (self.missing or self.engine_changed or self.archetypes_changed
+                    or self.measurement_changed or self.config_changed)
 
     @property
     def is_experiment_arm(self) -> bool:
@@ -243,6 +299,7 @@ class Divergence:
             and not self.missing
             and not self.engine_changed
             and not self.archetypes_changed
+            and not self.measurement_changed
             and set(self.config_changed) <= set(self.overridden)
         )
 
@@ -255,10 +312,32 @@ class Divergence:
             lines.append("o CÓDIGO do motor mudou desde a geração")
         if self.archetypes_changed:
             lines.append("os CANÔNICOS mudaram — todo número de drift está inválido")
+        if self.measurement_changed:
+            lines.append("o CÓDIGO de medição da ferramenta que o gravou mudou desde a geração")
         for name, (recorded, current) in sorted(self.config_changed.items()):
             marca = " (variação declarada do experimento)" if name in self.overridden else ""
             lines.append(f"{name}: {recorded!r} → {current!r}{marca}")
         return lines
+
+
+def _measurement_changed(recorded: Dict[str, Any],
+                         reference: Optional[Dict[str, Any]]) -> bool:
+    """O código de medição do artefato mudou? Contra a configuração vigente, recalcula
+    o digest da ferramenta que o gravou; contra outro carimbo, compara os dois digests
+    quando ambos vêm da mesma ferramenta. Fica fora do `fingerprint`, então é checado
+    antes do retorno antecipado de `compare`."""
+    measured = recorded.get("measurement")
+    if measured is None:
+        return False
+    if reference is None:
+        try:
+            return measured["digest"] != measurement_digest(measured["tool"])
+        except FileNotFoundError:
+            return True                   # a ferramenta que o gravou não existe mais
+    other = reference.get("measurement")
+    if other is None or other["tool"] != measured["tool"]:
+        return False
+    return measured["digest"] != other["digest"]
 
 
 def compare(recorded: Optional[Dict[str, Any]],
@@ -283,6 +362,7 @@ def compare(recorded: Optional[Dict[str, Any]],
     div = Divergence(
         generated_at=recorded.get("generated_at"),
         overridden=dict(recorded.get("overrides", {})),
+        measurement_changed=_measurement_changed(recorded, reference),
     )
     if recorded["fingerprint"] == ref_fingerprint:
         return div
@@ -299,6 +379,36 @@ def compare(recorded: Optional[Dict[str, Any]],
         if was != now:
             div.config_changed[name] = (was, now)
     return div
+
+
+class StaleArtifactError(ValueError):
+    """Um artefato que não descreve o sistema atual foi usado para GERAR outro artefato."""
+
+
+def refuse_if_stale(recorded: Optional[Dict[str, Any]], source: str,
+                    allow_experiment_arm: bool = False) -> None:
+    """Recusa um artefato que não seja atual. O par estrito de `warn_if_stale`.
+
+    É a porta das ferramentas que GRAVAM um artefato a partir de outro. O carimbo que
+    elas escrevem é o da configuração vigente; se a entrada fosse de outra configuração,
+    a saída se declararia atual carregando um número de outro sistema — o aviso
+    impresso na leitura seria o único rastro, e ele não fica no arquivo.
+
+    `allow_experiment_arm` aceita também um braço de experimento — divergência
+    inteiramente explicada pelos overrides que o próprio artefato declarou. É o caso de
+    um CONTROLE (λ_drift = 0, sem semente canônica), que diverge do `config.py` de
+    propósito e é justamente o que se quer comparar. Mudança de motor, de canônicos ou
+    de constante não declarada segue recusada.
+    """
+    div = compare(recorded)
+    if div.is_current or (allow_experiment_arm and div.is_experiment_arm):
+        return
+    detalhe = "\n      · ".join(div.describe())
+    raise StaleArtifactError(
+        f"'{source}' não descreve o sistema atual e não pode gerar um artefato novo:\n"
+        f"      · {detalhe}\n"
+        f"    Regere '{source}' antes (a bateria faz isso na ordem certa)."
+    )
 
 
 def warn_if_stale(recorded: Optional[Dict[str, Any]], source: str) -> Divergence:

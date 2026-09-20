@@ -34,10 +34,11 @@ Daí a assimetria do projeto: **identidade é termo do fitness, o ciclo de vanta
    bem mais fraca e quase óbvia.
 2. **Penalidade não é restrição.** O AG é livre para destruir a identidade se o
    equilíbrio pagar mais, e é o que acontece: com `LAMBDA_DRIFT = 1.0` ligado o run
-   inteiro, o melhor do AG escalar fica em **13/23** no validador — acima de todos os 35
-   rosters nulos (p < 0,03), e longe dos 23/23 do canônico. O termo existe e pode perder;
-   ter o termo não pré-determina a resposta. (No diagnóstico de 2026-09-16, sob o
-   validador de 21 asserções que precedeu o `grab_power`, o mesmo fenômeno deu 8/21.)
+   inteiro, o melhor do AG escalar da bateria de 2026-09-18 ficou em **13/23** no
+   validador, longe dos 23/23 do canônico — e a parte funcional dele, a Layer 3, em
+   **1/5**, no piso dos modelos nulos (p = 0,74). O termo existe e pode perder; ter o termo
+   não pré-determina a resposta. (No diagnóstico de 2026-09-16, sob o validador de 21
+   asserções que precedeu o `grab_power`, o mesmo fenômeno deu 8/21.)
 3. O conteúdo não-trivial da tese nunca foi "a identidade sobreviveu" — é **o preço**:
    quanto de equilíbrio se compra por unidade de drift. Esse é o formato da fronteira
    de Pareto, que é achado empírico, não suposição. E uma fronteira precisa de dois
@@ -58,15 +59,22 @@ A solução mantém uma régua de cada lado da linha:
 | régua | o que mede | onde vive | papel na tese |
 |---|---|---|---|
 | identidade **estrutural** | os genes continuam reconhecíveis | `drift_penalty`, **no fitness** | premissa: "continue sendo você" |
-| identidade **funcional** | o personagem continua *jogando* como ele mesmo | Layer 3 do validador + ciclo, **post-hoc** | resposta: é o que a tese descobre |
+| identidade **funcional** | o personagem continua *jogando* como ele mesmo | Layer 3 do validador + concordância de ranking comportamental (τ), **post-hoc** | resposta: é o que a tese descobre |
 
 A pergunta de pesquisa diz literalmente *"functional identities"* — comportamento, não
-valor de gene. Nada no fitness referencia comportamento, então a Layer 3 é instrumento
-independente. (Ressalva a declarar no texto: é métrica *held-out*, não causalmente
-isolada — comportamento é downstream dos genes que o fitness move.) Em contrapartida, as
-Layers 1-2 do validador medem o mesmo eixo estrutural que o fitness otimiza e passam a
-ser **parcialmente endógenas**: um score alto ali em parte reflete a penalidade ter
-funcionado, e o texto precisa dizer isso.
+valor de gene. Nada no fitness referencia comportamento, então as réguas funcionais são
+*held-out*. **Não são independentes**, e o texto precisa dizer isso: cada asserção da
+Layer 3 é consequência quase direta de um gene definidor (o stun infligido vem do gene de
+stun, a guarda quebrada do `grab_power`, a distância média do alcance e do recuo), então
+comportamento é downstream dos genes que o fitness move. A Layer 3 tem só 5 bits (cada
+arquétipo precisa ser o 1º numa métrica); a concordância de ranking — τ de Kendall entre a
+ordem dos 5 personagens no canônico e no roster, em cada métrica comportamental, na média
+— usa as 5 posições e é contínua, com 0 = acaso. Em contrapartida, as Layers 1-2 do
+validador medem o mesmo eixo estrutural que o fitness otimiza e são **parcialmente
+endógenas**: um score alto ali em parte reflete a penalidade ter funcionado.
+
+O ciclo de vantagens **não** é régua de identidade: o próprio canônico realiza só 6 das 10
+arestas no motor, então não há o que preservar ([02](02-canonical-cycle.md)).
 
 ## `drift_penalty` — a operacionalização de "identidade estrutural"
 
@@ -152,9 +160,11 @@ O **piso** (0.02) é apenas guarda de degenerescência.
   equilibrar aproxima as lutas. A justificativa original ("luta decidida por 1% parece
   coin-flip") não sobrevive à medição no motor atual: **100% das lutas terminam em KO**,
   então decisividade baixa não é "a luta não aconteceu", é KO no fio — a melhor luta
-  possível. O piso ficou em 0.02, a base da faixa que um **espelho puro** produz
-  (0.020–0.033): abaixo do que dois personagens idênticos geram, o par não está lutando.
-  Na prática penaliza 0 dos 10 pares em operação normal, contra 3–5 quando era 0.10.
+  possível. O piso ficou em 0.02: acima do roster degenerado (dano mínimo, HP máximo, só
+  GUARDA — 0% de KO, D ≤ 0,008) e abaixo de todo par de personagens distintos. Na prática
+  penaliza 0 dos 10 pares em operação normal, contra 3–5 quando era 0.10. Dos cinco
+  espelhos, pega só o do Zoner — não é ele que defende contra a solução trivial (cinco
+  cópias do mesmo personagem); quem defende é o `drift_penalty`.
 - **Por que isso importa para a comparação entre algoritmos.** Enquanto o piso mordia,
   era ele — um termo secundário de peso 0,5 — quem decidia AG × NSGA-II: decomposto, o
   NSGA-II era **melhor no termo primário** e perdia no piso. "O AG vence em
@@ -184,8 +194,8 @@ o que **emerge sem ser codificado**.
 | WR **global** por personagem (alvo 50%) | **sim** (termo primário do dominance) | Fitness, relatório, convergência |
 | WR **por-matchup** exata (cada par a 50%) | **não** (só o teto de hard-counter) | Relatório post-hoc |
 | Diferenciação entre personagens (homogeneização) | não | Métrica post-hoc (`drift_table`) |
-| Identidade **funcional** (Layer 3: como o personagem joga) | **não** | Relatório post-hoc — régua independente |
-| Preservação do ciclo canônico | **não** | Relatório post-hoc apenas |
+| Identidade **funcional** (Layer 3 e concordância de ranking: como o personagem joga) | **não** | Relatório post-hoc — régua *held-out* |
+| Ciclo canônico (arestas autorais) | **não** | Relatório post-hoc, descritivo — o canônico só realiza 6/10 |
 | Sensibilidade dos genes | não | Validação metodológica ([05](05-methodological-validation.md)) |
 
 > Houve um terceiro termo no fitness (`specialization_penalty`), **removido** — a razão

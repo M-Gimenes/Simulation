@@ -11,14 +11,17 @@ treino (Common Random Numbers entre execuções) e agrega (headline C2):
   • WR global média ± desvio por personagem + fração de sementes em que cada boneco
     fica equilibrado (WR global em [0.40, 0.60]);
   • número de hard-counters (pares fora de [0.35, 0.65]) por execução;
-  • fração de sementes que equilibram o ROSTER (5 bonecos em banda E 0 hard-counters).
+  • fração de sementes que equilibram o ROSTER (5 bonecos em banda E 0 hard-counters);
+  • identidade de cada roster: o validador (estrutural, Layers 1-2, e comportamental,
+    Layer 3) e a concordância de ranking comportamental com o canônico (τ);
   • (secundário) WR média por matchup.
 
 Cada execução do NSGA-II devolve uma fronteira, não um ponto: o ponto que representa
-a execução (`--nsga2-representative`, default `best_dominance`) fica registrado no
-artefato, e os cinco representantes de cada semente ficam gravados e reavaliados ao
-lado dele — a comparação pode ser refeita contra qualquer um sem re-rodar o NSGA-II.
-Comparação estatística entre os dois algoritmos: `compare_algorithms`.
+a execução (`--nsga2-representative`, default `scalar_optimum`, o comparável do escalar)
+fica registrado no artefato, e os cinco representantes de cada semente ficam gravados e
+reavaliados ao lado dele — a comparação pode ser refeita contra qualquer um sem re-rodar
+o NSGA-II. Comparação estatística entre algoritmos e contra os controles:
+`compare_algorithms`.
 
 Uso:
     py -m src.experiments.multi_run                       # ambos os algoritmos, defaults do config
@@ -26,12 +29,13 @@ Uso:
     py -m src.experiments.multi_run --n-seeds 30          # escala o experimento
     py -m src.experiments.multi_run --nsga2-representative knee_point
     py -m src.experiments.multi_run --algorithm ga --pop 120 --generations 60 --n-seeds 5
-    py -m src.experiments.multi_run --algorithm ga --lambda-drift 0.25   # braço do sweep
+    py -m src.experiments.multi_run --algorithm ga --lambda-drift 0   # controle: sem drift
+    py -m src.experiments.multi_run --algorithm ga --no-canonical-seed  # controle: sem semente
 
-Qualquer desvio do default — em λ ou em orçamento — grava em
-`results/exploratory/`, com o nome dizendo o que desviou. Só a execução
-inteiramente no default grava nos caminhos da bateria, que é o que o
-`compare_algorithms` lê.
+Só a execução inteiramente no protocolo grava nos caminhos da bateria. Um desvio de
+desenho com a amostra e o orçamento do protocolo é um CONTROLE (`results/controls/`); um
+desvio de amostra ou de orçamento é EXPLORATÓRIO (`results/exploratory/`). O nome diz o
+que desviou (ver `artifact_path`).
 """
 
 from __future__ import annotations
@@ -50,7 +54,9 @@ from src.engine.config import (
     DOMINANCE_DECIS_WEIGHT,
     DOMINANCE_GLOBAL_WEIGHT,
     ELITE_RATE,
+    GA_CANONICAL_SEED,
     HYPERVOLUME_REFERENCE,
+    IDENTITY_BEHAVIORAL_SIMS,
     LAMBDA_DOMINANCE,
     LAMBDA_DRIFT,
     MAX_GENERATIONS,
@@ -79,14 +85,23 @@ from src.engine.nsga2 import run as run_nsga2
 from src.engine.operators import get_selection, set_selection_override
 from src.engine.pareto_metrics import hypervolume_2d, spacing
 from src.engine.paths import (
+    CONTROLS_DIR,
     EXPLORATORY_DIR,
     MULTI_RUN_GA_PATH,
     MULTI_RUN_NSGA2_PATH,
     PROJECT_ROOT,
 )
-from src.engine.provenance import override_budget, stamp
+from src.engine.provenance import override, override_budget, stamp
+from src.analysis.archetype_validator import run_validation
 
 CHAR_NAMES: List[str] = [ARCHETYPES[aid].name for aid in ARCHETYPE_ORDER]
+
+# O ponto da fronteira que representa cada execução do NSGA-II no agregado. Os cinco
+# representantes são gravados e reavaliados de qualquer forma; este é só o de topo. É o
+# `scalar_optimum` — o ponto que minimiza a própria função do AG escalar — porque é o
+# único comparável a ele. O `best_dominance` é o extremo da fronteira e perde em drift
+# por construção; como manchete, a comparação mediria a escolha do ponto, não o algoritmo.
+HEADLINE_REPRESENTATIVE = "scalar_optimum"
 
 
 def matchup_label(i: int, j: int) -> str:
@@ -107,16 +122,17 @@ def mean_std(values: List[float]) -> Dict[str, float]:
 
 @dataclass
 class SeedRun:
-    """O que uma execução entrega ao agregador. `front_objectives` e `representatives`
-    só existem no NSGA-II."""
+    """O que uma execução entrega ao agregador. `front_objectives`, `representatives` e
+    `headline` (o nome do representante de topo) só existem no NSGA-II."""
     individual:       Individual
     milestones:       dict
     front_objectives: Optional[List[List[float]]] = None
     representatives:  Optional[Dict[str, Individual]] = None
+    headline:         Optional[str] = None
 
 
 def _run_algorithm(algorithm: str, seed: int, nsga2_representative: str,
-                   pop_size: int, n_generations: int) -> SeedRun:
+                   pop_size: int, n_generations: int, canonical_seed: bool) -> SeedRun:
     """Roda o algoritmo (silencioso).
     AG escalar → o melhor indivíduo, sem fronteira. NSGA-II → o representante pedido, os
     cinco representantes e os objetivos `(dominance, drift)` de toda a fronteira
@@ -124,22 +140,27 @@ def _run_algorithm(algorithm: str, seed: int, nsga2_representative: str,
     representa a execução é uma escolha, registrada no artefato (`nsga2_representative`).
 
     `milestones` traz a trajetória por geração e, no escalar, o eixo de **velocidade**:
-    `converged_at`, `stagnated_at` e os dois contadores do gate de convergência (disparos
-    e recusas da confirmação fora do stream, que é o ajuste ao stream de RNG
-    quantificado). A velocidade só existe no escalar, e a assimetria é estrutural, não
+    `converged_at` e os dois contadores do gate de convergência (disparos e recusas da
+    confirmação fora do stream, que é o ajuste ao stream de RNG quantificado). A
+    velocidade só existe no escalar, e a assimetria é estrutural, não
     omissão: "o roster está equilibrado?" não é pergunta que se faça a uma FRONTEIRA, que
     contém de propósito pontos desequilibrados-mas-fiéis. No NSGA-II essas chaves não
     existem e não aparecem no agregado dele — melhor que gravar zeros que alguém
     agregaria sem perceber.
     """
     if algorithm == "ga":
-        result = run_ga(seed=seed, verbose=False,
-                        pop_size=pop_size, n_generations=n_generations)
+        result = run_ga(seed=seed, verbose=False, pop_size=pop_size,
+                        n_generations=n_generations, canonical_seed=canonical_seed)
         return SeedRun(result.best, {
             "converged_at":           result.converged_at,
-            "stagnated_at":           result.stagnated_at,
             "convergence_gate_fired": result.convergence_gate_fired,
             "convergence_rejected":   result.convergence_rejected,
+            # `(dominance, drift)` do melhor indivíduo no stream da ÚLTIMA geração —
+            # `generation_seed(seed, n_generations)`, o mesmo em que a fronteira do NSGA-II
+            # da mesma semente é medida. É o que torna os dois pontos comparáveis sem
+            # ruído de stream no teste de relação de Pareto do `compare_algorithms`.
+            "in_loop_objectives": [result.best_detail.dominance_penalty,
+                                   result.best_detail.drift_penalty],
             # A trajetória por geração, por semente. O `single_run/ga.json` já guarda a da
             # semente 42, mas uma curva de convergência de UMA semente contradiz a
             # premissa deste tool — "uma seed é amostra, não resultado". Com o histórico
@@ -164,7 +185,7 @@ def _run_algorithm(algorithm: str, seed: int, nsga2_representative: str,
              "dom_range": list(s.front0_ranges[0]), "drift_range": list(s.front0_ranges[1])}
             for s in result.history
         ],
-    }, front_objectives, result.representatives)
+    }, front_objectives, result.representatives, nsga2_representative)
 
 
 def _evaluate_independent(individual, sims: int) -> FitnessDetail:
@@ -175,8 +196,12 @@ def _evaluate_independent(individual, sims: int) -> FitnessDetail:
 
 
 def _roster_record(individual: Individual, sims: int) -> dict:
-    """As métricas de um roster, reavaliado sob a semente de validação."""
+    """As métricas de um roster, reavaliado sob a semente de validação — equilíbrio e
+    identidade, esta medida pelas duas réguas post-hoc (validador e concordância de
+    ranking comportamental), nas condições dos modelos nulos."""
     detail = _evaluate_independent(individual, sims)
+    identity = run_validation(individual, behavioral_n=IDENTITY_BEHAVIORAL_SIMS,
+                              seed=MULTI_RUN_VALIDATION_SEED)
     characters: Dict[str, dict] = {}
     n_chars_balanced = 0
     for i, name in enumerate(CHAR_NAMES):
@@ -201,6 +226,9 @@ def _roster_record(individual: Individual, sims: int) -> dict:
         "n_chars_balanced": n_chars_balanced,
         "n_hard_counters": n_hard_counters,
         "roster_balanced": roster_balanced(detail),
+        "validator_structural": identity.passed_in("structural_inter", "structural_intra"),
+        "validator_behavioral": identity.passed_in("behavioral"),
+        "rank_agreement": identity.rank_agreement,
         # Os genes, sempre. São 55 floats por roster — nada perto de uma execução de
         # 7 a 14 minutos —, e sem eles qualquer pergunta sobre o ROSTER de um braço
         # ("a λ=4 o AG ficou colado no canônico?") exige re-rodar o braço inteiro.
@@ -209,7 +237,17 @@ def _roster_record(individual: Individual, sims: int) -> dict:
 
 
 def _seed_record(run: SeedRun, seed: int, sims: int) -> dict:
-    record = {"seed": seed, **_roster_record(run.individual, sims)}
+    representatives = None
+    if run.representatives is not None:
+        # Os CINCO representantes, cada um reavaliado exatamente como o de topo — que é um
+        # deles, lido pelo mesmo caminho. Com os cinco aqui, a comparação se refaz contra
+        # outro ponto sem re-rodar o NSGA-II. Custa cinco reavaliações por semente, contra
+        # uma execução de minutos.
+        representatives = {name: _roster_record(individual, sims)
+                           for name, individual in run.representatives.items()}
+        record = {"seed": seed, **representatives[run.headline]}
+    else:
+        record = {"seed": seed, **_roster_record(run.individual, sims)}
     record.update(run.milestones)
 
     front_objectives = run.front_objectives
@@ -225,17 +263,8 @@ def _seed_record(run: SeedRun, seed: int, sims: int) -> dict:
         # λ novo custaria uma execução completa do NSGA-II.
         record["front_objectives"] = front_objectives
 
-    if run.representatives is not None:
-        # Os CINCO representantes, cada um reavaliado exatamente como o de topo — o
-        # escolhido inclusive, para que qualquer um se leia pelo mesmo caminho. O de
-        # topo é o que o agregado e o `compare_algorithms` usam por padrão; com os
-        # cinco aqui, a comparação se refaz contra outro ponto — em especial o
-        # `scalar_optimum`, o comparável do escalar — sem re-rodar o NSGA-II. Custa
-        # cinco reavaliações por semente, contra uma execução de minutos.
-        record["representatives"] = {
-            name: _roster_record(individual, sims)
-            for name, individual in run.representatives.items()
-        }
+    if representatives is not None:
+        record["representatives"] = representatives
     return record
 
 
@@ -272,6 +301,10 @@ def _aggregate(records: List[dict]) -> dict:
         },
         "hard_counters_per_seed": mean_std([r["n_hard_counters"] for r in records]),
         "roster_balanced_rate": sum(r["roster_balanced"] for r in records) / n,
+        "identity": {
+            metric: mean_std([r[metric] for r in records])
+            for metric in ("validator_structural", "validator_behavioral", "rank_agreement")
+        },
     }
     if all("hypervolume" in r for r in records):
         agg["hypervolume"] = mean_std([r["hypervolume"] for r in records])
@@ -283,14 +316,11 @@ def _aggregate(records: List[dict]) -> dict:
     # informação separada, e as duas juntas é que são lidas.
     if all("converged_at" in r for r in records):
         gens = [r["converged_at"] for r in records if r["converged_at"] is not None]
-        stag = [r["stagnated_at"] for r in records if r["stagnated_at"] is not None]
         fired    = sum(r["convergence_gate_fired"] for r in records)
         rejected = sum(r["convergence_rejected"] for r in records)
         agg["convergence"] = {
             "converged_rate":  len(gens) / n,
             "converged_at":    mean_std(gens) if gens else None,
-            "stagnated_rate":  len(stag) / n,
-            "stagnated_at":    mean_std(stag) if stag else None,
             # O ajuste ao stream quantificado: de quantas vezes o roster PARECEU
             # equilibrado sob o stream de treino, quantas não sobreviveram a um inédito.
             "gate_fired":      fired,
@@ -303,7 +333,8 @@ def _aggregate(records: List[dict]) -> dict:
 def aggregate_algorithm(algorithm: str, seeds: List[int], sims: int,
                         nsga2_representative: str,
                         pop_size: int = POPULATION_SIZE,
-                        n_generations: int = MAX_GENERATIONS) -> dict:
+                        n_generations: int = MAX_GENERATIONS,
+                        canonical_seed: bool = GA_CANONICAL_SEED) -> dict:
     records: List[dict] = []
     rep_label = f", representante {nsga2_representative}" if algorithm == "nsga2" else ""
     print(f"\n{'═' * 70}")
@@ -313,7 +344,8 @@ def aggregate_algorithm(algorithm: str, seeds: List[int], sims: int,
 
     for idx, seed in enumerate(seeds, start=1):
         print(f"  [{idx:>2}/{len(seeds)}] seed={seed} ... ", end="", flush=True)
-        run = _run_algorithm(algorithm, seed, nsga2_representative, pop_size, n_generations)
+        run = _run_algorithm(algorithm, seed, nsga2_representative, pop_size, n_generations,
+                             canonical_seed)
         record = _seed_record(run, seed, sims)
         records.append(record)
         hv_part = f"  hv={record['hypervolume']:.4f}" if "hypervolume" in record else ""
@@ -321,7 +353,8 @@ def aggregate_algorithm(algorithm: str, seeds: List[int], sims: int,
         conv_part = f"  conv={'—' if conv is None else f'g{conv}'}" if "converged_at" in record else ""
         print(f"dom={record['dominance_penalty']:.4f}  drift={record['drift_penalty']:.4f}  "
               f"bonecos eq={record['n_chars_balanced']}/{len(CHAR_NAMES)}  "
-              f"counters={record['n_hard_counters']}{hv_part}{conv_part}")
+              f"counters={record['n_hard_counters']}  L3={record['validator_behavioral']}  "
+              f"τ={record['rank_agreement']:+.2f}{hv_part}{conv_part}")
 
     lambda_drift, lambda_dominance = get_lambdas()
     result = {
@@ -343,7 +376,9 @@ def aggregate_algorithm(algorithm: str, seeds: List[int], sims: int,
         "per_seed": records,
         "aggregate": _aggregate(records),
     }
-    if algorithm == "nsga2":
+    if algorithm == "ga":
+        result["canonical_seed"] = canonical_seed
+    else:
         result["nsga2_representative"] = nsga2_representative
     return result
 
@@ -387,15 +422,20 @@ def _print_summary(result: dict) -> None:
     print(f"\n    Sementes que equilibram o ROSTER (5 bonecos em banda E 0 hard-counters): "
           f"{rate:.0%}  ({int(round(rate * n))}/{n})")
 
+    ident = agg["identity"]
+    print(f"\n    Identidade — validador estrutural (L1+L2): "
+          f"{ident['validator_structural']['mean']:.1f} ± {ident['validator_structural']['std']:.1f}"
+          f"   comportamental (L3): "
+          f"{ident['validator_behavioral']['mean']:.1f} ± {ident['validator_behavioral']['std']:.1f}")
+    print(f"    Identidade — concordância de ranking comportamental (τ, 0 = acaso): "
+          f"{ident['rank_agreement']['mean']:+.3f} ± {ident['rank_agreement']['std']:.3f}")
+
     conv = agg.get("convergence")
     if conv is not None:
         c_rate, c_at = conv["converged_rate"], conv["converged_at"]
         at = f", na geração {c_at['mean']:.1f} ± {c_at['std']:.1f}" if c_at else ""
         print(f"\n    Velocidade — convergiu (equilíbrio confirmado FORA do stream de treino): "
               f"{c_rate:.0%}  ({int(round(c_rate * n))}/{n}){at}")
-        s_rate, s_at = conv["stagnated_rate"], conv["stagnated_at"]
-        at = f", na geração {s_at['mean']:.1f} ± {s_at['std']:.1f}" if s_at else ""
-        print(f"    Velocidade — estagnou: {s_rate:.0%}  ({int(round(s_rate * n))}/{n}){at}")
 
     print(f"\n    (secundário) Hard-counter rate por matchup (fração de sementes em que o par vira counter duro):")
     for label, rate_hc in agg["hard_counter_rate"].items():
@@ -404,43 +444,62 @@ def _print_summary(result: dict) -> None:
         print(f"      {label:<28s} WR {wr['mean']:.0%}±{wr['std']:.0%}   counter em {rate_hc:.0%}{flag}")
 
 
-def _artifact_path(algorithm: str, lambdas, dom_weights, selection,
-                   pop_size: int, n_generations: int) -> Path:
-    """Onde o artefato desta execução é gravado.
+def artifact_path(result: dict) -> Path:
+    """Onde o artefato desta execução é gravado — função só do que o corpo dele registra.
 
-    Só a execução **inteiramente no default** — λ e orçamento — grava nos caminhos
-    principais: ela É a bateria, e é dela que o `compare_algorithms` lê. Qualquer desvio
-    manda o artefato para `exploratory/`, com o nome dizendo o que desviou.
+    Só a execução **inteiramente no protocolo** grava nos caminhos principais: ela É a
+    bateria, e é dela que o `compare_algorithms` lê. Os desvios são de dois tipos:
+
+    - de AMOSTRA ou ORÇAMENTO (população, gerações, nº e início das sementes, sims da
+      reavaliação) → `exploratory/`: o número não é citável;
+    - só de DESENHO (λ, pesos do dominance, seleção, semente canônica, representante de
+      topo), com amostra e orçamento do protocolo → `controls/`: é um braço de controle,
+      citável e comparável à bateria.
 
     O sufixo é montado a partir das diferenças reais, e não de um rótulo passado à mão,
     porque o risco aqui é silencioso nos dois sentidos: um nome fixo faria dois braços
     diferentes se sobrescreverem, e cair no caminho principal faria uma execução barata
     **apagar** horas de bateria sem aviso."""
+    algorithm = result["algorithm"]
     partes = []
-    if (pop_size, n_generations) != (POPULATION_SIZE, MAX_GENERATIONS):
-        partes.append(f"pop{pop_size}_gen{n_generations}")
+    if (result["pop_size"], result["n_generations"]) != (POPULATION_SIZE, MAX_GENERATIONS):
+        partes.append(f"pop{result['pop_size']}_gen{result['n_generations']}")
+    seeds = result["seeds"]
+    if len(seeds) != MULTI_RUN_N_SEEDS:
+        partes.append(f"n{len(seeds)}")
+    if seeds[0] != MULTI_RUN_SEED_START:
+        partes.append(f"seed{seeds[0]}")
+    if result["sims_per_matchup"] != MULTI_RUN_SIMS:
+        partes.append(f"sims{result['sims_per_matchup']}")
+    sample_deviates = bool(partes)
+
+    lambdas = (result["lambda_drift"], result["lambda_dominance"])
     if lambdas != (LAMBDA_DRIFT, LAMBDA_DOMINANCE):
-        drift, dominance = lambdas
-        partes.append(f"drift{drift:g}_dom{dominance:g}")
+        partes.append(f"drift{lambdas[0]:g}_dom{lambdas[1]:g}")
+    dom_weights = tuple(result["dominance_weights"].values())
     if dom_weights != (DOMINANCE_GLOBAL_WEIGHT, DOMINANCE_CAP_WEIGHT, DOMINANCE_DECIS_WEIGHT):
         g, c, d = dom_weights
         partes.append(f"domw{g:g}-{c:g}-{d:g}")
-    elite_rate, tournament_size = selection
-    if elite_rate != ELITE_RATE:
-        partes.append(f"elite{elite_rate:g}")
-    if tournament_size != TOURNAMENT_SIZE:
-        partes.append(f"tour{tournament_size:g}")
+    selection = result["selection"]
+    if selection["elite_rate"] != ELITE_RATE:
+        partes.append(f"elite{selection['elite_rate']:g}")
+    if selection["tournament_size"] != TOURNAMENT_SIZE:
+        partes.append(f"tour{selection['tournament_size']:g}")
+    if algorithm == "ga" and result["canonical_seed"] != GA_CANONICAL_SEED:
+        partes.append("unseeded")
+    if algorithm == "nsga2" and result["nsga2_representative"] != HEADLINE_REPRESENTATIVE:
+        partes.append(f"rep-{result['nsga2_representative']}")
     if not partes:
         return MULTI_RUN_GA_PATH if algorithm == "ga" else MULTI_RUN_NSGA2_PATH
-    return EXPLORATORY_DIR / f"multi_run_{algorithm}_{'_'.join(partes)}.json"
+    folder = EXPLORATORY_DIR if sample_deviates else CONTROLS_DIR
+    return folder / f"multi_run_{algorithm}_{'_'.join(partes)}.json"
 
 
-def _save(result: dict, algorithm: str) -> None:
-    path = _artifact_path(algorithm, get_lambdas(), get_dominance_weights(), get_selection(),
-                          result["pop_size"], result["n_generations"])
+def _save(result: dict) -> None:
+    path = artifact_path(result)
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8") as fh:
-        json.dump({"provenance": stamp(), **result}, fh, indent=2, ensure_ascii=False)
+        json.dump({"provenance": stamp(tool=__spec__.name), **result}, fh, indent=2, ensure_ascii=False)
     print(f"\n  Salvo em {path.relative_to(PROJECT_ROOT)}")
 
 
@@ -484,11 +543,14 @@ def parse_args():
     parser.add_argument("--tournament-size", type=int, default=TOURNAMENT_SIZE,
                         help=f"Candidatos por torneio (default: {TOURNAMENT_SIZE}). Só o AG "
                              f"escalar — o NSGA-II usa torneio binário por dominância")
-    parser.add_argument("--nsga2-representative", default="best_dominance",
+    parser.add_argument("--nsga2-representative", default=HEADLINE_REPRESENTATIVE,
                         choices=["best_dominance", "best_drift", "knee_point", "ideal_point",
                                  "scalar_optimum"],
                         help="Ponto da fronteira que representa cada execução do NSGA-II "
-                             "(default: best_dominance)")
+                             f"(default: {HEADLINE_REPRESENTATIVE})")
+    parser.add_argument("--no-canonical-seed", dest="canonical_seed", action="store_false",
+                        help="AG escalar com população inicial 100%% aleatória, como a do "
+                             "NSGA-II — o controle que separa algoritmo de inicialização")
     return parser.parse_args()
 
 
@@ -527,6 +589,12 @@ def main():
                   "desperdício.\n    Rode o NSGA-II uma vez no λ default e re-derive o "
                   "`scalar_optimum` por λ.")
 
+    override("GA_CANONICAL_SEED", args.canonical_seed)
+    if args.canonical_seed != GA_CANONICAL_SEED:
+        print("\n  CONTROLE — AG escalar SEM a semente canônica (população inicial aleatória)")
+        if "nsga2" in algorithms:
+            print("  ⚠ Vale só para o AG escalar: o NSGA-II já nasce 100% aleatório.")
+
     reduzido = (args.pop, args.generations) != (POPULATION_SIZE, MAX_GENERATIONS)
     if reduzido:
         print(f"\n  ORÇAMENTO REDUZIDO — pop={args.pop} × {args.generations} gerações "
@@ -539,9 +607,10 @@ def main():
         # O orçamento vale por algoritmo — as constantes que cada um lê são distintas.
         override_budget(args.pop, args.generations, algorithm)
         result = aggregate_algorithm(algorithm, seeds, args.sims, args.nsga2_representative,
-                                     pop_size=args.pop, n_generations=args.generations)
+                                     pop_size=args.pop, n_generations=args.generations,
+                                     canonical_seed=args.canonical_seed)
         _print_summary(result)
-        _save(result, algorithm)
+        _save(result)
 
 
 if __name__ == "__main__":

@@ -10,7 +10,7 @@
 ├── src/                       # pacote raiz (importável como `src`)
 │   ├── engine/                # o modelo (importável como `src.engine`)
 │   │   ├── paths.py           # PROJECT_ROOT + paths derivados — single source
-│   │   ├── provenance.py      # carimbo de config/motor nos artefatos + aviso de obsoleto
+│   │   ├── provenance.py      # carimbo de config/motor/medição nos artefatos + aviso e recusa de obsoleto
 │   │   ├── config.py          # todos os hiperparâmetros
 │   │   ├── archetypes.py      # definições canônicas (frozen) + ciclo de vantagens
 │   │   ├── character.py       # representação de genes (8 atributos + 3 pesos)
@@ -42,8 +42,9 @@ do `analysis`. Conteúdo de cada um: [08-tools.md](08-tools.md).
 | pasta | quem grava |
 |---|---|
 | `single_run/` | `main.py` — `ga.json`, `nsga2.json` e `plots/<timestamp>/` |
-| `multi_run/` | `multi_run` (as 20 sementes da bateria) e `compare_algorithms` |
-| `exploratory/` | `multi_run` fora do default — os braços de sweep |
+| `multi_run/` | `multi_run` (as 20 sementes da bateria) e `compare_algorithms` (AG × NSGA-II) |
+| `controls/` | `multi_run` com a amostra e o orçamento da bateria e um fator de desenho trocado (λ_drift = 0, sem semente canônica), e o `compare_algorithms --control` de cada um |
+| `exploratory/` | `multi_run` com amostra ou orçamento reduzidos — os braços de sweep |
 | `external_validation/` | `external_validation`, um arquivo por roster |
 | `sensitivity/` | `sensitivity_analysis` |
 | `baselines/` | `baselines` |

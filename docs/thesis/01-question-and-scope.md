@@ -28,8 +28,9 @@ porque foi pago para aparecer. Distinção fina, mas decisiva:
 - *forçar* o ciclo (hard) = proibir certos resultados → não se mede nada, só se obtém
   o que foi imposto.
 
-A identidade que responde à pergunta — "identidades **funcionais**" — é medida por uma
-régua que o fitness não toca: comportamento e ciclo, post-hoc. Detalhe em
+A identidade que responde à pergunta — "identidades **funcionais**" — é medida por réguas
+que o fitness não toca: o comportamento, post-hoc (a Layer 3 do validador e a concordância
+de ranking comportamental com o canônico). Detalhe em
 [03-fitness-formulation.md](03-fitness-formulation.md).
 
 ## O experimento central
@@ -41,7 +42,10 @@ resultados cientificamente válidos**. Comparar os dois cenários é o experimen
 - o **AG escalar** dá uma solução do trade-off com pesos iguais
   (`LAMBDA_DRIFT = LAMBDA_DOMINANCE`). Medido, ela não cai *sobre* a fronteira: fica além
   da ponta de baixa dominância, e os dois são mutuamente não-dominados — cada algoritmo
-  alcança uma parte diferente do trade-off.
+  alcança uma parte diferente do trade-off;
+- dois **controles** isolam o efeito do método: o AG com `LAMBDA_DRIFT = 0` (equilibrar
+  sem o termo de identidade — o contrafactual da pergunta) e o AG sem a semente canônica
+  (separa algoritmo de inicialização na comparação com o NSGA-II).
 
 Detalhe de como cada eixo é medido: [03-fitness-formulation.md](03-fitness-formulation.md).
 

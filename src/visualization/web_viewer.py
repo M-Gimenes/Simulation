@@ -8,12 +8,11 @@ from __future__ import annotations
 
 import argparse
 import json
-import sys
 import webbrowser
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import parse_qs, urlparse
 
-from src.engine.archetypes import ARCHETYPES, ARCHETYPE_ORDER, ArchetypeID, ARCHETYPE_ALIASES
+from src.engine.archetypes import ARCHETYPES, ArchetypeID, ARCHETYPE_ALIASES
 from src.engine.character import Character
 from src.engine.combat import Action, simulate_combat_traced
 from src.engine.config import FIELD_SIZE
@@ -67,7 +66,7 @@ def record_combat(char_a: Character, char_b: Character) -> dict:
             events.append({
                 "attacker_idx": att,
                 "damage":      round(dmg, 1),
-                "stun":        round(float(trace.stun_applied[t, att]), 1),
+                "stun":        int(trace.stun_applied[t, att]),
                 "knockback":   round(float(trace.knockback_dealt[t, att]), 1),
                 "ko":          hp_after_def <= 0.0,
                 "hp_before":   round((hp_after_def + dmg) / hp_max_def, 3),

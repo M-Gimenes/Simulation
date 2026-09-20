@@ -4,9 +4,11 @@ Indivíduo do AG = conjunto de 5 personagens (um por arquétipo).
 Construtores: from_canonical, random, from_results, from_nsga2.
 
 Os dois que leem artefato verificam a **proveniência** do JSON e avisam se ele descreve
-outro sistema (ver `provenance.py`). O ponto de verificação é aqui, e não em cada tool,
-porque estes dois construtores são o gargalo por onde toda ferramenta carrega um indivíduo
-evoluído — checar num só lugar é o que impede a próxima tool de nascer sem a checagem.
+outro sistema (ver `provenance.py`); com `require_current=True`, recusam. O ponto de
+verificação é aqui, e não em cada tool, porque estes dois construtores são o gargalo por
+onde toda ferramenta carrega um indivíduo evoluído — checar num só lugar é o que impede a
+próxima tool de nascer sem a checagem. Quem só inspeciona avisa; quem grava um artefato
+novo a partir do indivíduo recusa, senão o artefato novo sairia carimbado como atual.
 """
 
 from __future__ import annotations
@@ -19,7 +21,7 @@ from typing import List, Optional, Tuple
 from .archetypes import ARCHETYPE_ORDER, ArchetypeID, ARCHETYPES
 from .character import Character
 from .paths import GA_RESULTS_PATH, NSGA2_RESULTS_PATH
-from .provenance import warn_if_stale
+from .provenance import refuse_if_stale, warn_if_stale
 
 
 @dataclass
@@ -56,18 +58,31 @@ class Individual:
             char.clip()
         return ind
 
+    @staticmethod
+    def _load_artifact(path: Path, missing_hint: str, require_current: bool) -> dict:
+        """Lê o artefato e confere a proveniência. `require_current` é para quem vai
+        GRAVAR um artefato novo a partir deste: aí um artefato obsoleto é recusado, em vez
+        de só avisado — ver `provenance.refuse_if_stale`."""
+        if not path.exists():
+            raise FileNotFoundError(f"'{path}' não encontrado — {missing_hint}")
+        with open(path) as fh:
+            data = json.load(fh)
+        source = f"{path.parent.name}/{path.name}"
+        if require_current:
+            refuse_if_stale(data.get("provenance"), source)
+        else:
+            warn_if_stale(data.get("provenance"), source)
+        return data
+
     @classmethod
     def from_nsga2(
         cls,
         path: Path = NSGA2_RESULTS_PATH,
         representative: str = "knee_point",
+        require_current: bool = False,
     ) -> "Individual":
-        path = Path(path)
-        if not path.exists():
-            raise FileNotFoundError(f"'{path}' não encontrado — rode main.py --algorithm nsga2 primeiro.")
-        with open(path) as fh:
-            data = json.load(fh)
-        warn_if_stale(data.get("provenance"), f"{path.parent.name}/{path.name}")
+        data = cls._load_artifact(Path(path), "rode main.py --algorithm nsga2 primeiro.",
+                                  require_current)
         reps = data.get("representatives", {})
         if representative not in reps:
             available = ", ".join(reps.keys()) if reps else "nenhum"
@@ -80,13 +95,9 @@ class Individual:
         return ind
 
     @classmethod
-    def from_results(cls, path: Path = GA_RESULTS_PATH) -> "Individual":
-        path = Path(path)
-        if not path.exists():
-            raise FileNotFoundError(f"'{path}' não encontrado — rode main.py primeiro.")
-        with open(path) as fh:
-            data = json.load(fh)
-        warn_if_stale(data.get("provenance"), f"{path.parent.name}/{path.name}")
+    def from_results(cls, path: Path = GA_RESULTS_PATH,
+                     require_current: bool = False) -> "Individual":
+        data = cls._load_artifact(Path(path), "rode main.py primeiro.", require_current)
         if "best_individual" not in data:
             raise KeyError(f"'{path}' não contém 'best_individual'.")
         return cls._from_genes(data["best_individual"])

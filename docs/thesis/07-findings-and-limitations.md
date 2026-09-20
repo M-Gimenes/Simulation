@@ -50,9 +50,10 @@ método, o último é sobre o objeto.
   papéis** — distância euclidiana é cega a **ranking**. Corrigido normalizando pelo range
   do bound e ponderando os genes definidores. Consequência a declarar: as **Layers 1-2 do
   validador ficaram parcialmente endógenas** (medem o eixo que o fitness otimiza) e valem
-  como diagnóstico, não como prova; quem sustenta a leitura de identidade preservada é a
-  **Layer 3** (comportamental) somada ao ciclo. A pergunta da tese diz *"functional
-  identities"* — comportamento, não valor de gene.
+  como diagnóstico, não como prova; quem pode sustentar uma leitura de identidade
+  preservada são as réguas **funcionais** — a Layer 3 e, desde 2026-09-18, a concordância
+  de ranking comportamental. O ciclo não serve: o próprio canônico só realiza 6/10 dele. A
+  pergunta da tese diz *"functional identities"* — comportamento, não valor de gene.
 - **Duas premissas do fitness não sobreviveram à medição.** (i) O piso de decisividade
   existia para punir "lutas que não acontecem", mas **100% das lutas terminam em KO** no
   motor reformado (70 pares, rosters aleatórios inclusive) — decisividade baixa é KO no
@@ -89,9 +90,10 @@ nulos (5 espelhos + 30 aleatórios), bateria de 2026-09-18:
 
 | métrica | piso médio | pior nulo | teto |
 |---|---|---|---|
-| validador (L1-L3) | 6,4/23 | **10/23** | 23/23 |
+| validador (L1-L3) | 6,4/23 (5,97 com o empate contado contra a asserção) | **10/23** | 23/23 |
 | `drift_penalty` | 0,377 (espelho) · 0,415 (aleatório) | 0,327 | 0,000 |
 | arestas do ciclo | 5/10 (cada aresta é cara-ou-coroa) | 8/10 | 10/10 |
+| concordância de ranking (τ, desde 2026-09-18) | +0,001 | +0,338 | 1,000 |
 
 Consequências para a redação:
 
@@ -101,25 +103,28 @@ Consequências para a redação:
   aleatório.
 - **O espelho é a objeção com números.** Cinco personagens idênticos são a solução trivial
   do equilíbrio e perdem identidade por apenas ~0,04 de drift, então a tese precisa
-  responder isso medindo, não argumentando. **A leitura virou favorável**: na bateria atual
-  o roster evoluído chega a **102% do equilíbrio trivialmente alcançável** — é *mais*
-  equilibrado que o espelho (dominance 0,026 contra 0,025 do melhor espelho, 1,136 do
-  aleatório) — sentado a **47%** do caminho entre o piso e o teto de identidade, e supera
-  **todos os 35 nulos** nos três eixos de identidade (p < 0,03 em cada). Era 99% e
-  p ≈ 0,08 com 13 nulos; o que mudou foi o motor **e** a resolução do p (que é 1/N).
-- **O ciclo canônico não pode ser achado, e isso é demonstrável.** Ele é um torneio
-  **regular** (cada arquétipo vence 2 e perde 2), e existem **24** torneios regulares
-  rotulados em 5 vértices: acertar o rótulo específico é 1/24, e o acaso já entrega 5/10
-  arestas. Calibrar o motor para realizá-lo é perseguir uma loteria cujo sucesso não
-  distinguiria preservação de sorte.
-- **O que substitui o ciclo é a não-transitividade.** Equilíbrio global e
-  pedra-papel-tesoura são a **mesma estrutura**: um roster estritamente transitivo tem
-  WRs 100/75/50/25/0, incompatível com todos perto de 50%. Logo o objetivo C2 não apenas
-  *permite* o ciclo — ele **força** estrutura não-transitiva quando os pares são
-  decididos. Medido em tríades circulares (0 = ordem estrita · 2,5 = acaso · 5 = máximo):
-  o roster do AG na bateria dá **4,0 com pares em 43%–55%** (arestas decididas, contagem
-  válida). Essa é a frase para a tese, e ela não depende de nenhuma tabela inventada pelo
-  autor.
+  responder isso medindo, não argumentando. Na bateria de 2026-09-18 o `dominance` do
+  roster evoluído (0,026) ficou **no mesmo nível** do dos espelhos (0,025–0,037, fora o do
+  Zoner, que o piso de decisividade penaliza) — e esse nível é o piso de ruído amostral de
+  200 lutas. A leitura certa é *tão equilibrado quanto a simetria perfeita, dentro do
+  ruído*; a frase anterior, "mais equilibrado que o espelho (0,026 contra 0,025)", tinha o
+  sinal trocado. Na identidade, o evoluído supera os 35 nulos em drift e nas Layers 1-2 —
+  as réguas endógenas —, mas não na funcional (ver abaixo).
+- **O ciclo autoral não serve de régua — mas não por ser "loteria".** Com arestas
+  decididas, realizar as 10 teria p = 1/1024; o argumento da loteria de 1/24 estava errado.
+  O motivo real é que **o próprio canônico realiza só 6/10** do ciclo no motor: não se
+  preserva o que a premissa não tinha. E contra as direções que o canônico **realiza**, o
+  evoluído mantém 5/10 (2000 lutas por par) — o acaso: o favorito de cada confronto não
+  sobreviveu ao equilíbrio.
+- **A não-transitividade existe, mas é em boa parte implicada pelo objetivo.** Um roster
+  estritamente transitivo tem WRs 100/75/50/25/0, incompatível com todos perto de 50%,
+  então equilíbrio global com pares **decididos** força intransitividade. As "4,0 tríades
+  com pares em 43%–55%" citadas antes não mostravam isso: a 200 lutas por par, esse
+  espalhamento é o do puro ruído, e um espelho chega às mesmas 4,0 tríades. A evidência
+  que existe é a de 5000 lutas por par (validação externa): os 10 pares decididos
+  (|z| ≥ 3,6, WR de 42,0% a 57,8%) formando um torneio **regular** (5 tríades). O que é
+  achado — não implicado — é os pares **seguirem decididos** sob o equilíbrio; a
+  intransitividade vem junto.
 
 ### Achados da bateria com n = 20 (2026-09-18)
 
@@ -136,9 +141,34 @@ Consequências para a redação:
 - **Convergência é regra, não exceção — mesmo com a confirmação fora do stream.** O AG
   convergiu em 20/20 sementes, na geração 34,8 ± 17,1, embora a confirmação tenha recusado
   71% dos disparos do gate (50 de 70). A confirmação atrasa a convergência, não a impede.
+  Mas convergir é o **primeiro** sucesso de um teste repetido a cada geração, não
+  equilíbrio estável: das 20 sementes convergidas, 14 terminaram com o roster equilibrado
+  na reavaliação.
 - **Os três sweeps exploratórios testaram os valores vigentes e os três passaram** — λ,
   pesos do dominance e, por último, elitismo / torneio, onde nenhum dos 7 braços superou
   10% / 3. Nenhum parâmetro do AG ficou sem ter sido variado.
+
+### Achados da auditoria do zero (2026-09-18) — preliminares
+
+Medidos sobre o indivíduo da bateria de 2026-09-18, reavaliado no motor atual. A próxima
+bateria — com os controles — é que os confirma ou não; ficam aqui como hipótese a testar,
+com o número que a motivou.
+
+- **A identidade funcional medida está no piso.** A Layer 3 do evoluído dava 1/5, com
+  p = 0,74 contra os 35 nulos, e a concordância de ranking comportamental dá τ = +0,19,
+  com p = 0,14 — nenhuma das duas réguas funcionais o distingue de um roster aleatório.
+  A política conta a mesma história: o Rushdown evoluído guardava mais do que avançava e
+  era o **menos** agressivo dos cinco; o Zoner avançava mais do que recuava; o Turtle
+  recuava mais do que guardava. Se a bateria confirmar, a resposta à pergunta de pesquisa
+  é que o equilíbrio alcançado preserva a identidade **estrutural** (o drift segura os
+  genes) e **não** a funcional — e o controle `λ_drift = 0` dirá quanto dessa preservação
+  estrutural é do termo de drift.
+- **O AG quase não enxerga a política pelo equilíbrio.** Na análise de sensibilidade com o
+  passo da mutação, `w_retreat` e `w_defend` ficam abaixo do piso de ruído e
+  `w_aggressiveness` no limiar. O único gradiente que puxa os pesos de volta ao canônico é
+  o do drift — o que é coerente com a política embaralhada acima.
+- **O stun era um gene de platô para o atacante rápido.** Até a correção dos timers, variar
+  o stun do Rushdown evoluído em 31 valores dava 5 WR distintas; agora, 27.
 
 ## Limitações conhecidas
 
@@ -154,25 +184,28 @@ Consequências para a redação:
   descuido — é consequência medida da assimetria dos objetivos (ver Achados). Precisa
   ser declarado explicitamente ao comparar os dois.
 - **As Layers 1-2 do validador são parcialmente endógenas** — medem o mesmo eixo
-  estrutural que o `drift_penalty` otimiza. A Layer 3 é *held-out*, não causalmente
-  isolada: comportamento é downstream dos genes que o fitness move.
-- **Dois genes ficam no limiar do piso de ruído.** Na sensibilidade do indivíduo evoluído
-  (600 sims, 12 repetições do piso) `knockback` e `speed` têm sinal/ruído ~1,1: o AG mal
-  os enxerga em volta desse indivíduo. Nenhum gene fica abaixo do piso, e a análise é
-  local — no indivíduo em que se decidiu a persistência o `speed` tinha 2,0. Ver
-  [05](05-methodological-validation.md).
+  estrutural que o `drift_penalty` otimiza. As réguas funcionais (Layer 3 e concordância)
+  são *held-out*, não causalmente isoladas: cada asserção da Layer 3 é consequência quase
+  direta de um gene definidor, e comportamento é downstream dos genes que o fitness move.
+  A Layer 3 tem ainda só 5 bits; a concordância de ranking existe para isso.
+- **A política é o que o AG menos enxerga.** Na escala da mutação, dois dos três pesos
+  ficam abaixo do piso de ruído da sensibilidade (preliminar — ver acima). A análise é
+  local, e muda com o indivíduo. Ver [05](05-methodological-validation.md).
+- **Convergir não é ficar equilibrado.** `converged_at` é o primeiro disparo do gate que
+  sobrevive à confirmação, num teste repetido a cada geração; a fração que termina
+  equilibrada é outra métrica, e as duas vão juntas.
 
 ## O que ainda falta
 
-A base experimental está **fechada**: motor e fitness calibrados, os três sweeps
-exploratórios feitos e a bateria com n = 20 regerada sob o motor final (2026-09-18).
-As pendências de instrumentação de
-[`../reference/10-known-issues.md`](../reference/10-known-issues.md) também estão fechadas; o
-que resta lá são os limites estruturais, que são escopo declarado e vão para a Discussão.
-Uma operação pendente, **com** efeito em número: depois da bateria o CRN passou a semear
-cada luta, o que troca todos os sorteios. A bateria precisa rodar de novo, e os números
-desta pasta e do `docs/status/HANDOFF.md` §2 — os achados acima inclusive — têm de ser relidos contra
-ela antes de qualquer citação. Em termos de tese, falta a **redação**: a
+A base experimental está **definida**, e falta rodá-la. Depois da bateria de 2026-09-18
+o motor mudou (CRN por luta, timers com resto acumulado) e o protocolo ganhou os dois
+controles, a manchete no `scalar_optimum` com a relação de Pareto, a concordância de
+ranking e a validação externa com regras perturbadas. A bateria (`run_overnight.ps1`)
+precisa rodar de novo, e os números desta pasta e do `docs/status/HANDOFF.md` §2 — os
+achados acima inclusive, e em especial os preliminares — têm de ser relidos contra ela
+antes de qualquer citação. As pendências de instrumentação de
+[`../reference/10-known-issues.md`](../reference/10-known-issues.md) estão fechadas; o que
+resta lá são os limites estruturais, que são escopo declarado e vão para a Discussão. Em termos de tese, falta a **redação**: a
 monografia e os artigos descrevem gerações anteriores do modelo, e o `values.tex` está
 inteiramente obsoleto (ver [`../status/HANDOFF.md`](../status/HANDOFF.md) §4). Os números a citar
 saem de `results/` e do `docs/status/HANDOFF.md` §2 — nunca de rodadas anteriores ao motor atual, que

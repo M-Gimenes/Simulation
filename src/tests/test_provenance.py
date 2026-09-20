@@ -6,12 +6,14 @@ O que precisa valer, e por quê (ver docs/reference/09-reproducibility.md):
   · o carimbo é ESTÁVEL — se variasse entre chamadas, todo artefato nasceria "obsoleto"
     e o alarme seria descartado no primeiro dia;
   · o carimbo é SENSÍVEL — pega constante, canônico e código do motor, que são as três
-    coisas que invalidam `results/`;
+    coisas que invalidam `results/` — e, por artefato, o código da ferramenta que o gravou;
   · o carimbo é ESPECÍFICO — diz QUAL constante mudou, não só que algo mudou;
   · o carimbo é ENUMERADO de `config.py`, senão a próxima constante nasce invisível;
   · um BRAÇO de experimento (um sweep) não é confundido com artefato obsoleto — mas o
     override também não vira salvo-conduto para esconder mudança de motor;
-  · TODO peso (λ e os três do dominance) chega aos WORKERS, não só ao pai.
+  · quem GRAVA um artefato a partir de outro recusa entrada que não seja atual;
+  · TODO peso (λ e os três do dominance) e as regras do combate chegam aos WORKERS, não
+    só ao pai.
 
 Estrutura em funções + guarda `__main__` (padrão do `test_nsga2`): o teste de workers
 sobe um `ProcessPoolExecutor`, e no Windows o spawn re-importa o módulo principal — com
@@ -23,6 +25,7 @@ import json
 import random
 
 from src.engine import config, provenance
+from src.engine.combat import TRAINING_RULES, set_rules
 from src.engine.fitness import (evaluate_detail, evaluate_population, runtime_state,
                                 set_dominance_weights, set_dominance_weights_override,
                                 set_lambdas, set_lambdas_override, set_seed_base)
@@ -43,6 +46,7 @@ def _reset() -> None:
     set_lambdas(config.LAMBDA_DRIFT, config.LAMBDA_DOMINANCE)
     set_dominance_weights(config.DOMINANCE_GLOBAL_WEIGHT, config.DOMINANCE_CAP_WEIGHT,
                           config.DOMINANCE_DECIS_WEIGHT)
+    set_rules(TRAINING_RULES)
 
 
 def test_stamp_is_stable():
@@ -72,7 +76,7 @@ def test_every_constant_is_covered():
     assert not ausentes, f"constantes fora do carimbo: {sorted(ausentes)}"
     print("  ✓ nenhuma constante representável ficou de fora")
 
-    # N_WORKERS não entra: a avaliação resemeia ao _SEED_BASE antes de cada round-robin,
+    # N_WORKERS não entra: cada luta é semeada a partir do _SEED_BASE (fitness.fight_seed),
     # então o resultado independe de quantos workers avaliam. Um alarme que dispara à toa
     # deixa de ser lido.
     assert "N_WORKERS" not in gravadas
@@ -182,8 +186,58 @@ def test_experiment_arm_is_not_stale(braço):
     print("  ✓ o override não é salvo-conduto")
 
 
+def test_measurement_code_is_stamped():
+    separator("Código de medição entra no carimbo, por artefato")
+    _reset()
+    # Um número post-hoc (placar do validador, posição entre piso e teto) sai de código
+    # fora do motor. Sem isto, mudar as asserções do validador deixaria o baselines.json
+    # se declarando atual com o placar da regra antiga.
+    tool = "src.experiments.baselines"
+    modules = provenance.measurement_modules(tool)
+    assert tool in modules
+    assert "src.analysis.archetype_validator" in modules, "a dependência transitiva entra"
+    assert not any(m.startswith("src.engine") for m in modules), "o motor já tem digest próprio"
+    print(f"  {tool} → {', '.join(modules)}")
+
+    s = stamp(tool=tool)
+    assert compare(s).is_current
+    velho = copy.deepcopy(s); velho["measurement"]["digest"] = "0" * 12
+    div = compare(velho)
+    assert div.measurement_changed and not div.is_current
+    assert not div.is_experiment_arm, "mudança de medição não é variação declarada"
+    print(f"  medição mudada → {div.describe()[0]}")
+
+    assert "measurement" not in stamp(), "artefato do motor (sem ferramenta) não declara medição"
+    print("  ✓ só a mudança do código que produziu os números invalida o artefato")
+
+
+def test_writers_refuse_stale(braço):
+    separator("Quem GRAVA um artefato a partir de outro recusa entrada não-atual")
+    _reset()
+    # Ler avisa; gravar recusa. Uma ferramenta que gera artefato novo carimba a config
+    # VIGENTE — com entrada de outra config, o artefato novo se declararia atual
+    # carregando número de outro sistema, e o aviso impresso na leitura se perderia.
+    provenance.refuse_if_stale(stamp(), "atual.json")
+    print("  atual                → aceito")
+
+    velho = copy.deepcopy(stamp()); velho["engine_digest"] = "0" * 12
+    velho["fingerprint"] = "divergente"
+    for rótulo, recorded in (("obsoleto", velho), ("braço de experimento", braço),
+                             ("sem carimbo", None)):
+        try:
+            provenance.refuse_if_stale(recorded, "entrada.json")
+        except provenance.StaleArtifactError as exc:
+            assert "entrada.json" in str(exc), "a mensagem nomeia a entrada"
+            print(f"  {rótulo:<20} → recusado")
+        else:
+            raise AssertionError(f"{rótulo} foi aceito como entrada de um artefato novo")
+    provenance.refuse_if_stale(braço, "controle.json", allow_experiment_arm=True)
+    print("  braço, como controle  → aceito (a divergência é o override declarado)")
+    print("  ✓ só um artefato atual gera outro")
+
+
 def test_weights_reach_workers():
-    separator("Todo peso chega aos workers, não só ao processo pai")
+    separator("Todo peso e toda regra chegam aos workers, não só ao processo pai")
     # O pool nasce por spawn no Windows e re-importa o módulo: sem propagação explícita
     # os workers avaliariam com os pesos do config.py enquanto o pai usa os do braço, e a
     # divergência sairia como RESULTADO em vez de erro. É o modo de falha mais caro dos
@@ -199,11 +253,13 @@ def test_weights_reach_workers():
     _reset()
     random.seed(7)
     passo = 0
-    for rótulo, aplicar in (
-        ("λ_drift",    lambda v: set_lambdas_override(v, config.LAMBDA_DOMINANCE)),
-        ("dom_cap",    lambda v: set_dominance_weights_override(1.0, v, 0.5)),
+    for rótulo, aplicar, valores in (
+        ("λ_drift",    lambda v: set_lambdas_override(v, config.LAMBDA_DOMINANCE), (0.0, 4.0)),
+        ("dom_cap",    lambda v: set_dominance_weights_override(1.0, v, 0.5), (0.0, 4.0)),
+        ("distância",  lambda v: set_rules(TRAINING_RULES._replace(initial_distance=v)),
+                       (40.0, 60.0)),
     ):
-        for valor in (0.0, 4.0):
+        for valor in valores:
             aplicar(valor)
             semente = 42 + passo
             passo += 1
@@ -223,7 +279,7 @@ def test_weights_reach_workers():
     # pôr no RuntimeState, o worker fica com o valor do config e nada acusa.
     estado = set(runtime_state()._fields)
     esperado = {"seed_base", "lambda_drift", "lambda_dominance",
-                "dominance_global", "dominance_cap", "dominance_decis"}
+                "dominance_global", "dominance_cap", "dominance_decis", "combat_rules"}
     assert estado == esperado, f"RuntimeState mudou: {estado ^ esperado}"
     print(f"  RuntimeState cobre {len(estado)} campos: {', '.join(sorted(estado))}")
     print("  ✓ worker e pai avaliam sob a mesma configuração")
@@ -254,6 +310,8 @@ if __name__ == "__main__":
     test_json_round_trip()
     braço = test_override_is_recorded()
     test_experiment_arm_is_not_stale(braço)
+    test_measurement_code_is_stamped()
+    test_writers_refuse_stale(braço)
     test_weights_reach_workers()
     test_results_artifacts()
     separator("Todos os testes passaram ✓")

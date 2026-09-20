@@ -40,8 +40,11 @@ $py = Join-Path $raiz ".venv\Scripts\python.exe"
 if (-not (Test-Path $py)) { throw "Ambiente nao encontrado. Rode .\scripts\setup.ps1 primeiro." }
 $env:PYTHONIOENCODING = "utf-8"
 
+# SEMENTES 1000-1004, DISJUNTAS DAS DA BATERIA (42-61): o sweep ESCOLHE a configuracao
+# que a bateria depois AVALIA. Com as mesmas sementes nos dois, parte da amostra que
+# testa a escolha seria a mesma que a fez - selecao e avaliacao sobre os mesmos dados.
 $base = @("-m", "src.experiments.multi_run", "--algorithm", "ga", "--n-seeds", "5",
-          "--pop", "120", "--generations", "60")
+          "--seed-start", "1000", "--pop", "120", "--generations", "60")
 
 # Os `Min` sao ESTIMATIVAS com o pool persistente: ~10,4 min por braco medidos em
 # 2026-09-18 com o pool recriado por geracao, escalados pela razao que o AG mostrou na

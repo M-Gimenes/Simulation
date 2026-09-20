@@ -10,11 +10,14 @@ from src.engine.individual import Individual
 from src.engine.operators import tournament_selection, crossover, mutate, next_generation
 from src.engine.config import (
     ATTRIBUTE_BOUNDS,
-    ELITE_SIZE,
+    ELITE_RATE,
     POPULATION_SIZE,
     TOURNAMENT_SIZE,
     WEIGHT_BOUNDS,
 )
+
+# Elites no orçamento default: a taxa aplicada ao tamanho da população.
+ELITES = round(POPULATION_SIZE * ELITE_RATE)
 
 
 def separator(title: str) -> None:
@@ -128,16 +131,16 @@ assert len(new_gen) == POPULATION_SIZE, f"Tamanho incorreto: {len(new_gen)}"
 
 # Elites devem ter fitness preservado
 sorted_pop = sorted(pop, key=lambda x: x.fitness, reverse=True)
-elite_fitnesses = {ind.fitness for ind in sorted_pop[:ELITE_SIZE]}
+elite_fitnesses = {ind.fitness for ind in sorted_pop[:ELITES]}
 new_evaluated = [ind for ind in new_gen if ind.is_evaluated]
-assert len(new_evaluated) == ELITE_SIZE, f"Esperado {ELITE_SIZE} elites, got {len(new_evaluated)}"
+assert len(new_evaluated) == ELITES, f"Esperado {ELITES} elites, got {len(new_evaluated)}"
 
 # Filhos não devem ter fitness
 children = [ind for ind in new_gen if not ind.is_evaluated]
-assert len(children) == POPULATION_SIZE - ELITE_SIZE
+assert len(children) == POPULATION_SIZE - ELITES
 
 print(f"  Tamanho da nova geração: {len(new_gen)} ✓")
-print(f"  Elites preservados:      {len(new_evaluated)}/{ELITE_SIZE} ✓")
+print(f"  Elites preservados:      {len(new_evaluated)}/{ELITES} ✓")
 print(f"  Filhos sem fitness:      {len(children)} ✓")
 
 
@@ -145,16 +148,14 @@ print(f"  Filhos sem fitness:      {len(children)} ✓")
 
 separator("elite_count: elitismo é 10% do tamanho REAL da população")
 
-from src.engine.config import ELITE_RATE
 from src.engine.operators import elite_count
 
-# No orçamento default a fração e a constante derivada têm de coincidir — senão esta
-# mudança teria alterado, sozinha, todo número já medido.
-assert elite_count(POPULATION_SIZE) == ELITE_SIZE, (
-    f"elite_count({POPULATION_SIZE})={elite_count(POPULATION_SIZE)} divergiu de "
-    f"ELITE_SIZE={ELITE_SIZE} — o orçamento default mudou de comportamento"
+assert elite_count(POPULATION_SIZE) == ELITES, (
+    f"elite_count({POPULATION_SIZE})={elite_count(POPULATION_SIZE)}, esperado {ELITES} "
+    f"({ELITE_RATE:.0%} de {POPULATION_SIZE})"
 )
-print(f"  pop={POPULATION_SIZE} (default): {elite_count(POPULATION_SIZE)} elites == ELITE_SIZE ✓")
+print(f"  pop={POPULATION_SIZE} (default): {elite_count(POPULATION_SIZE)} elites "
+      f"= {ELITE_RATE:.0%} ✓")
 
 # O bug que isto conserta: com a contagem ABSOLUTA (30), uma população reduzida
 # ficava com elitismo de 25% (pop 120) ou 100% (pop 30) — aí a geração seguinte é só
@@ -211,7 +212,7 @@ assert len(sem_elite) == 12
 print("  taxa 0,0: nenhum elite preservado, geração 100% de filhos ✓")
 
 set_selection(ELITE_RATE, TOURNAMENT_SIZE)
-assert elite_count(POPULATION_SIZE) == ELITE_SIZE, "o default não voltou"
+assert elite_count(POPULATION_SIZE) == ELITES, "o default não voltou"
 print(f"  restaurado para o default ({ELITE_RATE:g}, {TOURNAMENT_SIZE}) ✓")
 
 

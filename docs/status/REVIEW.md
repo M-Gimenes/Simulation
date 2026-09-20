@@ -20,7 +20,7 @@ Achados que **não** estavam na pauta original ou que a contradiziam. Todos reso
 |---|---|---|---|
 | **M1** | Recuar era forfeit de dano: o `knockback` tinha derivada **negativa** e o Zoner perdia 100% independentemente de range e knockback | dois canais de ação: a intenção governa a postura, o ataque é regra de resolução | A reforma do combate |
 | **M2** | Sem colisão: os corpos se atravessavam 134× por luta, anulando `range` no clinch | `_apply_movement` com movimento simultâneo e parada no ponto de encontro | A reforma do combate |
-| **M3** | `stun` arredondado tinha 4 níveis efetivos para atacante rápido — gene categórico | timer contínuo | A reforma do combate |
+| **M3** | `stun` arredondado tinha 4 níveis efetivos para atacante rápido — gene categórico | timer contínuo (insuficiente — ver Z2) | A reforma do combate |
 | **D** | KO duplo/timeout empatado premiava sempre o lado A, e o round-robin fixa o índice menor como A | empate como terceiro desfecho | A reforma do combate |
 | **A** | O AG escalar equilibra **destruindo a identidade** e nenhum dos dois medidores de identidade acusava | drift normalizado pelo range e ponderado pelos genes definidores; duas réguas (estrutural no fitness, funcional post-hoc). O fenômeno permanece — é o achado | A régua de identidade |
 | **B** | "O AG vence em `dominance_penalty`" não era "o AG equilibra melhor" — a diferença estava no piso de decisividade | piso rebaixado a guarda de degenerescência; decomposição do dominance reportada | O piso de decisividade |
@@ -34,6 +34,28 @@ Achados que **não** estavam na pauta original ou que a contradiziam. Todos reso
 A agenda de calibração que veio depois — as sete constantes rotuladas "provisório" —
 também está fechada: quatro mantiveram o valor com justificativa escrita, três mudaram
 (ver "As constantes provisórias, fechadas com evidência" no thesis/04).
+
+### 1b. A auditoria do zero (2026-09-18)
+
+Uma segunda revisão, feita **sem contexto prévio** — lendo código e artefatos como um leitor
+externo —, achou o que a primeira não viu. Todos resolvidos; o porquê e os números de cada
+um estão no thesis/04, a partir de "A auditoria do zero".
+
+| # | Incongruência | Resolução | Onde está o porquê (thesis/04) |
+|---|---|---|---|
+| **Z1** | Período do cooldown `round(5c) + 1`, não `round(5c)` — o argumento "persistência = cooldown mínimo" apoiado num número errado | timers com resto acumulado; o sub-tick do golpe conta no período | Os timers passaram a carregar o resto |
+| **Z2** | O stun "contínuo" de M3 ainda era categórico (`ceil`): 4 efeitos em cooldown 1 | resto acumulado também no stun | idem |
+| **Z3** | Validador resolvia empate pelo índice (espelho = 4/13 da Layer 1 de graça) e comparava pesos crus | empate contra a asserção; pesos como probabilidade de intenção | O validador parou de dar asserções por empate |
+| **Z4** | A régua funcional (Layer 3) era de 5 bits e estava no piso (1/5, p = 0,74); a leitura "supera os nulos" vinha das réguas endógenas | concordância de ranking comportamental (τ); Layer 3 lida separada | A identidade funcional ganhou uma régua contínua |
+| **Z5** | Nada isolava o efeito do método: nulos não otimizados; AG × NSGA-II confundia algoritmo com inicialização | controles `λ_drift = 0` e sem semente, n = 20, na bateria | Os controles |
+| **Z6** | Manchete no `best_dominance` (o extremo da fronteira); escolha adiada para depois de ver os resultados | manchete `scalar_optimum` decidida antes; relação de Pareto por semente; família de 7 fixa | A manchete da comparação passou ao `scalar_optimum` |
+| **Z7** | Validação externa só trocava a semente; veredito ficava mais severo com K | replicação + robustez a regras perturbadas; veredito pelo IC | A validação externa separou replicação de robustez |
+| **Z8** | `stagnated_at` media a catraca do ruído | removido | O `stagnated_at` saiu |
+| **Z9** | HV saturado em 90% da área; joelho e ideal dependiam da unidade | referência (1,3; 0,4); objetivos normalizados | O hipervolume… / O joelho e o ideal… |
+| **Z10** | Sensibilidade sem os pesos, com janela cortada no bound e piso de outra estatística | 11 genes, janela deslizante, piso na estatística certa | A sensibilidade passou a cobrir os pesos |
+| **Z11** | `compare_algorithms` e as ferramentas derivadas carimbavam como atual o que vinha de entrada obsoleta; código de medição fora do digest; `--n-seeds` gravava por cima da bateria | `refuse_if_stale`; digest de medição por artefato; roteamento por todo desvio | A proveniência passou a recusar entrada velha |
+| **Z12** | Sweeps nas sementes da bateria | sementes 1000–1004 | Os sweeps saíram das sementes da bateria |
+| **Z13** | Quatro leituras da bateria de 2026-09-18 sem sustentação (102% do espelho, tríades a 200 lutas, "loteria de 1/24", identidade acima dos nulos) | corrigidas nos docs | Leituras corrigidas |
 
 ## 2. O que segue aberto
 
@@ -51,6 +73,14 @@ precisava de conserto, e a decisão foi declará-los na Discussão. Detalhe em
 - **Round-robin uniforme** — os 10 pares pesam igual; não modela matchmaking.
 - **Hipersensibilidade dos genes de recurso** — com o ataque como regra de resolução, a
   luta é uma corrida de DPS quase determinística; amortecer é trabalho futuro.
+
+**Uma pergunta que a próxima bateria responde:**
+
+- **A identidade funcional sobrevive ao equilíbrio?** Na leitura preliminar (o indivíduo da
+  bateria anterior, no motor atual), não: Layer 3 e concordância de ranking no piso, a
+  política embaralhada, e os pesos da política abaixo do piso de ruído da sensibilidade. O
+  controle `λ_drift = 0` separa o que o termo de drift preserva do que qualquer roster
+  otimizado preservaria.
 
 **Uma pergunta que não foi decidida:**
 
@@ -86,4 +116,5 @@ que muda número tinha de ser resolvido **antes** de uma única regeneração fi
 | 11 | **instrumentação** — proveniência nos artefatos + marcos de convergência por semente | um artefato que não carrega a config que o produziu não se auto-verifica; e sem os marcos, "velocidade" é n = 1 | ✅ 2026-09-17 |
 | 12 | **sweeps** de `LAMBDA_DRIFT`, pesos do dominance e elitismo/torneio, em orçamento reduzido | exploratório quer ORDENAÇÃO, e ordenação transfere de orçamento — ~10 min por braço | ✅ 2026-09-17/18: os três testaram o valor vigente e ele passou; `config.py` inalterado |
 | 13 | **bateria** — `run_battery.ps1` (n = 20) | poder estatístico: 44,4% → 85,9% | ✅ 2026-09-18: as três métricas de Holm significativas |
-| 14 | **pendências do known-issues** — default de sementes fora do carimbo, pool persistente, contagem no veredito externo, CRN por luta | o CRN por luta muda todos os sorteios | ✅ 2026-09-18; falta re-rodar sweeps + bateria (`run_overnight.ps1`) e reler todos os resultados |
+| 14 | **pendências do known-issues** — default de sementes fora do carimbo, pool persistente, contagem no veredito externo, CRN por luta | o CRN por luta muda todos os sorteios | ✅ 2026-09-18 |
+| 15 | **auditoria do zero** (Z1–Z13) — motor, instrumentos de identidade, controles, protocolo de comparação e de validação, proveniência | antes da bateria: o motor e o protocolo mudam o que ela mede | ✅ 2026-09-18; falta re-rodar sweeps + bateria (`run_overnight.ps1`), limpar os artefatos órfãos e reler todos os resultados |

@@ -88,8 +88,14 @@ de timeout** nos 10 pares canônicos.
   o knockback de quem está preso empurra o agressor para longe.
 - **Stun arredondado:** `round(stun × round(cd × TICK_SCALE))` deixava o gene contínuo
   `[0, 0.6]` com **4 níveis efetivos** para `cooldown = 1` (10 para `cd = 3`, 16 para
-  `cd = 5`). *Correção:* timer contínuo. Δ no bound inteiro 17,2% → **53,5%**; amplitude
-  a ±1σ de mutação 6,8% → **17,4%**.
+  `cd = 5`). *Correção de então:* timer contínuo. Δ no bound inteiro 17,2% → **53,5%**;
+  amplitude a ±1σ de mutação 6,8% → **17,4%**.
+  *Revisto em 2026-09-18:* o timer float **não** tirou o gene dos degraus — um alvo com
+  stun `s` fica parado exatamente `ceil(s)` sub-ticks, os mesmos 4 níveis com cooldown 1,
+  só com os limiares deslocados (o ganho de amplitude medido veio desse deslocamento). A
+  mesma revisão achou o período do cooldown um sub-tick acima do nominal. Os dois timers
+  passaram a carregar o resto de um golpe para o seguinte — ver
+  [04-combat-model.md](04-combat-model.md#timers).
 
 ### 5. Viés posicional no desempate
 

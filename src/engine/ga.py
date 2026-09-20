@@ -3,8 +3,7 @@ Loop principal do AG escalar — inicializa, evolui e retorna o melhor indivídu
 
 Roda sempre o orçamento inteiro (`n_generations`, default `MAX_GENERATIONS`).
 Convergência (roster equilibrado: WR global ~50% por boneco e nenhum counter duro,
-confirmado fora do stream de treino) e estagnação (`STAGNATION_LIMIT` gerações sem
-melhoria) são **eventos registrados**, não paradas.
+confirmado fora do stream de treino) é um **evento registrado**, não uma parada.
 
 Por quê: o NSGA-II não tem como parar pelo mesmo critério — "o roster está equilibrado?"
 não se pergunta a uma *fronteira*, que de propósito contém pontos desequilibrados e fiéis.
@@ -28,10 +27,10 @@ import numpy as np
 from .combat import seed_combat
 from .config import (
     CONVERGENCE_SEED_OFFSET,
+    GA_CANONICAL_SEED,
     MAX_GENERATIONS,
     POPULATION_SIZE,
     SIMS_CONVERGENCE_CHECK,
-    STAGNATION_LIMIT,
 )
 from .archetypes import ARCHETYPE_ORDER, ARCHETYPES
 from .fitness import (
@@ -71,7 +70,6 @@ class GAResult:
     best_detail: FitnessDetail
     generation: int
     converged_at: Optional[int]   # 1ª geração com equilíbrio confirmado fora do stream
-    stagnated_at: Optional[int]   # 1ª geração em que a estagnação bateu o limite
     history: List[GenerationStats]
     seed: Optional[int] = None
 
@@ -92,12 +90,8 @@ class GAResult:
     @property
     def stop_reason(self) -> str:
         """Descreve o que ACONTECEU — a parada é sempre por orçamento."""
-        marks = []
-        if self.converged_at is not None:
-            marks.append(f"convergiu na geração {self.converged_at}")
-        if self.stagnated_at is not None:
-            marks.append(f"estagnou na geração {self.stagnated_at}")
-        suffix = f" ({'; '.join(marks)})" if marks else ""
+        suffix = (f" (convergiu na geração {self.converged_at})"
+                  if self.converged_at is not None else "")
         return f"orçamento esgotado ({self.generation} gerações){suffix}"
 
 
@@ -163,13 +157,18 @@ def run(
     log_every: int = 1,
     pop_size: int = POPULATION_SIZE,
     n_generations: int = MAX_GENERATIONS,
+    canonical_seed: bool = GA_CANONICAL_SEED,
 ) -> GAResult:
     """`pop_size` e `n_generations` são o ORÇAMENTO da execução. Ficam como parâmetro, e
     não só como constante, porque experimentos exploratórios (sweeps de calibração) rodam
     barato antes de a bateria rodar caro — e editar o `config.py` para isso mudaria a
     configuração global, invalidaria a comparação com o que já foi medido e é fácil de
     esquecer de desfazer. Quem varia o orçamento deve registrá-lo em
-    `provenance.override`, para o artefato não afirmar o orçamento do arquivo."""
+    `provenance.override`, para o artefato não afirmar o orçamento do arquivo.
+
+    `canonical_seed` põe o roster canônico na população inicial (o default). Desligado,
+    a população nasce 100% aleatória, como a do NSGA-II — é o braço de controle que
+    separa o efeito do ALGORITMO do efeito da INICIALIZAÇÃO na comparação entre os dois."""
     if seed is not None:
         random.seed(seed)
         np.random.seed(seed)
@@ -179,16 +178,12 @@ def run(
     _log_header(verbose, pop_size, n_generations)
     t_start = time.time()
 
-    population = [Individual.from_canonical()] + [
-        Individual.random() for _ in range(pop_size - 1)
-    ]
+    seeded = [Individual.from_canonical()] if canonical_seed else []
+    population = seeded + [Individual.random() for _ in range(pop_size - len(seeded))]
     evaluate_population(population)
 
     history: List[GenerationStats] = []
-    best_fitness_ever = -float("inf")
-    stagnation_count  = 0
     converged_at: Optional[int] = None
-    stagnated_at: Optional[int] = None
     gate_fired        = 0     # disparos do gate de convergência
     rejected          = 0     # recusados pela confirmação fora do stream
     best_ind          = max(population, key=lambda ind: ind.fitness)
@@ -230,15 +225,6 @@ def run(
             else:
                 rejected += 1
 
-        if best_ind.fitness - best_fitness_ever > 0.001:
-            best_fitness_ever = best_ind.fitness
-            stagnation_count  = 0
-        else:
-            stagnation_count += 1
-
-        if stagnated_at is None and stagnation_count >= STAGNATION_LIMIT:
-            stagnated_at = gen
-
         population = next_generation(population)
         if seed is not None:
             # Stream NOVO para a geração seguinte. Os elites chegam aqui medidos no
@@ -260,7 +246,6 @@ def run(
         best_detail=best_detail,
         generation=n_generations,
         converged_at=converged_at,
-        stagnated_at=stagnated_at,
         convergence_gate_fired=gate_fired,
         convergence_rejected=rejected,
         history=history,
@@ -281,10 +266,9 @@ def save_results(result: GAResult, path: Path = GA_RESULTS_PATH) -> None:
         "provenance":      stamp(),
         "algorithm":       "ga",
         "seed":            result.seed,
-        "generations_run": result.generation + 1,
+        "generations_run": result.generation,
         "stop_reason":     result.stop_reason,
         "converged_at":    result.converged_at,
-        "stagnated_at":    result.stagnated_at,
         "convergence_gate_fired": result.convergence_gate_fired,
         "convergence_rejected":   result.convergence_rejected,
         "fitness":         result.best.fitness,

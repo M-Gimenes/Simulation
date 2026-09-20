@@ -2,12 +2,20 @@
 
 Simulação tick a tick 1v1, em `src/engine/combat.py`. O loop vive em duas funções
 `@njit` (`_simulate_combat_jit` para o fitness, `_simulate_combat_traced_jit` para
-instrumentação) que **compartilham três helpers `@njit`** — `_decide_action` (postura),
-`_apply_movement` (deslocamento com colisão) e `_decide_winner` (desfecho) —, fonte única
-chamada para A e B nas duas variantes, garantindo que ambas simulem exatamente o mesmo
-combate (mesmo consumo de RNG; coberto por um teste de paridade em `test_combat`).
+instrumentação) que **compartilham quatro helpers `@njit`** — `_decide_action` (postura),
+`_apply_movement` (deslocamento com colisão), `_carry_round` (arredondamento dos timers
+com resto acumulado) e `_decide_winner` (desfecho) —, fonte única chamada para A e B nas
+duas variantes, garantindo que ambas simulem exatamente o mesmo combate (mesmo consumo de
+RNG; coberto por um teste de paridade em `test_combat`).
 API pública:
 `simulate_combat`, `simulate_combat_traced`, `simulate_combat_detailed`.
+
+**As regras são estado de processo.** Campo, distância inicial, duração, `TICK_SCALE`,
+redução da guarda e persistência chegam ao JIT como argumentos, a partir de um
+`CombatRules` (`combat.get_rules` / `set_rules`). O default é `TRAINING_RULES` — as
+constantes do `config.py`. Só a validação externa troca as regras, para testar o
+equilíbrio sob condições que o AG nunca viu, e o `fitness.RuntimeState` as leva aos
+workers como leva os pesos ([09-reproducibility.md](09-reproducibility.md)).
 
 ## Os dois canais de ação
 
@@ -43,14 +51,13 @@ conforme o par, e o knockback de quem está preso empurra o agressor para longe.
 
 ## Resolução sub-tick (`TICK_SCALE = 5`)
 
-Multiplicador que aumenta a resolução temporal de timers e movimento. Sem ele,
-`attack_cooldown ∈ [1, 5]` teria só 5 valores discretos, criando platôs no
-espaço de fitness. Internamente o cooldown opera de 5 a 25 sub-ticks.
+Multiplicador que aumenta a resolução temporal de timers e movimento. O cooldown opera
+de 5 a 25 sub-ticks.
 
 - Movimento por sub-tick: `speed / TICK_SCALE`
-- Cooldown no hit: `round(attack_cooldown × TICK_SCALE)` — inteiro
-- Stun no hit: `stun × attack_cooldown × TICK_SCALE` — **contínuo**, ver
-  [stun](#stun) abaixo.
+- Período entre golpes: `attack_cooldown × TICK_SCALE` sub-ticks **em média** — ver
+  [timers](#timers) abaixo.
+- Stun por golpe: `stun × attack_cooldown × TICK_SCALE` sub-ticks **em média**.
 
 ## Sistema de decisão: intenção → postura
 
@@ -99,7 +106,8 @@ na probabilidade da intenção, dando ao AG gradiente contínuo nesses genes.
 ### Persistência de intenção (`ACTION_PERSISTENCE_SUBTICKS = 5`)
 
 Uma vez sorteada, a intenção é reusada pelos próximos 5 sub-ticks — **exatamente 1
-tick lógico** (`TICK_SCALE`) e exatamente o **cooldown mínimo** — antes de re-sortear.
+tick lógico** (`TICK_SCALE`) e exatamente o **período do atacante mais rápido**
+(`attack_cooldown = 1`) — antes de re-sortear.
 Simula commitment/momentum e evita flip-flopping patológico (sem isso, o personagem
 re-sortearia a intenção 5× por tick lógico). O contador é **zerado** no impasse (que
 força ADVANCE) e quando o personagem é stunado. Casar a persistência com o cooldown
@@ -114,6 +122,27 @@ mínimo faz quem tem `attack_cooldown = 1` e sorteia GUARDA abrir mão de exatam
 3. **Snapshot dos timers** pré-ataque (para o decremento "decrement-stale").
 4. **Resolução simultânea** de ataques A→B e B→A, pela regra do canal de ataque.
 5. **Decremento de timers stale** — só decrementa timers **não** setados neste tick.
+
+### <a name="timers"></a>Timers com resto acumulado
+
+Os timers contam sub-ticks inteiros, mas cooldown e stun vêm de genes contínuos. Cada
+golpe converte a quantidade contínua em inteiro por **difusão de erro**
+(`_carry_round`): soma o resto que sobrou do golpe anterior, fica com a parte inteira e
+guarda o novo resto — o resto começa em 0,5, então o primeiro golpe é o arredondamento
+comum. Um cooldown de 1,3 dá períodos 7, 6, 7, 6, 6, … com média **exata** de 6,5
+sub-ticks; um stun de 1,25 sub-tick dá 1, 1, 2, 1, … com média exata de 1,25. O gene age
+de forma contínua em média e o combate segue determinístico — o sorteio de intenção
+continua a única fonte de acaso.
+
+- **Cooldown:** o sub-tick do próprio golpe é o primeiro do período, então o timer é
+  setado em `período − 1` e o próximo golpe sai exatamente `período` sub-ticks depois.
+- **Stun:** o alvo fica parado exatamente o número inteiro de sub-ticks aplicado,
+  a partir do sub-tick seguinte ao golpe.
+
+Arredondar cada golpe sozinho deixaria os dois genes em degraus: o stun de um atacante de
+`cooldown = 1` teria só 4 efeitos em todo o intervalo [0, 0,6], e o período sairia
+deslocado de um sub-tick — ver [thesis/04](../thesis/04-design-decisions.md), "Os timers
+passaram a carregar o resto".
 
 ## Regras de combate
 
@@ -154,18 +183,15 @@ mínimo faz quem tem `attack_cooldown = 1` e sorteia GUARDA abrir mão de exatam
   `1.0`, exatamente o golpe limpo no neutro 0,40, e diferença **exatamente zero** contra
   alvo que não defende. O `CombatTrace` expõe o canal `guard_broken` (dano extra
   arrancado pela guarda), que é a assinatura comportamental do Grappler na Layer 3.
-- <a name="stun"></a>**Stun:** `stun_t = stun × attack_cooldown × TICK_SCALE`, em
-  ponto flutuante. O gene `stun ∈ [0.0, 0.6]` é uma **fração do próprio cooldown do
-  atacante** (em sub-ticks), não um valor absoluto.
-  - O timer é **contínuo** (decremento de `1.0` por sub-tick, atordoado enquanto
-    `stun_rem > 0`). Arredondá-lo deixaria o gene com só 4 níveis efetivos para um
-    atacante de `cooldown = 1` — praticamente categórico.
-  - Como `stun < 1.0` por bound, o stun aplicado é **estritamente menor que o
-    cooldown do atacante** — o defensor sempre ganha uma janela livre antes do
+- <a name="stun"></a>**Stun:** `stun × attack_cooldown × TICK_SCALE` sub-ticks por
+  golpe, em média (inteiro por golpe, com resto acumulado — ver [timers](#timers)). O gene
+  `stun ∈ [0.0, 0.6]` é uma **fração do próprio cooldown do atacante**, não um valor
+  absoluto.
+  - Como `stun ≤ 0.6` por bound, o stun aplicado é **estritamente menor que o
+    período do atacante** — o defensor sempre ganha uma janela livre antes do
     próximo hit. A invariante é garantida pelo bound do gene (não há
     `STUN_CAP_MULTIPLIER`) e coberta por teste em `test_combat`.
-  - O stun só é aplicado se o novo valor exceder o residual atual
-    (`stun_t > stun_rem`); não se acumula.
+  - O stun só é aplicado se o novo valor exceder o residual atual; não se acumula.
 - **Knockback:** empurra o defensor `knockback` unidades para longe do atacante
   após cada hit, clamped ao campo. No contexto zoner×rusher, varrer o bound leva a WR
   do zoner de 27,4% a 71,6%.
@@ -174,7 +200,8 @@ mínimo faz quem tem `attack_cooldown = 1` e sorteia GUARDA abrir mão de exatam
 
 Decrementos acontecem no **fim** do tick, comparando o valor atual com o
 pré-ataque. Se um ataque setou o timer neste tick (`current > pre`), ele é
-preservado até o próximo. Garante que `stun` e `cooldown` mínimos tenham efeito real.
+preservado até o próximo. Por isso o cooldown é setado em `período − 1` (ver
+[timers](#timers)): o sub-tick do golpe já conta.
 
 ## Condição de vitória
 

@@ -30,7 +30,6 @@ from .fitness import (
     evaluate_objectives,
     generation_seed,
     get_lambdas,
-    get_seed_base,
     parallel_map,
     set_seed_base,
 )
@@ -157,17 +156,40 @@ def scalar_objective(objs) -> float:
     return lambda_dominance * dominance + lambda_drift * drift
 
 
+def _normalizer(front: List[Individual]):
+    """Leva cada objetivo a [0, 1] pela amplitude DESTA fronteira: 0 = o melhor valor
+    da fronteira naquele objetivo, 1 = o pior. Objetivo constante vira 0."""
+    n_obj = len(front[0].objectives)
+    lows  = [min(ind.objectives[m] for ind in front) for m in range(n_obj)]
+    spans = [max(ind.objectives[m] for ind in front) - lows[m] for m in range(n_obj)]
+
+    def normalized(ind: Individual) -> Tuple[float, ...]:
+        return tuple((o - lo) / span if span > 0 else 0.0
+                     for o, lo, span in zip(ind.objectives, lows, spans))
+    return normalized
+
+
 def select_representatives(front: List[Individual]) -> dict:
     """Cinco pontos que resumem a fronteira. Os quatro primeiros são geométricos
-    (extremos, joelho e mínima norma L2); `scalar_optimum` é o comparável do AG
-    escalar — ver `scalar_objective`."""
+    (extremos, joelho e o mais próximo do ponto utópico); `scalar_optimum` é o
+    comparável do AG escalar — ver `scalar_objective`.
+
+    O joelho e o ideal são medidos com os objetivos NORMALIZADOS pela amplitude da
+    fronteira. Em unidades cruas a geometria dependeria da escala de cada objetivo —
+    `dominance` vai até 2,0 e `drift` fica em décimos —, e o "ponto de maior curvatura"
+    ou o "mais próximo do ideal" sairia decidido pela unidade de medida, não pelo
+    trade-off. O ideal é o ponto utópico da fronteira (o melhor de cada objetivo), não a
+    origem: a origem não é alcançável por nenhum ponto e fica a distâncias diferentes em
+    cada eixo."""
     best_dominance = _best_in(front, 0)
     best_drift     = _best_in(front, 1)
-    ideal          = min(front, key=lambda ind: _euclidean_norm(ind.objectives))
     scalar_opt     = min(front, key=lambda ind: scalar_objective(ind.objectives))
 
-    p1        = best_dominance.objectives
-    p2        = best_drift.objectives
+    normalized = _normalizer(front)
+    ideal      = min(front, key=lambda ind: _euclidean_norm(normalized(ind)))
+
+    p1        = normalized(best_dominance)
+    p2        = normalized(best_drift)
     line      = (p2[0] - p1[0], p2[1] - p1[1])
     line_norm = math.sqrt(line[0] ** 2 + line[1] ** 2)
 
@@ -175,7 +197,8 @@ def select_representatives(front: List[Individual]) -> dict:
         knee = front[0]
     else:
         def _dist(ind):
-            d     = (ind.objectives[0] - p1[0], ind.objectives[1] - p1[1])
+            q     = normalized(ind)
+            d     = (q[0] - p1[0], q[1] - p1[1])
             proj  = (d[0] * line[0] + d[1] * line[1]) / line_norm
             perp2 = d[0] ** 2 + d[1] ** 2 - proj ** 2
             return math.sqrt(max(0.0, perp2))
@@ -188,7 +211,7 @@ def select_representatives(front: List[Individual]) -> dict:
         "ideal_point":    ideal,
         # Comparável direto do AG escalar: o ponto da fronteira que minimiza a MESMA
         # soma ponderada que o escalar otimiza. Sem ele a comparação entre os dois
-        # algoritmos usa `ideal_point`, que minimiza a norma L2 — outro ponto.
+        # algoritmos usaria `ideal_point`, que é geométrico e cego aos λ — outro ponto.
         "scalar_optimum": scalar_opt,
     }
 

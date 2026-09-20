@@ -58,7 +58,7 @@ ponto de referência — captura convergência *e* espalhamento num número só)
 **spread/spacing** (uniformidade da distribuição dos pontos na fronteira).
 
 **No nosso sistema:** calcular hipervolume da fronteira `(dominance, drift)` por
-seed (ponto de referência fixo, ex.: `(2.0, 1.0)` = piores valores possíveis) e
+seed (ponto de referência fixo, `(1.3, 0.4)`, ancorado nos modelos nulos) e
 reportar média ± desvio. Adiciona uma curva/coluna aos plots NSGA-II que já existem
 (`nsga2_plots`).
 
@@ -193,7 +193,7 @@ detectar convergência prematura (população colapsa antes de achar boas soluç
 
 **No nosso sistema:** plotar a diversidade genética por geração (já temos histórico
 no `ga.py`/`nsga2.py`). Se a população colapsa cedo, justifica mexer em
-`MUTATION_RATE`/`TOURNAMENT_SIZE`/`ELITE_SIZE`.
+`MUTATION_RATE`/`TOURNAMENT_SIZE`/`ELITE_RATE`.
 
 **Custo/prioridade:** baixo. **🟡 Baixa** — bom como diagnóstico de apoio.
 

@@ -171,6 +171,8 @@ que os artefatos do projeto descrevem o motor atual.
   explorável, porque um personagem **sob ameaça** (o oponente alcança) segue livre para
   recuar; kiting fica intacto.
 
+> O stun contínuo, revisto: o timer float ainda deixava o gene em degraus — ver «Os timers passaram a carregar o resto».
+
 ## A régua de identidade (2026-09-16)
 
 O ponto de partida foi uma objeção do próprio autor, levantada no início do projeto e
@@ -214,6 +216,8 @@ pergunta central fica ambígua — eu estaria forçando a preservação."*
   achado, não o bug: é o que empurra a resposta da tese para o **mapa do trade-off**
   (fronteira do NSGA-II) em vez de um ponto único.
 
+> Revisto: a régua funcional ganhou uma medida contínua, e a leitura de identidade foi refeita — ver «A identidade funcional ganhou uma régua contínua».
+
 ## O piso de decisividade (2026-09-16)
 
 - **Problema:** `MATCHUP_FLOOR = 0,10` punia lutas *apertadas demais*, empurrando na
@@ -230,6 +234,8 @@ pergunta central fica ambígua — eu estaria forçando a preservação."*
   entre algoritmos voltou para o termo primário. Em paralelo, os três termos do dominance
   passaram a ser reportados **separados** nos artefatos — o composto sozinho não
   distingue perder no primário de perder num secundário de metade do peso.
+
+> Revisto: valor mantido, justificativa corrigida — ver «O piso de decisividade: mantido, com a justificativa corrigida».
 
 ## O critério de parada do AG (2026-09-16)
 
@@ -284,6 +290,8 @@ pergunta central fica ambígua — eu estaria forçando a preservação."*
 - **Ponto de método associado:** `select_representatives` ganhou `scalar_optimum`, o
   mínimo da soma ponderada que o escalar otimiza. A comparação vinha usando
   `ideal_point`, que minimiza a norma L2 — outro ponto da mesma fronteira.
+
+> Revisto: a assimetria de inicialização ganhou um braço de controle — ver «Os controles: λ_drift = 0 e AG sem semente canônica».
 
 ## O agarrão / quebra de guarda (2026-09-16)
 
@@ -356,6 +364,8 @@ diagnóstico saiu **muito maior** que o item.
   iguala afirma p < 0,03. Com 35 nulos, o roster evoluído passou a superar todos nos três
   eixos de identidade.
 
+> Revisto: o piso do validador estava inflado pelo desempate por índice, e três leituras feitas contra os nulos não se sustentavam — ver «O validador parou de dar asserções por empate» e «Leituras corrigidas».
+
 ## A família de testes estatísticos (2026-09-16)
 
 - **Problema:** a comparação AG × NSGA-II aplicava Holm-Bonferroni sobre **4 métricas**,
@@ -382,6 +392,8 @@ diagnóstico saiu **muito maior** que o item.
   significativo a n = 10* — e o gargalo é poder amostral, não correção. Explicação
   didática do aparato em
   [`../reference/12-statistical-testing.md`](../reference/12-statistical-testing.md).
+
+> Revisto: a família passou a ser a mesma em toda comparação, com as métricas de identidade — ver «A manchete da comparação passou ao `scalar_optimum`».
 
 ## O stream de avaliação: CRN para seleção, rotação entre gerações (2026-09-16)
 
@@ -510,6 +522,8 @@ convergência é o predicado de equilíbrio (`roster_balanced`), não o valor do
   cooldown, quantizado em `round(cd × TICK_SCALE)` — de 5 a 25 sub-ticks —, e é justamente
   o cooldown mínimo de 5 sub-ticks que ancora a persistência nova.
 
+> Revisto: o cooldown mínimo real era 6 sub-ticks, não 5; com o período corrigido o argumento passou a valer — ver «Os timers passaram a carregar o resto».
+
 ## O drift deixou de cobrar pela escala dos pesos (2026-09-16)
 
 - **Problema:** a intenção é sorteada **proporcionalmente** a `(w_retreat, w_defend,
@@ -574,8 +588,10 @@ separar duas classes, e essa separação é ela própria uma decisão metodológ
   mexer na premissa para obter a resposta. O que faltava era o **critério de aceitação**
   escrito: internamente coerentes (validador 23/23), distintos entre si (as 10 distâncias
   par-a-par ≥ 0,3221) e **desequilibrados** (`dominance` 1,2690 — o ponto de partida do
-  problema, não defeito). E o que **não** se exige, com a razão: realizar o ciclo (loteria
-  de 1/24) e ser equilibrado (seria o problema resolvido de graça). Duas limitações
+  problema, não defeito). E o que **não** se exige, com a razão: realizar o ciclo (o
+  motivo registrado aqui, "loteria de 1/24", estava errado — ver «Leituras corrigidas»; o
+  canônico realiza 6/10 dele, e é autoria, não premissa) e ser equilibrado (seria o
+  problema resolvido de graça). Duas limitações
   declaradas junto: **5 dos 55 genes estão colados no bound e 4 deles são definidores**
   (Rushdown `attack_cooldown`/`speed`, Turtle `hp`/`attack_cooldown`/`damage`), então só
   podem driftar **para dentro** — a identidade desses dois é assimetricamente protegida
@@ -690,6 +706,8 @@ procedimento de checkup antigo (*"re-avaliar o melhor sob seed-base 42 devolve o
 0,0665 contra 0,0153 gravado, enquanto o `drift`, determinístico, bate exato nos dois
 casos. Quem for reproduzir um artefato precisa reproduzir também o *stream*.
 
+> Revisto: a proveniência passou a recusar entrada velha e a cobrir o código de medição — ver a seção de mesmo tema em 2026-09-18.
+
 ## Os marcos de convergência viraram amostra, não anedota (2026-09-17)
 
 **Problema.** Com os dois algoritmos em orçamento fixo, convergir virou evento registrado
@@ -716,6 +734,8 @@ Duas escolhas de agregação que são o conteúdo do item:
 explícito no artefato que ele **não** é uma comparação pareada entre os dois algoritmos, e
 sim uma caracterização do escalar. A medição sobre as 20 sementes saiu na bateria de
 2026-09-18 — ver "A bateria com n = 20", no fim deste documento.
+
+> Revisto: o `stagnated_at` foi removido — ver «O `stagnated_at` saiu».
 
 ## O sweep de lambda e o n = 20 viraram um experimento só (2026-09-17)
 
@@ -858,6 +878,8 @@ módulo de proveniência existe para impedir. Duas consequências ficaram:
   configuração do experimento é um *dado* e pertence ao artefato. Foi essa redundância que
   permitiu reconstruir os cinco — junto com o nome do arquivo, que já codificava o λ.
 
+> Revisto: os sweeps passaram a rodar em sementes disjuntas das da bateria — ver «Os sweeps saíram das sementes da bateria».
+
 ## Os pesos do dominance: os termos secundários são carga estrutural (2026-09-17)
 
 **Problema.** Os pesos `1,0 / 0,5 / 0,5` dos três termos do `dominance_penalty` nunca foram
@@ -998,6 +1020,8 @@ evento não dispara. Ele dispara em **10/20** sementes, tarde (geração 99,5 ±
 convergência disparou 70 vezes e a confirmação fora do stream recusou 50 (**71%**), dentro da
 faixa de 67%–83% medida nos braços do sweep — agora no orçamento de produção.
 
+> Revisto: quatro leituras desta bateria não se sustentavam — ver «Leituras corrigidas».
+
 ## O carimbo retroativo por inferência falhou num artefato (2026-09-18)
 
 **Problema.** O carimbo retroativo de 2026-09-17 reproduziu `single_run/ga.json` e
@@ -1069,6 +1093,8 @@ Turtle, fora em **9/10** condições — sistemático. O `knee_point` tem sete p
 dois **esporádicos**, Zoner × Rushdown em 4/10 e Combo Master × Turtle em 6/10: ali o
 veredito FRÁGIL é certo pelos sete, e os dois são o tipo de caso que a contagem existe para
 não confundir com eles.
+
+> Revisto: a validação externa separou replicação de robustez, com veredito por IC — ver a seção de mesmo tema.
 
 ## O pool de processos ficou persistente (2026-09-18)
 
@@ -1165,3 +1191,334 @@ de execução; o registro de topo sai idêntico ao do mesmo ponto em `representa
 padrão, pela continuidade com as baterias anteriores: a escolha de qual comparação vira a
 principal fica para depois da próxima bateria, com os dois resultados em mãos. O que a
 comparação contra o `scalar_optimum` mostra é resultado dessa bateria.
+
+> Revisto: a manchete foi decidida antes da bateria, pelo método — ver «A manchete da comparação passou ao `scalar_optimum`».
+
+## A auditoria do zero: o que o sistema medido sustentava (2026-09-18)
+
+Uma revisão feita **sem contexto prévio** — lendo o código e os artefatos como um leitor
+externo leria, sem os docs como guia — achou três classes de problema, cada uma resolvida
+numa seção abaixo:
+
+1. **afirmações sobre o motor que o código não cumpria** — o período do cooldown e a
+   continuidade do stun;
+2. **leituras que os números não sustentavam** — sobre a régua de identidade funcional,
+   o equilíbrio "melhor que o espelho", a não-transitividade e o ciclo autoral;
+3. **buracos de protocolo e de instrumentação** — controles ausentes, representante de
+   manchete, validação externa que só replicava, proveniência que podia ser lavada.
+
+Todas as decisões abaixo foram tomadas **antes** da bateria que vai medi-las, com os
+resultados anteriores já obsoletos (o CRN por luta troca todos os sorteios). Nenhuma foi
+escolhida olhando o número que ela produziria.
+
+## Os timers passaram a carregar o resto (2026-09-18)
+
+**Problema — duas afirmações do motor eram falsas.** (i) O período entre golpes era
+`round(5c) + 1` sub-ticks, não `round(5c)`: o timer recém-setado não decrementa no próprio
+sub-tick, então quem tem `attack_cooldown = 1` batia a cada **6** sub-ticks. O argumento
+de coerência da persistência — "5 sub-ticks = exatamente o cooldown mínimo" — estava
+apoiado num número errado. (ii) O stun **continuava categórico**. A reforma de
+2026-09-10 trocou o timer arredondado por um float decrementado de 1,0 e registrou que
+isso tirava o gene dos "4 níveis efetivos"; mas um alvo com stun float `s` fica parado
+exatamente `ceil(s)` sub-ticks — o mesmo degrau, só com os limiares deslocados (o ganho
+de amplitude medido na época veio desse deslocamento de `round` para `ceil`, não de
+continuidade). Medido no motor de então:
+
+| | cooldown 1 | 1,3 | 2,5 | 5 |
+|---|---|---|---|---|
+| período esperado (sub-ticks) | 5 | 6,5 | 12,5 | 25 |
+| período observado | **6** | **7** | **13** | **26** |
+
+Com cooldown 1, stun de 0,02 a 0,20 travava 1 sub-tick, de 0,22 a 0,40 travava 2, de 0,42
+a 0,60 travava 3: **4 efeitos** em todo o intervalo do gene. No indivíduo evoluído, variar
+só o stun do Rushdown (cooldown 1,107) em 31 valores de 0 a 0,6 dava **5 WR distintas** — o
+gene era um platô para o atacante mais rápido do roster.
+
+**Mudança.** Os dois timers passaram a **carregar o resto** de uma aplicação para a
+seguinte (difusão de erro, `combat._carry_round`): o período sorteado de cada golpe é o
+inteiro da soma `5c + resto`, e o resto fica para o próximo; o mesmo para os sub-ticks de
+stun. A média é exata e o combate segue determinístico — o sorteio de intenção continua a
+única fonte de acaso. O sub-tick do próprio golpe passou a contar como o primeiro do
+período. O stun virou inteiro no trace.
+
+**Resultado.** Período observado 5,000 · 6,500 · 12,500 · 25,000 — exato nos quatro. Stun
+aplicado por golpe, com cooldown 1: 0,250 · 0,500 · 0,748 · … · 2,994 para `stun` 0,05 ·
+0,10 · 0,15 · … · 0,60 — linear no gene. O mesmo teste do Rushdown evoluído: **27 WR
+distintas em 31**. O canônico segue passando nas 23 asserções do validador; as WR globais
+se mexem pouco (Zoner 38,3% → 41,2%, Grappler 62,0% → 58,8%, os outros três iguais). Com o
+período certo, o argumento da persistência passa a ser verdadeiro: 5 sub-ticks é
+exatamente o período do atacante mais rápido. `test_combat` cobre os dois timers.
+
+## O validador parou de dar asserções por empate (2026-09-18)
+
+**Problema — dois defeitos no instrumento que mede identidade estrutural.** (i) O ranking
+das asserções da Layer 1 resolvia empate pela **ordem do índice**: com cinco personagens
+idênticos, o de índice 0 (o Zoner) era "o de maior alcance". Todo espelho passava em **4
+das 13** asserções da Layer 1 sem ter identidade nenhuma — o piso dos modelos nulos estava
+inflado por um detalhe de implementação. (ii) As asserções sobre os pesos comparavam o
+valor **cru**, enquanto o projeto já tinha estabelecido que só a razão entre os pesos age
+no combate (`fitness.drift_genes`). No indivíduo evoluído, o ranking cru e o da
+probabilidade de intenção discordavam em 2 das 3 asserções de peso (Zoner, "quem mais
+recua": 2º cru, 1º real; Turtle, "quem mais guarda": 3º cru, 4º real).
+
+**Mudança.** Empate conta **contra** a asserção (`_rank_against`: um valor empatado ocupa
+uma faixa de posições, e vale a ponta mais longe da esperada). As asserções de peso leem a
+probabilidade de intenção (`Character.intention_probabilities`), a mesma forma em que o
+peso age.
+
+**Resultado.** Os espelhos passam em **0/13** da Layer 1 (antes 4/13) e em 1–4/18 das
+estruturais (antes 5–8/18); o piso dos aleatórios não muda (valores contínuos não
+empatam). A média nula do validador completo cai de 6,37 para 5,97/23, e o pior nulo segue
+em 10/23. O canônico segue 23/23. `test_archetype_validator` cobre os dois: nenhum espelho
+aprova asserção da Layer 1, e escalar os pesos não muda o veredito.
+
+## A identidade funcional ganhou uma régua contínua (2026-09-18)
+
+**Problema — a régua que responde à pergunta era a mais grossa do projeto, e estava no
+piso.** A pergunta de pesquisa diz *identidades funcionais*, e o projeto designa a Layer 3
+(comportamental) como a régua que a responde. Mas a Layer 3 são 5 bits — cada arquétipo
+precisa ser o **1º** numa métrica, e ficar em 2º por um fio conta igual a ficar em 5º. E,
+lida contra os nulos, ela não sustentava a leitura corrente: o indivíduo da bateria de
+2026-09-18 passava em **1/5**, com **p = 0,74** contra os 35 nulos — indistinguível de um
+roster aleatório. A frase "a identidade supera os 35 nulos nos três eixos (p < 0,03)" vinha
+do drift (que está no fitness) e das Layers 1-2 (que o próprio projeto declara
+endógenas). A política dele mostrava o mesmo por outro ângulo: o Rushdown evoluído guardava
+mais do que avançava (pesos 0,39 / 0,71 / 0,52) e era o **menos** agressivo dos cinco; o
+Zoner avançava mais do que recuava; o Turtle recuava mais do que guardava.
+
+**Mudança.** Uma segunda régua funcional, contínua: a **concordância de ranking
+comportamental** (`archetype_validator.rank_agreement`) — τ-b de Kendall entre a ordem dos
+5 personagens no canônico e no roster, em cada uma das 10 métricas do perfil comportamental,
+na média. 1 = a ordem do canônico em tudo, 0 = acaso, −1 = invertida. Usa as 5 posições
+e todas as métricas, sem asserção escrita à mão, e é relativa ao roster nos dois lados (um
+deslocamento que afeta todos igual não conta como perda). Entra no validador, nos modelos
+nulos (com piso, teto e p), no dossiê e, por semente, no `multi_run`. A Layer 3 continua.
+
+**Resultado.** Canônico: 1,000. Nos 35 nulos: média +0,001, desvio 0,173, máximo +0,338 —
+o comportamento de uma régua de acaso bem calibrada. Re-teste (o mesmo roster sob 3
+sementes): o canônico fica ≥ 0,97 com 120 ou 200 lutas por par; o evoluído varia 0,19–0,28
+a 120 e 0,23–0,24 a 200 — daí `IDENTITY_BEHAVIORAL_SIMS = 200`. **Leitura preliminar**, a
+confirmar na bateria: o evoluído da bateria anterior, reavaliado no motor atual, tira
+τ = +0,19 com **p = 0,14** — também não se distingue do acaso. Se a bateria confirmar, a
+resposta honesta é que o equilíbrio alcançado **não preserva a identidade funcional
+medida**, e que o que o drift preserva é a identidade estrutural.
+
+## Os controles: λ_drift = 0 e AG sem semente canônica (2026-09-18)
+
+**Problema — nada isolava o efeito do método.** (i) Os modelos nulos não são otimizados:
+um roster evoluído com penalidade de drift vencer rosters aleatórios em drift e nas
+Layers 1-2 é garantido por construção, e não diz quanto da identidade o termo de drift
+segura. O contrafactual da pergunta de pesquisa — *equilibrar sem o termo de identidade* —
+não tinha sido medido; o sweep de λ foi de 0,25 a 4, sem o 0. (ii) O AG escalar começa com
+o canônico na população e o NSGA-II começa aleatório — e o próprio projeto já tinha
+registrado que um detalhe de inicialização **inverteu** a conclusão entre algoritmos. A
+comparação AG × NSGA-II confundia algoritmo com inicialização.
+
+**Mudança.** Dois braços de controle **na bateria**, com a amostra e o orçamento dela (n =
+20, pop 300 × 150): AG com `λ_drift = 0`, e AG sem a semente canônica
+(`GA_CANONICAL_SEED`, flag `--no-canonical-seed`). O `multi_run` passou a rotear
+artefatos em três destinos: o protocolo (a bateria), `results/controls/` (desvio só de
+desenho, amostra e orçamento do protocolo — citável) e `results/exploratory/` (desvio de
+amostra ou orçamento — os sweeps). O `compare_algorithms --control` compara a bateria com
+cada controle, com o mesmo aparato estatístico. O override `GA_CANONICAL_SEED` vai para o
+carimbo como qualquer braço.
+
+**Resultado.** Pendente da bateria. O que cada comparação responde, declarado antes dela:
+AG × `λ_drift = 0` mede quanto de cada régua de identidade (drift, Layers 1-2, Layer 3, τ)
+o termo de drift segura, e a que custo em equilíbrio; AG × sem semente mede quanto da
+diferença entre AG e NSGA-II é inicialização.
+
+## A manchete da comparação passou ao `scalar_optimum`, com a relação de Pareto (2026-09-18)
+
+**Problema.** A comparação principal representava o NSGA-II pelo `best_dominance` — o
+extremo de baixa dominância da fronteira, que perde em drift **por construção**. Como
+manchete, "NSGA-II melhor em drift" media em boa parte a escolha do ponto. A seção "Os
+cinco representantes" tinha deixado a escolha para depois da próxima bateria, com os dois
+resultados em mãos — o que faria a manchete ser escolhida olhando o resultado.
+
+**Mudança.** A escolha foi feita **antes** da bateria, pelo método: a manchete é o
+`scalar_optimum`, o ponto que minimiza a própria função do AG escalar — o único comparável
+a ele (`multi_run.HEADLINE_REPRESENTATIVE`). O `best_dominance` virou a leitura secundária.
+Ao lado, descritiva e fora da família de Holm, a **relação de Pareto por semente**: o ponto
+do AG contra a fronteira **inteira** do NSGA-II da mesma semente — domina algum ponto dela,
+é dominado por algum, ou nenhum dos dois. Os dois lados são medidos no mesmo stream (o da
+última geração da mesma semente), então a relação não carrega ruído de stream. E a família
+de métricas testadas passou a ser a mesma em toda comparação — equilíbrio (`dominance`,
+counters, bonecos em banda) e identidade (drift, Layers 1-2, Layer 3, τ): 7 métricas,
+decididas antes de ver dados.
+
+**Resultado.** Pendente da bateria. Custo: cada métrica a mais multiplica o menor p por um
+fator maior no Holm; com n = 20 e os efeitos grandes da bateria anterior (p de 0,0018 a
+0,00007 antes da correção), a família de 7 não muda o que é significativo nelas.
+
+## A validação externa separou replicação de robustez (2026-09-18)
+
+**Problema — ela só trocava a semente.** As 10 "condições" eram 10 sementes das mesmas
+regras: replicação com mais amostra, não robustez a "condições que o AG nunca otimizou". E
+o veredito binário ("counter duro em ALGUMA das K condições") ficava mais severo a cada
+semente acrescentada, mesmo com o roster intacto — um par cuja WR real está em 64% reprova
+com probabilidade crescente em K.
+
+**Mudança.** Duas perguntas, cada uma com uma amostra de 5000 lutas por par (as 10
+sementes somadas): **replicação** (regras do treino) e **robustez** (uma constante de regra
+perturbada por vez — distância inicial 40/60, campo 80/120, persistência 4/6, redução da
+guarda 0,55/0,65; `EXTERNAL_VALIDATION_RULE_PERTURBATIONS`). O veredito de cada WR sai do
+IC de Wilson (95%) contra a banda: dentro, fora, ou inconclusivo — e a condição é ROBUSTA,
+FRÁGIL ou INCONCLUSIVA. As regras do combate viraram estado de processo
+(`combat.CombatRules`, `set_rules`), levadas aos workers no `RuntimeState` como os pesos.
+
+**Resultado.** O veredito não depende mais do número de sementes. Pendente da bateria. O
+dado anterior já indica por que a amostra somada importa: na bateria de 2026-09-18, com
+5000 lutas por par, os 10 pares do roster do AG estavam todos **decididos** (|z| ≥ 3,6,
+WR de 42,0% a 57,8%) — o que as 200 lutas do `baselines` não conseguiam mostrar.
+
+## O `stagnated_at` saiu (2026-09-18)
+
+**Problema.** A estagnação disparava quando o "melhor fitness histórico" não subia por 30
+gerações. Com o stream rotacionando a cada geração, esse histórico é o máximo de valores
+**ruidosos**: sobe por sorte, e depois raramente é batido. O evento media a catraca do
+ruído, não a busca — "estagnou em 10/20, na geração 99,5" era um número sem objeto.
+
+**Mudança.** `stagnated_at` e `STAGNATION_LIMIT` foram removidos. O eixo de velocidade
+fica com `converged_at`, que testa o predicado `roster_balanced` em vez de um número
+ruidoso.
+
+**Resultado.** Um número frágil a menos em todo artefato do AG. O que `converged_at`
+significa também foi escrito com mais cuidado: é o **primeiro** disparo do gate que
+sobrevive à confirmação, num teste repetido a cada geração — na bateria anterior o gate
+disparou 70 vezes e a confirmação recusou 50. Convergir não é ficar equilibrado: 20/20
+sementes convergiram, mas 14/20 terminaram com o roster equilibrado na reavaliação.
+
+## O hipervolume ganhou uma referência com significado (2026-09-18)
+
+**Problema.** O ponto de referência era (2,0; 1,0) — os máximos teóricos dos dois
+objetivos —, longe de qualquer fronteira real (máximos observados nas 20 fronteiras da
+bateria: `dominance` 1,219, drift 0,260). O HV ocupava 90,4% da área de referência e
+variava pouco entre sementes (coeficiente de variação 2,0%): "o hipervolume ficou igual"
+era em parte o instrumento saturado.
+
+**Mudança.** Referência (1,3; 0,4), ancorada nos modelos nulos: `dominance` ≈ a do
+canônico (o equilíbrio de partida) e drift ≈ o do espelho (identidade zero). Um ponto com
+equilíbrio pior que o de partida, ou identidade pior que a de cinco cópias, não conta.
+
+**Resultado.** Nas mesmas 20 fronteiras: HV 76,7% da área (antes 90,4%), coeficiente de
+variação 3,9% (antes 2,0%) — o dobro de resolução entre fronteiras, sem excluir nenhum
+ponto real.
+
+## O joelho e o ideal deixaram de depender da unidade (2026-09-18)
+
+**Problema.** O `knee_point` (maior distância à reta entre os extremos) e o `ideal_point`
+(menor norma L2 até a **origem**) eram calculados em unidades cruas. Com `dominance` indo
+até 2,0 e drift em décimos, a escala de um eixo decidia a geometria; e a origem não é
+alcançável por nenhum ponto.
+
+**Mudança.** Os dois passaram a usar os objetivos normalizados pela amplitude da própria
+fronteira, e o ideal passou a ser o mais próximo do **ponto utópico** (o melhor de cada
+objetivo). `test_nsga2` cobre a invariância: mudar a unidade de um objetivo não muda o
+ponto escolhido.
+
+**Resultado.** Nas 20 fronteiras da bateria anterior, o `ideal_point` muda em **19/20**; o
+`knee_point`, em 0/20. O ideal antigo era, na prática, o ponto de menor `dominance`
+corrigido pelo drift — a escala escolhia por ele.
+
+## A sensibilidade passou a cobrir os pesos, com janela inteira e o piso certo (2026-09-18)
+
+**Problema — três defeitos.** (i) Só os 8 atributos eram medidos; os 3 pesos, que definem
+a política (15 dos 55 genes), nunca. (ii) Perto do bound, o deslocamento era **cortado**:
+num gene encostado no limite (no evoluído, o cooldown do Rushdown em 1,11, o stun do Combo
+Master em 0,59, o dano do Turtle em 15,00) um lado da janela sumia e o gene parecia menos
+visível só por estar na borda. (iii) O piso de ruído era o máximo de |Δ| de **uma célula**,
+mas o número classificado é a **média de 5** |Δ| — estatísticas de variâncias diferentes.
+
+**Mudança.** Os 11 genes, cada um com o σ que a mutação usa nele; janela de largura 2σ que
+**desliza** para dentro do bound em vez de ser cortada; e o piso medido na mesma
+estatística do ranking (média sobre os personagens de |Δ| sob janela zero).
+
+**Resultado — preliminar**, no evoluído da bateria anterior com o motor atual. O piso cai
+de 0,068 (máximo de uma célula) para 0,037 (máximo da estatística certa; média nula
+0,019). `stun` (0,106) e `grab_power` (0,085) passam de borderline a visíveis; `speed` e
+`knockback` (0,055) de neutros a borderline. E um achado novo: na escala da mutação,
+`w_retreat` (0,026) e `w_defend` (0,024) ficam **abaixo do piso**, `w_aggressiveness`
+(0,049) no limiar — o AG quase não enxerga a política pelo equilíbrio. O único gradiente
+que a puxa de volta ao canônico é o do drift.
+
+## A proveniência passou a recusar entrada velha e a cobrir o código de medição (2026-09-18)
+
+**Problema — três buracos por onde um número velho passava por atual.** (i) O
+`compare_algorithms` checava os dois artefatos **um contra o outro** e carimbava o
+resultado com a configuração vigente: dois `multi_run` obsoletos da mesma configuração
+geravam uma comparação que se declarava atual. O mesmo nas ferramentas que carregam um
+indivíduo salvo (`external_validation`, `baselines`, `sensitivity_analysis`): o
+carregamento só **avisava**, e o artefato novo saía carimbado como atual. (ii) O digest de
+código cobria só `src/engine/`: mudar as asserções do validador ou o cálculo de uma métrica
+no `baselines` não tornava obsoleto nenhum artefato que dependesse delas. (iii) O
+`multi_run` só olhava orçamento, λ, pesos e seleção para decidir o destino: um
+`--n-seeds 3` no resto do protocolo gravava por cima da bateria de n = 20 — a falha
+silenciosa que a própria função existia para impedir.
+
+**Mudança.** (i) `provenance.refuse_if_stale`, o par estrito do `warn_if_stale`: quem
+**grava** um artefato a partir de outro recusa entrada não-atual (um controle é aceito
+quando a divergência é exatamente o override que ele declara). Quem só inspeciona segue
+avisando. (ii) Digest de medição **por artefato**: cada ferramenta passa o próprio módulo
+ao `stamp`, e o carimbo guarda o digest dele e de tudo de `src/` fora do motor que ele
+importa, transitivamente — lista derivada das importações, não escrita à mão. Mudar o
+validador invalida o `baselines.json` e o `multi_run`, e só eles. (iii) O destino do
+`multi_run` passou a considerar todo desvio do protocolo, inclusive de amostra e de sims.
+
+**Resultado.** `test_provenance` e `test_multi_run` cobrem os três. O custo declarado do
+item (ii): uma mudança cosmética num módulo de medição também invalida os artefatos que
+dependem dele — o mesmo preço já aceito para o motor, contra o silêncio do contrário.
+
+## Os sweeps saíram das sementes da bateria (2026-09-18)
+
+**Problema.** Os sweeps rodavam nas sementes 42–46, e a bateria em 42–61: um quarto da
+amostra que **avalia** a configuração escolhida era a mesma que a **escolheu**.
+
+**Mudança.** Os sweeps rodam nas sementes 1000–1004 (streams 1 000 000+, sem colisão com
+nenhuma família do projeto).
+
+**Resultado.** Seleção e avaliação em amostras disjuntas. Os 16 braços precisam rodar de
+novo de qualquer forma (motor mudou); os nomes deles passam a levar `n5_seed1000`.
+
+## O piso de decisividade: mantido, com a justificativa corrigida (2026-09-18)
+
+**Problema.** O comentário do `MATCHUP_FLOOR` dizia que o piso "pega a solução trivial de
+equilíbrio" (o espelho). Medido, ele pega **um** dos cinco espelhos — o do Zoner, o caso
+menos decidido que o motor produz (D 0,016–0,019); os outros quatro (D 0,03–0,09) passam.
+
+**Mudança.** Manteve-se 0,02, porque a função real do piso segue válida: ele fica acima do
+roster degenerado (dano mínimo, HP máximo, só GUARDA: 0% de KO, D ≤ 0,008) e abaixo de todo
+par de personagens distintos, e não morde nenhum roster evoluído. A justificativa passou a
+dizer isso, e a dizer que a defesa contra a solução trivial é o `drift_penalty`, que cobra a
+perda de identidade de qualquer espelho.
+
+**Resultado.** Nenhum número muda; a afirmação passa a ser a que os dados sustentam.
+
+## Leituras corrigidas (2026-09-18)
+
+Quatro frases dos resultados de 2026-09-18 não se sustentavam nos próprios números. Ficam
+registradas porque o erro é instrutivo, e porque a próxima bateria não pode repeti-lo.
+
+- **"Mais equilibrado que o espelho (0,026 contra 0,025)".** 0,026 é *maior* que 0,025 —
+  pior. Os "102% do equilíbrio trivial" eram contra a **média** dos espelhos, puxada pelo
+  do Zoner (0,113, que o piso de decisividade penaliza); sem ele, a média é 0,030. E os
+  0,026 do evoluído eram 100% `global_term`, no piso de ruído amostral de 200 lutas: a
+  leitura correta é *tão equilibrado quanto a simetria perfeita, dentro do ruído*.
+- **"Tríades circulares em 4,0, com pares em 43%–55%: arestas decididas."** A 200 lutas por
+  par, 43%–55% é o espalhamento de puro ruído — os espelhos dão 44%–56% e chegam a 4,0
+  tríades. A evidência boa estava em outro artefato: com 5000 lutas por par, os 10 pares
+  estavam decididos e formavam um torneio **regular** (5 tríades, o máximo). Mesmo assim,
+  equilíbrio global com pares decididos **força** intransitividade (um roster
+  estritamente transitivo não pode ter todos perto de 50%), então ela é em boa parte
+  consequência do objetivo, não achado independente. O que não é implicado — os pares
+  seguirem decididos — é o que se reporta.
+- **"Acertar o ciclo autoral é loteria de 1/24."** O argumento está errado: com arestas
+  decididas, realizar as 10 arestas teria p = 1/1024 sob cara-ou-coroa, altamente
+  informativo. O motivo real de o ciclo não servir de régua é outro: **o próprio canônico
+  realiza só 6/10** dele no motor. E contra as direções que o canônico **realiza** —
+  consequência da premissa, não da autoria —, o evoluído mantém 5/10 (2000 lutas por par):
+  exatamente o acaso. O favorito de cada confronto não sobreviveu ao equilíbrio.
+- **"A identidade supera os 35 nulos nos três eixos (p < 0,03)."** Os três eixos eram o
+  drift (no fitness), as Layers 1-2 (endógenas) e o validador completo, dominado pelas
+  estruturais. Na régua funcional isolada, o evoluído passava em 1/5 da Layer 3, com
+  p = 0,74 — ver "A identidade funcional ganhou uma régua contínua".

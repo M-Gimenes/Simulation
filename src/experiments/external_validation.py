@@ -1,151 +1,175 @@
 """external_validation.py — Item 3.2 da metodologia: validação externa ao fitness.
 
-Estilo Ludi (Browne & Maire 2010): não confiar num único número de fitness — validar
-o artefato evoluído *fora* do laço de otimização, contra uma bateria de indicadores
-sob condições que o AG nunca otimizou.
+Estilo Ludi (Browne & Maire 2010): não confiar num único número de fitness — validar o
+artefato evoluído *fora* do laço de otimização. Fixa UM indivíduo (canônico, melhor do
+AG, ou representante do NSGA-II) e o reavalia em duas perguntas diferentes:
 
-Aqui: fixa UM indivíduo (canônico, melhor do AG, ou representante do NSGA-II) e o
-reavalia sob K sementes de avaliação **totalmente novas** (fora do range de treino e
-da seed de validação do multi_run), cada uma com mais sims. Se o equilíbrio é robusto,
-ele sobrevive ao ruído fora do laço; se é overfit às condições exatas do treino, os
-matchups balanceados se desfazem entre as sementes.
+  • **Replicação** — as mesmas regras do treino, sob sementes que o AG nunca viu
+    (fora do range de treino e da seed de validação do `multi_run`), com uma amostra
+    grande: o equilíbrio medido durante a busca se confirma com mais lutas?
+  • **Robustez** — regras de combate que o AG nunca viu, uma constante por vez
+    (`EXTERNAL_VALIDATION_RULE_PERTURBATIONS`: distância inicial, tamanho do campo,
+    persistência da intenção, redução da guarda). Trocar a semente só repete a mesma
+    pergunta com mais amostra; mudar a regra testa se o equilíbrio sobrevive fora das
+    condições exatas em que foi otimizado.
+
+Em cada condição, as `EXTERNAL_VALIDATION_N_SEEDS` sementes são somadas numa amostra só
+(5000 lutas por par), e o veredito sai do **intervalo de confiança** (Wilson, 95%) de cada
+WR contra a banda:
+
+  • dentro — o IC inteiro dentro da banda;
+  • fora — o IC inteiro fora da banda (a falha é estatisticamente clara);
+  • inconclusivo — o IC atravessa a borda.
+
+A condição é ROBUSTA se todo boneco e todo par estão dentro, FRÁGIL se algum está fora,
+INCONCLUSIVA no resto. O veredito não depende de quantas sementes se usa: um quantificador
+"falhou em alguma das K" ficaria mais severo a cada semente acrescentada, mesmo com o
+roster intacto.
 
 A bateria de identidade post-hoc (ciclo, drift_table, fingerprint, archetype_validator)
-é determinística nos genes e já coberta pelo `report`; esta validação foca no eixo
-**estocástico** (equilíbrio), que é onde o overfitting ao fitness se esconde.
-
-O veredito é binário e conservador — o roster só é ROBUSTO se nenhum boneco sair da banda
-e nenhum par virar counter duro em NENHUMA condição. Junto dele vai a **contagem** de
-condições de cada boneco e de cada par: um par fora em 9 de 10 condições e um par que
-escapa uma vez reprovam igual, mas não são o mesmo achado, e só a contagem os distingue.
+já é coberta pelo `report`; esta validação foca no eixo do **equilíbrio**, que é onde o
+ajuste ao fitness se esconde.
 
 Uso:
     py -m src.experiments.external_validation              # canônico
     py -m src.experiments.external_validation --evolved    # melhor do AG
-    py -m src.experiments.external_validation --nsga2 best_dominance
-    py -m src.experiments.external_validation --n-seeds 30 --sims 1000
+    py -m src.experiments.external_validation --nsga2 scalar_optimum
+    py -m src.experiments.external_validation --n-seeds 20 --sims 1000
 """
 
 from __future__ import annotations
 
 import argparse
 import json
-from itertools import combinations
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
+from src.engine.combat import CombatRules, TRAINING_RULES, set_rules
 from src.engine.config import (
     EXTERNAL_VALIDATION_N_SEEDS,
+    EXTERNAL_VALIDATION_RULE_PERTURBATIONS,
     EXTERNAL_VALIDATION_SEED_START,
     EXTERNAL_VALIDATION_SIMS,
+    GLOBAL_CONVERGENCE_THRESHOLD,
+    MATCHUP_WR_CAP,
 )
-from src.engine.fitness import (
-    FitnessDetail,
-    character_balanced,
-    evaluate_detail_n,
-    is_hard_counter,
-    set_seed_base,
-)
+from src.engine.fitness import evaluate_detail_n, set_seed_base
 from src.engine.individual import Individual
 from src.engine.paths import EXTERNAL_VALIDATION_DIR, PROJECT_ROOT
 from src.engine.provenance import stamp
 from src.experiments.multi_run import CHAR_NAMES, matchup_label, mean_std
+from src.analysis.analyze_matchups import wilson_ci
+
+REPLICATION = "replicação (regras do treino)"
+
+# Bandas do critério de equilíbrio: WR global de cada boneco e WR de cada par.
+CHARACTER_BAND = (0.5 - GLOBAL_CONVERGENCE_THRESHOLD, 0.5 + GLOBAL_CONVERGENCE_THRESHOLD)
+PAIR_BAND      = (0.5 - MATCHUP_WR_CAP, 0.5 + MATCHUP_WR_CAP)
 
 
 def _load_individual(args: argparse.Namespace):
     if args.nsga2:
-        return Individual.from_nsga2(representative=args.nsga2), f"nsga2_{args.nsga2}"
+        return (Individual.from_nsga2(representative=args.nsga2, require_current=True),
+                f"nsga2_{args.nsga2}")
     if args.evolved:
-        return Individual.from_results(), "evolved"
+        return Individual.from_results(require_current=True), "evolved"
     return Individual.from_canonical(), "canonical"
 
 
+def conditions() -> List[Tuple[str, CombatRules]]:
+    """(rótulo, regras): a replicação e uma condição por perturbação de regra."""
+    perturbed = [
+        (f"{name}={value:g}", TRAINING_RULES._replace(**{name.lower(): value}))
+        for name, value in EXTERNAL_VALIDATION_RULE_PERTURBATIONS
+    ]
+    return [(REPLICATION, TRAINING_RULES)] + perturbed
+
+
+def band_status(ci: Tuple[float, float], band: Tuple[float, float]) -> str:
+    """"dentro" / "fora" / "inconclusivo" — o IC contra a banda."""
+    lo, hi = ci
+    if band[0] <= lo and hi <= band[1]:
+        return "dentro"
+    if hi < band[0] or lo > band[1]:
+        return "fora"
+    return "inconclusivo"
+
+
+def verdict(statuses: List[str]) -> str:
+    if "fora" in statuses:
+        return "FRÁGIL"
+    if "inconclusivo" in statuses:
+        return "INCONCLUSIVO"
+    return "ROBUSTO"
+
+
 # ─────────────────────────────────────────────────────────────────────────────
-# Avaliação por condição (semente) e agregação
+# Avaliação de uma condição
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-def _condition_record(detail: FitnessDetail, seed: int) -> dict:
+def _evaluate_condition(individual: Individual, rules: CombatRules,
+                        seeds: List[int], sims: int) -> dict:
+    """Soma as sementes numa amostra só e classifica cada WR pelo IC contra a banda."""
+    set_rules(rules)
+    try:
+        details = []
+        for seed in seeds:
+            set_seed_base(seed)
+            details.append(evaluate_detail_n(individual, sims))
+    finally:
+        set_rules(TRAINING_RULES)
+
+    fights_per_pair = sims * len(seeds)
+    fights_per_char = fights_per_pair * (len(CHAR_NAMES) - 1)
+
     characters: Dict[str, dict] = {}
     for i, name in enumerate(CHAR_NAMES):
-        wr = detail.winrates[i]
-        characters[name] = {"wr": wr, "balanced": character_balanced(wr)}
+        wr = sum(d.winrates[i] for d in details) / len(details)
+        ci = wilson_ci(wr * fights_per_char, fights_per_char)
+        characters[name] = {"wr": wr, "ci": list(ci), "status": band_status(ci, CHARACTER_BAND)}
+
     matchups: Dict[str, dict] = {}
-    for (i, j), wr in detail.matchup_winrates.items():
-        matchups[matchup_label(i, j)] = {"wr": wr, "hard_counter": is_hard_counter(wr)}
+    for (i, j) in details[0].matchup_winrates:
+        wr = sum(d.matchup_winrates[(i, j)] for d in details) / len(details)
+        ci = wilson_ci(wr * fights_per_pair, fights_per_pair)
+        matchups[matchup_label(i, j)] = {"wr": wr, "ci": list(ci),
+                                         "status": band_status(ci, PAIR_BAND)}
+
+    statuses = ([c["status"] for c in characters.values()]
+                + [m["status"] for m in matchups.values()])
     return {
-        "seed": seed,
-        "dominance_penalty": detail.dominance_penalty,
-        "drift_penalty": detail.drift_penalty,
+        "rules": rules._asdict(),
+        "fights_per_pair": fights_per_pair,
+        "dominance_penalty": mean_std([d.dominance_penalty for d in details]),
+        "drift_penalty": details[0].drift_penalty,
         "characters": characters,
         "matchups": matchups,
+        "verdict": verdict(statuses),
     }
 
 
-def _aggregate(records: List[dict]) -> dict:
-    labels = [matchup_label(i, j) for i, j in combinations(range(len(CHAR_NAMES)), 2)]
+def validate(individual: Individual, seeds: List[int], sims: int) -> dict:
+    print(f"\n{'═' * 78}")
+    print(f"  Validação externa — {len(seeds)} sementes × {sims} sims/matchup por condição "
+          f"(seeds {seeds[0]}..{seeds[-1]})")
+    print(f"{'═' * 78}")
 
-    char_stats = {}
-    n_chars_robust = 0
-    for name in CHAR_NAMES:
-        wrs = [r["characters"][name]["wr"] for r in records]
-        n_in_band = sum(r["characters"][name]["balanced"] for r in records)
-        robust = n_in_band == len(records)
-        n_chars_robust += robust
-        stats = mean_std(wrs)
-        stats["n_conditions_in_band"] = n_in_band
-        stats["robust"] = robust  # WR global em banda em TODAS as condições
-        char_stats[name] = stats
+    results: Dict[str, dict] = {}
+    for label, rules in conditions():
+        print(f"  {label:<36} ... ", end="", flush=True)
+        results[label] = _evaluate_condition(individual, rules, seeds, sims)
+        print(results[label]["verdict"])
 
-    matchup_stats = {}
-    n_hard_counter_matchups = 0
-    for label in labels:
-        wrs = [r["matchups"][label]["wr"] for r in records]
-        n_as_counter = sum(r["matchups"][label]["hard_counter"] for r in records)
-        ever_hard_counter = n_as_counter > 0
-        n_hard_counter_matchups += ever_hard_counter
-        stats = mean_std(wrs)
-        stats["n_conditions_hard_counter"] = n_as_counter
-        stats["hard_counter"] = ever_hard_counter  # counter duro em ALGUMA condição
-        matchup_stats[label] = stats
-
-    return {
-        "dominance_penalty": mean_std([r["dominance_penalty"] for r in records]),
-        "drift_penalty": mean_std([r["drift_penalty"] for r in records]),
-        "characters": char_stats,
-        "matchups": matchup_stats,
-        "n_chars_robust": n_chars_robust,
-        "n_chars": len(CHAR_NAMES),
-        "n_hard_counter_matchups": n_hard_counter_matchups,
-        "n_matchups": len(labels),
-        # Roster robusto: todos os bonecos em banda em todas as condições E
-        # nenhum par vira counter duro em condição alguma.
-        "roster_robust": n_chars_robust == len(CHAR_NAMES) and n_hard_counter_matchups == 0,
-    }
-
-
-def validate(individual, seeds: List[int], sims: int) -> dict:
-    records: List[dict] = []
-    print(f"\n{'═' * 70}")
-    print(f"  Validação externa — {len(seeds)} condições independentes "
-          f"(seeds {seeds[0]}..{seeds[-1]}), {sims} sims/matchup")
-    print(f"{'═' * 70}")
-
-    for idx, seed in enumerate(seeds, start=1):
-        print(f"  [{idx:>2}/{len(seeds)}] seed={seed} ... ", end="", flush=True)
-        set_seed_base(seed)
-        detail = evaluate_detail_n(individual, sims)
-        record = _condition_record(detail, seed)
-        records.append(record)
-        n_bal = sum(c["balanced"] for c in record["characters"].values())
-        n_hc = sum(m["hard_counter"] for m in record["matchups"].values())
-        print(f"dom={record['dominance_penalty']:.4f}  "
-              f"bonecos eq={n_bal}/{len(record['characters'])}  counters={n_hc}")
-
+    robustness = [results[label]["verdict"] for label, _ in conditions()[1:]]
     return {
         "seeds": seeds,
         "sims_per_matchup": sims,
-        "per_condition": records,
-        "aggregate": _aggregate(records),
+        "character_band": list(CHARACTER_BAND),
+        "pair_band": list(PAIR_BAND),
+        "conditions": results,
+        "replication_verdict": results[REPLICATION]["verdict"],
+        "robustness_verdicts": {v: robustness.count(v)
+                                for v in ("ROBUSTO", "INCONCLUSIVO", "FRÁGIL")},
     }
 
 
@@ -153,45 +177,45 @@ def validate(individual, seeds: List[int], sims: int) -> dict:
 # Relatório
 # ─────────────────────────────────────────────────────────────────────────────
 
+_MARK = {"dentro": "✓", "inconclusivo": "~", "fora": "✗"}
+
+
+def _print_condition(label: str, cond: dict) -> None:
+    print(f"\n  ── {label} — {cond['verdict']}  "
+          f"(dominance {cond['dominance_penalty']['mean']:.4f}, "
+          f"{cond['fights_per_pair']} lutas por par)")
+    for name, c in cond["characters"].items():
+        lo, hi = c["ci"]
+        print(f"      {_MARK[c['status']]} {name:<15s} {c['wr']:.1%}  IC [{lo:.1%}, {hi:.1%}]")
+    off = {k: m for k, m in cond["matchups"].items() if m["status"] != "dentro"}
+    if off:
+        for k, m in off.items():
+            lo, hi = m["ci"]
+            print(f"      {_MARK[m['status']]} {k:<28s} {m['wr']:.1%}  IC [{lo:.1%}, {hi:.1%}]")
+    else:
+        print("      ✓ todos os pares dentro da banda de counter")
+
 
 def _print_summary(result: dict, label: str) -> None:
-    agg = result["aggregate"]
-    n = len(result["seeds"])
-    print(f"\n  ── Robustez do equilíbrio ({label}, {n} condições) ──")
-
-    dom = agg["dominance_penalty"]
-    drift = agg["drift_penalty"]
-    print(f"    dominance_penalty:  {dom['mean']:.4f} ± {dom['std']:.4f}")
-    print(f"    drift_penalty:      {drift['mean']:.4f} ± {drift['std']:.4f}")
-
-    print(f"\n    WR global por personagem (alvo 50%; ✓ = em [40%, 60%] em TODAS as condições):")
-    for name in CHAR_NAMES:
-        stats = agg["characters"][name]
-        mark = "✓" if stats["robust"] else "✗"
-        print(f"      {mark} {name:<15s} {stats['mean']:.1%} ± {stats['std']:.1%}"
-              f"   em banda em {stats['n_conditions_in_band']}/{n}")
-
-    print(f"\n    Matchups (WR média ± desvio através das condições; "
-          f"⚠ = counter duro em ALGUMA condição):")
-    for label_m, stats in agg["matchups"].items():
-        mark = "⚠" if stats["hard_counter"] else " "
-        vezes = (f"   counter em {stats['n_conditions_hard_counter']}/{n}"
-                 if stats["hard_counter"] else "")
-        print(f"      {mark} {label_m:<28s} {stats['mean']:.1%} ± {stats['std']:.1%}{vezes}")
-
-    print(f"\n    Bonecos robustos (WR global em banda em todas as {n} condições): "
-          f"{agg['n_chars_robust']}/{agg['n_chars']}")
-    print(f"    Matchups que viram counter duro em alguma condição: "
-          f"{agg['n_hard_counter_matchups']}/{agg['n_matchups']}")
-    verdict = "ROBUSTO" if agg["roster_robust"] else "FRÁGIL (sensível à condição de avaliação)"
-    print(f"    Veredito do roster: {verdict}")
+    print(f"\n{'═' * 78}")
+    print(f"  VALIDAÇÃO EXTERNA — {label}")
+    print(f"  banda do boneco [{CHARACTER_BAND[0]:.0%}, {CHARACTER_BAND[1]:.0%}] · banda do par "
+          f"[{PAIR_BAND[0]:.0%}, {PAIR_BAND[1]:.0%}] · ✓ IC dentro  ~ IC na borda  ✗ IC fora")
+    print(f"{'═' * 78}")
+    for cond_label, cond in result["conditions"].items():
+        _print_condition(cond_label, cond)
+    counts = result["robustness_verdicts"]
+    n = sum(counts.values())
+    print(f"\n  Replicação: {result['replication_verdict']}")
+    print(f"  Robustez a regras: {counts['ROBUSTO']}/{n} robustas · "
+          f"{counts['INCONCLUSIVO']}/{n} inconclusivas · {counts['FRÁGIL']}/{n} frágeis")
 
 
 def _save(result: dict, label: str) -> None:
     EXTERNAL_VALIDATION_DIR.mkdir(parents=True, exist_ok=True)
     path = EXTERNAL_VALIDATION_DIR / f"external_validation_{label}.json"
     with open(path, "w", encoding="utf-8") as fh:
-        json.dump({"provenance": stamp(), "individual": label, **result},
+        json.dump({"provenance": stamp(tool=__spec__.name), "individual": label, **result},
                   fh, indent=2, ensure_ascii=False)
     print(f"\n  Salvo em {path.relative_to(PROJECT_ROOT)}")
 
@@ -203,17 +227,18 @@ def _save(result: dict, label: str) -> None:
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Validação externa ao fitness — robustez do equilíbrio (metodologia 3.2)"
+        description="Validação externa ao fitness — replicação e robustez a regras (metodologia 3.2)"
     )
     parser.add_argument("--evolved", action="store_true", help="melhor do AG (single_run/ga.json)")
-    parser.add_argument("--nsga2", metavar="REP", nargs="?", const="best_dominance",
-                        help="representante do NSGA-II (best_dominance|knee_point|best_drift|ideal_point|scalar_optimum)")
+    parser.add_argument("--nsga2", metavar="REP", nargs="?", const="scalar_optimum",
+                        help="representante do NSGA-II (scalar_optimum|best_dominance|knee_point|"
+                             "best_drift|ideal_point)")
     parser.add_argument("--n-seeds", type=int, default=EXTERNAL_VALIDATION_N_SEEDS,
-                        help=f"nº de condições de avaliação (default: {EXTERNAL_VALIDATION_N_SEEDS})")
+                        help=f"sementes por condição (default: {EXTERNAL_VALIDATION_N_SEEDS})")
     parser.add_argument("--seed-start", type=int, default=EXTERNAL_VALIDATION_SEED_START,
                         help=f"primeira semente (default: {EXTERNAL_VALIDATION_SEED_START})")
     parser.add_argument("--sims", type=int, default=EXTERNAL_VALIDATION_SIMS,
-                        help=f"sims/matchup por condição (default: {EXTERNAL_VALIDATION_SIMS})")
+                        help=f"sims/matchup por semente (default: {EXTERNAL_VALIDATION_SIMS})")
     return parser.parse_args()
 
 

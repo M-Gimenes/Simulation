@@ -31,6 +31,7 @@ from typing import List, Tuple
 
 from src.engine.archetypes import ARCHETYPE_ORDER
 from src.engine.combat import seed_combat
+from src.engine.config import IDENTITY_BEHAVIORAL_SIMS, MULTI_RUN_SIMS, MULTI_RUN_VALIDATION_SEED
 from src.engine.fitness import evaluate_detail_n, set_seed_base
 from src.engine.individual import Individual
 from src.analysis.analyze_matchups import (
@@ -52,8 +53,6 @@ from src.experiments.baselines import (
 )
 from src.analysis.drift_table import print_drift_report
 from src.analysis.fingerprint import print_fingerprint_report
-
-REPORT_SIMS = 200
 
 
 def _load_individual(args: argparse.Namespace) -> Tuple[Individual, str, bool]:
@@ -83,8 +82,12 @@ def main() -> None:
     parser.add_argument("--evolved", action="store_true", help="melhor do AG (single_run/ga.json)")
     parser.add_argument("--nsga2", metavar="REP", nargs="?", const="knee_point",
                         help="representante do NSGA-II (knee_point|best_dominance|best_drift|ideal_point|scalar_optimum)")
-    parser.add_argument("--n", type=int, default=REPORT_SIMS, help="sims por matchup")
-    parser.add_argument("--seed", type=int, default=42, help="semente (reprodutibilidade)")
+    # Os defaults são os do `baselines`: assim a tabela de nulos do dossiê é a mesma do
+    # `baselines.json`, e não um segundo piso em circulação.
+    parser.add_argument("--n", type=int, default=MULTI_RUN_SIMS,
+                        help=f"sims por matchup (default: {MULTI_RUN_SIMS})")
+    parser.add_argument("--seed", type=int, default=MULTI_RUN_VALIDATION_SEED,
+                        help=f"semente de avaliação (default: {MULTI_RUN_VALIDATION_SEED})")
     parser.add_argument("--n-random", type=int, default=N_RANDOM_DEFAULT,
                         help="rosters aleatórios nos modelos nulos (mais = mais "
                              f"resolução no p-valor; default: {N_RANDOM_DEFAULT})")
@@ -113,9 +116,10 @@ def main() -> None:
     # 3. Identidade — comportamento
     print_fingerprint_report(ind, label, is_canon, args.n, args.seed)
 
-    # 4. Identidade — estrutura + comportamento (Layers 1-3)
+    # 4. Identidade — estrutura + comportamento (Layers 1-3). Mesma medição que o
+    # `baselines.measure` faz, para que o placar aqui seja o `valor` da tabela de posição.
     print()
-    print_report(run_validation(ind, behavioral_n=args.n, seed=args.seed))
+    print_report(run_validation(ind, behavioral_n=IDENTITY_BEHAVIORAL_SIMS, seed=args.seed))
 
     # 5. Modelos nulos — o que os números acima valem contra um roster SEM estrutura.
     # Recalculado a cada execução (custa ~2s): baseline em cache silenciosamente

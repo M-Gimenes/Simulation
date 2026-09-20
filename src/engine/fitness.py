@@ -24,7 +24,7 @@ from dataclasses import dataclass, field
 from itertools import combinations
 from typing import Callable, Dict, List, NamedTuple, Optional, Tuple, TypeVar
 
-from .combat import seed_combat, simulate_combat
+from .combat import CombatRules, get_rules, seed_combat, set_rules, simulate_combat
 from .archetypes import ArchetypeDefinition, ArchetypeID
 from .config import (
     DOMINANCE_CAP_WEIGHT,
@@ -158,11 +158,12 @@ class RuntimeState(NamedTuple):
     dominance_global: float
     dominance_cap:    float
     dominance_decis:  float
+    combat_rules:     CombatRules
 
 
 def runtime_state() -> RuntimeState:
     return RuntimeState(_SEED_BASE, _LAMBDA_DRIFT, _LAMBDA_DOMINANCE,
-                        _DOM_GLOBAL, _DOM_CAP, _DOM_DECIS)
+                        _DOM_GLOBAL, _DOM_CAP, _DOM_DECIS, get_rules())
 
 
 def generation_seed(base: int, generation: int) -> int:
@@ -530,6 +531,7 @@ def apply_runtime_state(state: RuntimeState) -> None:
     set_seed_base(state.seed_base)
     set_lambdas(state.lambda_drift, state.lambda_dominance)
     set_dominance_weights(state.dominance_global, state.dominance_cap, state.dominance_decis)
+    set_rules(state.combat_rules)
 
 
 def _run_task(task: Tuple[RuntimeState, Callable[[Individual], _T], Individual]) -> _T:

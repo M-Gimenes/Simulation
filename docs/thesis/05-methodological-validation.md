@@ -27,35 +27,41 @@ ferramenta está em [`../reference/08-tools.md`](../reference/08-tools.md).
 
 ## Análise de sensibilidade — o AG enxerga todos os genes?
 
-- **Pergunta:** algum dos 8 atributos é **neutro** — isto é, sem pressão seletiva, de
-  modo que ele só drifta por random walk e não é "otimizado"?
-- **Como medir** (`sensitivity_analysis`): para cada (arquétipo, atributo), perturbar o
-  gene em ±σ e medir `|Δ WR|` **global** do personagem. Atributos cujo Δ médio fica
-  **abaixo do piso medido** são neutros; `≤ 2× piso` é borderline.
-- **O piso é medido, não estimado** — e a diferença importa para o texto. O piso analítico
+- **Pergunta:** algum dos 11 genes — os 8 atributos e os 3 pesos da política — é
+  **neutro**, isto é, sem pressão seletiva, de modo que ele só drifta por random walk e
+  não é "otimizado"?
+- **Como medir** (`sensitivity_analysis`): para cada (arquétipo, gene), deslocar o gene
+  numa janela de 2σ — o σ que a mutação usa nele — e medir `Δ WR` **global** do
+  personagem. Perto do bound a janela **desliza** para dentro em vez de ser cortada (senão
+  um gene encostado no limite pareceria menos visível só por estar na borda). Genes cuja
+  média de `|Δ|` fica **abaixo do piso medido** são neutros; `≤ 2× piso` é borderline.
+- **O piso é medido, não estimado, e na estatística que é classificada.** O piso analítico
   (`sqrt(0.25/(4·sims))`, ±1,8% a 200 sims) é o desvio de **uma proporção**, mas o número
-  classificado é uma **diferença** entre duas WRs: grandeza errada. O tool roda a própria
-  maquinaria sob a hipótese nula — `|Δ WR|` entre duas avaliações do **mesmo** roster,
-  **sem perturbação**, sob seeds diferentes (`--null-reps`). Ali o Δ verdadeiro é zero por
-  construção, então tudo que aparece é ruído, na mesma grandeza que a tabela classifica.
-  Seeds diferentes são necessárias: com a mesma seed e perturbação zero as avaliações são
-  bit-idênticas e o Δ sai 0. Quebrar o pareamento de propósito dá um piso **conservador**
-  (a medição real usa CRN pareado e tem menos ruído), que é o lado seguro. O piso medido e
-  a classificação vão no artefato JSON junto da matriz completa.
+  classificado é a **média, sobre os 5 personagens, de |Δ|** — uma diferença entre duas
+  WRs, médias de cinco. O tool roda exatamente essa estatística sob a hipótese nula —
+  janela de largura zero, os dois lados sob seeds diferentes (`--null-reps`) — e fica com o
+  maior valor que o ruído produziu. Até 2026-09-18 o piso era o máximo de **uma célula**,
+  outra grandeza (a média de 5 varia bem menos): 0,068 contra 0,037 na estatística certa,
+  no mesmo evoluído. Seeds diferentes são necessárias: com a mesma seed e janela zero as
+  avaliações são bit-idênticas e o Δ sai 0. Quebrar o pareamento dá um piso **conservador**
+  (a medição real usa CRN pareado), que é o lado seguro. O piso e a classificação vão no
+  artefato JSON junto da matriz completa.
 - **Onde medir importa tanto quanto como.** O tool rodava fixo no canônico, que é
   **saturado** (Rushdown ~100% global, Turtle ~0%): com a WR presa no teto, perturbar um
   gene não muda nada e quase tudo saía "neutro" por efeito de teto, não por neutralidade —
-  a tabela sustentava o contrário do que se quer afirmar. Com `--evolved`, no roster
-  equilibrado da bateria de 2026-09-18, **4 dos 8** atributos saem visíveis (`range`
-  0,393 · `attack_cooldown` 0,213 · `hp` 0,191 · `damage` 0,183, contra um piso de 0,057)
-  e os outros 4 borderline (`grab_power` 0,110 · `stun` 0,073 · `speed` 0,071 ·
-  `knockback` 0,067) — **nenhum abaixo do piso**. Uma medição mais fina (600 sims, 12
-  repetições do piso, piso 0,051) põe `speed` e `knockback` **no limiar**, com
-  sinal/ruído ~1,1: a limitação a declarar é que o AG mal enxerga esses dois genes em volta
-  do indivíduo evoluído. A análise é **local** — mede a paisagem em volta de um indivíduo e
-  muda com ele.
-- **Variância controlada:** usa pareamento de seeds (*common random numbers*) entre +σ
-  e −σ — técnica que **só funciona após o fix de reprodutibilidade** (antes, ineficaz).
+  a tabela sustentava o contrário do que se quer afirmar. A medida citável é a do
+  `--evolved`, num roster equilibrado. **Leitura preliminar**, no evoluído da bateria de
+  2026-09-18 com o motor atual (a bateria seguinte a substitui): contra o piso de 0,037,
+  seis atributos saem visíveis (`range` 0,403 · `attack_cooldown` 0,286 · `damage` 0,202 ·
+  `hp` 0,175 · `stun` 0,106 · `grab_power` 0,085), `speed` e `knockback` (0,055) e
+  `w_aggressiveness` (0,049) borderline, e `w_retreat` (0,026) e `w_defend` (0,024)
+  **abaixo do piso**. A limitação a declarar muda de lugar: na escala da mutação, o AG
+  quase não enxerga a **política** pelo equilíbrio — o único gradiente que a puxa ao
+  canônico é o do drift. A análise é **local** — mede a paisagem em volta de um indivíduo
+  e muda com ele.
+- **Variância controlada:** usa pareamento de seeds (*common random numbers*) entre os
+  dois lados da janela — técnica que **só funciona após o fix de reprodutibilidade**
+  (antes, ineficaz).
 - **Para que serve na tese:** sustenta a afirmação de que a seleção atua sobre todo o
   cromossomo (ou identifica explicitamente quais genes são inertes — foi o caso do
   antigo `recovery`, cuja neutralidade motivou sua remoção; ver
@@ -70,8 +76,14 @@ ferramenta está em [`../reference/08-tools.md`](../reference/08-tools.md).
 - **Como** (`multi_run`): rodar AG e NSGA-II sobre N sementes (20 — o menor n com poder
   ≥ 80% para um efeito grande), reavaliar o melhor
   indivíduo de cada uma sob uma seed de validação comum, e reportar **média ± desvio**
-  de dominance/drift, **WR global por personagem** e a **fração de sementes que
-  equilibram o roster** (5 bonecos em banda, 0 hard-counters). Fontes: Eiben & Smith 2015; Deb 2001.
+  de dominance/drift, **WR global por personagem**, a **fração de sementes que
+  equilibram o roster** (5 bonecos em banda, 0 hard-counters) e a **identidade** de cada
+  roster (validador estrutural e comportamental, concordância de ranking). Fontes: Eiben &
+  Smith 2015; Deb 2001.
+- **Controles**, com a mesma amostra e o mesmo orçamento: o AG com `λ_drift = 0` (quanta
+  identidade sobra sem o termo de drift) e o AG sem a semente canônica (quanto da diferença
+  entre os algoritmos é inicialização). Os nulos do `baselines` não são otimizados, e
+  vencê-los em drift é garantido por construção; o controle é o contrafactual certo.
 - **Para que serve na tese:** é o **piso metodológico** — substitui "numa execução, deu
   X" por *"em N execuções, X% equilibraram o roster; WR global média 50±k%"*.
   Resolve diretamente a fragilidade de seed única: um par travado numa seed vira
@@ -84,40 +96,47 @@ ferramenta está em [`../reference/08-tools.md`](../reference/08-tools.md).
 - **Como** (`compare_algorithms`): sobre as amostras por semente já gravadas,
   **Mann-Whitney U** bicaudal (não-paramétrico, não assume normalidade) +
   **Â₁₂ de Vargha-Delaney** (tamanho de efeito — o `p` diz se a diferença existe, o Â₁₂
-  diz se ela importa) + **Holm-Bonferroni** na família de métricas comparadas —
-  hoje 3, porque "bonecos em banda" dá 5/5 em todas as execuções e Mann-Whitney é
-  indefinido em amostra conjunta constante. Fontes: Derrac et al. 2011; Arcuri & Briand
-  2011; Vargha & Delaney 2000 (limiares do Â₁₂); Holm 1979 — todas já nos três `.bib`.
-  Explicação do aparato, do zero:
+  diz se ela importa) + **Holm-Bonferroni** numa família fixa de 7 métricas — equilíbrio
+  (dominance, counters, bonecos em banda) e identidade (drift, validador estrutural e
+  comportamental, concordância) —, a mesma em toda comparação, com as degeneradas (amostra
+  conjunta constante, Mann-Whitney indefinido) fora. Fontes: Derrac et al. 2011; Arcuri &
+  Briand 2011; Vargha & Delaney 2000 (limiares do Â₁₂); Holm 1979 — todas já nos três
+  `.bib`. Explicação do aparato, do zero:
   [`../reference/12-statistical-testing.md`](../reference/12-statistical-testing.md).
 - **Para que serve na tese:** é o que separa "o AG escalar deu média menor" de "o AG
-  escalar é melhor nessa métrica". Ressalva a declarar: o NSGA-II devolve uma
-  fronteira, então a comparação depende de **qual ponto** a representa — o artefato
-  grava `nsga2_representative`.
+  escalar é melhor nessa métrica". O NSGA-II devolve uma fronteira, então a comparação
+  depende de **qual ponto** a representa: a manchete usa o `scalar_optimum`, o comparável
+  do escalar, decidido antes da bateria; e a **relação de Pareto por semente** — o ponto do
+  AG contra a fronteira inteira, no mesmo stream — não depende de ponto nenhum. O mesmo
+  aparato compara a bateria com cada controle (`--control`).
 
 ## Qualidade da fronteira de Pareto: hipervolume + spacing (item 1.2)
 
 - **Pergunta:** comparar fronteiras "no olho" não escala — como quantificar se uma
   fronteira é melhor (mais próxima da utopia e mais espalhada) que outra?
 - **Como** (`pareto_metrics`): **hipervolume** (área dominada vs ponto de referência
-  fixo `(2.0, 1.0)` = piores valores; maior = melhor) e **spacing** de Schott
-  (uniformidade; menor = melhor). Fontes: Deb 2001/2002.
+  fixo `(1.3, 0.4)`, ancorado nos modelos nulos — `dominance` do canônico e drift do
+  espelho; maior = melhor) e **spacing** de Schott (uniformidade; menor = melhor). Com a
+  referência antiga, (2,0; 1,0), o HV saturava em 90% da área. Fontes: Deb 2001/2002.
 - **Para que serve na tese:** comparação **objetiva** entre seeds e entre configurações
   (efeito de `MATCHUP_WR_CAP`, `SIMS_PER_MATCHUP`, etc.) sem inspeção visual. Métrica
   madura e esperada num trabalho com NSGA-II.
 
 ## Validação externa ao fitness (item 3.2)
 
-- **Pergunta:** o equilíbrio de um indivíduo evoluído é **robusto**, ou é overfit às
-  condições exatas (seed/sims) em que foi treinado?
-- **Como** (`external_validation`): fixar UM indivíduo e reavaliá-lo sob K sementes de
-  avaliação **totalmente novas** (≥10000, fora do treino), com mais sims; marcar cada
-  boneco e cada matchup como **robusto** (em banda em TODAS as K condições) ou frágil,
-  contar em quantas condições cada um falha, e dar um **veredito do roster** binário.
-  Fonte: Browne & Maire 2010 (Ludi).
-- **Para que serve na tese:** blinda contra *overfitting ao fitness* — valida o
-  artefato **fora do laço de otimização**, sobre condições que o AG nunca otimizou. A
-  bateria de **identidade** (drift, fingerprint, validador) é determinística nos genes
-  e cobre o eixo de identidade; esta valida o eixo **estocástico** (equilíbrio), onde o
-  overfitting se esconde. A versão "contra política diferente" liga ao item 2.1
-  (coevolução, trabalho futuro — [08](08-literature-methods.md)).
+- **Pergunta:** o equilíbrio de um indivíduo evoluído se **replica** com mais lutas, e é
+  **robusto** a regras de combate que o AG nunca viu?
+- **Como** (`external_validation`): fixar UM indivíduo e reavaliá-lo em duas perguntas,
+  cada uma com 10 sementes novas (≥ 10000) somadas numa amostra de 5000 lutas por par:
+  **replicação** (regras do treino) e **robustez** (uma constante de regra perturbada por
+  vez — distância inicial, tamanho do campo, persistência, redução da guarda). Cada WR é
+  classificada pelo IC de Wilson (95%) contra a banda — dentro, fora, inconclusivo —, e
+  cada condição recebe ROBUSTA / FRÁGIL / INCONCLUSIVA. O veredito não depende do número
+  de sementes, como o antigo "falhou em alguma das K" dependia. Fonte: Browne & Maire
+  2010 (Ludi).
+- **Para que serve na tese:** blinda contra *overfitting ao fitness* — valida o artefato
+  **fora do laço de otimização**. Trocar só a semente testaria só o ruído de amostragem;
+  trocar a regra testa se o equilíbrio depende das condições exatas em que foi otimizado.
+  A bateria de **identidade** (drift, fingerprint, validador) cobre o eixo de identidade;
+  esta valida o eixo do **equilíbrio**. A versão "contra política diferente" liga ao item
+  2.1 (coevolução, trabalho futuro — [08](08-literature-methods.md)).

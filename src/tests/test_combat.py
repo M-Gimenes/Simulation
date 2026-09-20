@@ -7,7 +7,7 @@ import numpy as np
 
 from src.engine.archetypes import ARCHETYPES, ARCHETYPE_ORDER, ArchetypeID
 from src.engine.character import Character
-from src.engine.combat import Action, simulate_combat, simulate_combat_detailed, simulate_combat_traced, seed_combat, CombatResult
+from src.engine.combat import Action, simulate_combat, simulate_combat_detailed, simulate_combat_traced, seed_combat
 from src.engine.config import MAX_TICKS
 from src.engine.individual import Individual
 
@@ -155,6 +155,45 @@ tr = simulate_combat_traced(rush, zon)
 max_cd_subticks = max(rush.attack_cooldown, zon.attack_cooldown) * 5
 assert float(tr.stun.max()) < max_cd_subticks, "stun não pode atingir o cooldown (lock)"
 print("  ✓ sem stun-lock")
+
+
+# ── 7b. Timers contínuos em média: cooldown e stun ─────────────────────────
+
+separator("Timers: período médio = cooldown × TICK_SCALE; stun médio = o do gene")
+# Os dois timers contam sub-ticks inteiros, mas vêm de genes contínuos. Com o resto
+# acumulado (`combat._carry_round`) a MÉDIA é exata: o gene age sem degraus. Antes, o
+# período era `round(5c) + 1` (6 sub-ticks com cooldown 1) e o stun `ceil(stun_t)`, o
+# que dava ao stun de um atacante de cooldown 1 só 4 efeitos distintos em [0, 0.6].
+from src.engine.config import TICK_SCALE
+
+
+def _duel(cooldown: float, stun: float):
+    """Atacante que sempre avança contra alvo imortal que também avança."""
+    attacker = Character.from_archetype(ARCHETYPES[ArchetypeID.RUSHDOWN])
+    target   = Character.from_archetype(ARCHETYPES[ArchetypeID.TURTLE])
+    attacker.attributes = [10000.0, 15.0, cooldown, 20.0, 5.0, stun, 0.0, 0.0]
+    attacker.weights    = [0.0, 0.0, 1.0]
+    target.attributes   = [10000.0, 15.0, 5.0, 5.0, 1.0, 0.0, 0.0, 0.0]
+    target.weights      = [0.0, 0.0, 1.0]
+    seed_combat(1)
+    return simulate_combat_traced(attacker, target)
+
+
+for cooldown in (1.0, 1.3, 2.5, 5.0):
+    hits = np.nonzero(_duel(cooldown, 0.0).attacked[:, 0])[0]
+    mean_period = float(np.diff(hits).mean())
+    assert abs(mean_period - cooldown * TICK_SCALE) < 0.05, (cooldown, mean_period)
+print("  ✓ período médio entre golpes = attack_cooldown × TICK_SCALE (1 · 1,3 · 2,5 · 5)")
+
+previous = -1.0
+for stun in (0.02, 0.07, 0.13, 0.21, 0.33, 0.47, 0.59):
+    trace = _duel(1.0, stun)
+    n_hits = int(trace.attacked[:, 0].sum())
+    per_hit = float(trace.stun_applied[:, 0].sum()) / n_hits
+    assert abs(per_hit - stun * TICK_SCALE) < 0.05, (stun, per_hit)
+    assert per_hit > previous, "stun maior tem de travar mais — sem platô"
+    previous = per_hit
+print("  ✓ stun aplicado por golpe = stun × cooldown × TICK_SCALE em média, sem platô")
 
 
 # ── 8. Paridade: JIT de fitness vs JIT traced ────────────────────────────────

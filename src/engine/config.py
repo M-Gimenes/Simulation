@@ -8,17 +8,16 @@ import os
 # ── AG: população e parada ───────────────────────────────────────────────────
 
 POPULATION_SIZE = 300
-# Elitismo é uma FRAÇÃO da população, não uma contagem. A contagem abaixo é só a
-# derivação no orçamento default: `operators.elite_count` recalcula sobre o tamanho real,
-# senão uma execução de orçamento reduzido herdaria 30 elites absolutos e o elitismo
-# efetivo saltaria de 10% para 25% (pop 120) ou 100% (pop 30) — o AG deixaria de buscar,
-# em silêncio e produzindo números plausíveis.
+# Elitismo é uma FRAÇÃO da população, não uma contagem: `operators.elite_count` a aplica
+# sobre o tamanho REAL. Uma contagem absoluta faria uma execução de orçamento reduzido
+# herdar 30 elites e o elitismo efetivo saltar de 10% para 25% (pop 120) ou 100% (pop 30)
+# — o AG deixaria de buscar, em silêncio e produzindo números plausíveis.
 ELITE_RATE = 0.10
-ELITE_SIZE = round(POPULATION_SIZE * ELITE_RATE)
 MAX_GENERATIONS = 150
-STAGNATION_LIMIT = 30                      # gerações sem melhoria > 0.001 até REGISTRAR
-                                           # `stagnated_at` — evento, não parada: o AG
-                                           # sempre roda MAX_GENERATIONS
+# A população inicial do AG escalar leva o roster canônico (o resto é aleatório). A do
+# NSGA-II nasce 100% aleatória — lá o canônico seria imortal no rank 0 (ver
+# `nsga2.run`). Desligar isto é o braço de controle que separa algoritmo de inicialização.
+GA_CANONICAL_SEED = True
 # Convergência do AG (C2) = balanço global (abaixo) + ausência de hard-counter
 # (MATCHUP_WR_CAP, na seção de fitness).
 GLOBAL_CONVERGENCE_THRESHOLD = 0.10        # |WR global − 0.5| máx por personagem (ninguém domina o roster)
@@ -37,13 +36,14 @@ SIMS_PER_MATCHUP = 150         # simulações por matchup no round-robin
 SIMS_CONVERGENCE_CHECK = 200   # simulações extras para confirmar convergência
 
 # Deslocamento do stream de RNG usado na CONFIRMAÇÃO de convergência do AG.
-# O laço avalia todo indivíduo sob o mesmo stream (Common Random Numbers), o que é
-# correto para SELEÇÃO — a diferença de fitness reflete genes, não sorteio. Mas
-# reavaliar no mesmo stream não confirma nada: mede a MESMA realização do RNG com mais
-# amostras, e o gate não pode discordar da confirmação. Somando este offset à semente
-# de treino, cada execução é confirmada contra o próprio hold-out independente.
+# Dentro de uma geração o laço avalia todo indivíduo sob o mesmo stream (Common Random
+# Numbers), o que é correto para SELEÇÃO — a diferença de fitness reflete genes, não
+# sorteio. Mas reavaliar no mesmo stream não confirma nada: mede a MESMA realização do
+# RNG com mais amostras, e o gate não pode discordar da confirmação. Somando este offset
+# ao stream da geração, cada confirmação roda num stream que o AG nunca viu.
 # Escolhido para não colidir com nenhuma outra família de sementes do projeto
-# (treino 42+, MULTI_RUN_VALIDATION_SEED 9999, EXTERNAL_VALIDATION_SEED_START 10000+).
+# (streams de treino `seed·GENERATION_SEED_STRIDE + geração`, MULTI_RUN_VALIDATION_SEED
+# 9999, EXTERNAL_VALIDATION_SEED_START 10000+).
 CONVERGENCE_SEED_OFFSET = 100000
 
 # Stream de avaliação POR GERAÇÃO (ver `fitness.generation_seed`).
@@ -56,8 +56,9 @@ CONVERGENCE_SEED_OFFSET = 100000
 # rotação, melhorando em 5/5 sementes (ver docs/thesis/04).
 #
 # `seed * STRIDE + geração` com geração < STRIDE garante que duas sementes de treino
-# nunca compartilhem stream, e a família (42000+) não colide com nenhuma outra do
-# projeto (validação 9999, externa 10000+, confirmação +100000).
+# nunca compartilhem stream, e as famílias de treino — bateria 42000+, sweeps 1000000+
+# — não colidem com nenhuma outra do projeto (validação 9999, externa 10000+,
+# confirmação +100000).
 GENERATION_SEED_STRIDE = 1000
 
 # ── Fitness: pesos do AG escalar ─────────────────────────────────────────────
@@ -76,7 +77,7 @@ LAMBDA_DOMINANCE = 1.0   # peso do desbalanço de matchups (dominance_penalty)
 DRIFT_DEFINING_WEIGHT = 3.0
 
 # ── Fitness: dominância ──────────────────────────────────────────────────────
-# dominance_penalty = GLOBAL·global + CAP·cap + DECIS·decis (máx 2.0). 
+# dominance_penalty = GLOBAL·global + CAP·cap + DECIS·decis (máx 2.0).
 #   global → |WR_global − 0.5| por personagem.
 #   cap    → limitar dominância de confrontos.
 #   decis  → decisividade por luta fora da banda saudável.
@@ -98,7 +99,7 @@ DOMINANCE_DECIS_WEIGHT = 0.5
 # 57/180 pares estouram o teto e o D observado chega a 0.49, contra teto 0.20 — a
 # guarda opera bem dentro da faixa real, não fora dela. E as duas metades pegam coisas
 # distintas: o teto pega blowout (canônico, aleatórios), o piso pega degenerescência
-# (o espelho, que é a solução trivial de equilíbrio).
+# (lutas que acabam sem vencedor de fato).
 
 # Meia-banda do hard-counter: par é counter duro se |WR − 0.5| > MATCHUP_WR_CAP.
 #
@@ -138,12 +139,12 @@ MATCHUP_WR_CAP = 0.15
 #                              Turtle 0.027–0.032 · CM 0.045–0.052 · Grappler 0.074–0.088
 #   rosters evoluídos          0.044–0.178
 #
-# O piso morde 10/10 pares no espelho do Zoner e 0/10 em todo o resto — inclusive
-# 0/10 nos quatro rosters evoluídos. É o comportamento pretendido: dois Zoners
-# idênticos se afastando é o caso MENOS decidido que o motor produz, e o espelho é
-# justamente a solução trivial de equilíbrio (identidade zero) contra a qual a tese
-# argumenta. Não é "abaixo de todo espelho" — é abaixo de todo par de personagens
-# DISTINTOS.
+# O piso fica acima do roster degenerado e abaixo de todo par de personagens DISTINTOS:
+# não morde nenhum dos quatro rosters evoluídos. Dos cinco espelhos, pega só o do Zoner
+# (dois Zoners idênticos se afastando é o caso menos decidido que o motor produz) — os
+# outros quatro passam. Logo o piso NÃO é a defesa contra a solução trivial de
+# equilíbrio (cinco cópias do mesmo personagem): essa defesa é o `drift_penalty`, que
+# cobra a perda de identidade de qualquer espelho.
 
 MATCHUP_FLOOR = 0.02       # piso: guarda de degenerescência (não morde em operação normal)
 MATCHUP_THRESHOLD = 0.20   # teto: acima é blowout (vencedor fecha ~40% HP)
@@ -153,8 +154,9 @@ MATCHUP_THRESHOLD = 0.20   # teto: acima é blowout (vencedor fecha ~40% HP)
 # os processos carregando llvmlite estouravam o limite de commit do Windows (WinError
 # 1455), e acima de 8 o ganho some no ruído — medido numa geração de 300 indivíduos com o
 # pool vivo: 8w 1.04s | 12w ~1.0s | 16w ~0.9s. Abaixo do teto, o nº de núcleos da
-# máquina. O resultado não depende do nº de workers: cada avaliação resemeia o combate ao
-# `_SEED_BASE`, e o estado do pai viaja com cada tarefa. 1 = avaliação serial.
+# máquina. O resultado não depende do nº de workers: cada luta é semeada a partir do
+# `_SEED_BASE` (`fitness.fight_seed`), e o estado do pai viaja com cada tarefa.
+# 1 = avaliação serial.
 
 N_WORKERS = min(8, os.cpu_count() or 1)
 
@@ -190,7 +192,8 @@ DEFEND_DAMAGE_REDUCTION = 1 - 0.4     # multiplicador no dano recebido ao defend
 ACTION_PERSISTENCE_SUBTICKS = 5
 
 # ── Bounds e nomes dos genes ─────────────────────────────────────────────────
-# 8 atributos + 3 pesos por personagem; todos contínuos. Semântica e calibração
+# 8 atributos + 3 pesos por personagem. Semântica e calibração de cada um em
+# docs/reference/03-archetypes.md e 04-combat-model.md.
 
 ATTRIBUTE_BOUNDS = [
     (250.0, 450.0),  # hp
@@ -224,7 +227,13 @@ GENE_BOUNDS = ATTRIBUTE_BOUNDS + WEIGHT_BOUNDS
 NSGA2_POP_SIZE = POPULATION_SIZE
 NSGA2_GENERATIONS = MAX_GENERATIONS
 NSGA2_OBJECTIVES = ["dominance_penalty", "drift_penalty"]  # objetivos Pareto, sem ponderação
-HYPERVOLUME_REFERENCE = (2.0, 1.0)  # piores valores (dominance ≤ 2.0, drift ≤ 1.0); fixo p/ HV comparável entre execuções
+# Ponto de referência do hipervolume, ancorado nos modelos nulos: `dominance` ≈ a do
+# canônico (1,27 — o equilíbrio de partida) e `drift` ≈ o do espelho (0,38 — identidade
+# zero). Um ponto com equilíbrio pior que o de partida ou identidade pior que a de cinco
+# cópias fica fora da área, que é o que ele vale. Fixo, para o HV ser comparável entre
+# execuções. O anterior, (2,0; 1,0) — os máximos teóricos —, ficava tão longe de toda
+# fronteira real que o HV saturava em 90% da área e mal separava uma fronteira de outra.
+HYPERVOLUME_REFERENCE = (1.3, 0.4)
 
 # ── Multi-run: N execuções independentes + estatística agregada ──────────────
 
@@ -238,8 +247,26 @@ MULTI_RUN_N_SEEDS = 20
 MULTI_RUN_VALIDATION_SEED = 9999  # seed comum de reavaliação (CRN): desacopla a métrica da seed de treino
 MULTI_RUN_SIMS = SIMS_CONVERGENCE_CHECK  # sims/matchup na reavaliação independente
 
+# Sims/matchup do perfil comportamental que mede identidade FUNCIONAL (Layer 3 do
+# validador e concordância de ranking) — no multi_run, nos modelos nulos e no dossiê.
+# Medido em re-teste (mesmo roster, 3 seeds): a 120 a concordância do evoluído variava
+# 0,19–0,28; a 200, 0,23–0,24. O canônico fica ≥ 0,97 nos dois.
+IDENTITY_BEHAVIORAL_SIMS = 200
+
 # ── Validação externa ao fitness (estilo Ludi — Browne & Maire 2010) ─────────
 
 EXTERNAL_VALIDATION_SEED_START = 10000  # primeira semente de avaliação (independente do treino)
-EXTERNAL_VALIDATION_N_SEEDS = 10        # nº de condições de avaliação independentes
-EXTERNAL_VALIDATION_SIMS = 500          # sims/matchup por condição (> treino, p/ CI apertado)
+EXTERNAL_VALIDATION_N_SEEDS = 10        # sementes por condição, somadas numa amostra só
+EXTERNAL_VALIDATION_SIMS = 500          # sims/matchup por semente → 5000 lutas por par
+
+# Regras perturbadas: condições de combate que o AG nunca viu, uma constante por vez.
+# Trocar a semente só replica a medição com mais amostra; é mudar a REGRA que testa se o
+# equilíbrio sobrevive fora das condições exatas em que foi otimizado. Cada perturbação
+# fica dentro do que o modelo sustenta: a distância inicial segue maior que todo alcance
+# (20), e a redução da guarda desloca o ponto neutro do agarrão em ±0,05.
+EXTERNAL_VALIDATION_RULE_PERTURBATIONS = [
+    ("INITIAL_DISTANCE", 40.0), ("INITIAL_DISTANCE", 60.0),
+    ("FIELD_SIZE", 80.0), ("FIELD_SIZE", 120.0),
+    ("ACTION_PERSISTENCE_SUBTICKS", 4), ("ACTION_PERSISTENCE_SUBTICKS", 6),
+    ("DEFEND_DAMAGE_REDUCTION", 0.55), ("DEFEND_DAMAGE_REDUCTION", 0.65),
+]

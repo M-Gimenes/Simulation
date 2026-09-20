@@ -72,7 +72,7 @@ assert circular_triads(regular) == 5.0, (
     f"torneio regular deve ter 5 tríades, deu {circular_triads(regular)}"
 )
 print("  ✓ o ciclo canônico é um torneio REGULAR → 5 tríades (máximo em 5 personagens)")
-print("    (equilíbrio global e pedra-papel-tesoura são a mesma estrutura)")
+print("    (um roster estritamente transitivo não pode ter todos perto de 50%)")
 
 assert cycle_edges_kept(regular) == 10, "o próprio ciclo canônico deve dar 10/10"
 print("  ✓ cycle_edges_kept reconhece o ciclo canônico perfeito (10/10)")
@@ -80,8 +80,8 @@ print("  ✓ cycle_edges_kept reconhece o ciclo canônico perfeito (10/10)")
 inverted = _detail([1.0 - wr for wr in regular_wr])
 assert cycle_edges_kept(inverted) == 0, "o ciclo invertido deve dar 0/10"
 assert circular_triads(inverted) == 5.0, "invertido ainda é regular → 5 tríades"
-print("  ✓ ciclo INVERTIDO dá 0/10 arestas mas ainda 5 tríades — a estrutura sobrevive")
-print("    à troca de rótulos, que é justamente por que o ciclo específico não é o achado")
+print("  ✓ ciclo INVERTIDO dá 0/10 arestas mas ainda 5 tríades — as tríades medem a")
+print("    estrutura, independentes do rótulo; as arestas medem o rótulo autoral")
 
 
 # ── 3. Posição entre piso e teto ────────────────────────────────────────────

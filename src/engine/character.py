@@ -109,6 +109,16 @@ class Character:
     def genes(self) -> List[float]:
         return self.attributes + self.weights
 
+    def intention_probabilities(self) -> List[float]:
+        """Probabilidade de cada intenção, na ordem de `weights` — o que os 3 pesos
+        significam no combate. A intenção é sorteada proporcionalmente aos pesos, então
+        só a razão entre eles importa; pesos somando 0 caem sempre em GUARDA (ver
+        `combat._decide_action`)."""
+        total = sum(self.weights)
+        if total <= 0.0:
+            return [1.0 if i == WIdx.DEFEND else 0.0 for i in range(len(self.weights))]
+        return [w / total for w in self.weights]
+
     def load_genes(self, genes: List[float]) -> None:
         n_attrs = len(ATTRIBUTE_BOUNDS)
         expected = n_attrs + len(WEIGHT_BOUNDS)

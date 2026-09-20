@@ -8,6 +8,9 @@
 # e ordenacao transfere de orcamento; numero citavel nao. Os artefatos deles vao para
 # results/exploratory/, fora dos caminhos que o compare_algorithms le.
 #
+# OS CONTROLES ESTAO AQUI: tem a amostra e o orcamento da bateria (n = 20, pop 300 x 150),
+# mudam um unico fator de desenho e sao citaveis. Vao para results/controls/.
+#
 # ORDEM ENTRE OS DOIS SCRIPTS: rode run_sweeps.ps1 ANTES. Implementar um braco de sweep
 # mexe no motor (operators.py, fitness.py), e mexer no motor depois da bateria faria 8h de
 # artefato nascerem carimbados como obsoletos. A bateria e sempre a ULTIMA coisa a rodar.
@@ -42,11 +45,14 @@ $env:PYTHONIOENCODING = "utf-8"
 
 # Os `Min` sao ESTIMATIVAS com o pool persistente: os tempos medidos na bateria de
 # 2026-09-18 (pool recriado por geracao) escalados pela razao medida na seed 42 - AG
-# 6,7 -> 3,0 min, NSGA-II 9,7 -> 5,8 min - e por +13% da semente por luta (CRN). Os
-# passos 3, 4 e 7-12 levam segundos.
+# 6,7 -> 3,0 min, NSGA-II 9,7 -> 5,8 min - e por +13% da semente por luta (CRN). A medicao
+# de identidade por roster (validador + concordancia de ranking) custa ~0,7 s. Os passos
+# de comparacao levam segundos.
 #
-# Ordem deliberada: o que serve os DOIS experimentos vem primeiro, para que uma
-# interrupcao no meio ainda deixe a bateria principal completa e citavel.
+# Ordem deliberada: a comparacao entre algoritmos primeiro, depois os CONTROLES (mesma
+# amostra e mesmo orcamento, um fator de desenho trocado), depois os individuos da seed 42
+# e as metricas post-hoc. Uma interrupcao no meio ainda deixa o que ja rodou completo e
+# citavel.
 $passos = @(
     @{ N = 1; Min = 137; Nome = "NSGA-II, 20 sementes"
        Args = @("-m", "src.experiments.multi_run", "--algorithm", "nsga2") }
@@ -54,38 +60,56 @@ $passos = @(
     @{ N = 2; Min = 69; Nome = "AG escalar, 20 sementes"
        Args = @("-m", "src.experiments.multi_run", "--algorithm", "ga") }
 
-    @{ N = 3; Min = 1; Nome = "compare_algorithms (n=20) - checa proveniencia dos dois"
+    # Manchete: o NSGA-II representado pelo scalar_optimum, o comparavel do escalar, mais
+    # a relacao de Pareto por semente contra a fronteira inteira.
+    @{ N = 3; Min = 1; Nome = "compare_algorithms (scalar_optimum + relacao de Pareto)"
        Args = @("-m", "src.experiments.compare_algorithms") }
 
-    # O comparavel do escalar na fronteira. O multi_run grava os cinco representantes por
-    # semente, ja reavaliados, entao isto so rele os dois artefatos - segundos.
-    @{ N = 4; Min = 1; Nome = "compare_algorithms contra o scalar_optimum"
-       Args = @("-m", "src.experiments.compare_algorithms", "--nsga2-representative", "scalar_optimum") }
+    # O extremo de baixa dominancia, como leitura secundaria - so rele os dois artefatos.
+    @{ N = 4; Min = 1; Nome = "compare_algorithms contra o best_dominance"
+       Args = @("-m", "src.experiments.compare_algorithms", "--nsga2-representative", "best_dominance") }
 
-    # Os individuais da seed 42 e as metricas post-hoc vem por ultimo: dependem do motor,
-    # nao do sweep, e sao baratos perto dos bracos.
-    @{ N = 5;  Min = 4;  Nome = "AG seed 42 (single_run/ga.json)"
+    # CONTROLES. lambda_drift = 0: quanto da identidade o termo de drift segura - o
+    # contrafactual da pergunta de pesquisa. Sem semente canonica: quanto da diferenca
+    # entre os algoritmos e so a inicializacao.
+    @{ N = 5; Min = 69; Nome = "controle: AG com lambda_drift = 0, 20 sementes"
+       Args = @("-m", "src.experiments.multi_run", "--algorithm", "ga", "--lambda-drift", "0") }
+
+    @{ N = 6; Min = 69; Nome = "controle: AG sem semente canonica, 20 sementes"
+       Args = @("-m", "src.experiments.multi_run", "--algorithm", "ga", "--no-canonical-seed") }
+
+    @{ N = 7; Min = 1; Nome = "compare_algorithms: AG x controle lambda_drift = 0"
+       Args = @("-m", "src.experiments.compare_algorithms", "--control",
+                "results\controls\multi_run_ga_drift0_dom1.json") }
+
+    @{ N = 8; Min = 1; Nome = "compare_algorithms: AG x controle sem semente canonica"
+       Args = @("-m", "src.experiments.compare_algorithms", "--control",
+                "results\controls\multi_run_ga_unseeded.json") }
+
+    # Os individuos da seed 42 e as metricas post-hoc vem por ultimo: dependem do motor,
+    # nao dos bracos, e sao baratos perto deles.
+    @{ N = 9;  Min = 4;  Nome = "AG seed 42 (single_run/ga.json)"
        Args = @("main.py", "--seed", "42") }
 
-    @{ N = 6;  Min = 7; Nome = "NSGA-II seed 42 (single_run/nsga2.json + plots)"
+    @{ N = 10; Min = 7; Nome = "NSGA-II seed 42 (single_run/nsga2.json + plots)"
        Args = @("main.py", "--algorithm", "nsga2", "--seed", "42") }
 
-    @{ N = 7; Min = 1;  Nome = "external_validation - canonico"
+    @{ N = 11; Min = 2;  Nome = "external_validation - canonico"
        Args = @("-m", "src.experiments.external_validation") }
 
-    @{ N = 8; Min = 1;  Nome = "external_validation - AG escalar"
+    @{ N = 12; Min = 2;  Nome = "external_validation - AG escalar"
        Args = @("-m", "src.experiments.external_validation", "--evolved") }
 
-    @{ N = 9; Min = 1;  Nome = "external_validation - NSGA-II best_dominance"
-       Args = @("-m", "src.experiments.external_validation", "--nsga2", "best_dominance") }
+    @{ N = 13; Min = 2;  Nome = "external_validation - NSGA-II scalar_optimum"
+       Args = @("-m", "src.experiments.external_validation", "--nsga2", "scalar_optimum") }
 
-    @{ N = 10; Min = 1;  Nome = "external_validation - NSGA-II knee_point"
+    @{ N = 14; Min = 2;  Nome = "external_validation - NSGA-II knee_point"
        Args = @("-m", "src.experiments.external_validation", "--nsga2", "knee_point") }
 
-    @{ N = 11; Min = 1;  Nome = "sensitivity_analysis no evoluido (o canonico e saturado)"
+    @{ N = 15; Min = 3; Nome = "sensitivity_analysis no evoluido (o canonico e saturado)"
        Args = @("-m", "src.experiments.sensitivity_analysis", "--evolved") }
 
-    @{ N = 12; Min = 1; Nome = "baselines (modelos nulos)"
+    @{ N = 16; Min = 2; Nome = "baselines (modelos nulos)"
        Args = @("-m", "src.experiments.baselines", "--evolved") }
 )
 

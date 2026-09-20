@@ -122,19 +122,19 @@ set_seed_base(None)
 
 # ── 3. Orçamento fixo: convergência é evento, não parada ────────────────────
 
-separator("run: esgota o orçamento e registra convergência/estagnação")
+separator("run: esgota o orçamento e registra a convergência")
 
 import src.engine.ga as _ga
 import src.engine.fitness as _fit
 
 # O ORÇAMENTO vai por parâmetro (`pop_size`/`n_generations`), não por patch de global:
 # desde que ele é parâmetro, patchar `_ga.MAX_GENERATIONS` não tem efeito nenhum — o
-# default é resolvido na assinatura. O resto (sims, limite de estagnação, workers) segue
-# por patch porque são constantes de módulo mesmo.
+# default é resolvido na assinatura. O resto (sims, workers) segue por patch porque são
+# constantes de módulo mesmo.
 _originals = {m: {n: getattr(m, n) for n in
-                  ("SIMS_PER_MATCHUP", "STAGNATION_LIMIT", "N_WORKERS") if hasattr(m, n)}
+                  ("SIMS_PER_MATCHUP", "N_WORKERS") if hasattr(m, n)}
               for m in (_ga, _fit)}
-for mod, names in (( _ga, dict(SIMS_PER_MATCHUP=6, STAGNATION_LIMIT=1)),
+for mod, names in (( _ga, dict(SIMS_PER_MATCHUP=6)),
                    ( _fit, dict(SIMS_PER_MATCHUP=6, N_WORKERS=1))):
     for name, value in names.items():
         if hasattr(mod, name):
@@ -144,7 +144,7 @@ try:
     assert len(result.history) == 3, (
         f"o AG tem de esgotar o orçamento (3 gerações logadas), deu {len(result.history)}"
     )
-    print("  ✓ roda as 3 gerações do orçamento mesmo com STAGNATION_LIMIT=1")
+    print("  ✓ roda as 3 gerações do orçamento")
 
     # O laço produz uma população a MAIS que as logadas: `history` cobre 0..2 e o
     # melhor devolvido vem da população de índice 3. Rotulá-lo 2 (a convenção antiga)
@@ -158,14 +158,30 @@ try:
     )
     print("  ✓ o melhor devolvido é rotulado com o índice da população de onde veio")
 
-    for field in (result.converged_at, result.stagnated_at):
-        assert field is None or 0 <= field < 3, f"evento fora do intervalo: {field}"
-    print(f"  ✓ eventos dentro do intervalo (converged_at={result.converged_at}, "
-          f"stagnated_at={result.stagnated_at})")
+    assert result.converged_at is None or 0 <= result.converged_at < 3, (
+        f"evento fora do intervalo: {result.converged_at}")
+    print(f"  ✓ evento dentro do intervalo (converged_at={result.converged_at})")
 
     assert result.converged == (result.converged_at is not None)
     assert "orçamento esgotado" in result.stop_reason
     print(f"  ✓ stop_reason descreve o que aconteceu: {result.stop_reason!r}")
+
+    # O braço de controle sem semente canônica: a população nasce toda aleatória, e o
+    # canônico só aparece se o acaso o produzir — o que não acontece.
+    import src.engine.individual as _ind
+    _from_canonical = _ind.Individual.from_canonical
+    calls = []
+    _ind.Individual.from_canonical = classmethod(
+        lambda cls: calls.append(1) or _from_canonical())
+    try:
+        _ga.run(seed=1, verbose=False, pop_size=8, n_generations=1, canonical_seed=False)
+        unseeded_calls = len(calls)
+        _ga.run(seed=1, verbose=False, pop_size=8, n_generations=1, canonical_seed=True)
+    finally:
+        _ind.Individual.from_canonical = _from_canonical
+    assert unseeded_calls == 0, "canonical_seed=False ainda pôs o canônico na população"
+    assert len(calls) == 1, "canonical_seed=True tem de pôr exatamente um canônico"
+    print("  ✓ canonical_seed=False: população inicial 100% aleatória")
 finally:
     for mod, names in _originals.items():
         for name, value in names.items():

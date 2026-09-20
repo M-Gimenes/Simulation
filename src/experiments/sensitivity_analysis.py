@@ -1,31 +1,33 @@
 """
-Análise de sensibilidade — Δ WR por (arquétipo × atributo) ao perturbar genes em ±σ.
+Análise de sensibilidade — Δ WR por (arquétipo × gene) ao deslocar cada gene em 2σ.
 
-Responde "o AG enxerga este gene?": um gene cujo deslocamento de ±σ não move a WR não
-tem gradiente de seleção. Usa pareamento de seeds — `+σ` e `−σ` são avaliados sob o
-mesmo seed-base, então cada luta dos dois recebe os mesmos sorteios (common random
-numbers, uma semente por luta — ver `fitness.fight_seed`), isolando o efeito do gene do
-sorteio.
+Responde "o AG enxerga este gene?": um gene cujo deslocamento na escala da mutação não
+move a WR não tem gradiente de seleção. Cobre os 11 genes — os 8 atributos e os 3 pesos
+comportamentais —, cada um com o σ que a mutação usa nele. Usa pareamento de seeds: os
+dois lados da janela são avaliados sob o mesmo seed-base, então cada luta dos dois recebe
+os mesmos sorteios (common random numbers, uma semente por luta — ver
+`fitness.fight_seed`), isolando o efeito do gene do sorteio.
 
-**O piso é medido, não estimado.** A versão anterior imprimia um piso binomial
-analítico (`√(0.25/4·sims)`) que nem sequer entrava na classificação — ela usava
-limiares fixos (≥5% visível, <3% neutro), então havia *dois critérios incompatíveis na
-mesma tabela*. Pior, o piso analítico era o desvio de **uma** proporção, enquanto o
-número classificado é uma **diferença** entre duas WRs.
+**A janela tem sempre 2σ.** O deslocamento vai de `x − σ` a `x + σ`; se isso sai do
+bound, a janela DESLIZA para dentro dele, mantendo a largura. Cortá-la no bound mediria,
+num gene encostado no limite (o `attack_cooldown` do Rushdown, o `stun` do Combo
+Master), um deslocamento de σ contra 2σ dos outros — e o gene pareceria menos visível só
+por estar na borda.
 
-Agora o piso é medido (`--null-reps`): o |Δ WR| entre duas avaliações do **mesmo roster,
-sem perturbação nenhuma**, sob seeds diferentes. O Δ verdadeiro aí é zero por
-construção, então tudo que aparece é ruído de amostragem — exatamente na grandeza que a
-tabela classifica. É um piso **conservador**: a medição real usa CRN pareado e tem menos
-ruído que isso, e superestimar o piso torna a classificação mais exigente, que é o lado
-seguro. A classificação inteira sai desse número — critério único.
+**O piso é medido, e na mesma estatística que é classificada.** O número classificado
+de cada gene é a média, sobre os 5 personagens, de |Δ WR|. O piso (`--null-reps`) roda
+exatamente isso sob a hipótese nula — janela de largura ZERO, os dois lados sob seeds
+diferentes — e fica com o maior valor que o ruído sozinho produziu nessa estatística. Um
+piso tirado de células isoladas seria de outra grandeza: a média de 5 |Δ| varia bem
+menos que uma célula só.
 
-(As seeds precisam ser diferentes nas duas metades do par nulo: com a mesma seed e
-perturbação zero as duas avaliações são bit-idênticas e o Δ sai exatamente 0, o que não
-mediria nada.)
+(As seeds precisam ser diferentes nos dois lados do par nulo: com a mesma seed e
+deslocamento zero as duas avaliações são bit-idênticas e o Δ sai exatamente 0. Quebrar o
+pareamento deixa o piso conservador — a medição real usa CRN pareado e tem menos ruído —,
+e superestimar o piso torna a classificação mais exigente, que é o lado seguro.)
 
 **Onde medir importa.** No canônico o roster é saturado (Rushdown ~100%, Turtle ~0%):
-com a WR presa no teto, perturbar um gene não muda nada e quase tudo sai "neutro" — isso
+com a WR presa no teto, deslocar um gene não muda nada e quase tudo sai "neutro" — isso
 é efeito de teto, não neutralidade. Use `--evolved` ou `--nsga2` para medir num roster
 equilibrado, que é onde a afirmação "o AG enxerga o cromossomo" precisa valer.
 
@@ -48,8 +50,11 @@ from src.engine.archetypes import ARCHETYPE_ORDER, ARCHETYPES
 from src.engine.config import (
     ATTRIBUTE_BOUNDS,
     ATTRIBUTE_MUTATION_SIGMA,
-    ATTRIBUTE_NAMES,
+    GENE_BOUNDS,
+    GENE_NAMES,
     N_WORKERS,
+    WEIGHT_BOUNDS,
+    WEIGHT_MUTATION_SIGMA,
 )
 from src.engine.fitness import evaluate_detail_n, set_seed_base
 from src.engine.individual import Individual
@@ -57,12 +62,11 @@ from src.engine.paths import PROJECT_ROOT, SENSITIVITY_DIR, SENSITIVITY_PATH
 from src.engine.provenance import stamp
 
 Genes = Tuple[Tuple[float, ...], ...]
-# (genes, personagem, atributo, sinal, magnitude do deslocamento, sims, seed).
-# O sinal é campo próprio, não o sinal da magnitude: no par nulo a magnitude é 0 e as
-# duas metades precisam continuar distinguíveis.
-Task = Tuple[Genes, int, int, int, float, int, int]
+# (genes, personagem, gene, valor do gene nesta avaliação, sims, seed)
+Task = Tuple[Genes, int, int, float, int, int]
 
 NULL_REPS_DEFAULT = 3
+N_GENES = len(GENE_NAMES)
 
 
 def _genes_of(ind: Individual) -> Genes:
@@ -76,20 +80,34 @@ def _individual_from(genes: Genes) -> Individual:
     return ind
 
 
-def _eval_task(task: Task) -> float:
-    genes, char_idx, attr_idx, sign, magnitude, sims, seed = task
+def mutation_sigmas(sigma_mult: float = 1.0) -> List[float]:
+    """O σ da mutação em cada um dos 11 genes, na ordem de `GENE_NAMES`."""
+    return (
+        [ATTRIBUTE_MUTATION_SIGMA * (hi - lo) * sigma_mult for lo, hi in ATTRIBUTE_BOUNDS]
+        + [WEIGHT_MUTATION_SIGMA * (hi - lo) * sigma_mult for lo, hi in WEIGHT_BOUNDS]
+    )
 
-    set_seed_base(seed)  # mesmo seed em +σ e −σ → mesmos sorteios (common random numbers)
+
+def window(value: float, sigma: float, bounds: Tuple[float, float]) -> Tuple[float, float]:
+    """`(x − σ, x + σ)`, deslizada para dentro do bound sem perder a largura 2σ."""
+    lo, hi = bounds
+    low, high = value - sigma, value + sigma
+    if high > hi:
+        low, high = low - (high - hi), hi
+    if low < lo:
+        low, high = lo, high + (lo - low)
+    return low, high
+
+
+def _eval_task(task: Task) -> float:
+    genes, char_idx, gene_idx, value, sims, seed = task
+    set_seed_base(seed)   # mesmo seed nos dois lados → mesmos sorteios (CRN)
     ind = _individual_from(genes)
     char = ind.characters[char_idx]
-    lo, hi = ATTRIBUTE_BOUNDS[attr_idx]
-    delta = sign * magnitude
-    char.attributes[attr_idx] = max(lo, min(hi, char.attributes[attr_idx] + delta))
-    char.clip()
-    ind.invalidate_fitness()
-
-    detail = evaluate_detail_n(ind, sims=sims)
-    return detail.winrates[char_idx]
+    shifted = char.genes()
+    shifted[gene_idx] = value
+    char.load_genes(shifted)
+    return evaluate_detail_n(ind, sims=sims).winrates[char_idx]
 
 
 def _classify(magnitude: float, floor: float) -> str:
@@ -103,15 +121,17 @@ def _classify(magnitude: float, floor: float) -> str:
 
 
 def _build_tasks(genes: Genes, sigmas: Sequence[float], sims: int, base_seed: int,
-                 negative_seed_shift: int = 0) -> List[Task]:
-    """`negative_seed_shift` != 0 quebra o pareamento de CRN de propósito — é o que a
+                 high_side_seed_shift: int = 0) -> List[Task]:
+    """Dois lados por (personagem, gene): o alto primeiro, o baixo depois.
+    `high_side_seed_shift` != 0 quebra o pareamento de CRN de propósito — é o que a
     medição do piso usa (ver `_measure_noise_floor`)."""
     tasks: List[Task] = []
     for i in range(len(ARCHETYPE_ORDER)):
-        for j in range(len(ATTRIBUTE_NAMES)):
+        for j in range(N_GENES):
             seed = base_seed + i * 100 + j
-            tasks.append((genes, i, j, +1, sigmas[j], sims, seed))
-            tasks.append((genes, i, j, -1, sigmas[j], sims, seed + negative_seed_shift))
+            low, high = window(genes[i][j], sigmas[j], GENE_BOUNDS[j])
+            tasks.append((genes, i, j, high, sims, seed + high_side_seed_shift))
+            tasks.append((genes, i, j, low, sims, seed))
     return tasks
 
 
@@ -122,48 +142,46 @@ def _run(tasks: List[Task], workers: int) -> List[float]:
         return list(ex.map(_eval_task, tasks))
 
 
-def _deltas_from(tasks: List[Task], results: List[float]) -> List[List[float]]:
-    deltas = [[0.0] * len(ATTRIBUTE_NAMES) for _ in range(len(ARCHETYPE_ORDER))]
-    for (_, char_idx, attr_idx, sign, _, _, _), wr in zip(tasks, results):
-        deltas[char_idx][attr_idx] += sign * wr
-    return deltas
+def _deltas_from(results: List[float]) -> List[List[float]]:
+    """Δ WR = WR(alto) − WR(baixo), por personagem × gene."""
+    pairs = iter(zip(results[0::2], results[1::2]))
+    return [[high - low for high, low in (next(pairs) for _ in range(N_GENES))]
+            for _ in range(len(ARCHETYPE_ORDER))]
+
+
+def column_means(deltas: List[List[float]]) -> List[float]:
+    """A estatística classificada: por gene, a média sobre os personagens de |Δ WR|."""
+    return [sum(abs(row[j]) for row in deltas) / len(deltas) for j in range(N_GENES)]
 
 
 def _measure_noise_floor(genes: Genes, sims: int, base_seed: int, reps: int,
                          workers: int) -> Tuple[float, float]:
-    """Piso de ruído MEDIDO: |Δ WR| entre duas avaliações do MESMO roster, sem
-    perturbação nenhuma, sob seeds diferentes.
+    """Piso de ruído MEDIDO, na estatística que a tabela classifica: a média sobre os
+    personagens de |Δ WR| com janela de largura ZERO, os dois lados sob seeds
+    diferentes. O Δ verdadeiro é zero por construção, então tudo que aparece é ruído.
 
-    Por que seeds diferentes: com perturbação zero e o mesmo seed as duas avaliações
-    são bit-idênticas e o Δ sai exatamente 0 — não mediria nada. Quebrando o pareamento
-    obtém-se o ruído de amostragem de uma *diferença* entre duas WRs, que é exatamente a
-    grandeza classificada na tabela.
-
-    É um piso **conservador**: a medição real usa CRN pareado, que reduz o ruído abaixo
-    disto. Superestimar o piso torna a classificação mais exigente — o lado seguro.
-
-    Devolve `(máximo, média)`. O piso é o **máximo**: o maior efeito que a ausência de
-    efeito conseguiu produzir."""
-    zeros = [0.0] * len(ATTRIBUTE_NAMES)
-    magnitudes: List[float] = []
+    Devolve `(máximo, média)` sobre as `reps × 11` médias nulas. O piso é o **máximo**:
+    o maior efeito que a ausência de efeito conseguiu produzir."""
+    zeros = [0.0] * N_GENES
+    nulls: List[float] = []
     for rep in range(reps):
         tasks = _build_tasks(genes, zeros, sims, base_seed + 10_000 * (rep + 1),
-                             negative_seed_shift=7919)   # primo: descola os streams
-        deltas = _deltas_from(tasks, _run(tasks, workers))
-        magnitudes += [abs(d) for row in deltas for d in row]
-    return max(magnitudes), sum(magnitudes) / len(magnitudes)
+                             high_side_seed_shift=7919)   # primo: descola os streams
+        nulls += column_means(_deltas_from(_run(tasks, workers)))
+    return max(nulls), sum(nulls) / len(nulls)
 
 
 def _load_individual(args: argparse.Namespace) -> Tuple[Individual, str]:
     if args.nsga2:
-        return Individual.from_nsga2(representative=args.nsga2), f"NSGA-II ({args.nsga2})"
+        return (Individual.from_nsga2(representative=args.nsga2, require_current=True),
+                f"NSGA-II ({args.nsga2})")
     if args.evolved:
-        return Individual.from_results(), "EVOLUÍDO (single_run/ga.json)"
+        return Individual.from_results(require_current=True), "EVOLUÍDO (single_run/ga.json)"
     return Individual.from_canonical(), "CANÔNICO (saturado — ver docstring)"
 
 
 def _save(args, label: str, sigmas: Sequence[float], deltas: List[List[float]],
-          col_means: List[float], floor: float, floor_mean: float) -> None:
+          means: List[float], floor: float, floor_mean: float) -> None:
     """Grava a matriz Δ WR para que a tabela de sensibilidade tenha artefato
     (o console é volátil; a tabela é citada na validação metodológica)."""
     data = {
@@ -172,21 +190,21 @@ def _save(args, label: str, sigmas: Sequence[float], deltas: List[List[float]],
         "sigma_mult": args.sigma_mult,
         "seed": args.seed,
         "null_reps": args.null_reps,
-        "sigmas": dict(zip(ATTRIBUTE_NAMES, sigmas)),
+        "sigmas": dict(zip(GENE_NAMES, sigmas)),
         "noise_floor_measured": floor,
         "noise_floor_mean": floor_mean,
         "delta_wr": {
-            ARCHETYPES[aid].name: dict(zip(ATTRIBUTE_NAMES, deltas[i]))
+            ARCHETYPES[aid].name: dict(zip(GENE_NAMES, deltas[i]))
             for i, aid in enumerate(ARCHETYPE_ORDER)
         },
-        "mean_abs_delta_wr": dict(zip(ATTRIBUTE_NAMES, col_means)),
+        "mean_abs_delta_wr": dict(zip(GENE_NAMES, means)),
         "classification": {
-            attr: _classify(m, floor) for attr, m in zip(ATTRIBUTE_NAMES, col_means)
+            gene: _classify(m, floor) for gene, m in zip(GENE_NAMES, means)
         },
     }
     SENSITIVITY_DIR.mkdir(parents=True, exist_ok=True)
     with open(SENSITIVITY_PATH, "w", encoding="utf-8") as fh:
-        json.dump({"provenance": stamp(), **data}, fh, indent=2, ensure_ascii=False)
+        json.dump({"provenance": stamp(tool=__spec__.name), **data}, fh, indent=2, ensure_ascii=False)
     print()
     print(f"  Salvo em {SENSITIVITY_PATH.relative_to(PROJECT_ROOT)}")
 
@@ -217,78 +235,68 @@ def main() -> None:
 
     individual, label = _load_individual(args)
     genes = _genes_of(individual)
-    sigmas = [
-        ATTRIBUTE_MUTATION_SIGMA * (hi - lo) * args.sigma_mult
-        for lo, hi in ATTRIBUTE_BOUNDS
-    ]
-    n_chars, n_attrs = len(ARCHETYPE_ORDER), len(ATTRIBUTE_NAMES)
+    sigmas = mutation_sigmas(args.sigma_mult)
+    n_chars = len(ARCHETYPE_ORDER)
     tasks = _build_tasks(genes, sigmas, args.sims, args.seed)
 
     print("─" * 80)
     workers_label = "serial" if args.workers == 1 else f"{args.workers} workers"
     print(f"  Análise de sensibilidade — {label}")
-    print(f"  {args.sims} sims/matchup, σ × {args.sigma_mult}, {workers_label}")
-    print(f"  {len(tasks)} avaliações ({n_chars} arquétipos × {n_attrs} atributos × 2 direções)")
+    print(f"  {args.sims} sims/matchup, janela 2σ (σ da mutação × {args.sigma_mult}), "
+          f"{workers_label}")
+    print(f"  {len(tasks)} avaliações ({n_chars} arquétipos × {N_GENES} genes × 2 lados)")
     print("─" * 80)
 
-    deltas = _deltas_from(tasks, _run(tasks, args.workers))
+    deltas = _deltas_from(_run(tasks, args.workers))
 
     for i, aid in enumerate(ARCHETYPE_ORDER):
         name = ARCHETYPES[aid].name
-        for j, attr_name in enumerate(ATTRIBUTE_NAMES):
-            print(f"  {name:14} {attr_name:18} σ={sigmas[j]:>6.2f}  Δ={deltas[i][j]:+.1%}")
+        for j, gene in enumerate(GENE_NAMES):
+            print(f"  {name:14} {gene:18} σ={sigmas[j]:>6.3f}  Δ={deltas[i][j]:+.1%}")
         print()
 
     # ── Matriz ────────────────────────────────────────────────────────────────
 
-    print("═" * 80)
-    print("  Matriz |Δ WR|  (linha = arquétipo perturbado, coluna = atributo)")
-    print("═" * 80)
-    header = f"  {'':14}" + "".join(f"{n[:6]:>8}" for n in ATTRIBUTE_NAMES) + f"  {'média':>7}"
+    print("═" * 104)
+    print("  Matriz |Δ WR|  (linha = arquétipo perturbado, coluna = gene)")
+    print("═" * 104)
+    header = f"  {'':14}" + "".join(f"{n[:7]:>8}" for n in GENE_NAMES)
     print(header)
     print("  " + "─" * (len(header) - 2))
-
-    col_means = [0.0] * n_attrs
     for i, aid in enumerate(ARCHETYPE_ORDER):
-        row = [abs(d) for d in deltas[i]]
-        print(f"  {ARCHETYPES[aid].name:14}"
-              + "".join(f"{v:>8.1%}" for v in row)
-              + f"  {sum(row)/n_attrs:>7.1%}")
-        for j in range(n_attrs):
-            col_means[j] += row[j] / n_chars
-
+        print(f"  {ARCHETYPES[aid].name:14}" + "".join(f"{abs(d):>8.1%}" for d in deltas[i]))
+    means = column_means(deltas)
     print("  " + "─" * (len(header) - 2))
-    print(f"  {'média':14}" + "".join(f"{m:>8.1%}" for m in col_means))
+    print(f"  {'média':14}" + "".join(f"{m:>8.1%}" for m in means))
 
     # ── Piso medido e ranking ─────────────────────────────────────────────────
 
     print()
     print("═" * 80)
-    print("  Ranking de sensibilidade — atributos por |Δ WR| médio")
+    print("  Ranking de sensibilidade — genes por |Δ WR| médio")
     print("═" * 80)
 
     if args.null_reps > 0:
-        print(f"  Medindo o piso de ruído: {args.null_reps} repetições com perturbação "
-              f"ZERO...")
+        print(f"  Medindo o piso de ruído: {args.null_reps} repetições com janela ZERO...")
         floor, floor_mean = _measure_noise_floor(
             genes, args.sims, args.seed, args.null_reps, args.workers
         )
-        print(f"  Piso MEDIDO: |Δ| máx {floor:.1%} · médio {floor_mean:.1%} "
-              f"sobre {args.null_reps * n_chars * n_attrs} células sem perturbação.")
-        print(f"  (|Δ| entre duas avaliações do MESMO roster sob seeds diferentes — o Δ")
-        print(f"   verdadeiro é zero, então tudo que aparece é ruído de amostragem.")
-        print(f"   Piso conservador: a medição real usa CRN pareado e tem menos ruído.)")
+        print(f"  Piso MEDIDO: máx {floor:.1%} · médio {floor_mean:.1%} sobre "
+              f"{args.null_reps * N_GENES} médias nulas (mesma estatística do ranking).")
+        print("  (Média sobre os personagens de |Δ WR| entre duas avaliações do MESMO")
+        print("   roster sob seeds diferentes — o Δ verdadeiro é zero, então tudo que")
+        print("   aparece é ruído. Conservador: a medição real usa CRN pareado.)")
     else:
         floor = floor_mean = 0.0
         print("  Piso de ruído DESLIGADO (--null-reps 0) — classificação sem âncora.")
     print()
 
-    for name, m in sorted(zip(ATTRIBUTE_NAMES, col_means), key=lambda x: x[1], reverse=True):
-        print(f"    {name:18} {m:>6.1%}  {_classify(m, floor)}")
+    for gene, m in sorted(zip(GENE_NAMES, means), key=lambda x: x[1], reverse=True):
+        print(f"    {gene:18} {m:>6.1%}  {_classify(m, floor)}")
     print()
     print(f"  ✗ neutro ≤ {floor:.1%} (piso)   ~ borderline ≤ {2*floor:.1%}   ✓ visível acima")
 
-    _save(args, label, sigmas, deltas, col_means, floor, floor_mean)
+    _save(args, label, sigmas, deltas, means, floor, floor_mean)
 
 
 if __name__ == "__main__":

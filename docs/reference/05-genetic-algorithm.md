@@ -7,7 +7,10 @@ Loop em `src/engine/ga.py`; fitness em `src/engine/fitness.py`; operadores em
 ## Indivíduo
 
 Cada indivíduo = 5 personagens (um por arquétipo) = 55 genes. Por personagem: 8
-atributos + 3 pesos. A população inicial é `[canônico] + [299 aleatórios]`.
+atributos + 3 pesos. A população inicial é `[canônico] + [299 aleatórios]`
+(`GA_CANONICAL_SEED = True`). Com `ga.run(canonical_seed=False)` — ou
+`multi_run --no-canonical-seed` — ela nasce 100% aleatória, como a do NSGA-II: é o braço
+de controle que separa o efeito do algoritmo do efeito da inicialização.
 
 ## Função de fitness
 
@@ -164,17 +167,15 @@ escala bruta. Mudar qualquer `LAMBDA_*` não afeta o NSGA-II.
   uma **fração** (`ELITE_RATE = 0.10`) do tamanho **real** da população, não uma contagem
   absoluta: uma execução de orçamento reduzido herdando 30 elites absolutos teria
   elitismo efetivo de 25% (pop 120) ou 100% (pop 30), e no último caso o AG pararia de
-  buscar sem dar sinal. `ELITE_SIZE = 30` é só a derivação no orçamento default. Taxa 0
-  devolve 0 elites; qualquer taxa positiva preserva no mínimo o melhor.
+  buscar sem dar sinal. Taxa 0 devolve 0 elites; qualquer taxa positiva preserva no
+  mínimo o melhor.
 
 > **Elitismo e torneio são estado de processo** (`operators.set_selection` /
 > `set_selection_override`), pela mesma razão dos λ e dos pesos do dominance: um sweep os
 > varia entre execuções e `from .config import X` congelaria o valor no import. **Sem** a
 > plumbing de `RuntimeState`, porém — os dois são lidos só por `next_generation` e
 > `tournament_selection`, que rodam exclusivamente no processo pai (os workers avaliam
-> fitness, nunca reproduzem). `set_selection_override` recalcula também `ELITE_SIZE` no
-> carimbo, senão o artefato de um braço afirmaria a taxa do braço ao lado da contagem do
-> arquivo.
+> fitness, nunca reproduzem).
 
 **Os dois valores foram testados** (sweep de 7 braços: elitismo 0 · 5% · 20% · 30%,
 torneio 2 · 5 · 7) e nenhum braço supera 10% / 3. Tabela e leitura em
@@ -182,8 +183,11 @@ torneio 2 · 5 · 7) e nenhum braço supera 10% / 3. Tabela e leitura em
 
 ## Critérios de convergência e parada
 
-O AG escalar **roda sempre `MAX_GENERATIONS` gerações**. Convergência e estagnação são
-**eventos registrados** (`converged_at`, `stagnated_at`), não paradas.
+O AG escalar **roda sempre `MAX_GENERATIONS` gerações**. Convergência é **evento
+registrado** (`converged_at`), não parada. Não há evento de estagnação: com o stream
+rotacionando a cada geração, o "melhor fitness histórico" seria o máximo de valores
+ruidosos — sobe por sorte e raramente é batido —, e o evento mediria a catraca do ruído,
+não a busca.
 
 > **Por que orçamento fixo nos dois algoritmos.** O NSGA-II não tem como parar pelo
 > critério do escalar: *"o roster está equilibrado?"* não se pergunta a uma **fronteira**,
@@ -233,10 +237,15 @@ se ajustar àquela sequência de sorteios em vez de ao jogo. Medições em
 [thesis/04](../thesis/04-design-decisions.md).
 
 Como os elites chegam medidos no stream anterior, a geração inteira é reavaliada —
-custo ~1,8× (no NSGA-II é ~2×, ver [06](06-nsga2.md)). O fitness passa a flutuar
-entre gerações por troca de stream, então **`stagnated_at` fica menos confiável**: o
-`best_fitness` reportado e o contador de estagnação operam sobre fitness re-amostrado.
-`converged_at` não sofre, porque testa o predicado `roster_balanced` e não o fitness.
+custo ~1,8× (no NSGA-II é ~2×, ver [06](06-nsga2.md)). O fitness passa a flutuar entre
+gerações por troca de stream; `converged_at` não sofre, porque testa o predicado
+`roster_balanced` e não o fitness.
+
+> **Orçamento igual = descendentes iguais.** Os dois algoritmos geram 300 filhos novos por
+> geração. O NSGA-II faz o dobro de avaliações (reavalia os pais junto dos filhos, porque
+> a ordenação por dominância os compara no mesmo conjunto); o escalar reavalia só a
+> população nova. A comparação é de qualidade sob o mesmo número de candidatos
+> gerados, não sob o mesmo número de avaliações — declarar.
 
 ### Por que a confirmação roda fora do stream do treino
 
@@ -246,16 +255,19 @@ genes e não sorteio. Mas reavaliar nesses mesmos sorteios não confirma nada: m
 realização do RNG com mais amostras, e a confirmação **não pode discordar do gate**. O
 ajuste ao stream se concentra no par-a-par, nunca na WR global.
 
-Por isso a confirmação resseta para `seed + CONVERGENCE_SEED_OFFSET` (100000, escolhido
-para não colidir com treino 42+, `MULTI_RUN_VALIDATION_SEED` 9999 nem
-`EXTERNAL_VALIDATION_SEED_START` 10000+) e devolve o base do treino ao sair. Convergir
+Por isso a confirmação ressemeia no stream da geração somado a `CONVERGENCE_SEED_OFFSET`
+(100000, escolhido para não colidir com os streams de treino, `MULTI_RUN_VALIDATION_SEED`
+9999 nem `EXTERNAL_VALIDATION_SEED_START` 10000+) e devolve o base do treino ao sair. Convergir
 passa a significar **"o equilíbrio sobrevive a um stream que o AG nunca viu"**, e o
 `best_detail` devolvido pelo AG vira uma medição fora da amostra. A contagem de
 disparos e recusas sai em `convergence_gate_fired` / `convergence_rejected`.
 
 A confirmação é testada **só até o primeiro sucesso**: o que interessa é *quando*
-convergiu, e cada disparo custa `SIMS_CONVERGENCE_CHECK` simulações extras.
-`STAGNATION_LIMIT = 30` gerações sem melhoria > 0.001 também vira evento registrado.
+convergiu, e cada disparo custa `SIMS_CONVERGENCE_CHECK` simulações extras. Daí o que
+`converged_at` significa: o **primeiro** disparo do gate que sobrevive à confirmação, num
+teste repetido a cada geração — não que o roster fique equilibrado dali em diante. A
+fração de sementes que **terminam** equilibradas é outra métrica do `multi_run`, e as duas
+se leem juntas.
 
 ## Saída
 

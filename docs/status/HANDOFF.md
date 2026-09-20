@@ -18,18 +18,20 @@ trabalho das sessões anteriores, no git (a última versão longa deste arquivo 
 1. **O ambiente não sobe sozinho.** `.venv/` é gitignored e o Python do sistema (3.14)
    não tem `numpy`/`numba`/`scipy`. Rode `setup.ps1` antes de qualquer coisa.
 2. **`results/` está COMPLETO, mas OBSOLETO — e os números VÃO MUDAR.** Depois da
-   bateria de 2026-09-18 o motor mudou duas vezes (§3): o pool de processos ficou
-   persistente, que não muda número (seed 42 reproduzida bit a bit), e o CRN passou a
-   semear **cada luta**, que troca todos os sorteios e portanto todos os números.
-   **Rodar `.\scripts\run_overnight.ps1`** (16 braços + bateria, ~5h20 estimadas), conferir com
-   `py -m src.tests.test_provenance` e então **reler tudo o que é resultado**: a §2 deste
-   arquivo, o `docs/thesis/`, os números do `CLAUDE.md` e as conclusões dos três sweeps. A
-   expectativa é que se mantenham, mas é a bateria que vai dizer.
-3. **A base experimental está fechada**: motor e fitness calibrados, os sete itens da
-   agenda de calibração decididos com evidência, os três sweeps exploratórios feitos (λ,
-   pesos do dominance, elitismo/torneio — os três testaram o valor vigente e ele passou) e
-   a bateria com n = 20 rodada. Não há experimento decidido por rodar nem pendência de
-   instrumentação.
+   bateria de 2026-09-18 o motor mudou (§3): o CRN passou a semear **cada luta** e os
+   timers passaram a carregar o resto (período do cooldown e stun exatos em média) — os
+   dois trocam todos os números. E o protocolo ganhou os dois controles, a manchete no
+   `scalar_optimum`, a concordância de ranking e a validação externa com regras
+   perturbadas. **Rodar `.\scripts\run_overnight.ps1`** (16 braços, ~1h40, + bateria de 16
+   passos, ~6h12), conferir com `py -m src.tests.test_provenance`, **limpar os artefatos
+   órfãos** (lista em [`10-known-issues`](../reference/10-known-issues.md) §1, passo 3) e
+   então **reler tudo o que é resultado**: a §2 deste arquivo, o `docs/thesis/`, os
+   números do `CLAUDE.md` e as conclusões dos três sweeps.
+3. **A base experimental está definida, e falta rodá-la.** Motor e fitness calibrados, os
+   três sweeps exploratórios feitos, e — depois da auditoria do zero de 2026-09-18 — os
+   controles que isolam o efeito do método (`λ_drift = 0`, AG sem semente canônica) dentro
+   da bateria. A pergunta que a próxima bateria responde de fato: se o equilíbrio preserva
+   a identidade **funcional** — na leitura preliminar, não preserva (§3).
 4. **O que falta, depois da bateria:** a **redação** (§4) — a começar pelo `values.tex`,
    inteiramente obsoleto.
 
@@ -38,15 +40,18 @@ trabalho das sessões anteriores, no git (a última versão longa deste arquivo 
 | eixo | do que é feito | estado |
 |---|---|---|
 | **Espaço** | range, speed, knockback, posição, campo, colisão | ✅ coerente — dois canais de ação, colisão, regra de impasse |
-| **Tempo** | cooldown, stun, persistência da intenção | ✅ coerente — a persistência é 5 sub-ticks = 1 tick = o cooldown mínimo, então quem tem `cooldown=1` e sorteia GUARDA abre mão de exatamente **uma** janela |
+| **Tempo** | cooldown, stun, persistência da intenção | ✅ coerente — os timers carregam o resto entre golpes (período e stun exatos em média); a persistência é 5 sub-ticks = 1 tick = o período do atacante mais rápido, então quem tem `cooldown=1` e sorteia GUARDA abre mão de exatamente **uma** janela |
 | **Recurso** | hp, damage, DEFEND, grab_power | ✅ coerente — o agarrão é o counter da guarda |
 | **Política** | 3 pesos, amostragem proporcional | contínua, e a escala dos pesos não contamina a identidade (`drift_genes` reescala); segue **cega ao estado**: não olha HP, distância nem se o oponente está stunado — limite declarado |
 
 ## 2. Resultados da bateria (2026-09-18, n = 20) — sob rotação, persistência 5 e drift invariante
 
-> ⚠️ **Estes números são de ANTES do CRN por luta (§3), que troca todos os sorteios.** A
-> próxima bateria os substitui. Esta seção precisa ser reescrita contra ela — tabelas,
-> leituras e as conclusões dos sweeps —, e nada daqui deve ser citado até lá.
+> ⚠️ **Estes números são de ANTES do CRN por luta e da correção dos timers (§3), que trocam
+> todos os sorteios.** A próxima bateria os substitui. Esta seção precisa ser reescrita
+> contra ela — tabelas, leituras e as conclusões dos sweeps —, e nada daqui deve ser citado
+> até lá. **Quatro leituras desta seção foram corrigidas** pela auditoria do zero de
+> 2026-09-18 e estão marcadas no lugar (ver [`thesis/04`](../thesis/04-design-decisions.md),
+> "Leituras corrigidas").
 
 `results/` está **atual e coerente**. Bateria: AG e NSGA-II na seed 42, `multi_run` com
 **20 sementes** × 2 algoritmos, `compare_algorithms`, os quatro rótulos de
@@ -134,22 +139,31 @@ retrai, o representante piora. **A piora é a correção.**
 | `drift_penalty` | 0,218 | 0,409 | 0,327 | 47% | **< 0,03** |
 | `dominance_penalty` | 0,026 | 1,136 | 0,025 | **102%** | 0,06 |
 | arestas do ciclo | 4/10 | 5,0 | 8 | **−20%** | 0,97 |
+| validador (L3), lido separado | 1/5 | ~1 | 3 | — | **0,74** |
 
-Três leituras:
+Três leituras — **corrigidas em 2026-09-18**:
 
-1. **A identidade supera TODOS os 30 rosters sem estrutura nos três eixos** (p < 0,03 em
-   cada). E melhorou sobre a bateria anterior: drift 0,254 → 0,218, L1+L2 11/18 → 12/18.
-2. **O equilíbrio chegou a 102% do espelho** — o roster evoluído é *mais* equilibrado que
-   a solução trivial de cinco personagens idênticos (0,026 contra 0,025 do melhor
-   espelho), mantendo identidade bem acima do piso. Era 94% na bateria anterior. Essa é a
-   resposta numérica direta à objeção "por que não deixar todos iguais?".
-3. **O ciclo autoral não é realizado** — 4/10 arestas, *abaixo* do acaso (5/10), p = 0,97.
-   Já era esperado desde o item H (acertar o rótulo específico é loteria de 1/24). O que
-   **é** resultado são as **tríades circulares em 4,0** (acaso 2,5 · máximo 5) com as WR
-   por par espalhadas em 43%–55%, ou seja, arestas decididas: a **não-transitividade
-   emergiu**, ainda que não no rótulo autoral.
+1. ~~A identidade supera TODOS os nulos nos três eixos (p < 0,03).~~ Supera nas réguas
+   **estruturais** — drift (no fitness) e Layers 1-2 (endógenas), onde vencer nulos não
+   otimizados é quase garantido. Na régua **funcional** isolada, a Layer 3 dá 1/5 com
+   p = 0,74: no piso. (A concordância de ranking, medida depois, dá τ = 0,19, p = 0,14.)
+2. ~~102% do espelho, mais equilibrado que a solução trivial (0,026 contra 0,025).~~ 0,026 é
+   *maior* que 0,025. O `dominance` do evoluído fica **no nível** dos espelhos (0,025–0,037,
+   fora o do Zoner) — o piso de ruído a 200 lutas. Leitura certa: tão equilibrado quanto a
+   simetria perfeita, dentro do ruído.
+3. **O ciclo autoral não é realizado** — 4/10 arestas. ~~Loteria de 1/24~~: o motivo real é
+   que o próprio canônico só realiza 6/10 dele. ~~Tríades em 4,0 com pares em 43%–55%,
+   arestas decididas~~: a 200 lutas esse espalhamento é o do puro ruído (espelhos chegam a
+   4,0). A evidência de pares decididos é a da validação externa (5000 lutas por par: os 10
+   pares com |z| ≥ 3,6, torneio regular) — e a intransitividade é em boa parte implicada
+   pelo objetivo.
 
 ### Validação externa — os quatro rótulos, mesmo corte
+
+> Sob o desenho antigo (10 sementes, veredito "counter em alguma condição"). A validação
+> externa agora separa replicação de robustez a regras perturbadas, com veredito pelo IC
+> de 5000 lutas por par, e a bateria valida o `scalar_optimum` no lugar do
+> `best_dominance`.
 
 | indivíduo | `dominance` fora | drift | bonecos robustos | counters | veredito |
 |---|---|---|---|---|---|
@@ -266,14 +280,19 @@ A n = 20 o eixo de velocidade deixou de ser anedota:
 
 - **Convergiu em 20/20 sementes** (sempre confirmado num stream que o AG nunca viu), na
   geração **34,8 ± 17,1** (18 a 75). A seed 42 converge na 39.
-- **Estagnou em 10/20**, na geração **99,5 ± 21,2** (63 a 132). A n = 1 a seed 42 não
-  estagnava, e isso tinha sido lido como confirmação de que, sob rotação, o contador reseta
-  por ruído e o evento não dispara. A amostra corrige: ele dispara em metade das sementes,
-  tarde. O que segue valendo é que `stagnated_at` é menos confiável que `converged_at`.
+- ~~Estagnou em 10/20, na geração 99,5 ± 21,2.~~ O evento media a catraca do ruído (o
+  "melhor fitness histórico" sob rotação do stream é o máximo de valores ruidosos) e foi
+  **removido** em 2026-09-18.
+- Convergir não é terminar equilibrado: das 20 sementes convergidas, **14** terminam com o
+  roster equilibrado na reavaliação.
 - **O gate disparou 70 vezes e a confirmação recusou 50 (71%)**, dentro da faixa de 67%–83%
   medida nos braços do sweep — agora no orçamento de produção.
 
 ### Sensibilidade — a primeira medição sobre o indivíduo atual
+
+> Sob o desenho antigo (8 atributos, janela cortada no bound, piso de uma célula). A
+> análise agora cobre os 11 genes com janela de 2σ e o piso na estatística classificada;
+> a leitura preliminar sob o desenho novo está na §3.
 
 > ⚠️ **O `sensitivity_analysis.json` versionado estava obsoleto e marcado como atual.** Era
 > do indivíduo de 2026-09-16, sob persistência 10 (piso 7,9% — o número que o
@@ -327,6 +346,46 @@ Tudo testado e commitado; detalhe e números no
   cinco, e `compare_algorithms --nsga2-representative scalar_optimum` compara o escalar com
   o comparável dele a n = 20, sem re-rodar o NSGA-II. A bateria faz isso no passo 4 (agora
   são 12). O representante padrão segue `best_dominance`.
+
+### A auditoria do zero (2026-09-18)
+
+Uma revisão sem contexto prévio achou afirmações do motor que o código não cumpria,
+leituras que os números não sustentavam e buracos de protocolo. Tudo resolvido e testado
+(11 smoke tests, 1 novo); o porquê e os números de cada item estão no
+[`docs/thesis/04`](../thesis/04-design-decisions.md), a partir de "A auditoria do zero".
+
+- **Motor:** timers com resto acumulado — o período do cooldown era `round(5c) + 1` e o stun
+  `ceil(s)` (4 efeitos em cooldown 1; o stun do Rushdown evoluído dava 5 WR distintas em 31
+  valores, agora 27). Regras do combate como estado de processo (`CombatRules`), levadas
+  aos workers. **Muda todos os números.**
+- **Validador:** empate conta contra a asserção (os espelhos ganhavam 4/13 da Layer 1 pelo
+  índice); pesos comparados como probabilidade de intenção.
+- **Nova régua funcional:** concordância de ranking comportamental (τ de Kendall),
+  `IDENTITY_BEHAVIORAL_SIMS = 200`. Por semente no `multi_run`, nos nulos e no dossiê.
+- **Controles na bateria:** AG com `λ_drift = 0` e AG sem semente canônica, n = 20, em
+  `results/controls/`, comparados por `compare_algorithms --control`.
+- **Comparação:** manchete no `scalar_optimum` (decidida antes da bateria), relação de
+  Pareto por semente, família de Holm fixa de 7 métricas (equilíbrio + identidade).
+- **Validação externa:** replicação e robustez a 8 regras perturbadas, 5000 lutas por par,
+  veredito pelo IC.
+- **Sensibilidade:** os 11 genes, janela de 2σ que desliza no bound, piso na estatística
+  certa (0,037 contra 0,068 da regra antiga).
+- **NSGA-II:** joelho e ideal com objetivos normalizados (o ideal mudou em 19/20
+  fronteiras); hipervolume com referência (1,3; 0,4) ancorada nos nulos.
+- **`stagnated_at` e `STAGNATION_LIMIT` removidos.**
+- **Proveniência:** quem grava artefato a partir de outro recusa entrada obsoleta
+  (`refuse_if_stale`); digest do código de medição por artefato; o `multi_run` roteia todo
+  desvio do protocolo (antes um `--n-seeds 3` gravava por cima da bateria).
+- **Sweeps** nas sementes 1000–1004, disjuntas da bateria.
+- **Limpeza:** `ELITE_SIZE` removido, `generations_run` igual nos dois algoritmos, o
+  `report` com os defaults do `baselines`, comentários desatualizados, imports sem uso.
+
+**Leitura preliminar, a confirmar na bateria:** a identidade funcional do evoluído está no
+piso (Layer 3 1/5, p = 0,74; τ = 0,19, p = 0,14), a política saiu embaralhada (o Rushdown
+guarda mais do que avança) e, na escala da mutação, `w_retreat` e `w_defend` ficam abaixo do
+piso de ruído da sensibilidade. Se a bateria confirmar, a resposta à pergunta de pesquisa é
+que o equilíbrio preserva a identidade **estrutural** e não a **funcional** — e o controle
+`λ_drift = 0` dirá quanto da estrutural é do termo de drift.
 
 **Limites estruturais — escopo declarado, não conserto**
 ([`10-known-issues`](../reference/10-known-issues.md) §2): política fixa (a objeção mais

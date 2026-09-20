@@ -61,9 +61,11 @@ py -m src.analysis.archetype_validator                # structural + behavioral 
 
 # src.experiments — o protocolo da tese (cada um grava um artefato em results/)
 py -m src.experiments.multi_run --algorithm both      # N execucoes independentes + estatistica agregada
-py -m src.experiments.compare_algorithms              # GA x NSGA-II: Mann-Whitney U + A12 + Holm
-py -m src.experiments.external_validation --nsga2 knee_point  # robustez do equilibrio fora do laco
-py -m src.experiments.sensitivity_analysis --evolved  # +/-sigma delta-WR per gene (no canonico satura)
+py -m src.experiments.multi_run --algorithm ga --lambda-drift 0   # controle: equilibrar sem o termo de identidade
+py -m src.experiments.compare_algorithms              # GA x NSGA-II (scalar_optimum) + relacao de Pareto
+py -m src.experiments.compare_algorithms --control results/controls/multi_run_ga_drift0_dom1.json   # GA x controle
+py -m src.experiments.external_validation --nsga2 knee_point  # replicacao + robustez a regras perturbadas
+py -m src.experiments.sensitivity_analysis --evolved  # delta-WR por gene, janela 2sigma (no canonico satura)
 py -m src.experiments.baselines --evolved             # modelos nulos: piso/teto de cada metrica
 
 # src.visualization
@@ -77,7 +79,7 @@ só lista e estima o custo); o `run_overnight.ps1` não tem `-WhatIf` — chamad
 
 ```powershell
 .\scripts\run_sweeps.ps1     # 16 bracos exploratorios em orcamento reduzido (~1h40)
-.\scripts\run_battery.ps1    # a bateria citavel, n = 20 sementes (~3h45)
+.\scripts\run_battery.ps1    # a bateria citavel, n = 20 sementes, com os dois controles (~6h12)
 .\scripts\run_overnight.ps1  # encadeia os dois e roda desassistido
 ```
 
@@ -128,4 +130,5 @@ py -m src.tests.test_nsga2
 py -m src.tests.test_provenance
 py -m src.tests.test_archetype_validator
 py -m src.tests.test_compare_algorithms
+py -m src.tests.test_multi_run
 ```

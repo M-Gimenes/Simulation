@@ -21,11 +21,17 @@ MULTI_RUN_GA_PATH = MULTI_RUN_DIR / "multi_run_ga.json"
 MULTI_RUN_NSGA2_PATH = MULTI_RUN_DIR / "multi_run_nsga2.json"
 MULTI_RUN_COMPARISON_PATH = MULTI_RUN_DIR / "comparison_ga_vs_nsga2.json"
 
-# Execuções EXPLORATÓRIAS — as que desviam do default em λ, em orçamento, ou nos dois —
-# ficam fora dos paths acima, que são a bateria (e o que o `compare_algorithms` lê).
-# Duas razões, e a segunda é a que machuca: misturá-las convidaria o próximo leitor a
-# agregar configurações diferentes como se fossem repetições da mesma; e uma execução
-# barata gravando em `multi_run_ga.json` **apagaria** horas de bateria em silêncio.
+# Execuções fora do protocolo ficam fora dos paths acima, que são a bateria (e o que o
+# `compare_algorithms` lê por default). Duas razões, e a segunda é a que machuca:
+# misturá-las convidaria o próximo leitor a agregar configurações diferentes como se
+# fossem repetições da mesma; e uma execução barata gravando em `multi_run_ga.json`
+# **apagaria** horas de bateria em silêncio.
+#
+# CONTROLES — mesma amostra e mesmo orçamento da bateria, com um desvio de DESENHO
+# (λ, semente canônica, seleção, …). São citáveis: é o braço de controle da tese.
+CONTROLS_DIR = RESULTS_DIR / "controls"
+# EXPLORATÓRIOS — desviam na amostra ou no orçamento (os sweeps). Servem para ordenar
+# configurações, não para número citável.
 EXPLORATORY_DIR = RESULTS_DIR / "exploratory"
 
 EXTERNAL_VALIDATION_DIR = RESULTS_DIR / "external_validation"

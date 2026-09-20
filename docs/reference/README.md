@@ -16,8 +16,8 @@ tese fica em [`../thesis/`](../thesis/README.md).
 | [05-genetic-algorithm.md](05-genetic-algorithm.md) | AG escalar: indivíduo, fitness (drift e dominance C2), operadores, convergência, stream por geração |
 | [06-nsga2.md](06-nsga2.md) | NSGA-II multi-objetivo: dominância, crowding, representantes |
 | [07-configuration.md](07-configuration.md) | Tabela completa de hiperparâmetros (`config.py`) |
-| [08-tools.md](08-tools.md) | Ferramentas de análise, validação, estatística e visualização |
-| [09-reproducibility.md](09-reproducibility.md) | Execução, saídas, carimbo de proveniência e reprodutibilidade (CRN por luta) |
+| [08-tools.md](08-tools.md) | Ferramentas de análise, validação, estatística (bateria e controles) e visualização |
+| [09-reproducibility.md](09-reproducibility.md) | Execução, saídas, carimbo de proveniência (motor e medição; recusa de entrada velha) e reprodutibilidade (CRN por luta) |
 | [10-known-issues.md](10-known-issues.md) | Pontos em aberto: a pendência de regerar resultados, os limites estruturais do método, o estado dos artefatos |
 | [11-combat-review.md](11-combat-review.md) | Auditoria do modelo de combate (2026-09-10): os defeitos, as correções e o veredito |
 | [12-statistical-testing.md](12-statistical-testing.md) | Didático: Mann-Whitney, Â₁₂ e a correção de Holm-Bonferroni |

@@ -216,7 +216,7 @@ def test_representatives_identifies_extremes():
     assert reps["best_drift"]     is front[1]
 
 
-def test_representatives_ideal_closest_to_origin():
+def test_representatives_ideal_closest_to_utopia():
     front = [
         _ind_with_obj([0.05, 0.90]),
         _ind_with_obj([0.20, 0.20]),
@@ -224,6 +224,18 @@ def test_representatives_ideal_closest_to_origin():
     ]
     reps = select_representatives(front)
     assert reps["ideal_point"] is front[1]
+
+
+def test_representatives_geometry_ignores_units():
+    """Joelho e ideal são geométricos: mudar a UNIDADE de um objetivo não pode mudar o
+    ponto escolhido. Em unidades cruas mudava — `dominance` vai até 2,0 e `drift` fica em
+    décimos, então a escala de um eixo decidia o \"joelho\"."""
+    base = [[0.10, 0.40], [0.30, 0.12], [0.60, 0.08], [1.20, 0.02]]
+    for scale in (1.0, 10.0, 0.1):
+        front = [_ind_with_obj([dom * scale, drift]) for dom, drift in base]
+        reps = select_representatives(front)
+        assert reps["knee_point"] is front[1], scale
+        assert reps["ideal_point"] is front[1], scale
 
 
 def test_representatives_knee_is_interior():
@@ -246,17 +258,18 @@ def test_representatives_all_keys():
 
 def test_representatives_scalar_optimum_minimizes_weighted_sum():
     """`scalar_optimum` é o comparável do AG escalar: minimiza a MESMA soma ponderada
-    que o escalar otimiza. Com LAMBDA iguais isso é o mínimo L1 — que não coincide com
-    o `ideal_point` (mínimo L2), e é essa distinção que o representante existe para
-    tornar mensurável."""
+    que o escalar otimiza. Com LAMBDA iguais isso é o mínimo L1 em unidades CRUAS — que
+    não coincide com o `ideal_point` (geométrico, em unidades normalizadas), e é essa
+    distinção que o representante existe para tornar mensurável."""
     front = [
-        _ind_with_obj([0.10, 0.50]),   # L1 = 0.60   L2 = 0.510
-        _ind_with_obj([0.30, 0.30]),   # L1 = 0.60   L2 = 0.424  ← ideal (L2)
-        _ind_with_obj([0.05, 0.50]),   # L1 = 0.55   L2 = 0.502  ← scalar (L1)
+        _ind_with_obj([0.05, 0.60]),   # L1 = 0.65                       ← melhor dominance
+        _ind_with_obj([0.30, 0.30]),   # L1 = 0.60   normalizado (0.20, 0.33) ← ideal
+        _ind_with_obj([1.30, 0.00]),   # L1 = 1.30                       ← melhor drift
+        _ind_with_obj([0.10, 0.45]),   # L1 = 0.55   normalizado (0.04, 0.75) ← scalar
     ]
     reps = select_representatives(front)
-    assert reps["scalar_optimum"] is front[2], "scalar_optimum deve minimizar a soma ponderada"
-    assert reps["ideal_point"]    is front[1], "ideal_point continua sendo o mínimo L2"
+    assert reps["scalar_optimum"] is front[3], "scalar_optimum deve minimizar a soma ponderada"
+    assert reps["ideal_point"]    is front[1], "ideal_point é o mais perto do ponto utópico"
     assert reps["scalar_optimum"] is not reps["ideal_point"]
 
 
@@ -343,7 +356,8 @@ if __name__ == "__main__":
     test_tournament_breaks_tie_by_crowding()
     test_tournament_stochastic_on_full_tie()
     test_representatives_identifies_extremes()
-    test_representatives_ideal_closest_to_origin()
+    test_representatives_ideal_closest_to_utopia()
+    test_representatives_geometry_ignores_units()
     test_representatives_knee_is_interior()
     test_representatives_all_keys()
     test_representatives_scalar_optimum_minimizes_weighted_sum()

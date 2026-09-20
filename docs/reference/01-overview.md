@@ -31,8 +31,11 @@ central.
   população inicial do AG escalar.
 - **Resposta** é quem vence quem, e se equilíbrio e identidade são compatíveis. O
   **ciclo canônico de vantagens** **não é codificado em nenhuma penalidade** — é
-  reportado *post-hoc* como métrica de avaliação, junto da identidade funcional
-  (comportamento).
+  reportado *post-hoc*, descritivo, junto da identidade funcional (comportamento:
+  Layer 3 do validador e concordância de ranking comportamental com o canônico).
+- **Controles**: o AG com `LAMBDA_DRIFT = 0` mede quanto da identidade o termo de drift
+  segura, e o AG sem a semente canônica separa algoritmo de inicialização na comparação
+  com o NSGA-II.
 - Por quê: codificar a resposta no fitness tornaria a pergunta de pesquisa
   **circular**.
 

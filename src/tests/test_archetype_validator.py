@@ -129,4 +129,66 @@ print("test_run_validation_canonical ...", end=" ", flush=True)
 test_run_validation_canonical()
 
 print("OK")
+
+# ── Empate não dá asserção de graça ──────────────────────────────────────────
+
+def test_ties_count_against_the_assertion():
+    """Cinco personagens idênticos não têm "o de maior alcance". Resolver o empate pela
+    ordem do índice aprovava 4 das 13 asserções da Layer 1 em qualquer espelho — piso
+    inflado por um detalhe de implementação."""
+    from src.analysis.archetype_validator import _check_structural_inter, _rank_against
+    from src.engine.archetypes import ARCHETYPE_ORDER
+    from src.experiments.baselines import mirror_roster
+
+    assert _rank_against([3.0, 1.0, 2.0], 0, 1) == 1          # estritamente o maior
+    assert _rank_against([3.0, 3.0, 2.0], 0, 1) == 2          # empatado no topo
+    assert _rank_against([1.0, 1.0, 2.0], 0, 3) == 2          # empatado no fundo
+    for aid in ARCHETYPE_ORDER:
+        checks = _check_structural_inter(mirror_roster(aid).characters)
+        assert not any(c.passed for c in checks), (aid, [c.description for c in checks if c.passed])
+
+print("test_ties_count_against_the_assertion ...", end=" ", flush=True)
+test_ties_count_against_the_assertion()
+print("OK")
+
+# ── Pesos valem pela razão, não pela escala ──────────────────────────────────
+
+def test_weight_scale_is_invisible():
+    """Multiplicar os 3 pesos de um personagem por k > 0 não muda o combate — logo não
+    pode mudar o veredito da Layer 1 (mesma razão de `fitness.drift_genes`)."""
+    from src.analysis.archetype_validator import _check_structural_inter
+    from src.engine.individual import Individual
+
+    base = [c.passed for c in _check_structural_inter(Individual.from_canonical().characters)]
+    for k in (0.1, 3.0):
+        scaled = Individual.from_canonical()
+        scaled.characters[0].weights = [w * k for w in scaled.characters[0].weights]
+        assert [c.passed for c in _check_structural_inter(scaled.characters)] == base, k
+
+print("test_weight_scale_is_invisible ...", end=" ", flush=True)
+test_weight_scale_is_invisible()
+print("OK")
+
+# ── Concordância de ranking comportamental ───────────────────────────────────
+
+def test_rank_agreement_scale():
+    """τ-b de Kendall: 1 na mesma ordem, −1 invertida, e empate não conta a favor."""
+    from src.analysis.archetype_validator import _kendall_tau_b, rank_agreement
+    from src.analysis.analyze_matchups import BEHAVIORAL_KEYS
+    from src.engine.archetypes import ARCHETYPE_ORDER
+
+    assert _kendall_tau_b([1, 2, 3, 4, 5], [10, 20, 30, 40, 50]) == 1.0
+    assert _kendall_tau_b([1, 2, 3, 4, 5], [5, 4, 3, 2, 1]) == -1.0
+    assert _kendall_tau_b([1, 1, 1, 1, 1], [1, 2, 3, 4, 5]) == 0.0, "sem ordem, sem concordância"
+
+    profile = {aid: {key: float(i) for key in BEHAVIORAL_KEYS}
+               for i, aid in enumerate(ARCHETYPE_ORDER)}
+    reversed_profile = {aid: {key: -value for key, value in metrics.items()}
+                        for aid, metrics in profile.items()}
+    assert rank_agreement(profile, profile) == 1.0
+    assert rank_agreement(reversed_profile, profile) == -1.0
+
+print("test_rank_agreement_scale ...", end=" ", flush=True)
+test_rank_agreement_scale()
+print("OK")
 print("\nAll tests passed.")

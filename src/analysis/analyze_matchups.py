@@ -34,8 +34,8 @@ ANALYZE_SIMS = 1000
 #     (`is_hard_counter`: |WR − 50%| > MATCHUP_WR_CAP, fora de [35%, 65%]); dentro do
 #     teto é aresta de ciclo permitida, não desbalanço.
 # O ciclo canônico (quem "deveria" vencer) é reportado à parte como anotação descritiva.
-BAL_LO = 0.5 - MATCHUP_WR_CAP    # piso do teto de counter (30%)
-BAL_HI = 0.5 + MATCHUP_WR_CAP    # teto do teto de counter (70%)
+BAL_LO = 0.5 - MATCHUP_WR_CAP    # limite inferior da banda de counter
+BAL_HI = 0.5 + MATCHUP_WR_CAP    # limite superior da banda de counter
 
 STANCE_KEYS: Tuple[Action, ...] = (Action.ADVANCE, Action.RETREAT, Action.DEFEND)
 NUMERIC_FIELDS: Tuple[str, ...] = (
@@ -149,7 +149,7 @@ def analyze_combat(char_a: Character, char_b: Character) -> MatchupResult:
 
     for i in (0, 1):
         stances = trace.stance[:, i]
-        stats[i].hp_end = float(trace.hp[-1, i]) if trace.end_tick > 0 else char_a.hp
+        stats[i].hp_end = float(trace.hp[-1, i]) if trace.end_tick > 0 else chars[i].hp
         stats[i].ticks_stunned = float((stances == -1).sum())
         for st in STANCE_KEYS:
             stats[i].stance_counts[int(st)] = float((stances == int(st)).sum())
@@ -549,14 +549,16 @@ def print_result(r: AveragedMatchupResult) -> None:
 
 
 def print_matrix_view(records: List[MatchupRecord], ids: List[ArchetypeID]) -> None:
-    """Matriz 5×5: WR(linha vs coluna) com símbolo de status + agregado global."""
+    """Matriz 5×5: WR(linha vs coluna) com o veredito de counter do par (mesma banda
+    do resumo por matchup) + WR global de cada linha."""
     idx: Dict[Tuple[ArchetypeID, ArchetypeID], MatchupRecord] = {
         (r.id_a, r.id_b): r for r in records
     }
     abbr = {aid: ARCHETYPES[aid].name[:4] for aid in ids}
 
     print("\n" + "═" * 78)
-    print("  MATRIZ DE MATCHUPS — WR(linha vs coluna)  |  ⬆ >60%   = 40-60%   ⬇ <40%")
+    print(f"  MATRIZ DE MATCHUPS — WR(linha vs coluna)  |  = dentro do teto "
+          f"[{BAL_LO:.0%}, {BAL_HI:.0%}]   ✗ counter duro")
     print("═" * 78 + "\n")
 
     print(" " * 16 + "".join(f"  {abbr[aid]:^4s}  " for aid in ids) + "  | Global")
@@ -573,7 +575,7 @@ def print_matrix_view(records: List[MatchupRecord], ids: List[ArchetypeID]) -> N
                 line += "    —   "
                 continue
             wr_row = rec.wr_of(row_id)
-            line += f" {wr_row:>4.0%} {classify_global_wr(wr_row)[0]} "
+            line += f" {wr_row:>4.0%} {classify_balance(wr_row)[0]} "
         wins, total = aggregate_wr(records, row_id)
         if total > 0:
             line += f"  | {wins / total:>4.0%}"

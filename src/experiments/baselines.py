@@ -3,11 +3,13 @@
 Toda métrica de identidade do projeto vinha sendo lida contra o **teto** (o canônico),
 como se o piso fosse zero. Nenhuma tem piso zero:
 
-  • validador  — cinco personagens IDÊNTICOS (identidade zero por construção) tiram
-    6–9/23, e rosters aleatórios chegam a 10/23, porque asserção de ranking com empate
-    se resolve por ordem de índice e algumas acertam por acidente;
+  • validador  — cinco personagens IDÊNTICOS (identidade zero por construção) ainda
+    tiram 2–5/23 — as asserções intra-personagem da Layer 2 que o arquétipo copiado
+    satisfaz, e a Layer 3 acertando por ruído —, e rosters aleatórios chegam a 10/23,
+    porque asserção de ranking entre 5 acerta por acaso uma vez em 5;
   • drift      — o espelho dá ~0.38 e um roster aleatório ~0.42, então entre
     "identidade preservada" e "aniquilação total" cabem ~0.04;
+  • concordância de ranking comportamental — o acaso dá ~0, com nulo chegando a ~0,34;
   • ciclo      — cada aresta é cara-ou-coroa, então o acaso já entrega 5/10.
 
 Os valores exatos dependem da semente de avaliação: por isso o piso é reportado como
@@ -43,7 +45,7 @@ from typing import Dict, List, Optional, Tuple
 
 from src.engine.archetypes import ARCHETYPE_ORDER, ARCHETYPES, ArchetypeID
 from src.engine.combat import seed_combat
-from src.engine.config import MULTI_RUN_SIMS, MULTI_RUN_VALIDATION_SEED
+from src.engine.config import IDENTITY_BEHAVIORAL_SIMS, MULTI_RUN_SIMS, MULTI_RUN_VALIDATION_SEED
 from src.engine.fitness import (
     FitnessDetail,
     _archetype_deviation,
@@ -61,7 +63,6 @@ from src.analysis.archetype_validator import run_validation
 # igualando o observado afirma p < 0,03. O default é o valor do protocolo, porque a
 # bateria (`run_battery.ps1`) e o dossiê (`report`) o usam sem flag.
 N_RANDOM_DEFAULT = 30
-BEHAVIORAL_SIMS = 120
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -107,10 +108,14 @@ def reference_rosters(n_random: int, seed: int) -> List[Tuple[str, str, Individu
 
 
 def cycle_edges_kept(detail: FitnessDetail) -> int:
-    """Arestas do ciclo canônico realizadas. **Piso de acaso = 5/10**: cada aresta é
-    cara-ou-coroa. E acertar o rótulo específico é 1 em 24 — o ciclo canônico é um
-    torneio REGULAR (cada arquétipo vence 2 e perde 2) e existem 24 torneios regulares
-    rotulados em 5 vértices. Por isso o número cru não distingue preservação de sorte."""
+    """Arestas do ciclo AUTORAL (`beats`) realizadas. **Piso de acaso = 5/10**: com a
+    direção de cada aresta decidida por cara-ou-coroa, o acaso entrega metade.
+
+    Com arestas decididas o número É informativo contra o acaso (10/10 teria p = 1/1024).
+    O que o limita é outra coisa: o ciclo é autoral, e o próprio canônico não o realiza
+    inteiro no motor — não se preserva o que a premissa não tinha. E com as WR por par
+    coladas em 50% a direção de cada aresta é ruído, então a contagem só vale ao lado do
+    espalhamento das WR."""
     kept = 0
     for (i, j), wr in detail.matchup_winrates.items():
         id_a, id_b = ARCHETYPE_ORDER[i], ARCHETYPE_ORDER[j]
@@ -125,10 +130,12 @@ def circular_triads(detail: FitnessDetail) -> float:
     `C(n,3) − Σ C(d_i, 2)`, com `d_i` = vitórias do personagem i.
 
     Mede estrutura **sem depender de autoria**: 0 = ordem estrita (bicho-papão),
-    2.5 = torneio aleatório, 5 = máximo em 5 personagens — que é exatamente o torneio
-    REGULAR, isto é, equilíbrio global perfeito. Equilíbrio global e pedra-papel-tesoura
-    são a mesma coisa: um roster estritamente transitivo tem WRs 100/75/50/25/0, o que
-    é incompatível com todo mundo perto de 50%.
+    2.5 = torneio aleatório, 5 = máximo em 5 personagens — o torneio REGULAR, em que
+    cada um vence 2 e perde 2. Um roster estritamente transitivo tem WRs 100/75/50/25/0,
+    incompatível com todo mundo perto de 50%: equilíbrio global com pares DECIDIDOS
+    força intransitividade. Por isso as tríades de um roster equilibrado são em boa parte
+    consequência do objetivo, não achado independente dele — o que não é implicado é os
+    pares seguirem decididos, e isso o espalhamento das WR mostra.
 
     **Só significa algo com arestas decididas.** Num espelho os pares ficam em 44%–58%
     (ruído binomial puro) e a direção de cada aresta é sorteio, então a contagem vira
@@ -154,9 +161,8 @@ def measure(individual: Individual, sims: int, seed: int) -> dict:
     set_seed_base(seed)
     seed_combat(seed)
     try:
-        detail     = evaluate_detail_n(individual, sims)
-        structural = run_validation(individual, behavioral_n=0)
-        full       = run_validation(individual, behavioral_n=BEHAVIORAL_SIMS, seed=seed)
+        detail   = evaluate_detail_n(individual, sims)
+        identity = run_validation(individual, behavioral_n=IDENTITY_BEHAVIORAL_SIMS, seed=seed)
     finally:
         set_seed_base(previous_base)
 
@@ -168,10 +174,13 @@ def measure(individual: Individual, sims: int, seed: int) -> dict:
         "per_character_drift": [
             _archetype_deviation(individual.get(aid)) for aid in ARCHETYPE_ORDER
         ],
-        "validator_structural": structural.passed,
-        "validator_structural_total": structural.total,
-        "validator_full":      full.passed,
-        "validator_full_total": full.total,
+        "validator_structural": identity.passed_in("structural_inter", "structural_intra"),
+        "validator_structural_total": identity.total_in("structural_inter", "structural_intra"),
+        "validator_behavioral": identity.passed_in("behavioral"),
+        "validator_behavioral_total": identity.total_in("behavioral"),
+        "validator_full":      identity.passed,
+        "validator_full_total": identity.total,
+        "rank_agreement":      identity.rank_agreement,
         "cycle_edges_kept":    cycle_edges_kept(detail),
         "circular_triads":     circular_triads(detail),
         "pair_wr_min":         pair_wrs[0],
@@ -191,7 +200,7 @@ def _mean(values: List[float]) -> float:
 
 def _null_stats(values: List[float], better: str) -> dict:
     """O piso não é um ponto, é uma **distribuição**. Medido, um roster aleatório
-    chegou a 12/21 no validador — então comparar contra a média do nulo não basta:
+    chega a 10/23 no validador — então comparar contra a média do nulo não basta:
     um resultado só é distinguível do acaso se supera o que o acaso alcança."""
     if not values:
         return {"media": 0.0, "desvio": 0.0, "extremo": 0.0, "n": 0}
@@ -236,6 +245,8 @@ def floors_and_ceilings(measured: List[Tuple[str, str, dict]]) -> dict:
     spec = [
         ("validator_full",       "validator_full",       "maior", canon["validator_full_total"]),
         ("validator_structural", "validator_structural", "maior", canon["validator_structural_total"]),
+        ("validator_behavioral", "validator_behavioral", "maior", canon["validator_behavioral_total"]),
+        ("rank_agreement",       "rank_agreement",       "maior", 1.0),
         ("drift_penalty",        "drift_penalty",        "menor", 0.0),
         ("cycle_edges_kept",     "cycle_edges_kept",     "maior", n_pairs),
         ("dominance_penalty",    "dominance_penalty",    "menor", _mean([m["dominance_penalty"] for m in mirrors])),
@@ -254,8 +265,7 @@ def floors_and_ceilings(measured: List[Tuple[str, str, dict]]) -> dict:
             "piso_extremo":   max(nulls) if better == "maior" else min(nulls),
         }
     # O ciclo tem piso ANALÍTICO, não empírico: cada aresta é cara-ou-coroa, então o
-    # acaso entrega n_pairs/2 — e acertar o rótulo específico é 1 em 24 (o ciclo
-    # canônico é um dos 24 torneios regulares rotulados em 5 vértices).
+    # acaso entrega n_pairs/2.
     refs["cycle_edges_kept"]["piso"] = n_pairs / 2
     return refs
 
@@ -279,9 +289,9 @@ def print_reference_table(measured: List[Tuple[str, str, dict]]) -> None:
     print(_LINE)
     print("  ROSTERS DE REFERÊNCIA")
     print(_LINE)
-    print(f"  {'roster':<24}{'dominance':>10}{'drift':>8}{'L1+L2':>8}{'L1-L3':>8}"
+    print(f"  {'roster':<24}{'dominance':>10}{'drift':>8}{'L1+L2':>8}{'L3':>6}{'τ':>7}"
           f"{'ciclo':>7}{'tríades':>9}{'WR par':>13}")
-    print("  " + "─" * 74)
+    print("  " + "─" * 80)
     current_role = None
     for label, role, m in measured:
         if role != current_role:
@@ -289,7 +299,8 @@ def print_reference_table(measured: List[Tuple[str, str, dict]]) -> None:
             print(f"  {_ROLE_LABEL[role]}")
         print(f"    {label:<22}{m['dominance_penalty']:>10.4f}{m['drift_penalty']:>8.4f}"
               f"{m['validator_structural']:>5}/{m['validator_structural_total']:<2}"
-              f"{m['validator_full']:>5}/{m['validator_full_total']:<2}"
+              f"{m['validator_behavioral']:>4}/{m['validator_behavioral_total']:<1}"
+              f"{m['rank_agreement']:>+7.2f}"
               f"{m['cycle_edges_kept']:>4}/10{m['circular_triads']:>9.1f}"
               f"{m['pair_wr_min']:>8.0%}–{m['pair_wr_max']:.0%}")
 
@@ -304,6 +315,8 @@ _ROLE_LABEL = {
 _METRIC_LABEL = {
     "validator_full":       "validador (L1-L3)",
     "validator_structural": "validador (L1+L2)",
+    "validator_behavioral": "validador (L3)",
+    "rank_agreement":       "concordância (τ)",
     "drift_penalty":        "drift_penalty",
     "cycle_edges_kept":     "arestas do ciclo",
     "dominance_penalty":    "dominance_penalty",
@@ -337,9 +350,10 @@ def print_position_table(label: str, measured: dict, refs: dict) -> None:
     print(f"  Espalhamento das WR por par: "
           f"{measured['pair_wr_min']:.0%}–{measured['pair_wr_max']:.0%}   "
           f"tríades circulares: {measured['circular_triads']:.1f}")
-    print("  (tríades: 0 = ordem estrita · 2.5 = acaso · 5 = máximo = equilíbrio global")
-    print("   perfeito. Só significam algo com arestas DECIDIDAS — se as WR por par")
-    print("   estão coladas em 50%, a direção de cada aresta é sorteio.)")
+    print("  (tríades: 0 = ordem estrita · 2.5 = acaso · 5 = máximo, o torneio regular.")
+    print("   Só significam algo com arestas DECIDIDAS — a 200 lutas por par um espelho")
+    print("   chega a 4 por ruído —, e equilíbrio global com pares decididos já força")
+    print("   intransitividade: o que o objetivo não implica é os pares seguirem decididos.)")
     print(_LINE)
 
 
@@ -350,9 +364,9 @@ def print_position_table(label: str, measured: dict, refs: dict) -> None:
 
 def _load_individual(args: argparse.Namespace) -> Optional[Tuple[Individual, str]]:
     if args.nsga2:
-        return Individual.from_nsga2(representative=args.nsga2), f"NSGA-II ({args.nsga2})"
+        return Individual.from_nsga2(representative=args.nsga2, require_current=True), f"NSGA-II ({args.nsga2})"
     if args.evolved:
-        return Individual.from_results(), "EVOLUÍDO (single_run/ga.json)"
+        return Individual.from_results(require_current=True), "EVOLUÍDO (single_run/ga.json)"
     return None
 
 
@@ -407,7 +421,7 @@ def main() -> None:
 
     BASELINES_PATH.parent.mkdir(parents=True, exist_ok=True)
     with open(BASELINES_PATH, "w", encoding="utf-8") as fh:
-        json.dump({"provenance": stamp(), **artifact}, fh, indent=2, ensure_ascii=False)
+        json.dump({"provenance": stamp(tool=__spec__.name), **artifact}, fh, indent=2, ensure_ascii=False)
     print(f"\n  Salvo em {BASELINES_PATH.relative_to(PROJECT_ROOT)}\n")
 
 

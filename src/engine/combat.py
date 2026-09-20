@@ -1,8 +1,10 @@
 """
 Simulação de combate tick a tick 1v1.
 
-Toda a lógica de combate vive em uma única função JIT-compilada pelo Numba.
-Há duas variantes que compartilham a mesma estrutura:
+O loop de combate é JIT-compilado pelo Numba em duas variantes, que compartilham os
+helpers de decisão (`_decide_action`), movimento (`_apply_movement`), arredondamento dos
+timers (`_carry_round`) e desfecho (`_decide_winner`) — então simulam exatamente o mesmo
+combate:
 
     _simulate_combat_jit         — fast path sem rastreio; usado pelo fitness
     _simulate_combat_traced_jit  — escreve estado tick-a-tick em arrays NumPy
@@ -31,7 +33,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import Dict, Tuple
+from typing import Dict, NamedTuple, Tuple
 
 import numpy as np
 from numba import njit
@@ -53,9 +55,9 @@ from .config import (
 
 
 class Action(IntEnum):
-    """Postura de movimento num sub-tick. O ataque NAO e uma postura: ele dispara
-    por regra na fase de resolucao (cooldown pronto + em alcance + postura != DEFEND),
-    entao um lutador pode recuar batendo — e o que torna o controle de espaco viavel."""
+    """Postura de movimento num sub-tick. O ataque NÃO é uma postura: ele dispara
+    por regra na fase de resolução (cooldown pronto + em alcance + postura != DEFEND),
+    então um lutador pode recuar batendo — é o que torna o controle de espaço viável."""
     ADVANCE = 0
     RETREAT = 1
     DEFEND = 2
@@ -82,7 +84,7 @@ class ActionLog:
     stance_counts: Tuple[Dict[int, int], Dict[int, int]]
     attacks: Tuple[int, int]
     active_ticks: Tuple[int, int]
-    stun_applied: Tuple[float, float]
+    stun_applied: Tuple[int, int]
 
 
 @dataclass
@@ -104,9 +106,9 @@ class CombatTrace:
     stance:          np.ndarray  # (T, 2) int   — Action ou -1 se stunned
     attacked:        np.ndarray  # (T, 2) int   — 1 = o ataque disparou neste sub-tick
     cooldown:        np.ndarray  # (T, 2) int   — ao final do tick
-    stun:            np.ndarray  # (T, 2) float — ao final do tick
+    stun:            np.ndarray  # (T, 2) int   — sub-ticks de stun restantes, ao final do tick
     damage_dealt:    np.ndarray  # (T, 2) float — coluna i = dano de i no oponente
-    stun_applied:    np.ndarray  # (T, 2) float — sub-ticks de stun aplicados pelo atacante
+    stun_applied:    np.ndarray  # (T, 2) int   — sub-ticks de stun aplicados pelo atacante
     knockback_dealt: np.ndarray  # (T, 2) float — knockback aplicado pelo atacante
     forced_defend:   np.ndarray  # (T, 2) int   — 1 = DEFEND por encurralamento (RECUAR sem espaço)
     guard_broken:    np.ndarray  # (T, 2) float — dano extra arrancado pela guarda do alvo (agarrão)
@@ -116,13 +118,14 @@ class CombatTrace:
 # Núcleo JIT — loop tick a tick compilado
 # ─────────────────────────────────────────────────────────────────────────────
 #
-# O JIT sempre rastreia (action_counts, active_ticks, stun_applied) — o
-# overhead é negligenciável e elimina a duplicação de implementações.
+# O fast path sempre conta (stance_counts, attacks, active_ticks, stun_applied) — o
+# overhead é negligenciável e serve o `simulate_combat_detailed` sem outra variante.
 # Constantes de config viram args (não globais) para que mudanças em config.py
 # se propaguem sem invalidar o cache.
 #
-# Códigos de ação: -1=stunned, 0=ATTACK, 1=ADVANCE, 2=RETREAT, 3=DEFEND
-# Retorno: (winner, end_tick, ko, hp_a, hp_b, action_counts, active_ticks, stun_applied)
+# Postura: -1 = stunado, 0 = ADVANCE, 1 = RETREAT, 2 = DEFEND (ver `Action`).
+# Retorno: (winner, end_tick, ko, hp_a, hp_b, stance_counts, attacks, active_ticks,
+#           stun_applied)
 
 
 @njit(cache=True)
@@ -152,7 +155,7 @@ def _decide_action(
       • forced_defend: 1 quando o DEFEND veio de RECUAR sem espaço de recuo
         (encurralamento) — distinto do DEFEND escolhido (GUARDA), que retorna 0.
     """
-    if stun_rem > 0.0:
+    if stun_rem > 0:
         return -1, persist, commit, 0
     if distance > reach and distance > opp_reach:
         return 0, 0, commit, 0          # impasse — ADVANCE imposto; zera a persistência
@@ -227,6 +230,22 @@ def _apply_movement(
 
 
 @njit(cache=True)
+def _carry_round(amount, carry):
+    """Arredonda `amount` sub-ticks para um inteiro levando o resto para a próxima vez
+    (difusão de erro): `(inteiro, resto novo)`.
+
+    Os timers contam sub-ticks inteiros, mas cooldown e stun vêm de genes contínuos.
+    Arredondar cada aplicação sozinha deixa o gene em degraus — com `attack_cooldown`
+    1, o stun em [0, 0.6] só teria 4 efeitos distintos. Carregando o resto, a sequência
+    de aplicações tem média EXATA `amount` (1,3 sai 1, 2, 1, 1, 2, …): o gene age de
+    forma contínua em média e o combate segue determinístico. O resto começa em 0,5,
+    então a primeira aplicação é o arredondamento comum."""
+    total = amount + carry
+    whole = np.floor(total)
+    return int(whole), total - whole
+
+
+@njit(cache=True)
 def _decide_winner(hp_a, hp_b, a_hp_max, b_hp_max):
     """Desfecho da luta. Empate (`-1`) quando os dois terminam com a MESMA fração de
     HP — KO duplo (ambos a zero no mesmo sub-tick) ou timeout sem diferença. Sem o
@@ -270,15 +289,18 @@ def _simulate_combat_jit(
     pos_a = (field_size - initial_distance) / 2.0
     pos_b = (field_size + initial_distance) / 2.0
 
-    stun_rem_a = 0.0; stun_rem_b = 0.0
+    stun_rem_a = 0; stun_rem_b = 0
     cd_rem_a = 0; cd_rem_b = 0
+    # Resto acumulado de cada timer do lutador (ver `_carry_round`).
+    cd_carry_a = 0.5; cd_carry_b = 0.5
+    stun_carry_a = 0.5; stun_carry_b = 0.5
     commit_a = -1; commit_b = -1
     persist_a = 0; persist_b = 0
 
     stance_counts = np.zeros((2, 3), dtype=np.int64)
     attacks = np.zeros(2, dtype=np.int64)
     active_ticks = np.zeros(2, dtype=np.int64)
-    stun_applied = np.zeros(2, dtype=np.float64)
+    stun_applied = np.zeros(2, dtype=np.int64)
 
     end_tick = max_ticks
 
@@ -334,19 +356,22 @@ def _simulate_combat_jit(
                 # contra um agarrador, defender é pior que não defender.
                 # Só existe contra quem ESTÁ defendendo — contra os demais, nada muda.
                 dmg *= defend_red + a_grab
-            stun_t = a_stun * a_cd * tick_scale  # fração × cooldown em sub-ticks; < cooldown por bound
+            # Stun em sub-ticks: fração × cooldown do atacante, < cooldown por bound.
+            stun_n, stun_carry_a = _carry_round(a_stun * a_cd * tick_scale, stun_carry_a)
 
             hp_b = hp_b - dmg
             if hp_b < 0.0:
                 hp_b = 0.0
-            if stun_t > stun_rem_b:
-                stun_rem_b = stun_t
-                stun_applied[0] += stun_t
+            if stun_n > stun_rem_b:
+                stun_rem_b = stun_n
+                stun_applied[0] += stun_n
             new_pos = pos_b + a_kb                 # knockback empurra B para a direita (longe de A)
             if new_pos > field_size:
                 new_pos = field_size
             pos_b = new_pos
-            cd_rem_a = round(a_cd * tick_scale)
+            # Período até o próximo golpe; o sub-tick deste golpe é o primeiro dele.
+            period, cd_carry_a = _carry_round(a_cd * tick_scale, cd_carry_a)
+            cd_rem_a = period - 1
             attacks[0] += 1
 
         # B → A
@@ -354,28 +379,29 @@ def _simulate_combat_jit(
             dmg = b_dmg
             if stance_a == 2:
                 dmg *= defend_red + b_grab
-            stun_t = b_stun * b_cd * tick_scale  # fração × cooldown em sub-ticks; < cooldown por bound
+            stun_n, stun_carry_b = _carry_round(b_stun * b_cd * tick_scale, stun_carry_b)
 
             hp_a = hp_a - dmg
             if hp_a < 0.0:
                 hp_a = 0.0
-            if stun_t > stun_rem_a:
-                stun_rem_a = stun_t
-                stun_applied[1] += stun_t
+            if stun_n > stun_rem_a:
+                stun_rem_a = stun_n
+                stun_applied[1] += stun_n
             new_pos = pos_a - b_kb                 # knockback empurra A para a esquerda (longe de B)
             if new_pos < 0.0:
                 new_pos = 0.0
             pos_a = new_pos
-            cd_rem_b = round(b_cd * tick_scale)
+            period, cd_carry_b = _carry_round(b_cd * tick_scale, cd_carry_b)
+            cd_rem_b = period - 1
             attacks[1] += 1
 
         # ── Decremento de timers stale ───────────────────────────────────────
         if stun_rem_a <= pre_stun_a:
-            stun_rem_a = max(0.0, stun_rem_a - 1.0)
+            stun_rem_a = max(0, stun_rem_a - 1)
         if cd_rem_a <= pre_cd_a:
             cd_rem_a = max(0, cd_rem_a - 1)
         if stun_rem_b <= pre_stun_b:
-            stun_rem_b = max(0.0, stun_rem_b - 1.0)
+            stun_rem_b = max(0, stun_rem_b - 1)
         if cd_rem_b <= pre_cd_b:
             cd_rem_b = max(0, cd_rem_b - 1)
 
@@ -414,8 +440,10 @@ def _simulate_combat_traced_jit(
     pos_a = (field_size - initial_distance) / 2.0
     pos_b = (field_size + initial_distance) / 2.0
 
-    stun_rem_a = 0.0; stun_rem_b = 0.0
+    stun_rem_a = 0; stun_rem_b = 0
     cd_rem_a = 0; cd_rem_b = 0
+    cd_carry_a = 0.5; cd_carry_b = 0.5
+    stun_carry_a = 0.5; stun_carry_b = 0.5
     commit_a = -1; commit_b = -1
     persist_a = 0; persist_b = 0
 
@@ -424,9 +452,9 @@ def _simulate_combat_traced_jit(
     stance_arr   = np.full((max_ticks, 2), -1, dtype=np.int64)
     attacked_arr = np.zeros((max_ticks, 2), dtype=np.int64)
     cd_arr       = np.zeros((max_ticks, 2), dtype=np.int64)
-    stun_arr     = np.zeros((max_ticks, 2), dtype=np.float64)
+    stun_arr     = np.zeros((max_ticks, 2), dtype=np.int64)
     dmg_dealt    = np.zeros((max_ticks, 2), dtype=np.float64)
-    stun_dealt   = np.zeros((max_ticks, 2), dtype=np.float64)
+    stun_dealt   = np.zeros((max_ticks, 2), dtype=np.int64)
     kb_dealt     = np.zeros((max_ticks, 2), dtype=np.float64)
     forced_def   = np.zeros((max_ticks, 2), dtype=np.int64)  # 1 = DEFEND por encurralamento
     guard_broken = np.zeros((max_ticks, 2), dtype=np.float64)  # dano extra pela guarda
@@ -471,20 +499,21 @@ def _simulate_combat_traced_jit(
                 guarded = a_dmg * defend_red
                 dmg     = a_dmg * (defend_red + a_grab)
                 broke   = dmg - guarded      # dano extra arrancado através da guarda
-            stun_t = a_stun * a_cd * tick_scale
+            stun_n, stun_carry_a = _carry_round(a_stun * a_cd * tick_scale, stun_carry_a)
 
             hp_b = hp_b - dmg
             if hp_b < 0.0:
                 hp_b = 0.0
-            applied = 0.0
-            if stun_t > stun_rem_b:
-                stun_rem_b = stun_t
-                applied = stun_t
+            applied = 0
+            if stun_n > stun_rem_b:
+                stun_rem_b = stun_n
+                applied = stun_n
             new_pos = pos_b + a_kb
             if new_pos > field_size:
                 new_pos = field_size
             pos_b = new_pos
-            cd_rem_a = round(a_cd * tick_scale)
+            period, cd_carry_a = _carry_round(a_cd * tick_scale, cd_carry_a)
+            cd_rem_a = period - 1
 
             attacked_arr[tick, 0] = 1
             dmg_dealt[tick, 0]  = dmg
@@ -499,20 +528,21 @@ def _simulate_combat_traced_jit(
                 guarded = b_dmg * defend_red
                 dmg     = b_dmg * (defend_red + b_grab)
                 broke   = dmg - guarded
-            stun_t = b_stun * b_cd * tick_scale
+            stun_n, stun_carry_b = _carry_round(b_stun * b_cd * tick_scale, stun_carry_b)
 
             hp_a = hp_a - dmg
             if hp_a < 0.0:
                 hp_a = 0.0
-            applied = 0.0
-            if stun_t > stun_rem_a:
-                stun_rem_a = stun_t
-                applied = stun_t
+            applied = 0
+            if stun_n > stun_rem_a:
+                stun_rem_a = stun_n
+                applied = stun_n
             new_pos = pos_a - b_kb
             if new_pos < 0.0:
                 new_pos = 0.0
             pos_a = new_pos
-            cd_rem_b = round(b_cd * tick_scale)
+            period, cd_carry_b = _carry_round(b_cd * tick_scale, cd_carry_b)
+            cd_rem_b = period - 1
 
             attacked_arr[tick, 1] = 1
             dmg_dealt[tick, 1]  = dmg
@@ -522,11 +552,11 @@ def _simulate_combat_traced_jit(
 
         # ── Decremento de timers stale ───────────────────────────────────────
         if stun_rem_a <= pre_stun_a:
-            stun_rem_a = max(0.0, stun_rem_a - 1.0)
+            stun_rem_a = max(0, stun_rem_a - 1)
         if cd_rem_a <= pre_cd_a:
             cd_rem_a = max(0, cd_rem_a - 1)
         if stun_rem_b <= pre_stun_b:
-            stun_rem_b = max(0.0, stun_rem_b - 1.0)
+            stun_rem_b = max(0, stun_rem_b - 1)
         if cd_rem_b <= pre_cd_b:
             cd_rem_b = max(0, cd_rem_b - 1)
 
@@ -567,15 +597,55 @@ def seed_combat(seed: int) -> None:
     _seed_jit(int(seed) & 0x7FFFFFFF)
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Regras do combate como ESTADO DE PROCESSO
+# ─────────────────────────────────────────────────────────────────────────────
+# As regras do `config.py` são as do treino. A validação externa reavalia um roster sob
+# regras que o AG nunca viu (distância inicial, persistência, redução da guarda, tamanho
+# do campo), e para isso elas não podem ficar congeladas no import. Mesmo padrão dos
+# pesos do fitness — e, como eles, viajam no `fitness.RuntimeState` até os workers.
+
+
+class CombatRules(NamedTuple):
+    """As regras que o JIT recebe como argumento. Os nomes são os das constantes do
+    `config.py`, em minúsculas."""
+    field_size:                  float
+    initial_distance:            float
+    max_ticks:                   int
+    tick_scale:                  float
+    defend_damage_reduction:     float
+    action_persistence_subticks: int
+
+
+TRAINING_RULES = CombatRules(
+    field_size=float(FIELD_SIZE),
+    initial_distance=float(INITIAL_DISTANCE),
+    max_ticks=int(MAX_TICKS),
+    tick_scale=float(TICK_SCALE),
+    defend_damage_reduction=float(DEFEND_DAMAGE_REDUCTION),
+    action_persistence_subticks=int(ACTION_PERSISTENCE_SUBTICKS),
+)
+_RULES: CombatRules = TRAINING_RULES
+
+
+def set_rules(rules: CombatRules) -> None:
+    """Troca as regras do combate neste processo. Quem troca devolve `TRAINING_RULES`
+    ao terminar."""
+    global _RULES
+    _RULES = rules
+
+
+def get_rules() -> CombatRules:
+    return _RULES
+
+
 def _run_jit(char_a: Character, char_b: Character):
     return _simulate_combat_jit(
         np.asarray(char_a.attributes, dtype=np.float64),
         np.asarray(char_a.weights, dtype=np.float64),
         np.asarray(char_b.attributes, dtype=np.float64),
         np.asarray(char_b.weights, dtype=np.float64),
-        float(FIELD_SIZE), float(INITIAL_DISTANCE),
-        int(MAX_TICKS), float(TICK_SCALE),
-        float(DEFEND_DAMAGE_REDUCTION), int(ACTION_PERSISTENCE_SUBTICKS),
+        *_RULES,
     )
 
 
@@ -604,9 +674,7 @@ def simulate_combat_traced(char_a: Character, char_b: Character) -> CombatTrace:
             np.asarray(char_a.weights,    dtype=np.float64),
             np.asarray(char_b.attributes, dtype=np.float64),
             np.asarray(char_b.weights,    dtype=np.float64),
-            float(FIELD_SIZE), float(INITIAL_DISTANCE),
-            int(MAX_TICKS), float(TICK_SCALE),
-            float(DEFEND_DAMAGE_REDUCTION), int(ACTION_PERSISTENCE_SUBTICKS),
+            *_RULES,
         )
     )
     return CombatTrace(
@@ -647,6 +715,6 @@ def simulate_combat_detailed(
         ),
         attacks=(int(attacks[0]), int(attacks[1])),
         active_ticks=(int(active_ticks[0]), int(active_ticks[1])),
-        stun_applied=(float(stun_applied[0]), float(stun_applied[1])),
+        stun_applied=(int(stun_applied[0]), int(stun_applied[1])),
     )
     return result, log

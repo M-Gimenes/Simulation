@@ -27,7 +27,7 @@ import math
 from typing import List, Tuple
 
 from src.engine.archetypes import ARCHETYPE_ORDER, ARCHETYPES
-from src.engine.config import GENE_BOUNDS, GENE_NAMES
+from src.engine.config import ATTRIBUTE_BOUNDS, GENE_NAMES
 from src.engine.fitness import (  # single source do deviation_i e da normalização
     N_WEIGHT_GENES,
     _archetype_deviation,
@@ -53,8 +53,11 @@ def _bar(v: float, w: int = 20, vmax: float = 0.5) -> str:
 
 
 def _norm_genes(char) -> List[float]:
-    """Vetor de genes normalizados pelo range do bound — mesma convenção do drift."""
-    return [(g - lo) / (hi - lo) for g, (lo, hi) in zip(char.genes(), GENE_BOUNDS)]
+    """Vetor comparável entre personagens: atributos normalizados pelo range do bound
+    (mesma convenção do drift) e os pesos como probabilidade de intenção — só a razão
+    entre eles age no combate, então a escala não pode contar como diferença."""
+    attributes = [(g - lo) / (hi - lo) for g, (lo, hi) in zip(char.attributes, ATTRIBUTE_BOUNDS)]
+    return attributes + char.intention_probabilities()
 
 
 def _mean_pairwise_distance(ind: Individual) -> float:

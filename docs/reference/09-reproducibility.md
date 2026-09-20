@@ -32,10 +32,12 @@ bateria completa e os sweeps rodam pelos scripts da raiz (`run_battery.ps1`,
 | `results/single_run/ga.json` | `py main.py` (AG escalar) |
 | `results/single_run/nsga2.json` | `py main.py --algorithm nsga2` |
 | `results/single_run/plots/<timestamp>/` | plots da fronteira |
-| `results/multi_run/multi_run_<algo>.json` | `py -m src.experiments.multi_run` |
+| `results/multi_run/multi_run_<algo>.json` | `py -m src.experiments.multi_run` (a bateria) |
+| `results/controls/multi_run_ga_<desvio>.json` | braços de controle (amostra e orçamento do protocolo, um fator de desenho trocado) |
 | `results/exploratory/multi_run_ga_<desvios>.json` | braços de sweep (`run_sweeps.ps1`) |
-| `results/multi_run/comparison_ga_vs_nsga2.json` | `py -m src.experiments.compare_algorithms` |
+| `results/multi_run/comparison_ga_vs_nsga2.json` | `py -m src.experiments.compare_algorithms` (manchete: `scalar_optimum` + relação de Pareto) |
 | `results/multi_run/comparison_ga_vs_nsga2_<rep>.json` | `py -m src.experiments.compare_algorithms --nsga2-representative <rep>` |
+| `results/controls/comparison_ga_vs_<braço>.json` | `py -m src.experiments.compare_algorithms --control <artefato>` |
 | `results/external_validation/external_validation_<label>.json` | `py -m src.experiments.external_validation` |
 | `results/sensitivity/sensitivity_analysis.json` | `py -m src.experiments.sensitivity_analysis` |
 | `results/baselines/baselines.json` | `py -m src.experiments.baselines` |
@@ -51,7 +53,7 @@ trajetória sem re-rodar.
 | `provenance` | ✓ | ✓ |
 | `algorithm`, `seed`, `generations_run` | ✓ | ✓ |
 | `history` (uma entrada por geração) | fitness melhor/média/pior + dominance + drift + tempo | tamanhos das frentes + amplitude da frente 0 + tempo |
-| marcos | `stop_reason`, `converged_at`, `stagnated_at`, `convergence_gate_fired`, `convergence_rejected` | — (orçamento fixo, sem critério de convergência) |
+| marcos | `stop_reason`, `converged_at`, `convergence_gate_fired`, `convergence_rejected` | — (orçamento fixo, sem critério de convergência) |
 | solução | `best_individual` (genes) + `fitness` + `objectives` | `pareto_front` + `representatives` (genes + objetivos) |
 
 Sem `--seed`, o campo `seed` é `null` e a execução **não** é reproduzível — é a
@@ -69,6 +71,7 @@ escolha explícita de rodar sob entropia.
 | `config` | **toda** constante pública de `config.py`, valor a valor |
 | `archetypes_digest` | genes canônicos + `defining_genes` + `beats` |
 | `engine_digest` | digest do código de `src/engine/` |
+| `measurement` | só nos artefatos das ferramentas de `src/experiments/`: o módulo da ferramenta, os módulos de medição que ela usa e o digest do código deles |
 | `overrides` | só em braços de experimento: o valor usado e o do `config.py` |
 
 Por que existe: mexer em `config.py`, nos canônicos ou no motor invalida `results/`
@@ -76,7 +79,7 @@ inteiro de uma vez, e sem carimbo um artefato obsoleto é **indistinguível** de
 — `git status` fica limpo (o JSON velho segue versionado) e o mtime é o do *checkout*,
 não o da geração. A falha não aparece como erro, aparece como um número plausível.
 
-Cinco decisões de projeto, cada uma contra um modo de falha:
+Seis decisões de projeto, cada uma contra um modo de falha:
 
 - **As constantes são enumeradas de `config.py`, não listadas à mão** — uma lista curada
   apodrece em silêncio, e a próxima constante adicionada ficaria invisível ao carimbo.
@@ -84,6 +87,14 @@ Cinco decisões de projeto, cada uma contra um modo de falha:
   geral, *código*, e um carimbo só de constantes diria "atual" com o motor diferente.
 - **`config.py` fica fora do digest de código** porque seus valores vão gravados um a um:
   "`MATCHUP_WR_CAP` foi de 0,15 para 0,20" é acionável, "o hash mudou" não é.
+- **O código de medição entra por artefato.** Um número post-hoc — o placar do validador,
+  a posição entre piso e teto, o veredito da validação externa — sai de código fora do
+  motor. Cada ferramenta passa o próprio módulo ao `stamp(tool=...)`, e o carimbo guarda
+  o digest dele e de todo módulo de `src/` fora de `src/engine/` que ele importa,
+  transitivamente (`provenance.measurement_modules`, derivado das importações — não uma
+  lista à mão). Mudar as asserções do validador invalida o `baselines.json` e o
+  `multi_run`, e só eles. O preço: uma mudança cosmética num módulo de medição também
+  invalida os artefatos que dependem dele.
 - **`N_WORKERS` não entra** — cada luta é semeada a partir do seed-base, então o resultado
   independe de quantos workers avaliam. Carimbá-lo faria uma mudança inócua invalidar a
   bateria, e um alarme que dispara à toa deixa de ser lido.
@@ -104,11 +115,22 @@ sem a checagem. O aviso diz o que mudou, não só que mudou:
       gerado em 2026-09-17T14:20:14-03:00
 ```
 
-Um **braço de experimento** (sweep) não é artefato obsoleto: `Divergence.is_experiment_arm`
-vale quando a divergência é inteiramente explicada pelos `overrides` que o próprio
-artefato declarou. Qualquer diferença fora disso (motor, canônicos, outra constante) o
-devolve a obsoleto. `py -m src.tests.test_provenance` lista o estado de todo artefato em
-`results/`.
+Um **braço de experimento** (sweep ou controle) não é artefato obsoleto:
+`Divergence.is_experiment_arm` vale quando a divergência é inteiramente explicada pelos
+`overrides` que o próprio artefato declarou. Qualquer diferença fora disso (motor,
+canônicos, código de medição, outra constante) o devolve a obsoleto.
+`py -m src.tests.test_provenance` lista o estado de todo artefato em `results/`.
+
+**Ler avisa; gravar recusa.** Quem só inspeciona um artefato (`report`, `analyze_matchups`,
+viewers) recebe o aviso e segue. Quem **grava** um artefato novo a partir de outro —
+`compare_algorithms` a partir dos `multi_run`; `external_validation`, `baselines` e
+`sensitivity_analysis` a partir de `single_run/*.json` — chama `provenance.refuse_if_stale`
+(via `require_current=True` nos construtores de `Individual`), que levanta
+`StaleArtifactError`. O motivo: o artefato novo sai carimbado com a configuração
+**vigente**; aceitar entrada de outra configuração produziria um número de outro sistema
+que se declara atual, e o aviso impresso na leitura não fica no arquivo. Um controle é
+aceito pelo `compare_algorithms` (`allow_experiment_arm=True`) quando a divergência é
+exatamente o override que ele declara.
 
 Três regras de operação, cada uma aprendida com uma falha registrada no
 [thesis/04](../thesis/04-design-decisions.md):
@@ -146,10 +168,11 @@ Como funciona:
   luta: quando um gene muda o que acontece nela, o resto da luta se desenrola diferente —
   é o ruído que sobra (ver [10-known-issues.md](10-known-issues.md) §2).
 - **Reprodutível independente do paralelismo.** O pool de processos é persistente, e o
-  estado do pai (`RuntimeState` — seed-base, λ, pesos do dominance) viaja com **cada
-  tarefa**, então um worker vivo nunca avalia sob o seed-base de uma geração anterior.
-  Verificado: paralelo == serial, inclusive com o pool vivo atravessando trocas de
-  seed-base e de pesos (`test_provenance`).
+  estado do pai (`RuntimeState` — seed-base, λ, pesos do dominance e as regras do combate)
+  viaja com **cada tarefa**, então um worker vivo nunca avalia sob o seed-base de uma
+  geração anterior nem sob as regras de outra condição. Verificado: paralelo == serial,
+  inclusive com o pool vivo atravessando trocas de seed-base, de pesos e de regras
+  (`test_provenance`).
 - **O stream MUDA a cada geração** (`fitness.generation_seed(base, geração)` =
   `base × GENERATION_SEED_STRIDE + geração`), e é a fonte única do protocolo,
   consumida pelos **dois** algoritmos. O CRN vale **dentro** da geração, não através
@@ -160,17 +183,21 @@ Como funciona:
     ~1,8× no AG escalar (os elites) e **~2× no NSGA-II**, onde a ordenação por
     dominância compara pais e filhos no mesmo conjunto combinado e objetivos de
     streams diferentes não são comparáveis.
-  - *Famílias de sementes, sem colisão:* treino 42+ → streams 42000+; validação do
-    `multi_run` 9999; validação externa 10000+; confirmação de convergência
-    `generation_seed + 100000`.
-  - *Consequência declarada:* o fitness flutua entre gerações por troca de stream,
-    então o contador de estagnação reseta por ruído e **`stagnated_at` fica menos
-    confiável**. `converged_at` não sofre — a convergência testa o predicado
+  - *Famílias de sementes, sem colisão:* bateria 42+ → streams 42000+; sweeps 1000+ →
+    streams 1000000+ (disjuntas da bateria: a amostra que escolhe uma configuração não é
+    a que a avalia); validação do `multi_run` 9999; validação externa 10000+;
+    confirmação de convergência `generation_seed + 100000`.
+  - *Consequência declarada:* o fitness flutua entre gerações por troca de stream, e por
+    isso não há evento de estagnação (o "melhor fitness histórico" seria o máximo de
+    valores ruidosos). `converged_at` não sofre — a convergência testa o predicado
     `roster_balanced`, não o valor do fitness.
 - **`ga.run`/`nsga2.run`** semeiam `random`, `np.random` e `seed_combat` no início
   e definem o seed-base. Sem seed → entropia (não reprodutível, por escolha).
-- **`sensitivity_analysis`** avalia +σ e −σ sob o mesmo seed-base (`set_seed_base`), então
-  cada luta dos dois recebe os mesmos sorteios.
+- **`sensitivity_analysis`** avalia os dois lados da janela sob o mesmo seed-base
+  (`set_seed_base`), então cada luta dos dois recebe os mesmos sorteios.
+- **O combate é determinístico dado o sorteio de intenção.** Cooldown e stun viram
+  sub-ticks inteiros por difusão de erro (resto acumulado), sem segundo gerador — ver
+  [04-combat-model.md](04-combat-model.md#timers).
 - **`analyze_matchups --seed`**, `fingerprint` e a Layer 3 do validador semeiam o combate
   uma vez (`seed_combat`) e rodam as lutas em sequência: medem comportamento de **um**
   roster, sem comparação pareada entre indivíduos.

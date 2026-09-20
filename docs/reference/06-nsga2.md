@@ -92,33 +92,48 @@ inicial do NSGA-II").
   desbalanceado).
 - **`knee_point`** — ponto de máxima curvatura: mais distante (perpendicular) da
   reta que liga os dois extremos. O "melhor compromisso".
-- **`ideal_point`** — mais próximo da utopia `(0, 0)` em distância euclidiana (L2).
+- **`ideal_point`** — mais próximo do **ponto utópico** da fronteira (o melhor valor de
+  cada objetivo), em distância euclidiana.
+
+O joelho e o ideal são geométricos, e por isso usam os objetivos **normalizados pela
+amplitude da própria fronteira** (0 = o melhor valor dela naquele objetivo, 1 = o pior).
+Em unidades cruas a escala de cada objetivo decidiria a geometria — `dominance` vai até
+2,0 e drift fica em décimos. Normalizar mudou o `ideal_point` em 19 das 20 fronteiras da
+bateria de 2026-09-18, e o `knee_point` em nenhuma; `test_nsga2` cobre a invariância à
+unidade.
 - **`scalar_optimum`** — mínimo de `LAMBDA_DOMINANCE·dominance + LAMBDA_DRIFT·drift`,
   isto é, o ponto da fronteira que **o AG escalar deveria ter encontrado**. É o único
   lugar do NSGA-II que olha os `LAMBDA_*`, e é reporting, não busca.
 
   Por que ele existe: a afirmação "o escalar é *um ponto* do trade-off que o NSGA-II
   mapeia" só é testável contra o ponto que minimiza a **mesma** função que o escalar
-  otimiza. O `ideal_point` minimiza a norma **L2**, que é outro ponto — com os LAMBDA
-  iguais, `scalar_optimum` é o mínimo **L1**. Medido no orçamento de produção, a afirmação
-  não vale literalmente: o ponto do escalar fica **além** da ponta de baixa dominância da
-  fronteira, e os dois são mutuamente não-dominados.
+  otimiza. O `ideal_point` é geométrico e cego aos λ, então é outro ponto — com os
+  LAMBDA iguais, `scalar_optimum` é o mínimo **L1** em unidades cruas. Medido no orçamento
+  de produção, a afirmação não vale literalmente: o ponto do escalar fica **além** da
+  ponta de baixa dominância da fronteira, e os dois são mutuamente não-dominados.
 
-  No teste entre algoritmos (n = 20) o NSGA-II entra pelo `best_dominance`. Como o
-  `multi_run` grava os cinco representantes de cada semente, a mesma comparação contra o
-  `scalar_optimum` sai de `compare_algorithms --nsga2-representative scalar_optimum`, sem
-  re-rodar o NSGA-II ([08-tools.md](08-tools.md)).
+  No teste entre algoritmos (n = 20) o NSGA-II entra pelo **`scalar_optimum`**
+  (`multi_run.HEADLINE_REPRESENTATIVE`) — o único ponto comparável ao escalar; decidido
+  antes da bateria, pelo método. Como o `multi_run` grava os cinco representantes de cada
+  semente, a comparação contra outro ponto sai de `compare_algorithms
+  --nsga2-representative best_dominance`, sem re-rodar o NSGA-II. E a **relação de Pareto
+  por semente** — o ponto do AG contra a fronteira inteira — não depende de representante
+  nenhum ([08-tools.md](08-tools.md)).
 
 ## Métricas de qualidade da fronteira (item 1.2 da metodologia)
 
 Comparar fronteiras "no olho" não escala (Deb 2001/2002). Em `src/engine/pareto_metrics.py`:
 
 - **`hypervolume_2d(front, ref)`** — área da região dominada pela fronteira em
-  relação ao ponto de referência `HYPERVOLUME_REFERENCE = (2.0, 1.0)` (piores valores
-  possíveis de `(dominance, drift)`; `dominance` vai a 2.0 sob C2 = `GLOBAL + CAP +
-  DECIS` no pior caso). Captura convergência *e* espalhamento num único número;
-  **maior é melhor**. Decomposição em faixas verticais sobre a escada não-dominada:
-  `Σ (x_{i+1} − x_i)·(r1 − y_i)`, com `x_{n+1} = r0`.
+  relação ao ponto de referência `HYPERVOLUME_REFERENCE = (1.3, 0.4)`, ancorado nos
+  modelos nulos: `dominance` ≈ a do canônico (o equilíbrio de partida) e drift ≈ o do
+  espelho (identidade zero). Um ponto com equilíbrio pior que o de partida, ou identidade
+  pior que a de cinco cópias, fica fora da área. Captura convergência *e* espalhamento
+  num único número; **maior é melhor**. Decomposição em faixas verticais sobre a escada
+  não-dominada: `Σ (x_{i+1} − x_i)·(r1 − y_i)`, com `x_{n+1} = r0`. Com a referência
+  anterior, (2,0; 1,0) — os máximos teóricos —, o HV saturava em 90% da área e mal
+  separava uma fronteira de outra (coeficiente de variação 2,0% entre sementes, contra
+  3,9% com a atual).
 - **`spacing(front)`** — desvio-padrão (Schott) da distância Manhattan de cada ponto
   ao vizinho mais próximo. Mede a **uniformidade** da distribuição; **menor é melhor**.
 

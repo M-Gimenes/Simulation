@@ -140,7 +140,7 @@ def _extract_events(trace: CombatTrace, chars: Tuple[Character, Character]) -> L
                 damage=dmg,
                 hp_before=hp_before / hp_max[defender],
                 hp_after=hp_after / hp_max[defender],
-                stun=float(trace.stun_applied[t, att]),
+                stun=int(trace.stun_applied[t, att]),
                 ko=hp_after <= 0.0,
             ))
     return events

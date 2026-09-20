@@ -110,14 +110,15 @@ if (-not $SkipSweeps) {
         }
     }
 
-    $bracos = @(Get-ChildItem (Join-Path $raiz "results\exploratory") -Filter "*.json" -ErrorAction SilentlyContinue)
+    # Os bracos rodam nas sementes 1000-1004, entao o nome de todos leva `seed1000`.
+    $bracos = @(Get-ChildItem (Join-Path $raiz "results\exploratory") -Filter "*seed1000*.json" -ErrorAction SilentlyContinue)
     Escreve "bracos exploratorios no disco: $($bracos.Count) (esperado 16)"
 }
 
 # -- 3. Bateria, com uma retomada ---------------------------------------------------------
 $bateria = Join-Path $PSScriptRoot "run_battery.ps1"
 Escreve "iniciando a bateria a partir do passo $From"
-# O ponto de retomada sai das linhas "=== passo N/12" que a bateria escreve no log. Conta-se
+# O ponto de retomada sai das linhas "=== passo N/16" que a bateria escreve no log. Conta-se
 # o log a partir daqui, senao as linhas "=== passo N/16" dos sweeps entrariam na busca.
 $linhasAntes = @(Get-Content $log).Count
 $LASTEXITCODE = 0

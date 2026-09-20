@@ -4,7 +4,7 @@ Rode com: py -m src.tests.test_base
 """
 
 from src.engine.archetypes import ARCHETYPES, ARCHETYPE_ORDER, ArchetypeID
-from src.engine.character import Character, Attr, WIdx
+from src.engine.character import Character, Attr
 from src.engine.config import ATTRIBUTE_BOUNDS, WEIGHT_BOUNDS
 from src.engine.individual import Individual
 
