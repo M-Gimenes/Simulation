@@ -52,7 +52,7 @@ import json
 from pathlib import Path
 from typing import List, Sequence, Tuple
 
-from scipy.stats import mannwhitneyu
+from scipy.stats import mannwhitneyu, wilcoxon
 
 from src.engine.config import (
     DOMINANCE_CAP_WEIGHT,
@@ -212,7 +212,21 @@ def _holm(p_values: List[float]) -> List[float]:
 
 
 def compare(a: dict, b: dict, label_a: str, label_b: str) -> dict:
-    """Mann-Whitney + Â₁₂ + Holm de `a` contra `b` sobre a família `METRICS`."""
+    """Wilcoxon pareado + Â₁₂ + Holm de `a` contra `b` sobre a família `METRICS`,
+    com o Mann-Whitney não-pareado reportado ao lado.
+
+    **Por que o pareado é o teste do desenho.** `_check_comparable` exige que os dois
+    braços rodem as MESMAS sementes, e a semente controla tudo que é aleatório nos dois
+    lados: `random.seed(seed)` dá a mesma população inicial e a mesma sequência de
+    operadores, e `generation_seed(seed, g)` dá o mesmo stream de avaliação na geração
+    `g`. Execução `i` de `a` e execução `i` de `b` são o mesmo bloco experimental, não
+    duas amostras independentes — o que Mann-Whitney assume. Ignorar o bloco é
+    conservador (joga fora o poder que o CRN pagou), não inválido.
+
+    **E por que os dois aparecem.** Trocar de teste depois de ver resultado é risco de
+    p-hacking, e a troca nasceu de uma auditoria do desenho, não de um p-valor. A defesa
+    é não esconder nada: a família de Holm é montada sobre o pareado, o não-pareado vem
+    na mesma tabela, e quem lê confere que as conclusões não dependem da escolha."""
     _check_comparable(a, b)
 
     tests: List[dict] = []
@@ -220,9 +234,21 @@ def compare(a: dict, b: dict, label_a: str, label_b: str) -> dict:
         sample_a, sample_b = _samples(a, key), _samples(b, key)
         degenerate = _is_degenerate(sample_a, sample_b)
         if degenerate:
-            statistic = p_value = None
+            statistic = p_value = p_unpaired = None
         else:
-            statistic, p_value = mannwhitneyu(
+            # `zero_method="wilcox"` descarta os pares sem diferença: são os empates,
+            # que não informam direção nenhuma.
+            diffs = [x - y for x, y in zip(sample_a, sample_b)]
+            if all(d == 0 for d in diffs):
+                # Amostras diferentes par a par não podem cair aqui — só se `a` e `b`
+                # derem exatamente o mesmo valor em toda semente, o que `_is_degenerate`
+                # não pega quando os dois são constantes em valores distintos.
+                statistic, p_value = None, 1.0
+            else:
+                statistic, p_value = wilcoxon(
+                    sample_a, sample_b, alternative="two-sided", zero_method="wilcox"
+                )
+            _, p_unpaired = mannwhitneyu(
                 sample_a, sample_b, alternative="two-sided", method="auto"
             )
         median_a, median_b = _median(sample_a), _median(sample_b)
@@ -240,8 +266,9 @@ def compare(a: dict, b: dict, label_a: str, label_b: str) -> dict:
             "better_is": direction,
             "median_a": median_a,
             "median_b": median_b,
-            "u_statistic": None if degenerate else float(statistic),
+            "w_statistic": None if (degenerate or statistic is None) else float(statistic),
             "p_value": None if degenerate else float(p_value),
+            "p_value_unpaired": None if degenerate else float(p_unpaired),
             "a12_a_vs_b": _a12(sample_a, sample_b),
             "better": better,
             "degenerate": degenerate,
@@ -260,7 +287,8 @@ def compare(a: dict, b: dict, label_a: str, label_b: str) -> dict:
     return {
         "a": label_a,
         "b": label_b,
-        "test": "Mann-Whitney U (bicaudal)",
+        "test": "Wilcoxon signed-rank pareado (bicaudal)",
+        "test_secondary": "Mann-Whitney U (bicaudal, não-pareado) — reportado como robustez",
         "effect_size": "Vargha-Delaney A12 (a vs b)",
         "correction": "Holm-Bonferroni",
         "alpha": ALPHA,
@@ -350,19 +378,21 @@ def print_report(result: dict) -> None:
           f"{result['validation_seed']} com {result['sims_per_matchup']} sims/matchup")
     print(f"  {result['test']} + {result['effect_size']} + {result['correction']} "
           f"(alfa={result['alpha']}, família de {result['family_size']})")
+    print(f"  ao lado, como robustez: {result['test_secondary']}")
     print("=" * 84)
     print(f"  {'métrica':<34}{'mediana ' + a[:10]:>18}{'mediana ' + b[:10]:>18}"
-          f"{'p (Holm)':>9}{'A12':>6}")
-    print("  " + "-" * 82)
+          f"{'p (Holm)':>9}{'A12':>6}{'p n-pareado':>13}")
+    print("  " + "-" * 95)
     for test in result["metrics"]:
         p_holm = "—" if test["degenerate"] else f"{test['p_holm']:.4f}"
+        p_unp  = "—" if test["degenerate"] else f"{test['p_value_unpaired']:.4f}"
         print(f"  {test['label']:<34}{test['median_a']:>18.4f}{test['median_b']:>18.4f}"
-              f"{p_holm:>9}{test['a12_a_vs_b']:>6.2f}")
-    print("  " + "-" * 82)
+              f"{p_holm:>9}{test['a12_a_vs_b']:>6.2f}{p_unp:>13}")
+    print("  " + "-" * 95)
     print("")
     for test in result["metrics"]:
         if test["degenerate"]:
-            verdict = ("amostra conjunta constante — Mann-Whitney indefinido; "
+            verdict = ("amostra conjunta constante — nenhum teste é definido aí; "
                        "fora da família")
         elif test["significant"]:
             winner = a if test["better"] == "a" else b
@@ -374,6 +404,10 @@ def print_report(result: dict) -> None:
         print(f"    {test['label']:<34} {verdict}")
     print("")
     print(f"    A12 = P(uma execução de {a} dar valor MAIOR que uma de {b}); 0.5 = sem efeito.")
+    print("    `p (Holm)` corrige o WILCOXON PAREADO — o teste do desenho: os dois braços")
+    print("    rodam as mesmas sementes, e a semente fixa população inicial, operadores e")
+    print("    stream de avaliação nos dois. `p n-pareado` é o Mann-Whitney BRUTO (sem")
+    print("    Holm), só para conferir que a conclusão não depende do teste escolhido.")
     excluded = result["excluded_from_family"]
     if excluded:
         plural = "s" if len(excluded) > 1 else ""

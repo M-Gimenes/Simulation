@@ -34,12 +34,31 @@ Um `p` pequeno com efeito minúsculo é uma diferença real e irrelevante. Um ef
 grande com `p` grande é um indício forte que a amostra não sustenta. As duas medidas
 são reportadas sempre juntas, e é por isso que a tabela do tool tem as duas colunas.
 
-### Mann-Whitney U, em uma frase
+### O teste do projeto é o **Wilcoxon pareado**, e por quê
 
-Teste **não-paramétrico** para duas amostras independentes: junta os 40 valores (20 de
-cada algoritmo), ordena, e pergunta se os do AG tendem a ficar sistematicamente acima
-ou abaixo dos do NSGA-II. Não assume normalidade — o que importa aqui, porque as
-métricas são limitadas por baixo em 0 e as inteiras (hard-counters) empatam muito.
+O desenho é **pareado por construção**, e o código obriga: `_check_comparable` recusa
+comparar dois braços que não tenham rodado as **mesmas sementes**. E a semente fixa tudo
+que é aleatório dos dois lados — `random.seed(seed)` dá a mesma população inicial e a
+mesma sequência de operadores, `generation_seed(seed, g)` dá o mesmo stream de avaliação
+na geração `g`. A execução `i` de um braço e a execução `i` do outro são **o mesmo bloco
+experimental**, não duas amostras independentes.
+
+O teste casado disso é o **Wilcoxon signed-rank**: toma as 20 diferenças par a par,
+ordena-as por magnitude e pergunta se as positivas e as negativas se distribuem por
+acaso. Não assume normalidade — o que importa aqui, porque as métricas são limitadas por
+baixo em 0 e as inteiras (hard-counters) empatam muito. Pares sem diferença são
+descartados (`zero_method="wilcox"`): não informam direção.
+
+### Mann-Whitney U, que continua na tabela
+
+Teste não-paramétrico para duas amostras **independentes**: junta os 40 valores, ordena,
+e pergunta se os de um lado tendem a ficar sistematicamente acima dos do outro. Ignorar
+o bloco é **conservador** — joga fora o poder que o CRN pagou —, não inválido. Ele segue
+impresso ao lado do pareado, cru (fora do Holm), por uma razão de honestidade: o projeto
+trocou de teste depois de já ter resultados, e a defesa contra a acusação de escolher o
+teste pelo p-valor é **não esconder o outro**. Quem lê confere que as conclusões não
+dependem da escolha — e, na bateria de 2026-09-21, dependem em exatamente uma célula
+(ver §7).
 
 ### Â₁₂ de Vargha-Delaney, em uma frase
 
@@ -232,17 +251,32 @@ discrimina são os pares. Só não é um resultado **comparativo**.
 
 ## 7. Como ler o resultado
 
-A leitura da bateria de 2026-09-21 — n = 20 sementes, família de 6, NSGA-II representado
-pelo `scalar_optimum` (a manchete):
+A leitura da bateria de 2026-09-21 — n = 20 sementes, família de 6, Wilcoxon pareado,
+NSGA-II representado pelo `scalar_optimum` (a manchete):
 
 ```
-dominance_penalty            p_Holm 3,6e-05   Â₁₂ 0,10 (grande)   AG escalar melhor
-hard-counters                p_Holm 7,9e-07   Â₁₂ 0,03 (grande)   AG escalar melhor
-drift_penalty                p_Holm 4,1e-07   Â₁₂ 1,00 (grande)   NSGA-II melhor
-validador estrutural (L1+L2) p_Holm 4,1e-06   Â₁₂ 0,05 (grande)   NSGA-II melhor
-validador comportamental (L3) p_Holm 0,0037   Â₁₂ 0,24 (grande)   NSGA-II melhor
-concordância de ranking (τ)  p_Holm 2,6e-05   Â₁₂ 0,09 (grande)   NSGA-II melhor
+dominance_penalty            p_Holm 0,00013   Â₁₂ 0,10 (grande)   AG escalar melhor
+hard-counters                p_Holm 0,00034   Â₁₂ 0,03 (grande)   AG escalar melhor
+drift_penalty                p_Holm 1,1e-05   Â₁₂ 1,00 (grande)   NSGA-II melhor
+validador estrutural (L1+L2) p_Holm 0,00034   Â₁₂ 0,05 (grande)   NSGA-II melhor
+validador comportamental (L3) p_Holm 0,0027   Â₁₂ 0,24 (grande)   NSGA-II melhor
+concordância de ranking (τ)  p_Holm 0,00013   Â₁₂ 0,09 (grande)   NSGA-II melhor
 ```
+
+### A única célula em que os dois testes discordam
+
+Nas quatro comparações da bateria, pareado e não-pareado dão o mesmo veredito em 23 das
+24 células. A exceção é o controle `λ_drift = 0`, em `dominance_penalty`:
+
+| | p bruto | p_Holm | veredito |
+|---|---|---|---|
+| Mann-Whitney (não-pareado) | 0,0315 | 0,0630 | sem diferença |
+| **Wilcoxon (pareado)** | 0,0192 | **0,0385** | **AG melhor, efeito médio** |
+
+É uma diferença de leitura substantiva: o teste do desenho diz que tirar o termo de
+identidade **piora o equilíbrio**, e não apenas que deixa de melhorá-lo. Como a troca de
+teste nasceu de uma auditoria do desenho e não de um p-valor, e como o não-pareado
+continua impresso ao lado, o leitor tem os dois números para julgar.
 
 Traduzindo: **as seis diferenças são significativas e grandes**, e se dividem exatamente
 nas duas metades da pergunta — o AG ganha as duas métricas de equilíbrio, o NSGA-II as

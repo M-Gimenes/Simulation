@@ -44,6 +44,13 @@ SIMS_CONVERGENCE_CHECK = 200   # simulações extras para confirmar convergênci
 # Escolhido para não colidir com nenhuma outra família de sementes do projeto
 # (streams de treino `seed·GENERATION_SEED_STRIDE + geração`, MULTI_RUN_VALIDATION_SEED
 # 9999, EXTERNAL_VALIDATION_SEED_START 10000+).
+#
+# INVARIANTE que a escolha pressupõe: a confirmação da semente `s` roda em
+# `s·STRIDE + geração + OFFSET`, e o treino da semente `s'` em `s'·STRIDE + geração`.
+# As duas famílias só ficam disjuntas enquanto `s' != s + OFFSET/STRIDE`, isto é,
+# enquanto nenhuma semente de treino for `s + 100`. Com as famílias em uso — bateria
+# 42–61 e sweeps 1000–1004 — a folga é grande, mas quem acrescentar uma semente de
+# treino precisa conferir que ela não cai a exatamente 100 de outra já em uso.
 CONVERGENCE_SEED_OFFSET = 100000
 
 # Stream de avaliação POR GERAÇÃO (ver `fitness.generation_seed`).

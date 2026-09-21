@@ -161,7 +161,15 @@ def _measure_noise_floor(genes: Genes, sims: int, base_seed: int, reps: int,
     diferentes. O Δ verdadeiro é zero por construção, então tudo que aparece é ruído.
 
     Devolve `(máximo, média)` sobre as `reps × 11` médias nulas. O piso é o **máximo**:
-    o maior efeito que a ausência de efeito conseguiu produzir."""
+    o maior efeito que a ausência de efeito conseguiu produzir.
+
+    **O piso depende de `reps`, e isso tem de ser citado junto com ele.** Máximo de
+    amostra cresce com o tamanho da amostra: com `reps = 3` são 33 nulas e o piso fica
+    perto do percentil 97; com `reps = 10` seriam 110, e o piso subiria — genes hoje
+    no limiar poderiam virar neutros. Não é um quantil fixo, e a escolha do máximo é
+    deliberada: é o critério conservador ("nem o ruído sozinho chegou aqui"), ao preço
+    de o valor não ser comparável entre execuções com `reps` diferentes. Ao citar o
+    piso, citar o `reps` que o produziu — o artefato grava os dois (`null_reps`)."""
     zeros = [0.0] * N_GENES
     nulls: List[float] = []
     for rep in range(reps):
@@ -283,6 +291,8 @@ def main() -> None:
         )
         print(f"  Piso MEDIDO: máx {floor:.1%} · médio {floor_mean:.1%} sobre "
               f"{args.null_reps * N_GENES} médias nulas (mesma estatística do ranking).")
+        print(f"  (O piso é o MÁXIMO das nulas, então depende de --null-reps="
+              f"{args.null_reps}: citar sempre os dois juntos.)")
         print("  (Média sobre os personagens de |Δ WR| entre duas avaliações do MESMO")
         print("   roster sob seeds diferentes — o Δ verdadeiro é zero, então tudo que")
         print("   aparece é ruído. Conservador: a medição real usa CRN pareado.)")

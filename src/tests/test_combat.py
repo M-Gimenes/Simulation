@@ -211,9 +211,20 @@ canon = Individual.from_canonical()
 def _canon_char(aid: ArchetypeID) -> Character:
     return next(c for c in canon.characters if c.archetype_id == aid)
 
+# Os canônicos são SATURADOS: vários pares acabam em poucos ticks e consomem pouco
+# RNG, então paridade neles é uma garantia fraca. Os indivíduos aleatórios abaixo dão
+# lutas longas, com muitas decisões de intenção — é onde uma divergência de consumo de
+# RNG entre as duas variantes apareceria.
+import random as _random
+_random.seed(20260921)
+random_pairs = []
+for _ in range(3):
+    ind = Individual.random()
+    random_pairs.append((ind.characters[0], ind.characters[1]))
+
 mismatches = 0
-for aid_a, aid_b in parity_pairs:
-    ca, cb = _canon_char(aid_a), _canon_char(aid_b)
+cases = [(_canon_char(a), _canon_char(b)) for a, b in parity_pairs] + random_pairs
+for ca, cb in cases:
     for s in range(20):
         seed_combat(s); r = simulate_combat(ca, cb)
         seed_combat(s); t = simulate_combat_traced(ca, cb)
@@ -228,7 +239,9 @@ for aid_a, aid_b in parity_pairs:
         if not ok:
             mismatches += 1
 assert mismatches == 0, f"{mismatches} divergências entre fitness-JIT e traced-JIT"
-print("  ✓ as duas variantes do JIT produzem desfecho idêntico")
+print(f"  ✓ as duas variantes do JIT produzem desfecho idêntico "
+      f"({len(cases)} pares × 20 sementes: {len(parity_pairs)} canônicos + "
+      f"{len(random_pairs)} aleatórios)")
 
 
 # ── Agarrão: counter à guarda, não golpe melhor ─────────────────────────────

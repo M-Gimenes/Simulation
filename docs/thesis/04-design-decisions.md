@@ -1830,3 +1830,93 @@ minimizar a dominância pura levem ao mesmo lugar. Reforça, por outro caminho, 
 fixar a manchete **antes** da bateria: em 11 sementes a escolha nem teria efeito, e nas 9
 restantes ela é a diferença entre comparar com o extremo da fronteira e comparar com o
 ponto que otimiza a mesma função do AG escalar.
+
+## O teste passou a ser o pareado (2026-09-21)
+
+**Problema — o desenho é pareado e o teste era o de amostras independentes.** Uma
+auditoria do zero notou a contradição dentro do próprio código: `compare_algorithms`
+**exige** que os dois braços rodem as mesmas sementes (a constante se chama
+`_PAIRED_FIELDS`, e `_check_comparable` aborta se divergirem), e a semente fixa tudo que
+é aleatório dos dois lados — `random.seed(seed)` dá a mesma população inicial e a mesma
+sequência de operadores, `generation_seed(seed, g)` dá o mesmo stream de avaliação na
+geração `g`. A execução `i` de um braço e a execução `i` do outro são o mesmo bloco
+experimental. Mann-Whitney U assume amostras **independentes**: aplicá-lo aqui joga fora
+o poder que o CRN pagou. Nos controles a contradição é mais gritante ainda — é o mesmo
+algoritmo, mesma semente, um único fator trocado: desenho casado de manual.
+
+**Mudança.** O teste da família passou a ser o **Wilcoxon signed-rank pareado**
+(`zero_method="wilcox"`, que descarta os pares sem diferença), e é sobre ele que o Holm
+corrige. O **Mann-Whitney continua impresso ao lado**, cru, fora do Holm.
+
+**Por que os dois aparecem.** Trocar de teste depois de já ter resultado é risco de
+*p-hacking*, e a troca de fato mexe num resultado de fronteira. A defesa não é argumentar
+que a intenção era boa — é não esconder nada: os dois p-valores saem na mesma tabela, em
+todas as quatro comparações, e quem lê confere sozinho que as conclusões não dependem da
+escolha. A justificativa da troca é do **desenho** (sementes idênticas exigidas em
+código), não do p-valor, e ela foi aplicada à família inteira de uma vez, não à célula
+que muda.
+
+**Resultado.** Em 23 das 24 células das quatro comparações os dois testes dão o mesmo
+veredito. A exceção é o controle `λ_drift = 0`, em `dominance_penalty`:
+
+| | p bruto | p_Holm | veredito |
+|---|---|---|---|
+| Mann-Whitney (não-pareado) | 0,0315 | 0,0630 | sem diferença |
+| **Wilcoxon (pareado)** | 0,0192 | **0,0385** | **AG melhor, efeito médio** |
+
+A leitura do controle muda de "tirar o termo de identidade não compra equilíbrio" para
+"**tirar o termo de identidade piora o equilíbrio**" — cinco das seis métricas passam a
+separar a favor do braço com o termo, e só os hard-counters empatam. O achado central da
+bateria fica mais forte, não mais fraco, e por um motivo metodológico que não depende
+dele.
+
+## O piso da sensibilidade depende de quantas nulas você roda (2026-09-21)
+
+**Problema.** O piso de ruído é o **máximo** sobre `reps × 11` médias nulas. Máximo de
+amostra cresce com o tamanho da amostra: com `--null-reps 3` são 33 nulas e o piso fica
+perto do percentil 97; com 10 seriam 110, e o piso subiria — genes hoje no limiar
+(`speed` 3,5%, `knockback` 4,3%, `w_retreat` 4,8% contra um piso de 3,5%) poderiam
+mudar de classe. O número era reportado sem essa dependência.
+
+**Mudança — e o que NÃO mudou.** Manteve-se o máximo. Um quantil fixo (p95) seria estável
+em relação a `reps`, mas o máximo é o critério **conservador** e o mais fácil de
+defender — "nem o ruído sozinho chegou até aqui" —, e trocá-lo mexeria num número já
+medido para ganho marginal. O que passou a existir é a declaração: o docstring de
+`_measure_noise_floor` e a saída do tool dizem que o piso depende de `--null-reps` e
+qual valor o produziu, e o artefato grava `null_reps`. **Citar o piso sem o `reps` ao
+lado é citar um número incompleto.**
+
+**Resultado.** Nenhum número muda (o tool é determinístico e reproduziu idêntico); o que
+muda é que a limitação do critério fica escrita onde quem cita o número vai olhar.
+
+## O caminho sem semente ficou inalcançável, em vez de consertado (2026-09-21)
+
+**Problema.** `Individual.clone()` copia o `fitness`, `evaluate_population` pula quem já
+tem fitness, e a invalidação por geração está dentro de `if seed is not None`. Sem
+semente, os elites **nunca são re-medidos**: um elite que tirou uma avaliação de sorte
+fica com aquele número para sempre, não regride à média e se reclona geração após
+geração. É a patologia que a rotação do stream existe para impedir — e `py main.py`, o
+comando de entrada da documentação, rodava exatamente aí, porque `--seed` tinha default
+`None`.
+
+**Mudança — e por que não foi o conserto óbvio.** O conserto é mover duas linhas de
+`invalidate_fitness()` para fora do `if`, em `ga.py` e `nsga2.py`. Mas os dois estão no
+`engine_digest`: editar qualquer arquivo de `src/engine/` marca **todo** o `results/`
+como obsoleto, e re-carimbar custa a noite inteira (sweeps + bateria) para produzir
+números **bit a bit iguais** — o conserto é comprovadamente inerte em execuções com
+semente, que são todas as da bateria.
+
+Optou-se por fechar o caminho em vez de consertar o motor: `main.py --seed` passou a ter
+default (`MULTI_RUN_SEED_START`), então nenhuma invocação pela CLI alcança o caminho
+enviesado, e `py main.py` reproduz o passo 9 da bateria. O defeito latente em
+`ga.run(seed=None)` está registrado no
+[`10-known-issues`](../reference/10-known-issues.md) §1 para ser corrigido junto da
+próxima mudança de motor que já exija re-rodar.
+
+**Resultado, e a justificativa que vale além da economia.** Semear por default não é
+contorno: uma execução sem semente grava um artefato que **ninguém consegue reproduzir**,
+o oposto do que o carimbo de proveniência existe para garantir. O default explícito é o
+comportamento coerente com o resto do projeto — a economia de uma noite é consequência,
+não motivo. É a mesma decisão tomada duas vezes antes (o seed default do
+`archetype_validator`, as tabelas cruas do dossiê): não pagar horas de recomputação por
+números idênticos, desde que a ressalva fique escrita onde quem cita vai olhar.

@@ -1,6 +1,6 @@
 {
   "provenance": {
-    "generated_at": "2026-09-21T00:50:38-03:00",
+    "generated_at": "2026-09-21T10:26:31-03:00",
     "fingerprint": "371966d9f335",
     "engine_digest": "6b18ff49b38a",
     "archetypes_digest": "e37725dd4b7c",
@@ -212,7 +212,7 @@
       "modules": [
         "src.experiments.sensitivity_analysis"
       ],
-      "digest": "41103416d31a"
+      "digest": "19b7a9607866"
     }
   },
   "individual": "EVOLUÍDO (single_run/ga.json)",

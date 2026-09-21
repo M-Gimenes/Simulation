@@ -6,7 +6,7 @@ Rode com: py main.py [--algorithm ga|nsga2] [--seed N] [--quiet] [--log-every N]
 import argparse
 import datetime
 
-from src.engine.config import MAX_GENERATIONS, POPULATION_SIZE
+from src.engine.config import MAX_GENERATIONS, MULTI_RUN_SEED_START, POPULATION_SIZE
 from src.engine.ga import run as run_ga, save_results as save_ga_results
 from src.engine.paths import GA_RESULTS_PATH, NSGA2_PLOTS_DIR, NSGA2_RESULTS_PATH, PROJECT_ROOT
 from src.engine.provenance import override_budget
@@ -16,7 +16,15 @@ def parse_args():
     parser = argparse.ArgumentParser(description="AG para balanceamento de personagens")
     parser.add_argument("--algorithm", choices=["ga", "nsga2"], default="ga",
                         help="Algoritmo evolutivo (default: ga)")
-    parser.add_argument("--seed",      type=int, default=None, help="Semente aleatória")
+    # SEMPRE semeado por default, e de propósito. Uma execução sem semente grava um
+    # artefato que ninguém consegue reproduzir — o oposto do que o carimbo de
+    # proveniência existe para garantir. E o laço só reavalia a população inteira a cada
+    # geração quando há semente: sem ela os elites carregam o fitness da geração em que
+    # foram medidos, e um elite que tirou uma avaliação de sorte nunca regride à média.
+    # O default é a primeira semente do protocolo, então `py main.py` reproduz o passo 9
+    # da bateria.
+    parser.add_argument("--seed",      type=int, default=MULTI_RUN_SEED_START,
+                        help=f"Semente (default: {MULTI_RUN_SEED_START}, a do protocolo)")
     parser.add_argument("--quiet",     action="store_true",    help="Suprime log por geração")
     parser.add_argument("--log-every", type=int, default=1,    help="Loga a cada N gerações (só AG)")
     parser.add_argument("--pop", type=int, default=POPULATION_SIZE,

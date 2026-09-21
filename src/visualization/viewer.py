@@ -71,8 +71,6 @@ def _ctr(s: str, w: int) -> str:
 # ─── Layout / paletas ─────────────────────────────────────────────────────────
 
 TW       = 78
-ARENA_W  = 70
-TOK      = 4
 LOG_N    = 8
 
 _ACOLOR = {

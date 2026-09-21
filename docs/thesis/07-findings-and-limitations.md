@@ -132,14 +132,14 @@ Estes são os achados citáveis. Os números completos estão em
 [`../status/HANDOFF.md`](../status/HANDOFF.md) §2 e o porquê de cada um em
 [04](04-design-decisions.md), a partir de «O controle `λ_drift = 0`».
 
-- **A identidade sai de graça — é o achado que responde à pergunta de pesquisa.** O
-  controle `λ_drift = 0`, mesmo AG, mesma amostra, mesmo orçamento, **sem** o termo de
-  identidade, não equilibra melhor (`dominance` 0,0534 contra 0,0399, p_Holm 0,063 — e a
-  favor do AG *com* o termo; hard-counters empatados em 0, p = 0,553) e **zera a
-  identidade nas quatro réguas**: drift 0,4055 contra 0,2473, validador L1+L2 6 contra 11,
-  Layer 3 1 contra 3, τ **−0,0304 contra 0,2811**, todas com p_Holm ≤ 0,00024 e efeito
-  grande. Na média das 20 execuções o braço sem drift dá τ = +0,007 ± 0,151: o acaso com
-  três casas decimais.
+- **A identidade não custa equilíbrio — melhora — e é o achado que responde à pergunta
+  de pesquisa.** O controle `λ_drift = 0`, mesmo AG, mesma amostra, mesmo orçamento,
+  **sem** o termo de identidade, equilibra **pior** (`dominance` 0,0534 contra 0,0399,
+  p_Holm 0,038, efeito médio) e **zera a identidade nas quatro réguas**: drift 0,4055
+  contra 0,2473, validador L1+L2 6 contra 11, Layer 3 1 contra 3, τ **−0,0304 contra
+  0,2811**, todas com p_Holm ≤ 0,0045 e efeito grande. Cinco das seis métricas separam a
+  favor do braço com o termo; só os hard-counters empatam (p = 0,763). Na média das 20
+  execuções o braço sem drift dá τ = +0,007 ± 0,151: o acaso com três casas decimais.
 - **A identidade funcional está acima do acaso, e a régua que mostra isso é o controle —
   não os modelos nulos.** No indivíduo da seed 42 a Layer 3 dá 3/5 (p = 0,03, empatando
   com o melhor nulo) e τ = 0,314 (p = 0,06, um fio abaixo do melhor nulo, 0,316): um
@@ -200,6 +200,13 @@ Estes são os achados citáveis. Os números completos estão em
   inicia com `[canônico] + aleatórios`, o NSGA-II com população 100% aleatória. Não é
   descuido — é consequência medida da assimetria dos objetivos (ver Achados). Precisa
   ser declarado explicitamente ao comparar os dois.
+- **O drift protege as cinco identidades com rigor desigual.** `defining_genes` tem 1
+  gene no Combo Master (`stun`) e 4 na Turtle. Como os definidores pesam 3,0 e a RMS
+  normaliza pela soma dos pesos, o Combo Master concentra **23%** do peso no gene que o
+  define e a Turtle **63%** nos seus quatro. "Identidade preservada" é medida com
+  exigência diferente por arquétipo — consequência de as definições terem cardinalidades
+  diferentes, não erro de cálculo, mas precisa ser declarada ao comparar drift **entre**
+  personagens.
 - **As Layers 1-2 do validador são parcialmente endógenas** — medem o mesmo eixo
   estrutural que o `drift_penalty` otimiza. As réguas funcionais (Layer 3 e concordância)
   são *held-out*, não causalmente isoladas: cada asserção da Layer 3 é consequência quase

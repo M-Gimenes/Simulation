@@ -70,6 +70,8 @@ py -m src.experiments.baselines --evolved             # modelos nulos: piso/teto
 
 # src.visualization
 py -m src.visualization.web_viewer                    # browser viewer em localhost:8080
+py -m src.visualization.ga_plots                      # curvas de convergencia do AG (do artefato)
+py -m src.visualization.nsga2_plots                   # fronteira de Pareto (do artefato)
 ```
 
 ### Experimentos completos

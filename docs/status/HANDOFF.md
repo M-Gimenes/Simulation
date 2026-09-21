@@ -49,35 +49,43 @@ responde as duas metades de uma vez.
 
 | | AG (λ_drift = 1) | controle λ_drift = 0 | p (Holm) | Â₁₂ |
 |---|---|---|---|---|
-| `dominance_penalty` | 0,0399 | 0,0534 | 0,063 | 0,30 |
-| hard-counters/execução | 0 | 0 | 0,553 | 0,54 |
-| `drift_penalty` | **0,2473** | 0,4055 | **4,1 × 10⁻⁷** | 0,00 |
-| validador estrutural (L1+L2) | **11** | 6 | **1,1 × 10⁻⁶** | 0,98 |
-| validador comportamental (L3) | **3** | 1 | **0,00024** | 0,85 |
-| concordância de ranking (τ) | **0,2811** | −0,0304 | **0,00022** | 0,87 |
+| `dominance_penalty` | **0,0399** | 0,0534 | **0,038** | 0,30 |
+| hard-counters/execução | 0 | 0 | 0,763 | 0,54 |
+| `drift_penalty` | **0,2473** | 0,4055 | **1,1 × 10⁻⁵** | 0,00 |
+| validador estrutural (L1+L2) | **11** | 6 | **0,00042** | 0,98 |
+| validador comportamental (L3) | **3** | 1 | **0,0044** | 0,85 |
+| concordância de ranking (τ) | **0,2811** | −0,0304 | **0,00067** | 0,87 |
 
-(medianas sobre as 20 execuções; família de Holm de 6 — `bonecos em banda` sai por ser
-constante, 5/5 em todas as execuções dos dois braços)
+(medianas sobre as 20 execuções; Wilcoxon pareado + Holm, família de 6 — `bonecos em
+banda` sai por ser constante, 5/5 em todas as execuções dos dois braços)
 
-**Tirar o termo de drift não compra equilíbrio nenhum e zera a identidade.** As duas
-métricas de equilíbrio não se separam, e o braço sem drift é até ligeiramente *pior* em
-`dominance`; as quatro de identidade se separam todas, com efeito grande. Na média das
-20 execuções o braço λ = 0 dá τ = **+0,007 ± 0,151** — o acaso com três casas decimais —
-contra +0,259 ± 0,159 do AG.
+**Tirar o termo de drift piora o equilíbrio e zera a identidade.** Cinco das seis
+métricas separam a favor do braço *com* o termo: as quatro de identidade com efeito
+grande, e o próprio `dominance` com efeito médio. Só os hard-counters empatam (os dois
+braços fazem ~0,2–0,3 por execução). Na média das 20 execuções o braço λ = 0 dá
+τ = **+0,007 ± 0,151** — o acaso com três casas decimais — contra +0,259 ± 0,159 do AG.
 
-A leitura: **a identidade sai de graça.** O trade-off que o sweep de λ mostra existe, mas
-o joelho está longe o bastante de λ = 1,0 para que o termo não custe equilíbrio nenhum.
+A leitura: **a identidade não custa equilíbrio — melhora.** O trade-off que o sweep de λ
+mostra existe, mas o joelho está longe o bastante de λ = 1,0 para que o termo saia de
+graça; e neste orçamento ele ainda ajuda a busca, provavelmente por manter os cinco
+diferenciados enquanto o equilíbrio é procurado.
+
+> Sob o Mann-Whitney **não-pareado** (o teste anterior) essa primeira linha dava
+> p_Holm = 0,063, "sem diferença". O desenho é pareado por construção — as mesmas
+> sementes fixam população inicial, operadores e streams nos dois braços —, e o teste
+> passou a ser o Wilcoxon pareado; o não-pareado segue impresso ao lado, como robustez.
+> Ver [`thesis/04`](../thesis/04-design-decisions.md), "O teste passou a ser o pareado".
 
 ### O segundo controle: a semente canônica não explica nada
 
 | | AG | controle sem semente | p (Holm) |
 |---|---|---|---|
-| `dominance_penalty` | 0,0399 | 0,0403 | 0,964 |
-| hard-counters | 0 | 0 | 0,964 |
-| `drift_penalty` | **0,2473** | 0,2703 | **0,043** |
-| validador estrutural | 11 | 10,5 | 0,334 |
-| validador comportamental | 3 | 2 | 0,366 |
-| τ | 0,2811 | 0,1931 | 0,310 |
+| `dominance_penalty` | 0,0399 | 0,0403 | 0,818 |
+| hard-counters | 0 | 0 | 0,818 |
+| `drift_penalty` | **0,2473** | 0,2703 | **0,0073** |
+| validador estrutural | 11 | 10,5 | 0,306 |
+| validador comportamental | 3 | 2 | 0,593 |
+| τ | 0,2811 | 0,1931 | 0,387 |
 
 Separa **só no drift**, e por pouco. A semente canônica dá uma dianteira estrutural
 modesta e nada mais: a diferença entre os dois algoritmos **não** é inicialização.
@@ -99,19 +107,19 @@ as quatro de identidade:
 
 | métrica | mediana AG | mediana NSGA-II | p (Holm) | Â₁₂ | vencedor |
 |---|---|---|---|---|---|
-| `dominance_penalty` | 0,0399 | 0,0796 | 3,6 × 10⁻⁵ | 0,10 | AG escalar |
-| hard-counters/execução | 0 | 3 | 7,9 × 10⁻⁷ | 0,03 | AG escalar |
-| `drift_penalty` | 0,2473 | 0,1445 | 4,1 × 10⁻⁷ | 1,00 | NSGA-II |
-| validador estrutural (L1+L2) | 11 | 15 | 4,1 × 10⁻⁶ | 0,05 | NSGA-II |
-| validador comportamental (L3) | 3 | 4 | 0,0037 | 0,24 | NSGA-II |
-| concordância de ranking (τ) | 0,2811 | 0,5430 | 2,6 × 10⁻⁵ | 0,09 | NSGA-II |
+| `dominance_penalty` | 0,0399 | 0,0796 | 0,00013 | 0,10 | AG escalar |
+| hard-counters/execução | 0 | 3 | 0,00034 | 0,03 | AG escalar |
+| `drift_penalty` | 0,2473 | 0,1445 | 1,1 × 10⁻⁵ | 1,00 | NSGA-II |
+| validador estrutural (L1+L2) | 11 | 15 | 0,00034 | 0,05 | NSGA-II |
+| validador comportamental (L3) | 3 | 4 | 0,0027 | 0,24 | NSGA-II |
+| concordância de ranking (τ) | 0,2811 | 0,5430 | 0,00013 | 0,09 | NSGA-II |
 
 `bonecos em banda` fica fora da família nas quatro comparações: **5/5 em todas as
 execuções de todos os braços**. Equilibrar os cinco globalmente deixou de discriminar
 qualquer coisa — o que discrimina são os pares.
 
 Contra o `best_dominance` (leitura secundária) as mesmas seis, nas mesmas direções, um
-pouco mais fracas: `dominance` p = 0,0011, hard-counters 0 contra 2, τ 0,2811 contra
+pouco mais fracas: `dominance` p_Holm = 0,0029, hard-counters 0 contra 2, τ 0,2811 contra
 0,5072. Nenhum representante da fronteira chega perto do AG no critério completo —
 rosters equilibrados por representante: `best_dominance` 2/20, `scalar_optimum` 0/20,
 `knee_point` 0/20, `ideal_point` 0/20, `best_drift` 0/20, contra **14/20** do AG.

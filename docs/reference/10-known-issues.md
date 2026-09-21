@@ -22,6 +22,27 @@ os dela.
 Não há pendência de instrumentação nem de experimento. O que resta é **redação**
 ([`../status/HANDOFF.md`](../status/HANDOFF.md) §4).
 
+**Três consertos adiados de propósito, todos em `src/engine/`.** Editar qualquer arquivo
+do motor troca o `engine_digest` e marca **todo** o `results/` como obsoleto — uma noite
+de recomputação para produzir números bit a bit iguais, porque nenhum deles muda uma
+execução com semente. Ficam para a próxima mudança de motor que já exija re-rodar, e
+nenhum afeta número citado:
+
+1. **`ga.run(seed=None)` e `nsga2.run(seed=None)` não reavaliam os elites.**
+   `Individual.clone()` copia o `fitness`, `evaluate_population` pula quem já tem
+   fitness, e a invalidação por geração está dentro de `if seed is not None`. Sem semente,
+   um elite que tirou uma avaliação de sorte nunca é re-medido e nunca regride à média —
+   exatamente a patologia que a rotação de stream existe para impedir. **Mitigado onde
+   era alcançável:** `main.py --seed` passou a ter default (a semente do protocolo), então
+   nenhuma invocação pela CLI chega nesse caminho. O conserto de verdade é mover as duas
+   linhas de `invalidate_fitness()` para fora do `if`.
+2. **`archetypes.NUM_ARCHETYPES` é constante morta** — definida, referenciada em lugar
+   nenhum.
+3. **O docstring de `_confirm_convergence` diz `seed + CONVERGENCE_SEED_OFFSET`** quando o
+   código usa `generation_seed(seed, gen) + OFFSET` — a confirmação roda num stream
+   diferente **a cada geração**, que é mais forte do que o texto descreve. O `config.py`
+   (fora do digest) já descreve certo, e o `CLAUDE.md` foi corrigido.
+
 Se o motor ou o `config.py` mudarem de novo, a sequência é a de sempre: rodar
 `.\scripts\run_overnight.ps1` (os 16 braços de sweep nas sementes 1000–1004, depois a
 bateria de 16 passos), conferir com `py -m src.tests.test_provenance` e reler cada número
@@ -65,6 +86,16 @@ Precisam aparecer explicitamente na Discussão, não só em Trabalhos Futuros.
   O único gradiente que puxa a política de volta ao canônico é o do drift, e o controle
   `λ_drift = 0` mostra o que acontece sem ele: τ = +0,007, o acaso. A análise é local, e
   muda com o indivíduo.
+- **O drift pesa as cinco identidades com exigência diferente.** `defining_genes` tem 1
+  gene no Combo Master e 4 na Turtle; com peso 3,0 nos definidores e a RMS normalizada
+  pela soma, isso é 23% do peso num caso e 63% no outro. O `drift_penalty` de dois
+  personagens não é, a rigor, a mesma régua — comparar drift **entre** arquétipos exige
+  essa ressalva.
+- **O piso da sensibilidade é o máximo das nulas, e depende de quantas.** Com
+  `--null-reps 3` são 33 nulas e o piso (3,5%) fica perto do percentil 97; com mais
+  réplicas ele subiria, e genes no limiar (`speed`, `knockback`, `w_retreat`) poderiam
+  mudar de classe. A escolha do máximo é deliberada (conservadora), mas o número só é
+  citável com o `reps` ao lado.
 - **As réguas funcionais não são independentes do fitness.** A Layer 3 e a concordância de
   ranking são *held-out* — o fitness não referencia comportamento —, mas cada asserção da
   Layer 3 é consequência quase direta de um gene definidor. E a Layer 3 são 5 bits; a
