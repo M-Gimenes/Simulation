@@ -50,15 +50,15 @@ ferramenta está em [`../reference/08-tools.md`](../reference/08-tools.md).
   **saturado** (Rushdown ~100% global, Turtle ~0%): com a WR presa no teto, perturbar um
   gene não muda nada e quase tudo saía "neutro" por efeito de teto, não por neutralidade —
   a tabela sustentava o contrário do que se quer afirmar. A medida citável é a do
-  `--evolved`, num roster equilibrado. **Leitura preliminar**, no evoluído da bateria de
-  2026-09-18 com o motor atual (a bateria seguinte a substitui): contra o piso de 0,037,
-  seis atributos saem visíveis (`range` 0,403 · `attack_cooldown` 0,286 · `damage` 0,202 ·
-  `hp` 0,175 · `stun` 0,106 · `grab_power` 0,085), `speed` e `knockback` (0,055) e
-  `w_aggressiveness` (0,049) borderline, e `w_retreat` (0,026) e `w_defend` (0,024)
-  **abaixo do piso**. A limitação a declarar muda de lugar: na escala da mutação, o AG
-  quase não enxerga a **política** pelo equilíbrio — o único gradiente que a puxa ao
-  canônico é o do drift. A análise é **local** — mede a paisagem em volta de um indivíduo
-  e muda com ele.
+  `--evolved`, num roster equilibrado. Medido na bateria de 2026-09-21, contra um piso de
+  ruído de 0,035: seis genes saem visíveis (`range` 0,308 · `damage` 0,262 ·
+  `attack_cooldown` 0,257 · `hp` 0,239 · `grab_power` 0,186 · `stun` 0,104), `w_retreat`
+  (0,048), `knockback` (0,043) e `speed` (0,035) ficam no limiar, e `w_aggressiveness`
+  (0,030) e `w_defend` (0,029) ficam **abaixo do piso**. A limitação a declarar: na escala
+  da mutação, o AG quase não enxerga a **política** pelo equilíbrio — os três pesos ocupam
+  o fundo do ranking, e o único gradiente que os puxa ao canônico é o do drift, como o
+  controle `λ_drift = 0` confirma (τ = +0,007 sem ele). A análise é **local** — mede a
+  paisagem em volta de um indivíduo e muda com ele.
 - **Variância controlada:** usa pareamento de seeds (*common random numbers*) entre os
   dois lados da janela — técnica que **só funciona após o fix de reprodutibilidade**
   (antes, ineficaz).

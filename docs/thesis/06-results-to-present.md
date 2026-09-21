@@ -146,10 +146,11 @@ Quatro números/figuras que a redação deve usar:
   mesmo composto. **Nunca citar o composto sozinho numa comparação.**
 - **Contagem de rejeições da confirmação de convergência.** O gate dispara N vezes e a
   confirmação fora do stream rejeita M delas — é o ajuste ao stream de RNG quantificado,
-  em uma linha. Medido em 60 gerações: 16 disparos, 16 rejeições. Na bateria de n = 20 (150
-  gerações): 70 disparos, 50 rejeições (71%), e mesmo assim as 20 sementes convergem, na
-  geração 34,8 ± 17,1. Junto, sempre, a fração que **termina** equilibrada (14/20 naquela
-  bateria): convergir é o primeiro sucesso de um teste repetido, não equilíbrio estável.
+  em uma linha. Medido em 60 gerações: 16 disparos, 16 rejeições. Na bateria de 2026-09-21
+  (n = 20, 150 gerações): 70 disparos, 50 rejeições (71%), e mesmo assim as 20 sementes
+  convergem, na geração 31,3 ± 13,2 — e os dois controles dão a mesma faixa (67% e 63%).
+  Junto, sempre, a fração que **termina** equilibrada (14/20): convergir é o primeiro
+  sucesso de um teste repetido, não equilíbrio estável.
 - **A fronteira do NSGA-II com e sem o seed canônico**, lado a lado. É a figura que
   mostra que um detalhe de inicialização consumia metade da fronteira — e serve de aviso
   metodológico na Discussão.
@@ -161,7 +162,11 @@ Quatro números/figuras que a redação deve usar:
   `best_dominance` (`comparison_ga_vs_nsga2_best_dominance.json`).
 - **As duas comparações contra os controles** (`results/controls/comparison_ga_vs_*.json`).
   A de `λ_drift = 0` é a que diz se o método preserva identidade; sem ela, "a identidade
-  do evoluído supera os nulos" não distingue o método de qualquer roster otimizado.
+  do evoluído supera os nulos" não distingue o método de qualquer roster otimizado. Na
+  bateria de 2026-09-21 ela virou **o resultado central**: sem o termo, o equilíbrio é o
+  mesmo e a identidade desaba nas quatro réguas (τ de +0,26 para +0,007, o acaso). É a
+  tabela que responde à pergunta de pesquisa, e a que deve abrir os Resultados junto com a
+  fronteira.
 
 ## O fio condutor dos Resultados
 

@@ -126,47 +126,64 @@ Consequências para a redação:
   achado — não implicado — é os pares **seguirem decididos** sob o equilíbrio; a
   intransitividade vem junto.
 
-### Achados da bateria com n = 20 (2026-09-18)
+### Achados da bateria de 2026-09-21 (n = 20, com os dois controles)
 
-- **A comparação AG × NSGA-II se sustenta a n = 20, e o efeito de n = 10 estava inflado.**
-  As três métricas da família de Holm seguem significativas com efeito grande —
-  `dominance` p 0,0123 (Â₁₂ 0,27, AG melhor), `drift` p 0,00007 (0,89, NSGA-II melhor),
-  counters p 0,0018 (0,21, AG melhor). Mas os três Â₁₂ andaram na direção de 0,5 em relação
-  ao n = 10 (0,20 · 0,94 · 0,14), o padrão típico de amostra pequena. Cita-se o de n = 20.
-- **A vantagem do AG em equilíbrio é inteiramente de counters duros.** No termo primário
-  (`global_term`) os dois empatam — mediana 0,0375 contra 0,0382; no `cap_term`, 0,0000
-  contra 0,0357. A frase certa não é "o AG equilibra melhor", e sim "os dois equilibram o
-  roster globalmente igual, e o NSGA-II deixa pares passarem do teto". Em rosters que
-  passam no critério completo: 14/20 do AG contra 4/20 do `best_dominance`.
+Estes são os achados citáveis. Os números completos estão em
+[`../status/HANDOFF.md`](../status/HANDOFF.md) §2 e o porquê de cada um em
+[04](04-design-decisions.md), a partir de «O controle `λ_drift = 0`».
+
+- **A identidade sai de graça — é o achado que responde à pergunta de pesquisa.** O
+  controle `λ_drift = 0`, mesmo AG, mesma amostra, mesmo orçamento, **sem** o termo de
+  identidade, não equilibra melhor (`dominance` 0,0534 contra 0,0399, p_Holm 0,063 — e a
+  favor do AG *com* o termo; hard-counters empatados em 0, p = 0,553) e **zera a
+  identidade nas quatro réguas**: drift 0,4055 contra 0,2473, validador L1+L2 6 contra 11,
+  Layer 3 1 contra 3, τ **−0,0304 contra 0,2811**, todas com p_Holm ≤ 0,00024 e efeito
+  grande. Na média das 20 execuções o braço sem drift dá τ = +0,007 ± 0,151: o acaso com
+  três casas decimais.
+- **A identidade funcional está acima do acaso, e a régua que mostra isso é o controle —
+  não os modelos nulos.** No indivíduo da seed 42 a Layer 3 dá 3/5 (p = 0,03, empatando
+  com o melhor nulo) e τ = 0,314 (p = 0,06, um fio abaixo do melhor nulo, 0,316): um
+  único roster contra 35 nulos não tem resolução para concluir. Contra o braço λ = 0, com
+  20 execuções de cada lado, as duas separam com efeito grande. **Isto corrige a leitura
+  preliminar de 2026-09-18**, que dava a identidade funcional no piso (L3 1/5, p = 0,74;
+  τ = 0,19, p = 0,14).
+- **A semente canônica não explica a diferença entre os algoritmos.** O segundo controle
+  separa só no drift (0,2703 contra 0,2473, p_Holm 0,043) e em mais nada.
+- **Cada algoritmo ocupa um extremo, agora com seis métricas.** As seis da família de Holm
+  são significativas com efeito grande, divididas exatamente nas duas metades da pergunta:
+  o AG escalar vence as duas de equilíbrio (`dominance` Â₁₂ 0,10; hard-counters 0 contra
+  3, Â₁₂ 0,03) e o NSGA-II as quatro de identidade (drift Â₁₂ **1,00** — separação total —,
+  L1+L2 0,05, Layer 3 0,24, τ 0,09). Fora da família, o contraste mais duro: **o AG termina
+  com o roster equilibrado em 14/20 sementes e o NSGA-II em 0/20**.
+- **A vantagem do AG em equilíbrio é quase toda de counters duros.** `global_term` 0,0397
+  contra 0,0490 (perto), `cap_term` 0,0030 contra 0,0807 (longe). A frase certa é "os dois
+  equilibram o roster globalmente parecido, e o NSGA-II deixa pares passarem do teto".
+- **Equilibrar os cinco globalmente deixou de discriminar.** `n_chars_balanced` dá 5/5 em
+  **80 de 80 execuções** — os dois algoritmos e os dois controles, inclusive o braço sem
+  termo de identidade. O que discrimina são os pares.
+- **Só o AG escalar replica fora do laço.** Único dos quatro rótulos ROBUSTO na replicação
+  (`dominance` 0,0373 fora contra 0,0251 dentro — degradação de 1,5×, contra 21× na
+  bateria pré-rotação), robusto a 4 das 8 regras perturbadas, 2 inconclusivas, 2 frágeis.
+  Canônico, NSGA-II `scalar_optimum` e `knee_point` falham a replicação e as 8 regras.
+- **O ciclo autoral não sobrevive ao equilíbrio.** 5/10 arestas, a média exata dos nulos,
+  posição 0%, p = 0,63 — o objetivo é cego à direção por construção. O Grappler × Turtle,
+  aresta canônica forte (100% no canônico), é achatado a 51% ± 6% nas 20 sementes.
 - **Convergência é regra, não exceção — mesmo com a confirmação fora do stream.** O AG
-  convergiu em 20/20 sementes, na geração 34,8 ± 17,1, embora a confirmação tenha recusado
-  71% dos disparos do gate (50 de 70). A confirmação atrasa a convergência, não a impede.
-  Mas convergir é o **primeiro** sucesso de um teste repetido a cada geração, não
-  equilíbrio estável: das 20 sementes convergidas, 14 terminaram com o roster equilibrado
-  na reavaliação.
-- **Os três sweeps exploratórios testaram os valores vigentes e os três passaram** — λ,
-  pesos do dominance e, por último, elitismo / torneio, onde nenhum dos 7 braços superou
-  10% / 3. Nenhum parâmetro do AG ficou sem ter sido variado.
-
-### Achados da auditoria do zero (2026-09-18) — preliminares
-
-Medidos sobre o indivíduo da bateria de 2026-09-18, reavaliado no motor atual. A próxima
-bateria — com os controles — é que os confirma ou não; ficam aqui como hipótese a testar,
-com o número que a motivou.
-
-- **A identidade funcional medida está no piso.** A Layer 3 do evoluído dava 1/5, com
-  p = 0,74 contra os 35 nulos, e a concordância de ranking comportamental dá τ = +0,19,
-  com p = 0,14 — nenhuma das duas réguas funcionais o distingue de um roster aleatório.
-  A política conta a mesma história: o Rushdown evoluído guardava mais do que avançava e
-  era o **menos** agressivo dos cinco; o Zoner avançava mais do que recuava; o Turtle
-  recuava mais do que guardava. Se a bateria confirmar, a resposta à pergunta de pesquisa
-  é que o equilíbrio alcançado preserva a identidade **estrutural** (o drift segura os
-  genes) e **não** a funcional — e o controle `λ_drift = 0` dirá quanto dessa preservação
-  estrutural é do termo de drift.
-- **O AG quase não enxerga a política pelo equilíbrio.** Na análise de sensibilidade com o
-  passo da mutação, `w_retreat` e `w_defend` ficam abaixo do piso de ruído e
-  `w_aggressiveness` no limiar. O único gradiente que puxa os pesos de volta ao canônico é
-  o do drift — o que é coerente com a política embaralhada acima.
+  convergiu em 20/20 sementes, na geração 31,3 ± 13,2, embora a confirmação tenha recusado
+  71% dos disparos do gate (50 de 70). Convergir é o **primeiro** sucesso de um teste
+  repetido a cada geração, não equilíbrio estável: das 20 convergidas, 14 terminaram com o
+  roster equilibrado na reavaliação.
+- **O AG quase não enxerga a política pelo equilíbrio.** Na sensibilidade (11 genes,
+  janela 2σ, piso medido em 3,5%) os três pesos ocupam o fundo do ranking: `w_defend` 2,9%
+  e `w_aggressiveness` 3,0% abaixo do piso, `w_retreat` 4,8% no limiar, contra `range`
+  30,8% no topo. O único gradiente que os puxa de volta ao canônico é o do drift — e o
+  controle λ = 0 mostra o que acontece sem ele.
+- **Os três sweeps testaram os valores vigentes e os três se mantiveram**, mas duas
+  conclusões mudaram de forma: λ = 1,0 deixou de empatar com os λ menores e passou a
+  **dominá-los** (mesmo `dominance`, drift 0,10–0,13 melhor, τ dez vezes maior), e o
+  default de elitismo/torneio deixou de ser o melhor em counters e em `cap_term` — é
+  mantido por ter o melhor drift e a melhor concordância de ranking dos oito braços, e a
+  afirmação passou de "nenhum braço os supera" para "**nenhum braço os domina**".
 - **O stun era um gene de platô para o atacante rápido.** Até a correção dos timers, variar
   o stun do Rushdown evoluído em 31 valores dava 5 WR distintas; agora, 27.
 
@@ -189,24 +206,24 @@ com o número que a motivou.
   direta de um gene definidor, e comportamento é downstream dos genes que o fitness move.
   A Layer 3 tem ainda só 5 bits; a concordância de ranking existe para isso.
 - **A política é o que o AG menos enxerga.** Na escala da mutação, dois dos três pesos
-  ficam abaixo do piso de ruído da sensibilidade (preliminar — ver acima). A análise é
-  local, e muda com o indivíduo. Ver [05](05-methodological-validation.md).
+  ficam abaixo do piso de ruído da sensibilidade e o terceiro no limiar (medido na bateria
+  de 2026-09-21 — ver acima). A análise é local, e muda com o indivíduo. Ver
+  [05](05-methodological-validation.md).
 - **Convergir não é ficar equilibrado.** `converged_at` é o primeiro disparo do gate que
   sobrevive à confirmação, num teste repetido a cada geração; a fração que termina
   equilibrada é outra métrica, e as duas vão juntas.
 
 ## O que ainda falta
 
-A base experimental está **definida**, e falta rodá-la. Depois da bateria de 2026-09-18
-o motor mudou (CRN por luta, timers com resto acumulado) e o protocolo ganhou os dois
-controles, a manchete no `scalar_optimum` com a relação de Pareto, a concordância de
-ranking e a validação externa com regras perturbadas. A bateria (`run_overnight.ps1`)
-precisa rodar de novo, e os números desta pasta e do `docs/status/HANDOFF.md` §2 — os
-achados acima inclusive, e em especial os preliminares — têm de ser relidos contra ela
-antes de qualquer citação. As pendências de instrumentação de
+**A base experimental está rodada.** A bateria de 2026-09-21 cobriu os 16 passos sobre o
+motor atual, com os dois controles, e `py -m src.tests.test_provenance` marca todo
+`results/` como *atual* ou *braço de experimento*. Os achados acima são os dela. As
+pendências de instrumentação de
 [`../reference/10-known-issues.md`](../reference/10-known-issues.md) estão fechadas; o que
-resta lá são os limites estruturais, que são escopo declarado e vão para a Discussão. Em termos de tese, falta a **redação**: a
-monografia e os artigos descrevem gerações anteriores do modelo, e o `values.tex` está
-inteiramente obsoleto (ver [`../status/HANDOFF.md`](../status/HANDOFF.md) §4). Os números a citar
-saem de `results/` e do `docs/status/HANDOFF.md` §2 — nunca de rodadas anteriores ao motor atual, que
-foram geradas sob outro modelo.
+resta lá são os limites estruturais, que são escopo declarado e vão para a Discussão.
+
+Falta a **redação**: a monografia e os artigos descrevem gerações anteriores do modelo, e
+o `values.tex` está inteiramente obsoleto — agora com números definitivos para refazê-lo
+(ver [`../status/HANDOFF.md`](../status/HANDOFF.md) §4). Os números a citar saem de
+`results/` e do `docs/status/HANDOFF.md` §2 — nunca de rodadas anteriores ao motor atual,
+que foram geradas sob outro modelo.

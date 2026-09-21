@@ -1,6 +1,6 @@
 {
   "provenance": {
-    "generated_at": "2026-09-20T22:24:08-03:00",
+    "generated_at": "2026-09-20T22:24:10-03:00",
     "fingerprint": "371966d9f335",
     "engine_digest": "6b18ff49b38a",
     "archetypes_digest": "e37725dd4b7c",
@@ -216,7 +216,7 @@
     }
   },
   "a": "AG",
-  "b": "NSGA-II (scalar_optimum)",
+  "b": "NSGA-II (best_dominance)",
   "test": "Mann-Whitney U (bicaudal)",
   "effect_size": "Vargha-Delaney A12 (a vs b)",
   "correction": "Holm-Bonferroni",
@@ -256,13 +256,13 @@
       "label": "dominance_penalty",
       "better_is": "lower",
       "median_a": 0.03987229134283217,
-      "median_b": 0.07961648974268014,
-      "u_statistic": 41.0,
-      "p_value": 1.8074477738835562e-05,
-      "a12_a_vs_b": 0.1025,
+      "median_b": 0.0666795988141934,
+      "u_statistic": 72.0,
+      "p_value": 0.0005629035598941275,
+      "a12_a_vs_b": 0.18,
       "better": "a",
       "degenerate": false,
-      "p_holm": 3.6148955477671125e-05,
+      "p_holm": 0.001125807119788255,
       "significant": true,
       "effect_magnitude": "grande"
     },
@@ -271,13 +271,13 @@
       "label": "hard-counters por execução",
       "better_is": "lower",
       "median_a": 0.0,
-      "median_b": 3.0,
-      "u_statistic": 12.0,
-      "p_value": 1.5785976899884435e-07,
-      "a12_a_vs_b": 0.03,
+      "median_b": 2.0,
+      "u_statistic": 41.0,
+      "p_value": 7.0771011206559e-06,
+      "a12_a_vs_b": 0.1025,
       "better": "a",
       "degenerate": false,
-      "p_holm": 7.892988449942217e-07,
+      "p_holm": 3.5211666867469576e-05,
       "significant": true,
       "effect_magnitude": "grande"
     },
@@ -301,13 +301,13 @@
       "label": "drift_penalty",
       "better_is": "lower",
       "median_a": 0.24730661719761463,
-      "median_b": 0.14451990053088332,
-      "u_statistic": 400.0,
-      "p_value": 6.795615128173358e-08,
-      "a12_a_vs_b": 1.0,
+      "median_b": 0.16631598298164219,
+      "u_statistic": 393.0,
+      "p_value": 1.9177119523374596e-07,
+      "a12_a_vs_b": 0.9825,
       "better": "b",
       "degenerate": false,
-      "p_holm": 4.077369076904015e-07,
+      "p_holm": 1.1506271714024758e-06,
       "significant": true,
       "effect_magnitude": "grande"
     },
@@ -317,12 +317,12 @@
       "better_is": "higher",
       "median_a": 11.0,
       "median_b": 15.0,
-      "u_statistic": 20.5,
-      "p_value": 1.0269524884043124e-06,
-      "a12_a_vs_b": 0.05125,
+      "u_statistic": 35.5,
+      "p_value": 7.042333373493915e-06,
+      "a12_a_vs_b": 0.08875,
       "better": "b",
       "degenerate": false,
-      "p_holm": 4.10780995361725e-06,
+      "p_holm": 3.5211666867469576e-05,
       "significant": true,
       "effect_magnitude": "grande"
     },
@@ -333,11 +333,11 @@
       "median_a": 3.0,
       "median_b": 4.0,
       "u_statistic": 95.5,
-      "p_value": 0.0037359536379940484,
+      "p_value": 0.0035243286119382216,
       "a12_a_vs_b": 0.23875,
       "better": "b",
       "degenerate": false,
-      "p_holm": 0.0037359536379940484,
+      "p_holm": 0.0035243286119382216,
       "significant": true,
       "effect_magnitude": "grande"
     },
@@ -346,13 +346,13 @@
       "label": "concordância de ranking (τ)",
       "better_is": "higher",
       "median_a": 0.28110177634953865,
-      "median_b": 0.5429940788348712,
-      "u_statistic": 35.0,
-      "p_value": 8.55575338654273e-06,
-      "a12_a_vs_b": 0.0875,
+      "median_b": 0.5072113251317213,
+      "u_statistic": 51.0,
+      "p_value": 5.886499025523066e-05,
+      "a12_a_vs_b": 0.1275,
       "better": "b",
       "degenerate": false,
-      "p_holm": 2.5667260159628192e-05,
+      "p_holm": 0.00017659497076569198,
       "significant": true,
       "effect_magnitude": "grande"
     }
@@ -360,12 +360,12 @@
   "dominance_decomposition": {
     "global_term": {
       "median_a": 0.03683591238505664,
-      "median_b": 0.04766009699154983,
+      "median_b": 0.04324419242631736,
       "weight": 1.0
     },
     "cap_term": {
       "median_a": 0.0,
-      "median_b": 0.061133249707427825,
+      "median_b": 0.031666150413822244,
       "weight": 0.5
     },
     "decis_term": {
@@ -374,7 +374,7 @@
       "weight": 0.5
     }
   },
-  "nsga2_representative": "scalar_optimum",
+  "nsga2_representative": "best_dominance",
   "pareto_relation": {
     "per_seed": [
       {

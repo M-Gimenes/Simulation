@@ -515,7 +515,9 @@ convergência é o predicado de equilíbrio (`roster_balanced`), não o valor do
   maior — 3,5% a 5 contra 4,9% a 10). Baixá-la melhora numerador e denominador ao mesmo
   tempo. `knockback` continua abaixo do piso e segue como limitação declarada. (Remedido em
   2026-09-18 no indivíduo atual: no **limiar** do piso, junto com o `speed`, e não abaixo
-  dele — ver "O carimbo retroativo por inferência falhou num artefato".)
+  dele — ver "O carimbo retroativo por inferência falhou num artefato". Confirmado na
+  bateria de 2026-09-21: `knockback` 4,3% e `speed` 3,5% contra um piso de 3,5% — no
+  limiar; quem ficou **abaixo** foram `w_defend` 2,9% e `w_aggressiveness` 3,0%.)
 
 - **E o `TICK_SCALE` ficou em 5.** A pergunta junto era se a própria resolução sub-tick
   devia mudar. Não: com o timer de stun contínuo, o único acoplamento que restou com ela é o
@@ -1021,6 +1023,14 @@ convergência disparou 70 vezes e a confirmação fora do stream recusou 50 (**7
 faixa de 67%–83% medida nos braços do sweep — agora no orçamento de produção.
 
 > Revisto: quatro leituras desta bateria não se sustentavam — ver «Leituras corrigidas».
+> E os números acima foram **substituídos** pela bateria de 2026-09-21, medida sobre o
+> motor corrigido (timers com resto acumulado, CRN por luta) e com a família de 6: o
+> empate no `global_term` não se repetiu (0,0397 contra 0,0490, o AG à frente), o NSGA-II
+> passou a vencer as **quatro** réguas de identidade em vez de só o drift, e o
+> `best_dominance` caiu de 4/20 para 2/20 rosters equilibrados (o `scalar_optimum`, a
+> manchete nova, faz 0/20). Só a lição metodológica
+> desta entrada — efeito de amostra pequena é inflado — segue valendo. Ver «O NSGA-II
+> passou a vencer as quatro réguas de identidade».
 
 ## O carimbo retroativo por inferência falhou num artefato (2026-09-18)
 
@@ -1303,6 +1313,12 @@ confirmar na bateria: o evoluído da bateria anterior, reavaliado no motor atual
 resposta honesta é que o equilíbrio alcançado **não preserva a identidade funcional
 medida**, e que o que o drift preserva é a identidade estrutural.
 
+> Revisto: a bateria de 2026-09-21 **não** confirmou a leitura preliminar — τ = 0,314 e
+> Layer 3 3/5 no indivíduo da seed 42, e separação com efeito grande contra o controle
+> `λ_drift = 0` sobre 20 sementes. A régua que responde acabou sendo o controle, não os
+> nulos: ver «A identidade funcional saiu do piso — e a régua que vale é o controle, não
+> os nulos».
+
 ## Os controles: λ_drift = 0 e AG sem semente canônica (2026-09-18)
 
 **Problema — nada isolava o efeito do método.** (i) Os modelos nulos não são otimizados:
@@ -1442,6 +1458,12 @@ de 0,068 (máximo de uma célula) para 0,037 (máximo da estatística certa; mé
 (0,049) no limiar — o AG quase não enxerga a política pelo equilíbrio. O único gradiente
 que a puxa de volta ao canônico é o do drift.
 
+> Revisto na bateria de 2026-09-21, no indivíduo dela: piso 0,035, e os três pesos seguem
+> no fundo do ranking, mas trocam de posição entre si — `w_defend` (0,029) e
+> `w_aggressiveness` (0,030) abaixo do piso, `w_retreat` (0,048) no limiar, ao lado de
+> `knockback` (0,043) e `speed` (0,035). A conclusão não muda, e o controle `λ_drift = 0`
+> a confirma por outra via: sem o termo de drift, τ = +0,007.
+
 ## A proveniência passou a recusar entrada velha e a cobrir o código de medição (2026-09-18)
 
 **Problema — três buracos por onde um número velho passava por atual.** (i) O
@@ -1522,3 +1544,200 @@ registradas porque o erro é instrutivo, e porque a próxima bateria não pode r
   drift (no fitness), as Layers 1-2 (endógenas) e o validador completo, dominado pelas
   estruturais. Na régua funcional isolada, o evoluído passava em 1/5 da Layer 3, com
   p = 0,74 — ver "A identidade funcional ganhou uma régua contínua".
+
+## O controle `λ_drift = 0`: a identidade sai de graça (2026-09-21)
+
+**Problema.** Com `LAMBDA_DRIFT = 1,0` ativo a corrida inteira, não havia como separar
+"o equilíbrio preserva a identidade" de "o termo de drift segura a identidade, e o
+equilíbrio nem a viu". Os modelos nulos não respondem isso: eles não são otimizados. O
+contrafactual tinha que ser o mesmo AG, mesma amostra, mesmo orçamento, **sem** o termo.
+
+**Mudança.** A bateria passou a rodar o braço `--lambda-drift 0` com n = 20 e pop 300 ×
+150, em `results/controls/`, comparado por `compare_algorithms --control` na mesma família
+de 6 métricas.
+
+**Resultado (medianas sobre 20 execuções).** Tirar o termo **não compra equilíbrio nenhum
+e zera a identidade**:
+
+| | AG (λ = 1) | λ = 0 | p (Holm) | Â₁₂ |
+|---|---|---|---|---|
+| `dominance_penalty` | 0,0399 | 0,0534 | 0,063 | 0,30 |
+| hard-counters | 0 | 0 | 0,553 | 0,54 |
+| `drift_penalty` | 0,2473 | 0,4055 | 4,1 × 10⁻⁷ | 0,00 |
+| validador L1+L2 | 11 | 6 | 1,1 × 10⁻⁶ | 0,98 |
+| validador L3 | 3 | 1 | 0,00024 | 0,85 |
+| concordância τ | 0,2811 | −0,0304 | 0,00022 | 0,87 |
+
+As duas métricas de equilíbrio não se separam — e o braço sem drift é até ligeiramente
+*pior* em `dominance`, que é o oposto do que "o drift atrapalha o equilíbrio" preveria.
+As quatro de identidade se separam todas, com efeito grande. Na média das 20 execuções o
+braço λ = 0 dá **τ = +0,007 ± 0,151**: o acaso com três casas decimais, contra
++0,259 ± 0,159 do AG.
+
+O trade-off que o sweep de λ mede é real, mas o joelho está longe o bastante de λ = 1,0
+para que o termo de identidade **não custe equilíbrio**. É o resultado mais forte da
+bateria, e o único que responde à pergunta de pesquisa sem depender de régua endógena.
+
+## O segundo controle: a semente canônica não explica a diferença entre os algoritmos (2026-09-21)
+
+**Problema.** O AG escalar parte da semente canônica e o NSGA-II de população aleatória
+(a semente é imortal no rank 0 — ver "A semente canônica saiu do NSGA-II"). A assimetria
+é justificada, mas confunde algoritmo com inicialização.
+
+**Mudança.** Braço `--no-canonical-seed` na amostra e no orçamento da bateria.
+
+**Resultado.** Separa **só no drift** (0,2473 contra 0,2703, p_Holm 0,043) e em mais
+nada: `dominance` 0,0399 contra 0,0403 (p = 0,964), L1+L2 11 contra 10,5 (p = 0,334),
+L3 3 contra 2 (p = 0,366), τ 0,2811 contra 0,1931 (p = 0,310). A semente dá uma dianteira
+estrutural modesta e nada mais. A diferença medida entre os dois algoritmos não é
+inicialização.
+
+## A identidade funcional saiu do piso — e a régua que vale é o controle, não os nulos (2026-09-21)
+
+**Problema.** A leitura preliminar de 2026-09-18, feita sobre o indivíduo daquela bateria,
+dava a identidade funcional no piso do acaso: Layer 3 **1/5** com p = 0,74 e τ = 0,19 com
+p = 0,14. Se a bateria confirmasse, a resposta à pergunta de pesquisa seria "o equilíbrio
+preserva a identidade estrutural e não a funcional".
+
+**Mudança.** Nenhuma no código — a bateria mediu sobre o motor corrigido (timers com resto
+acumulado, CRN por luta), que troca todos os sorteios.
+
+**Resultado.** A leitura preliminar **não se confirmou**. No indivíduo da seed 42:
+Layer 3 **3/5** (p = 0,03, empatando com o melhor nulo) e τ = **0,314** (p = 0,06, um fio
+abaixo do melhor nulo, 0,316). Sobre as 20 sementes: L3 2,45 ± 1,00 e τ +0,259 ± 0,159.
+
+O que a bateria ensina sobre **qual régua responde**: contra 35 nulos, um único roster não
+dá resolução — 35 nulos dão p mínimo de 1/35, e o melhor deles chega perto do evoluído em
+ambas as métricas funcionais por puro sorteio. Contra o controle `λ_drift = 0`, com 20
+execuções de cada lado, as duas separam com efeito grande (p_Holm 0,00024 e 0,00022). **O
+denominador certo da identidade funcional é o braço sem o termo, não o roster sem
+projeto.** Os nulos continuam valendo para o que foram feitos: estabelecer que nenhuma
+métrica tem piso zero.
+
+## O NSGA-II passou a vencer as quatro réguas de identidade (2026-09-21)
+
+**Problema.** Na bateria de 2026-09-18 (família de 3) o NSGA-II vencia só no
+`drift_penalty`, e o resumo era "cada um ocupa um extremo do trade-off" com uma métrica de
+cada lado. Com a família de 7 e a manchete no `scalar_optimum`, a bateria testa as duas
+metades da pergunta com quatro réguas de identidade em vez de uma.
+
+**Mudança.** Nenhuma no desenho — a família de 7 e a manchete no `scalar_optimum` foram
+decididas antes da bateria, e o motor é o corrigido.
+
+**Resultado.** **As seis métricas da família são significativas, todas com efeito
+grande**, e a divisão é exatamente a das duas metades: o AG escalar vence as duas de
+equilíbrio (`dominance` 0,0399 contra 0,0796, Â₁₂ = 0,10; hard-counters 0 contra 3,
+Â₁₂ = 0,03) e o NSGA-II as quatro de identidade (drift Â₁₂ = 1,00 — separação **total**,
+as duas amostras não se sobrepõem —, L1+L2 0,05, L3 0,24, τ 0,09).
+
+O contraste mais duro está fora da família: **o AG termina com o roster equilibrado em
+14/20 sementes e o NSGA-II em 0/20**, com 3,0 ± 1,5 hard-counters por execução contra
+0,30 ± 0,47. A decomposição diz onde: `global_term` 0,0397 contra 0,0490 (perto),
+`cap_term` 0,0030 contra 0,0807 (longe). Globalmente os dois equilibram parecido; o
+NSGA-II deixa par passar do teto.
+
+Relação de Pareto por semente: **18/20 mutuamente não-dominados**, o AG dominando um ponto
+da fronteira numa semente e sendo dominado em outra. O ponto do escalar fica além da ponta
+de baixa dominância da fronteira — compra equilíbrio com um drift que a fronteira não
+oferece.
+
+## `n_chars_balanced` deixou de discriminar qualquer coisa (2026-09-21)
+
+**Problema.** A métrica "quantos dos 5 personagens ficam em banda" já saía da família de
+Holm por degenerescência (`_is_degenerate`), mas isso era lido como uma peculiaridade da
+comparação entre os dois algoritmos.
+
+**Resultado.** Na bateria de 2026-09-21 ela dá **5/5 em 80 de 80 execuções** — AG,
+NSGA-II e os **dois controles**, inclusive o braço sem termo de identidade nenhum.
+Equilibrar os cinco personagens globalmente é fácil neste sistema: qualquer busca que olhe
+o `global_term` chega lá. O que discrimina são os **pares** — hard-counters e `cap_term` —,
+e é por isso que o `dominance_penalty` não pode ser só o termo primário. A exclusão da
+família deixa de ser detalhe técnico e vira um resultado: a métrica é informativa sobre o
+sistema e inútil como comparação.
+
+## O ciclo autoral não sobrevive ao equilíbrio: 5/10, o piso (2026-09-21)
+
+**Problema.** Registrar, no motor atual, o que acontece com o ciclo de vantagens — que
+**nunca esteve no fitness**, por decisão (seria responder à pergunta com ela mesma).
+
+**Resultado.** O evoluído mantém **5/10 arestas**, exatamente a média dos nulos (5,0),
+posição 0% entre piso e teto, p = 0,63. O canônico, no mesmo motor, realiza 6/10. Não é
+falha do método: o objetivo é cego à direção (`|WR − 0,5|`), então nada no fitness
+distingue "o Zoner ganha do Grappler" de "o Grappler ganha do Zoner". O caso mais claro é
+o Grappler × Turtle, aresta canônica forte (o agarrão é o counter do bloqueio, 100% no
+canônico): o AG a **achata** para 51% ± 6% nas 20 sementes, hard-counter em nenhuma.
+
+O ciclo segue como leitura post-hoc e **não** como régua de identidade — o canônico mesmo
+não o realiza inteiro.
+
+## A validação externa: só o AG escalar replica (2026-09-21)
+
+**Problema.** Medir se o equilíbrio encontrado é do roster ou do stream, e se depende das
+regras exatas do treino.
+
+**Resultado.** Com 10 sementes inéditas agrupadas em 5000 lutas por par e veredito pelo IC
+de Wilson, a separação é total: o **AG escalar é o único dos quatro rótulos que replica**
+(ROBUSTO, `dominance` 0,0373 fora do laço contra 0,0251 dentro — degradação de 1,5×,
+contra 21× na bateria pré-rotação), e sobrevive a 4 das 8 regras perturbadas, com 2
+inconclusivas e 2 frágeis. O canônico e os dois representantes do NSGA-II falham a
+replicação e as 8 regras.
+
+As duas regras que quebram o AG são `FIELD_SIZE = 80` (campo menor: Zoner × Turtle a
+68,8%) e `ACTION_PERSISTENCE_SUBTICKS = 6` (Combo Master × Turtle a 69,4%, Turtle a 39,3%
+global). As duas mexem em **quanto espaço e quanto compromisso a política tem** — coerente
+com o limite declarado de a política ser fixa e cega ao estado, e a leitura honesta é que
+o equilíbrio encontrado é condicionado a essas duas regras mais do que às outras seis.
+
+## λ = 1,0 deixou de empatar com os λ menores e passou a dominá-los (2026-09-21)
+
+**Problema.** O sweep de λ de 2026-09-17 estabeleceu λ = 1,0 como o joelho — `dominance`
+plano até ele, explodindo depois —, mas contra λ = 0,25 a troca era "drift 0,070 melhor
+por dominance 0,006 pior": um empate favorável, não uma dominância.
+
+**Mudança.** Nenhuma no `config.py`. Os 16 braços foram re-rodados sobre o motor corrigido,
+nas sementes 1000–1004.
+
+**Resultado.** O formato da curva se manteve (`dominance` 0,060–0,065 em λ = 0,25, 0,5 e
+1,0; 0,198 em λ = 2,0; 0,358 em λ = 4,0), mas λ = 1,0 **passou a dominar** os dois braços
+mais baratos: mesmo `dominance`, drift 0,2448 contra 0,3462 e 0,3773, e τ = **+0,415**
+contra +0,018 e −0,050. Abaixo de λ = 1,0 o AG paga identidade sem comprar equilíbrio —
+não há razão nenhuma para ficar lá.
+
+## Elitismo 10% / torneio 3: mantidos, por outra razão (2026-09-21)
+
+**Problema.** A justificativa de 2026-09-18 era "o default tem o menor `cap_term` e o menor
+número de counters dos oito braços". Sobre o motor corrigido, essa frase deixou de ser
+verdadeira.
+
+**Resultado.** O default **não tem nem um nem outro**: elitismo 0, elitismo 5% e torneio 2
+fazem 0,6 counter por execução contra 0,8 dele, e três braços têm `cap_term` menor
+(elitismo 0 em 0,0063, torneio 2 em 0,0083, torneio 7 em 0,0119, contra 0,0176). O que o
+default tem é o **melhor drift (0,2448) e a melhor concordância de ranking (τ = 0,415)**
+dos oito, e cada braço que o supera em counters paga nos dois.
+
+**Manteve-se 10% / 3**, e a afirmação passa a ser "**nenhum braço os domina**" — mais
+fraca que a anterior e mais fiel. A n = 5 nada disso se separa do ruído (os desvios de
+counters vão a 1,3) e o torneio segue com padrão não monotônico (3 melhor que 2 e que 5, 5
+igual a 7), que tem mais cara de ruído do que de ótimo de pressão seletiva. Registrar a
+troca importa: o eixo em que o default ganha é justamente o da pergunta de pesquisa.
+
+## Os pesos do dominance: a falsificação se manteve (2026-09-21)
+
+**Problema.** Confirmar, sobre o motor corrigido, se os dois termos secundários do
+`dominance_penalty` continuam sendo carga estrutural.
+
+**Resultado.** `1 / 0 / 0` continua sendo a falsificação: sem os secundários o AG atinge o
+**melhor `global_term` de todos os 16 braços** (0,0275 — é a única coisa que resta a
+otimizar) e entrega **8,8 dos 10 pares como hard-counter**, com `cap_term` 0,7921 e
+`decis_term` 0,2668. Os cinco na banda global, toda luta um massacre: o *blowout-coinflip*
+que a formulação C2 previa.
+
+E o `decis_term` não é inerte: removê-lo sozinho (`1 / 0,5 / 0`) leva os counters de 0,8 a
+2,2 e **piora o próprio `cap_term`**, de 0,0176 para 0,1212. Ler 0,0000 no indivíduo final
+é o termo tendo funcionado.
+
+**`config.py` inalterado.** Os braços que dobram ou igualam o peso do cap (`1/2/0,5` e
+`1/1/1`) entregam menos counters (0,2) e mais rosters equilibrados (80%), mas pagam
+0,06–0,10 de drift e **mais da metade da concordância de ranking** (τ 0,159 e 0,113 contra
+0,415). A n = 5 e em orçamento reduzido a troca não se distingue de ruído, e o eixo que
+ela sacrifica é o da pergunta de pesquisa — manteve-se 1,0 / 0,5 / 0,5.

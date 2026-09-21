@@ -21,12 +21,12 @@ isso, apenas se referencia.
 > Os artigos compartilham `values.tex` como fonte única dos números experimentais.
 > Pendências e limites do sistema: [`../reference/10-known-issues.md`](../reference/10-known-issues.md).
 
-> ⚠️ **Números de resultado.** Os números citados aqui são da bateria de 2026-09-18, medida
-> antes do CRN por luta e da correção dos timers — que trocam todos os sorteios. A próxima
-> bateria os substitui; releia cada número contra ela antes de citar (ver
-> [`../reference/10-known-issues.md`](../reference/10-known-issues.md) §1). Quatro leituras
-> daquela bateria foram corrigidas depois ([04](04-design-decisions.md), "Leituras
-> corrigidas"), e há achados **preliminares** a confirmar ([07](07-findings-and-limitations.md)).
+> ✅ **Números de resultado.** Os números citáveis são os da bateria de **2026-09-21**
+> (n = 20, motor atual, os dois controles), resumidos em
+> [`../status/HANDOFF.md`](../status/HANDOFF.md) §2 e listados como achados em
+> [07](07-findings-and-limitations.md). Entradas de [04](04-design-decisions.md) datadas de
+> antes dela descrevem o **percurso** e carregam nota de revisão onde o número mudou —
+> não cite número de entrada antiga sem checar a nota.
 
 ## Mapa
 

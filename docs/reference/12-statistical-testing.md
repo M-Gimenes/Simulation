@@ -176,17 +176,21 @@ julgamento entra depois de ver os p-valores.
 
 Até a bateria de 2026-09-18 a família eram as 4 primeiras (3 depois da exclusão); as
 métricas de identidade entraram quando a comparação passou a responder também "o método
-preserva identidade?" — antes da bateria que as mede. Com n = 20 e os efeitos grandes
-medidos (p brutos de 0,0018 a 0,00007), o multiplicador 7 não muda o que é significativo
-nelas.
+preserva identidade?" — antes da bateria que as mede. Na bateria de 2026-09-21 a família
+é de **6** nas quatro comparações (`n_chars_balanced` sai por degenerescência), e o
+multiplicador só muda um veredito em quatro comparações: em AG × NSGA-II os seis p brutos
+vão de 0,0037 a 6,8 × 10⁻⁸ e os seis sobrevivem a Holm; no controle `λ_drift = 0` o único
+que a correção derruba é `dominance_penalty` (p bruto 0,032 → p_Holm 0,063), e derrubar
+esse é exatamente o ponto — o braço sem drift **não** compra equilíbrio; no controle sem
+semente, o drift passa (0,0071 → 0,043) e o resto não chega perto nem sem correção.
 
 ---
 
 ## 6. O caso degenerado: quando não existe teste
 
 A métrica `n_chars_balanced` (quantos dos 5 personagens ficam em banda) deu **5 em
-todas as execuções** dos dois algoritmos — 20 de 20 na bateria de 2026-09-16, 40 de 40 na
-de n = 20.
+todas as execuções** de todos os braços — 20 de 20 na bateria de 2026-09-16 e, na de
+2026-09-21, 80 de 80 somando AG, NSGA-II e os dois controles.
 
 Mann-Whitney devolve `p = nan`. Não é bug: o teste compara postos, e com todos os
 valores empatados a correção de empates zera o denominador da variância. Não há
@@ -219,27 +223,33 @@ filtro a montante garante que nunca dispare; a exceção existe para que o contr
 verificado e não apenas esperado.
 
 A métrica excluída **continua sendo reportada**, como descritiva, com a nota do porquê —
-e é um resultado forte por si só: os dois algoritmos põem os 5 personagens em banda em
-100% das execuções. Só não é um resultado **comparativo**.
+e é um resultado forte por si só: os dois algoritmos e os dois controles põem os 5
+personagens em banda em 100% das execuções, inclusive o braço sem termo de identidade.
+Equilibrar os cinco globalmente deixou de discriminar qualquer coisa neste sistema; o que
+discrimina são os pares. Só não é um resultado **comparativo**.
 
 ---
 
 ## 7. Como ler o resultado
 
-A leitura da bateria de 2026-09-18 — n = 20 sementes, família de 3, NSGA-II representado
-pelo `best_dominance` (a bateria seguinte usa a família de 7 e o `scalar_optimum` como
-manchete):
+A leitura da bateria de 2026-09-21 — n = 20 sementes, família de 6, NSGA-II representado
+pelo `scalar_optimum` (a manchete):
 
 ```
-dominance_penalty   p_Holm 0,0123    Â₁₂ 0,27 (grande)   AG escalar melhor
-drift_penalty       p_Holm 0,00007   Â₁₂ 0,89 (grande)   NSGA-II melhor
-hard-counters       p_Holm 0,0018    Â₁₂ 0,21 (grande)   AG escalar melhor
+dominance_penalty            p_Holm 3,6e-05   Â₁₂ 0,10 (grande)   AG escalar melhor
+hard-counters                p_Holm 7,9e-07   Â₁₂ 0,03 (grande)   AG escalar melhor
+drift_penalty                p_Holm 4,1e-07   Â₁₂ 1,00 (grande)   NSGA-II melhor
+validador estrutural (L1+L2) p_Holm 4,1e-06   Â₁₂ 0,05 (grande)   NSGA-II melhor
+validador comportamental (L3) p_Holm 0,0037   Â₁₂ 0,24 (grande)   NSGA-II melhor
+concordância de ranking (τ)  p_Holm 2,6e-05   Â₁₂ 0,09 (grande)   NSGA-II melhor
 ```
 
-Traduzindo: **as três diferenças são significativas e grandes**, em direções opostas —
-cada algoritmo ocupa um extremo do trade-off. O Â₁₂ lê-se como probabilidade: sorteando
-uma execução de cada, a do AG tem drift maior em 89% dos casos, e `dominance` maior em só
-27%.
+Traduzindo: **as seis diferenças são significativas e grandes**, e se dividem exatamente
+nas duas metades da pergunta — o AG ganha as duas métricas de equilíbrio, o NSGA-II as
+quatro de identidade. Cada algoritmo ocupa um extremo do trade-off. O Â₁₂ lê-se como
+probabilidade: sorteando uma execução de cada, a do AG tem drift maior em **100%** dos
+casos (a separação é total: as duas amostras não se sobrepõem) e `dominance` maior em só
+10%.
 
 A leitura da bateria de 2026-09-16, sob o motor anterior, era outra — `drift_penalty` com
 p_Holm 0,0772 e Â₁₂ 0,80: **efeito grande, direção consistente, não significativo a
@@ -273,6 +283,11 @@ caíram, como se espera, e os três Â₁₂ **andaram na direção de 0,5**: 0,
 0,94 → 0,89 · 0,14 → 0,21. É o padrão típico de amostra pequena: entre as amostras que
 passam do limiar de significância, sobram mais as que sortearam um efeito maior que o
 real. O efeito continua grande nos três, e o de n = 20 é a estimativa a citar.
+
+A lição é sobre **tamanho de amostra**, não sobre estes números: as estimativas vigentes
+são as da bateria de 2026-09-21 (§7), medidas sobre o motor corrigido e com a família de
+6. Nela os Â₁₂ são ainda mais extremos (0,03 a 1,00), o que não contradiz o parágrafo
+acima — a n = 20 fixo, um efeito maior é efeito maior, não inflação amostral.
 
 ---
 

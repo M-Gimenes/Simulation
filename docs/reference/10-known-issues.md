@@ -10,31 +10,22 @@ do sistema nos docs 01–09.
 
 ## 1. Pendências acionáveis
 
-**Uma só: rodar a bateria.** Depois da bateria de 2026-09-18 o motor mudou (CRN por luta,
-timers com resto acumulado) e o protocolo também (controles, manchete no
+**Nenhuma no sistema.** A bateria de 2026-09-21 rodou sobre o motor atual (CRN por luta,
+timers com resto acumulado) e o protocolo completo (os dois controles, manchete no
 `scalar_optimum` com relação de Pareto, concordância de ranking, validação externa com
 regras perturbadas, sensibilidade nos 11 genes, validador com empate contra a asserção,
-digest de medição). Até a próxima bateria, `results/` lê "obsoleto" e os números citados
-em `docs/status/HANDOFF.md` §2, no `docs/thesis/` e no `CLAUDE.md` são de antes. Sequência:
+digest de medição). `py -m src.tests.test_provenance` sai com tudo *atual* ou *braço de
+experimento*, os artefatos órfãos foram tirados do git, e os números de
+[`../status/HANDOFF.md`](../status/HANDOFF.md) §2, do `docs/thesis/` e do `CLAUDE.md` são
+os dela.
 
-1. `.\scripts\run_overnight.ps1` — os 16 braços de sweep (sementes 1000–1004) e a bateria
-   completa de 16 passos, com os dois controles (~6h12 a bateria, ~1h40 os sweeps).
-2. `py -m src.tests.test_provenance` — tudo deve sair como *atual* ou *braço de
-   experimento*.
-3. Tirar do git os artefatos que a bateria nova **não** regrava, porque o nome ou o destino
-   mudou: os 16 braços antigos de `results/exploratory/` (sem `seed1000` no nome),
-   `results/multi_run/comparison_ga_vs_nsga2_scalar_optimum.json` (o `scalar_optimum`
-   virou a manchete, e o secundário agora é `_best_dominance`),
-   `results/external_validation/external_validation_nsga2_best_dominance.json` (a bateria
-   valida o `scalar_optimum` e o `knee_point`) e o diretório de plot da fronteira anterior
-   em `results/single_run/plots/`.
-4. Reler cada resultado contra a bateria nova: as tabelas do HANDOFF §2, os achados do
-   `thesis/` — em especial os **preliminares** de 2026-09-18 (identidade funcional no
-   piso, política invisível ao equilíbrio) —, os números do `CLAUDE.md` e as conclusões
-   dos três sweeps (joelho em λ = 1,0, secundários indispensáveis, elitismo 10% /
-   torneio 3). E ler, pela primeira vez, as duas comparações contra os controles.
+Não há pendência de instrumentação nem de experimento. O que resta é **redação**
+([`../status/HANDOFF.md`](../status/HANDOFF.md) §4).
 
-Não há pendência de instrumentação.
+Se o motor ou o `config.py` mudarem de novo, a sequência é a de sempre: rodar
+`.\scripts\run_overnight.ps1` (os 16 braços de sweep nas sementes 1000–1004, depois a
+bateria de 16 passos), conferir com `py -m src.tests.test_provenance` e reler cada número
+contra a bateria nova — §3 detalha.
 
 ## 2. Limites estruturais do método (decisões, não bugs)
 
@@ -59,16 +50,20 @@ Precisam aparecer explicitamente na Discussão, não só em Trabalhos Futuros.
   real (jogadores escolhendo matchups favoráveis), então "equilíbrio" aqui é
   equilíbrio sob confronto uniforme.
 - **Genes de recurso são hipersensíveis.** Com o ataque como regra de resolução, a luta
-  é uma corrida de DPS quase determinística e a resposta é íngreme em espelho —
-  amplitude a ±1σ de mutação: `range` **92,5%**, `attack_cooldown` 65,1%, `damage` 55,5%,
-  `hp` 43,6%; 71% dos matchups de indivíduos **aleatórios** ficam saturados (WR fora de
-  [5%, 95%]). O AG lida bem com a inclinação, mas gradiente forte com solução
+  é uma corrida de DPS quase determinística e a resposta é íngreme. Na sensibilidade de
+  2026-09-21, uma janela de 2σ de mutação move a WR média em `range` **30,8%**, `damage`
+  26,2%, `attack_cooldown` 25,7% e `hp` 23,9%, contra um piso de ruído de 3,5% — sinal
+  sobre ruído de 7× a 9×, uma ordem de grandeza acima dos genes de política. E
+  **30 dos 30 rosters aleatórios** dos modelos nulos têm ao menos um par saturado (WR fora
+  de [5%, 95%]). O AG lida bem com a inclinação, mas gradiente forte com solução
   potencialmente frágil é a descrição correta do regime; amortecer (variância no dano,
   mais sims) é trabalho futuro.
-- **A política é o que o AG menos enxerga pelo equilíbrio.** Na sensibilidade com o passo
-  da mutação (preliminar, no evoluído da bateria anterior), `w_retreat` e `w_defend` ficam
-  abaixo do piso de ruído, `w_aggressiveness`, `speed` e `knockback` no limiar. O único
-  gradiente que puxa a política de volta ao canônico é o do drift. A análise é local, e
+- **A política é o que o AG menos enxerga pelo equilíbrio.** Na sensibilidade da bateria
+  de 2026-09-21 (11 genes, janela 2σ, piso medido em 3,5%), **os três pesos ocupam o fundo
+  do ranking**: `w_defend` 2,9% e `w_aggressiveness` 3,0% abaixo do piso, `w_retreat` 4,8%
+  no limiar — ao lado de `knockback` 4,3% e `speed` 3,5% —, contra `range` 30,8% no topo.
+  O único gradiente que puxa a política de volta ao canônico é o do drift, e o controle
+  `λ_drift = 0` mostra o que acontece sem ele: τ = +0,007, o acaso. A análise é local, e
   muda com o indivíduo.
 - **As réguas funcionais não são independentes do fitness.** A Layer 3 e a concordância de
   ranking são *held-out* — o fitness não referencia comportamento —, mas cada asserção da
@@ -90,14 +85,15 @@ Precisam aparecer explicitamente na Discussão, não só em Trabalhos Futuros.
 
 ## 3. Estado dos artefatos em `results/`
 
-> ⚠️ **`results/` está COMPLETO, mas OBSOLETO** — ver §1. Os números são os da bateria
-> de 2026-09-18 com **n = 20**; a próxima bateria os **substitui**.
+> ✅ **`results/` está COMPLETO e ATUAL** — os números são os da bateria de 2026-09-21
+> com **n = 20**, sobre o motor e o protocolo atuais.
 
 **Regra:** ao mexer em `config.py`, nos canônicos ou no motor, todo `results/` fica
 obsoleto **de uma vez**; ao mexer no código de uma ferramenta de medição, ficam obsoletos
 os artefatos que dependem dela. O carimbo de proveniência
 ([09-reproducibility.md](09-reproducibility.md)) *detecta* um artefato fora de data, não
-o regenera, e a bateria inteira precisa rodar antes de qualquer número ser citado:
+o regenera, e a bateria inteira precisa rodar de novo antes de qualquer número voltar a
+ser citável:
 
 ```bash
 py -m src.experiments.multi_run --algorithm both            # multi_run_{ga,nsga2}.json

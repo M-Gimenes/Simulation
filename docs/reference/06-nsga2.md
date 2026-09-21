@@ -99,8 +99,8 @@ O joelho e o ideal são geométricos, e por isso usam os objetivos **normalizado
 amplitude da própria fronteira** (0 = o melhor valor dela naquele objetivo, 1 = o pior).
 Em unidades cruas a escala de cada objetivo decidiria a geometria — `dominance` vai até
 2,0 e drift fica em décimos. Normalizar mudou o `ideal_point` em 19 das 20 fronteiras da
-bateria de 2026-09-18, e o `knee_point` em nenhuma; `test_nsga2` cobre a invariância à
-unidade.
+bateria em que a mudança foi medida, e o `knee_point` em nenhuma; `test_nsga2` cobre a
+invariância à unidade.
 - **`scalar_optimum`** — mínimo de `LAMBDA_DOMINANCE·dominance + LAMBDA_DRIFT·drift`,
   isto é, o ponto da fronteira que **o AG escalar deveria ter encontrado**. É o único
   lugar do NSGA-II que olha os `LAMBDA_*`, e é reporting, não busca.
@@ -110,7 +110,9 @@ unidade.
   otimiza. O `ideal_point` é geométrico e cego aos λ, então é outro ponto — com os
   LAMBDA iguais, `scalar_optimum` é o mínimo **L1** em unidades cruas. Medido no orçamento
   de produção, a afirmação não vale literalmente: o ponto do escalar fica **além** da
-  ponta de baixa dominância da fronteira, e os dois são mutuamente não-dominados.
+  ponta de baixa dominância da fronteira, e os dois são mutuamente não-dominados em
+  **18 das 20 sementes** da bateria de 2026-09-21 (o AG domina um ponto da fronteira numa
+  semente e é dominado em outra).
 
   No teste entre algoritmos (n = 20) o NSGA-II entra pelo **`scalar_optimum`**
   (`multi_run.HEADLINE_REPRESENTATIVE`) — o único ponto comparável ao escalar; decidido
@@ -133,7 +135,7 @@ Comparar fronteiras "no olho" não escala (Deb 2001/2002). Em `src/engine/pareto
   não-dominada: `Σ (x_{i+1} − x_i)·(r1 − y_i)`, com `x_{n+1} = r0`. Com a referência
   anterior, (2,0; 1,0) — os máximos teóricos —, o HV saturava em 90% da área e mal
   separava uma fronteira de outra (coeficiente de variação 2,0% entre sementes, contra
-  3,9% com a atual).
+  2,9% com a atual: **0,3954 ± 0,0114** na bateria de 2026-09-21; spacing 0,0118 ± 0,0033).
 - **`spacing(front)`** — desvio-padrão (Schott) da distância Manhattan de cada ponto
   ao vizinho mais próximo. Mede a **uniformidade** da distribuição; **menor é melhor**.
 

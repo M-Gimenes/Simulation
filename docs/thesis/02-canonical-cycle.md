@@ -78,7 +78,10 @@ Duas leituras substituem a contagem de arestas, e nenhuma depende de autoria:
 
 - **as direções que o canônico realiza** — consequência da premissa, não da autoria: o
   favorito de cada confronto sobrevive ao equilíbrio? Medido no evoluído da bateria de
-  2026-09-18 (2000 lutas por par): 5/10, exatamente o acaso;
+  2026-09-21: **5/10**, exatamente a média dos 35 modelos nulos (5,0), posição 0% entre
+  piso e teto, p = 0,63. O caso mais nítido é o Grappler × Turtle, a aresta canônica mais
+  forte (100% no canônico, "o agarrão é o counter do bloqueio"): o AG a achata para
+  51% ± 6% nas 20 sementes, hard-counter em nenhuma delas;
 - **a estrutura não-transitiva** (tríades circulares). Ela não depende do rótulo, mas é em
   boa parte **implicada** pelo objetivo: um roster estritamente transitivo tem WRs
   100/75/50/25/0, incompatível com todos perto de 50%, então equilíbrio global com pares

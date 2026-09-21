@@ -46,7 +46,7 @@ um estão no thesis/04, a partir de "A auditoria do zero".
 | **Z1** | Período do cooldown `round(5c) + 1`, não `round(5c)` — o argumento "persistência = cooldown mínimo" apoiado num número errado | timers com resto acumulado; o sub-tick do golpe conta no período | Os timers passaram a carregar o resto |
 | **Z2** | O stun "contínuo" de M3 ainda era categórico (`ceil`): 4 efeitos em cooldown 1 | resto acumulado também no stun | idem |
 | **Z3** | Validador resolvia empate pelo índice (espelho = 4/13 da Layer 1 de graça) e comparava pesos crus | empate contra a asserção; pesos como probabilidade de intenção | O validador parou de dar asserções por empate |
-| **Z4** | A régua funcional (Layer 3) era de 5 bits e estava no piso (1/5, p = 0,74); a leitura "supera os nulos" vinha das réguas endógenas | concordância de ranking comportamental (τ); Layer 3 lida separada | A identidade funcional ganhou uma régua contínua |
+| **Z4** | A régua funcional (Layer 3) era de 5 bits e estava no piso (1/5, p = 0,74); a leitura "supera os nulos" vinha das réguas endógenas | concordância de ranking comportamental (τ); Layer 3 lida separada. Na bateria de 2026-09-21 a régua funcional saiu do piso (L3 3/5, τ 0,31) e mostrou que quem responde é o **controle**, não os nulos | A identidade funcional ganhou uma régua contínua / A identidade funcional saiu do piso |
 | **Z5** | Nada isolava o efeito do método: nulos não otimizados; AG × NSGA-II confundia algoritmo com inicialização | controles `λ_drift = 0` e sem semente, n = 20, na bateria | Os controles |
 | **Z6** | Manchete no `best_dominance` (o extremo da fronteira); escolha adiada para depois de ver os resultados | manchete `scalar_optimum` decidida antes; relação de Pareto por semente; família de 7 fixa | A manchete da comparação passou ao `scalar_optimum` |
 | **Z7** | Validação externa só trocava a semente; veredito ficava mais severo com K | replicação + robustez a regras perturbadas; veredito pelo IC | A validação externa separou replicação de robustez |
@@ -74,13 +74,16 @@ precisava de conserto, e a decisão foi declará-los na Discussão. Detalhe em
 - **Hipersensibilidade dos genes de recurso** — com o ataque como regra de resolução, a
   luta é uma corrida de DPS quase determinística; amortecer é trabalho futuro.
 
-**Uma pergunta que a próxima bateria responde:**
+**A pergunta que a bateria de 2026-09-21 respondeu:**
 
-- **A identidade funcional sobrevive ao equilíbrio?** Na leitura preliminar (o indivíduo da
-  bateria anterior, no motor atual), não: Layer 3 e concordância de ranking no piso, a
-  política embaralhada, e os pesos da política abaixo do piso de ruído da sensibilidade. O
-  controle `λ_drift = 0` separa o que o termo de drift preserva do que qualquer roster
-  otimizado preservaria.
+- **A identidade funcional sobrevive ao equilíbrio?** Sim, parcialmente, e a evidência é o
+  controle. A leitura preliminar (Layer 3 e τ no piso) **não se confirmou**: L3 3/5 e
+  τ = 0,31 no indivíduo da seed 42. Contra os 35 nulos um único roster não tem resolução
+  (L3 empata com o melhor nulo, τ fica um fio abaixo); contra o braço `λ_drift = 0`, sobre
+  20 execuções de cada lado, as duas réguas separam com efeito grande (p_Holm 0,00024 e
+  0,00022) — e o braço sem o termo dá τ = +0,007, o acaso. Segue valendo que o AG quase
+  não enxerga a política pelo equilíbrio: os três pesos ocupam o fundo do ranking de
+  sensibilidade.
 
 **Uma pergunta que não foi decidida:**
 
@@ -115,6 +118,6 @@ que muda número tinha de ser resolvido **antes** de uma única regeneração fi
 | 10 | **agenda de calibração** (sete constantes provisórias) + regeneração final | (1)–(7) fechados; bateria regenerada sob o motor final | ✅ 2026-09-16 |
 | 11 | **instrumentação** — proveniência nos artefatos + marcos de convergência por semente | um artefato que não carrega a config que o produziu não se auto-verifica; e sem os marcos, "velocidade" é n = 1 | ✅ 2026-09-17 |
 | 12 | **sweeps** de `LAMBDA_DRIFT`, pesos do dominance e elitismo/torneio, em orçamento reduzido | exploratório quer ORDENAÇÃO, e ordenação transfere de orçamento — ~10 min por braço | ✅ 2026-09-17/18: os três testaram o valor vigente e ele passou; `config.py` inalterado |
-| 13 | **bateria** — `run_battery.ps1` (n = 20) | poder estatístico: 44,4% → 85,9% | ✅ 2026-09-18: as três métricas de Holm significativas |
+| 13 | **bateria** — `run_battery.ps1` (n = 20) | poder estatístico: 44,4% → 85,9% | ✅ 2026-09-21: as **seis** métricas de Holm significativas, com efeito grande |
 | 14 | **pendências do known-issues** — default de sementes fora do carimbo, pool persistente, contagem no veredito externo, CRN por luta | o CRN por luta muda todos os sorteios | ✅ 2026-09-18 |
-| 15 | **auditoria do zero** (Z1–Z13) — motor, instrumentos de identidade, controles, protocolo de comparação e de validação, proveniência | antes da bateria: o motor e o protocolo mudam o que ela mede | ✅ 2026-09-18; falta re-rodar sweeps + bateria (`run_overnight.ps1`), limpar os artefatos órfãos e reler todos os resultados |
+| 15 | **auditoria do zero** (Z1–Z13) — motor, instrumentos de identidade, controles, protocolo de comparação e de validação, proveniência | antes da bateria: o motor e o protocolo mudam o que ela mede | ✅ 2026-09-18; sweeps + bateria re-rodados, órfãos removidos e resultados relidos em ✅ 2026-09-21 |

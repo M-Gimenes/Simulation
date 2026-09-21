@@ -1,6 +1,6 @@
 {
   "provenance": {
-    "generated_at": "2026-09-21T00:50:38-03:00",
+    "generated_at": "2026-09-21T00:38:35-03:00",
     "fingerprint": "371966d9f335",
     "engine_digest": "6b18ff49b38a",
     "archetypes_digest": "e37725dd4b7c",
@@ -208,124 +208,170 @@
       ]
     },
     "measurement": {
-      "tool": "src.experiments.sensitivity_analysis",
+      "tool": "src.experiments.compare_algorithms",
       "modules": [
-        "src.experiments.sensitivity_analysis"
+        "src.experiments.compare_algorithms"
       ],
-      "digest": "41103416d31a"
+      "digest": "8bdb9335d852"
     }
   },
-  "individual": "EVOLUÍDO (single_run/ga.json)",
+  "a": "AG",
+  "b": "ga_unseeded",
+  "test": "Mann-Whitney U (bicaudal)",
+  "effect_size": "Vargha-Delaney A12 (a vs b)",
+  "correction": "Holm-Bonferroni",
+  "alpha": 0.05,
+  "n_seeds": 20,
+  "seeds": [
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50,
+    51,
+    52,
+    53,
+    54,
+    55,
+    56,
+    57,
+    58,
+    59,
+    60,
+    61
+  ],
+  "validation_seed": 9999,
   "sims_per_matchup": 200,
-  "sigma_mult": 1.0,
-  "seed": 42,
-  "null_reps": 3,
-  "sigmas": {
-    "hp": 20.0,
-    "damage": 1.5,
-    "attack_cooldown": 0.4,
-    "range": 1.5,
-    "speed": 0.4,
-    "stun": 0.06,
-    "knockback": 0.30000000000000004,
-    "grab_power": 0.1,
-    "w_retreat": 0.025,
-    "w_defend": 0.025,
-    "w_aggressiveness": 0.025
-  },
-  "noise_floor_measured": 0.034624999999999996,
-  "noise_floor_mean": 0.018212121212121214,
-  "delta_wr": {
-    "Zoner": {
-      "hp": 0.22625000000000006,
-      "damage": 0.2625,
-      "attack_cooldown": -0.20625,
-      "range": 0.24187500000000006,
-      "speed": -0.03499999999999992,
-      "stun": 0.09187499999999998,
-      "knockback": 0.010624999999999996,
-      "grab_power": 0.145625,
-      "w_retreat": 0.08187499999999998,
-      "w_defend": -0.011250000000000093,
-      "w_aggressiveness": 0.015625000000000056
+  "family_size": 6,
+  "excluded_from_family": [
+    "n_chars_balanced"
+  ],
+  "metrics": [
+    {
+      "metric": "dominance_penalty",
+      "label": "dominance_penalty",
+      "better_is": "lower",
+      "median_a": 0.03987229134283217,
+      "median_b": 0.04033716064004518,
+      "u_statistic": 197.0,
+      "p_value": 0.9460839766250224,
+      "a12_a_vs_b": 0.4925,
+      "better": "a",
+      "degenerate": false,
+      "p_holm": 0.9640086763630116,
+      "significant": false,
+      "effect_magnitude": "desprezível"
     },
-    "Rushdown": {
-      "hp": 0.2475,
-      "damage": 0.18312499999999998,
-      "attack_cooldown": -0.38125,
-      "range": 0.37374999999999997,
-      "speed": 0.030000000000000027,
-      "stun": 0.010624999999999996,
-      "knockback": -0.083125,
-      "grab_power": 0.17625000000000002,
-      "w_retreat": -0.03562499999999996,
-      "w_defend": -0.03437499999999999,
-      "w_aggressiveness": 0.02812500000000001
+    {
+      "metric": "n_hard_counters",
+      "label": "hard-counters por execução",
+      "better_is": "lower",
+      "median_a": 0.0,
+      "median_b": 0.0,
+      "u_statistic": 220.0,
+      "p_value": 0.4820043381815058,
+      "a12_a_vs_b": 0.55,
+      "better": "empate",
+      "degenerate": false,
+      "p_holm": 0.9640086763630116,
+      "significant": false,
+      "effect_magnitude": "desprezível"
     },
-    "Combo Master": {
-      "hp": 0.26999999999999996,
-      "damage": 0.40375,
-      "attack_cooldown": -0.285625,
-      "range": 0.2925,
-      "speed": 0.038124999999999964,
-      "stun": 0.28125,
-      "knockback": 0.024999999999999967,
-      "grab_power": 0.334375,
-      "w_retreat": -0.008125000000000049,
-      "w_defend": -0.05312499999999998,
-      "w_aggressiveness": 0.016874999999999973
+    {
+      "metric": "n_chars_balanced",
+      "label": "bonecos em banda por execução",
+      "better_is": "higher",
+      "median_a": 5.0,
+      "median_b": 5.0,
+      "u_statistic": null,
+      "p_value": null,
+      "a12_a_vs_b": 0.5,
+      "better": "empate",
+      "degenerate": true,
+      "effect_magnitude": "desprezível",
+      "p_holm": null,
+      "significant": false
     },
-    "Grappler": {
-      "hp": 0.2825,
-      "damage": 0.20187500000000003,
-      "attack_cooldown": -0.13375000000000004,
-      "range": 0.29,
-      "speed": 0.05812500000000004,
-      "stun": 0.05124999999999996,
-      "knockback": 0.0025000000000000022,
-      "grab_power": 0.12500000000000006,
-      "w_retreat": -0.02250000000000002,
-      "w_defend": -0.013124999999999998,
-      "w_aggressiveness": 0.03937500000000005
+    {
+      "metric": "drift_penalty",
+      "label": "drift_penalty",
+      "better_is": "lower",
+      "median_a": 0.24730661719761463,
+      "median_b": 0.27028830285748157,
+      "u_statistic": 100.0,
+      "p_value": 0.007113494035772574,
+      "a12_a_vs_b": 0.25,
+      "better": "a",
+      "degenerate": false,
+      "p_holm": 0.04268096421463544,
+      "significant": true,
+      "effect_magnitude": "grande"
     },
-    "Turtle": {
-      "hp": 0.16687500000000005,
-      "damage": 0.26,
-      "attack_cooldown": -0.27625000000000005,
-      "range": 0.34249999999999997,
-      "speed": -0.014375000000000027,
-      "stun": 0.08562500000000006,
-      "knockback": 0.09187499999999993,
-      "grab_power": 0.14937499999999998,
-      "w_retreat": 0.08999999999999997,
-      "w_defend": -0.03187499999999999,
-      "w_aggressiveness": 0.04999999999999999
+    {
+      "metric": "validator_structural",
+      "label": "validador estrutural (L1+L2)",
+      "better_is": "higher",
+      "median_a": 11.0,
+      "median_b": 10.5,
+      "u_statistic": 263.5,
+      "p_value": 0.08336312608587237,
+      "a12_a_vs_b": 0.65875,
+      "better": "a",
+      "degenerate": false,
+      "p_holm": 0.3334525043434895,
+      "significant": false,
+      "effect_magnitude": "médio"
+    },
+    {
+      "metric": "validator_behavioral",
+      "label": "validador comportamental (L3)",
+      "better_is": "higher",
+      "median_a": 3.0,
+      "median_b": 2.0,
+      "u_statistic": 255.0,
+      "p_value": 0.12202304750831289,
+      "a12_a_vs_b": 0.6375,
+      "better": "a",
+      "degenerate": false,
+      "p_holm": 0.36606914252493866,
+      "significant": false,
+      "effect_magnitude": "pequeno"
+    },
+    {
+      "metric": "rank_agreement",
+      "label": "concordância de ranking (τ)",
+      "better_is": "higher",
+      "median_a": 0.28110177634953865,
+      "median_b": 0.1931190001895291,
+      "u_statistic": 269.5,
+      "p_value": 0.06196533675969163,
+      "a12_a_vs_b": 0.67375,
+      "better": "a",
+      "degenerate": false,
+      "p_holm": 0.3098266837984582,
+      "significant": false,
+      "effect_magnitude": "médio"
     }
-  },
-  "mean_abs_delta_wr": {
-    "hp": 0.238625,
-    "damage": 0.26225,
-    "attack_cooldown": 0.256625,
-    "range": 0.308125,
-    "speed": 0.035124999999999997,
-    "stun": 0.104125,
-    "knockback": 0.04262499999999998,
-    "grab_power": 0.186125,
-    "w_retreat": 0.047624999999999994,
-    "w_defend": 0.028750000000000008,
-    "w_aggressiveness": 0.030000000000000016
-  },
-  "classification": {
-    "hp": "✓ visível",
-    "damage": "✓ visível",
-    "attack_cooldown": "✓ visível",
-    "range": "✓ visível",
-    "speed": "~ borderline",
-    "stun": "✓ visível",
-    "knockback": "~ borderline",
-    "grab_power": "✓ visível",
-    "w_retreat": "~ borderline",
-    "w_defend": "✗ neutro",
-    "w_aggressiveness": "✗ neutro"
+  ],
+  "dominance_decomposition": {
+    "global_term": {
+      "median_a": 0.03683591238505664,
+      "median_b": 0.04033716064004518,
+      "weight": 1.0
+    },
+    "cap_term": {
+      "median_a": 0.0,
+      "median_b": 0.0,
+      "weight": 0.5
+    },
+    "decis_term": {
+      "median_a": 0.0,
+      "median_b": 0.0,
+      "weight": 0.5
+    }
   }
 }

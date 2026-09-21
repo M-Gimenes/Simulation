@@ -106,8 +106,10 @@ defensável que um que separa os que foram medidos dos que são escolha.
 - **Dois termos, identidade e equilíbrio** — **[coerência]** com a pergunta de pesquisa (é
   pergunta de trade-off) e com a linha premissa/resposta. → [03](03-fitness-formulation.md).
 - **`LAMBDA_DRIFT = LAMBDA_DOMINANCE = 1,0`** — **[medido]**. Só a razão importa; o sweep de λ
-  mostrou 1,0 como o joelho da curva (dominance plano até ali, explosão depois). →
-  [04](04-design-decisions.md) "O sweep de λ".
+  mostrou 1,0 como o joelho da curva (dominance plano até ali, explosão depois). Re-rodado
+  sobre o motor atual (2026-09-21), λ = 1,0 deixou de empatar com λ = 0,25 e 0,5 e passou a
+  **dominá-los**: mesmo dominance, drift 0,10–0,13 melhor, τ dez vezes maior. →
+  [04](04-design-decisions.md) "O sweep de λ" e "λ = 1,0 deixou de empatar com os λ menores".
 - **Drift normalizado pelo range do bound** — **[medido]**: é o que faz a ordenação por drift
   concordar com a do validador. → [04](04-design-decisions.md) "A régua de identidade".
 - **`DRIFT_DEFINING_WEIGHT = 3,0`** — **[medido]**: alarga a margem entre indivíduos de
@@ -121,9 +123,12 @@ defensável que um que separa os que foram medidos dos que são escolha.
 - **Equilíbrio = WR global (C2), não WR por par** — **[coerência] + [medido]**: o ótimo "todo par
   a 50%" é incompatível com o ciclo por construção; e a decisividade sozinha foi falsificada
   como proxy de WR. → [04](04-design-decisions.md) "A reformulação do objetivo".
-- **Pesos 1,0 / 0,5 / 0,5 dos três termos** — **[medido]**: sem os secundários, 10/10 pares
-  viram counter duro; a repartição 0,5/0,5 não se distingue das alternativas a n = 5 e ficou.
-  → [04](04-design-decisions.md) "Os pesos do dominance".
+- **Pesos 1,0 / 0,5 / 0,5 dos três termos** — **[medido]**: sem os secundários, 8,8 dos 10
+  pares viram counter duro (2026-09-21; eram 10/10 no motor anterior), com o melhor
+  `global_term` de todos os braços; a repartição 0,5/0,5 não se distingue das alternativas a
+  n = 5 e ficou — as que sobem o peso do cap pagam em drift e em metade da concordância de
+  ranking. → [04](04-design-decisions.md) "Os pesos do dominance" e "Os pesos do dominance:
+  a falsificação se manteve".
 - **`MATCHUP_WR_CAP = 0,15`** — **[domínio] + [medido]**: ponto médio entre 6-4 (vantagem
   saudável) e 7-3 (counter) na grade da FGC, onde o ruído binomial menos erra (10,6% de
   falso alarme num 6-4, 90,9% de captura num 7-3). → [04](04-design-decisions.md) "As constantes provisórias".
@@ -150,15 +155,20 @@ defensável que um que separa os que foram medidos dos que são escolha.
   média, ~2,75 dos 55 genes mudam por filho. O σ dos pesos é 4× menor por inércia deliberada
   (atributos = capacidade, pesos = estratégia). Nenhum dos três foi varrido; o σ de cada gene
   é também o passo usado na análise de sensibilidade, que mede se **um passo típico de
-  mutação** move a WR. Custo medido dessa inércia (preliminar, no evoluído da bateria
-  anterior): a esse passo, `w_retreat` e `w_defend` ficam abaixo do piso de ruído e
-  `w_aggressiveness` no limiar — o equilíbrio quase não dá gradiente à política. →
+  mutação** move a WR. Custo medido dessa inércia (bateria de 2026-09-21): a esse passo os
+  três pesos ocupam o fundo do ranking — `w_defend` 2,9% e `w_aggressiveness` 3,0% abaixo
+  do piso de 3,5%, `w_retreat` 4,8% no limiar —, ou seja, o equilíbrio quase não dá
+  gradiente à política. →
   [04](04-design-decisions.md) "A sensibilidade passou a cobrir os pesos".
 - **Crossover por bloco de personagem** — **[coerência]**: preserva a coerência interna entre
   atributos e pesos de um arquétipo. Custo declarado: a recombinação dentro de um personagem
   depende só da mutação. → [`10-known-issues`](../reference/10-known-issues.md) §2.
-- **Torneio 3, elitismo 10%** — **[medido]**: nenhum dos 7 braços do sweep os supera;
-  "testados, nada os supera", não "ótimos". → [04](04-design-decisions.md) "O elitismo e o torneio".
+- **Torneio 3, elitismo 10%** — **[medido]**: nenhum dos 7 braços do sweep os **domina**.
+  Sobre o motor atual (2026-09-21) o default deixou de ter o menor `cap_term` e o menor
+  número de counters; o que ele tem é o melhor drift (0,2448) e a melhor concordância de
+  ranking (τ = 0,415) dos oito, e quem o supera em counters paga nos dois. "Testados, nada
+  os domina", não "ótimos". → [04](04-design-decisions.md) "O elitismo e o torneio" e
+  "Elitismo 10% / torneio 3: mantidos, por outra razão".
 - **Seed canônico no AG escalar (`GA_CANONICAL_SEED`), população aleatória no NSGA-II** —
   **[medido]**. No NSGA-II o canônico é imortal no rank 0 (drift 0 é alcançável) e comia
   metade da fronteira; no escalar ele ajuda. Como a assimetria confunde algoritmo com
@@ -193,7 +203,8 @@ defensável que um que separa os que foram medidos dos que são escolha.
 - **Ponto de referência do hipervolume (1,3; 0,4)** — **[coerência] + [medido]**: ancorado nos
   modelos nulos — `dominance` do canônico (o equilíbrio de partida) e drift do espelho
   (identidade zero) —, fixo para que o HV seja comparável entre execuções. Com (2,0; 1,0) o
-  HV saturava em 90% da área (CV 2,0%); com este, 77% (CV 3,9%). → [04](04-design-decisions.md)
+  HV saturava em 90% da área (CV 2,0%); com este, 76% (CV 2,9% — 0,3954 ± 0,0114 na bateria
+  de 2026-09-21). → [04](04-design-decisions.md)
   "O hipervolume ganhou uma referência com significado".
 
 ## 6. Protocolo experimental
@@ -259,7 +270,8 @@ defensável que um que separa os que foram medidos dos que são escolha.
   [04](04-design-decisions.md) "O validador parou de dar asserções por empate".
 - **Concordância de ranking comportamental (τ de Kendall)** — **[coerência] + [medido]**: a
   régua funcional contínua ao lado dos 5 bits da Layer 3; 0 = acaso (média dos 35 nulos
-  +0,001), 1 = a ordem do canônico. **`IDENTITY_BEHAVIORAL_SIMS = 200`** — **[medido]**: em
+  −0,039 na bateria de 2026-09-21, e +0,007 no braço de controle sem o termo de drift — o
+  acaso por duas vias independentes), 1 = a ordem do canônico. **`IDENTITY_BEHAVIORAL_SIMS = 200`** — **[medido]**: em
   re-teste, a 120 lutas o τ do evoluído variava 0,19–0,28; a 200, 0,23–0,24. →
   [04](04-design-decisions.md) "A identidade funcional ganhou uma régua contínua".
 - **Modelos nulos: 5 espelhos + 30 aleatórios** — **[coerência]**: o espelho é a solução

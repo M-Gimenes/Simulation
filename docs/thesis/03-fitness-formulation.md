@@ -34,11 +34,17 @@ Daí a assimetria do projeto: **identidade é termo do fitness, o ciclo de vanta
    bem mais fraca e quase óbvia.
 2. **Penalidade não é restrição.** O AG é livre para destruir a identidade se o
    equilíbrio pagar mais, e é o que acontece: com `LAMBDA_DRIFT = 1.0` ligado o run
-   inteiro, o melhor do AG escalar da bateria de 2026-09-18 ficou em **13/23** no
+   inteiro, o melhor do AG escalar da bateria de 2026-09-21 ficou em **17/23** no
    validador, longe dos 23/23 do canônico — e a parte funcional dele, a Layer 3, em
-   **1/5**, no piso dos modelos nulos (p = 0,74). O termo existe e pode perder; ter o termo
-   não pré-determina a resposta. (No diagnóstico de 2026-09-16, sob o validador de 21
-   asserções que precedeu o `grab_power`, o mesmo fenômeno deu 8/21.)
+   **3/5**, empatada com o melhor dos 35 modelos nulos. O termo existe e pode perder; ter
+   o termo não pré-determina a resposta. (No diagnóstico de 2026-09-16, sob o validador de
+   21 asserções que precedeu o `grab_power`, o mesmo fenômeno deu 8/21.)
+
+   E o que ele **compra** só se mede contra o braço sem ele: o controle `λ_drift = 0`, na
+   mesma amostra e no mesmo orçamento, cai para 6/18 no validador estrutural, 1/5 na
+   Layer 3 e τ = −0,03 — sem equilibrar melhor (p_Holm 0,063 em `dominance`, a favor do
+   braço *com* o termo). A penalidade não pré-determina a resposta, e ainda assim é o que
+   segura a identidade inteira.
 3. O conteúdo não-trivial da tese nunca foi "a identidade sobreviveu" — é **o preço**:
    quanto de equilíbrio se compra por unidade de drift. Esse é o formato da fronteira
    de Pareto, que é achado empírico, não suposição. E uma fronteira precisa de dois
