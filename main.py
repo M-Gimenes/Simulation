@@ -27,6 +27,8 @@ def parse_args():
 
 
 def _main_ga(args):
+    from src.visualization.ga_plots import save_plots_from_results as save_ga_plots_from_results
+
     override_budget(args.pop, args.generations, "ga")
     result = run_ga(
         seed=args.seed,
@@ -38,11 +40,13 @@ def _main_ga(args):
 
     GA_RESULTS_PATH.parent.mkdir(parents=True, exist_ok=True)
     save_ga_results(result, GA_RESULTS_PATH)
+    plot = save_ga_plots_from_results(GA_RESULTS_PATH)
 
     d = result.best_detail
     print(f"\nParada: {result.stop_reason} (geração {result.generation})")
     print(f"fitness={result.best.fitness:+.4f}  dom={d.dominance_penalty:.4f}  drift={d.drift_penalty:.4f}")
     print(f"Salvo em {GA_RESULTS_PATH.relative_to(PROJECT_ROOT)}")
+    print(f"Curvas de convergência em {plot.relative_to(PROJECT_ROOT)}")
     print("→ py -m src.analysis.report --evolved")
 
 

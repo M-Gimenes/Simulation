@@ -26,10 +26,14 @@ from typing import Tuple
 
 from src.engine.archetypes import ARCHETYPE_ORDER, ARCHETYPES
 from src.engine.combat import seed_combat
+from src.engine.config import IDENTITY_BEHAVIORAL_SIMS, MULTI_RUN_VALIDATION_SEED
 from src.engine.individual import Individual
 from src.analysis.analyze_matchups import behavioral_profile
 
-FINGERPRINT_SIMS = 200
+# O mesmo valor que o validador e o `baselines` usam no perfil comportamental: são a
+# MESMA medição, e duas constantes iguais por coincidência divergiriam no primeiro
+# ajuste, fazendo a tabela do fingerprint deixar de bater com a do `baselines.json`.
+FINGERPRINT_SIMS = IDENTITY_BEHAVIORAL_SIMS
 
 # Métricas do fingerprint: (chave, rótulo, tipo). "pct" = fração em [0,1];
 # "count" = contagem por luta / distância média (formatada como valor absoluto).
@@ -63,8 +67,10 @@ def main() -> None:
     parser.add_argument("--nsga2", metavar="REP", nargs="?", const="knee_point",
                         help="Representante do NSGA-II vs canônico")
     parser.add_argument("--n", type=int, default=FINGERPRINT_SIMS, help="Sims por matchup")
-    parser.add_argument("--seed", type=int, default=42,
-                        help="Semente (mesma p/ canônico e evoluído — comparação justa)")
+    parser.add_argument("--seed", type=int, default=MULTI_RUN_VALIDATION_SEED,
+                        help=f"Semente (mesma p/ canônico e evoluído — comparação justa; "
+                             f"default: {MULTI_RUN_VALIDATION_SEED}, a do protocolo, para que a "
+                             f"tabela bata com a do `report` e a do `baselines.json`)")
     args = parser.parse_args()
     ind, label = _load_individual(args)
     is_canon = not (args.evolved or args.nsga2)

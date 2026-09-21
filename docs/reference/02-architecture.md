@@ -32,8 +32,8 @@
 
 Os três pacotes fora do `engine/` se dividem pelo que fazem com um roster, e o critério
 é verificável no código: só `experiments/` abre arquivo para escrita em `results/`;
-`analysis/` só imprime; `visualization/` desenha (o `nsga2_plots` grava o PNG que o
-`main.py` pede). É uma divisão por **saída**, não uma hierarquia — o dossiê do `analysis`
+`analysis/` só imprime; `visualization/` desenha (o `nsga2_plots` e o `ga_plots` gravam
+os PNG que o `main.py` pede). É uma divisão por **saída**, não uma hierarquia — o dossiê do `analysis`
 mostra os modelos nulos do `experiments/baselines`, e este pontua rosters com o validador
 do `analysis`. Conteúdo de cada um: [08-tools.md](08-tools.md).
 

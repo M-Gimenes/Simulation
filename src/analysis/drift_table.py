@@ -60,7 +60,7 @@ def _norm_genes(char) -> List[float]:
     return attributes + char.intention_probabilities()
 
 
-def _mean_pairwise_distance(ind: Individual) -> float:
+def mean_pairwise_distance(ind: Individual) -> float:
     """Distância euclidiana média entre os 5 personagens (mede homogeneização):
     baixa vs o canônico = os 5 convergiram entre si."""
     vecs = [_norm_genes(c) for c in ind.characters]
@@ -131,8 +131,8 @@ def print_drift_report(ind: Individual, label: str) -> None:
     print(f"\n  drift_penalty (média dos 5): {mean_dev:.4f}")
 
     # Diferenciação entre personagens (homogeneização) — distância par-a-par dos 5.
-    diff = _mean_pairwise_distance(ind)
-    diff_canon = _mean_pairwise_distance(Individual.from_canonical())
+    diff = mean_pairwise_distance(ind)
+    diff_canon = mean_pairwise_distance(Individual.from_canonical())
     ratio = diff / diff_canon if diff_canon > 0 else 1.0
     print(f"\n  Diferenciação (distância média par-a-par dos 5 personagens):")
     print(f"    canônico {diff_canon:.3f}  |  este {diff:.3f}  |  ratio {ratio:.2f}")

@@ -22,6 +22,15 @@ reúne, num relatório único:
 Apresentar o dossiê do(s) indivíduo(s) escolhido(s) — tipicamente o **canônico** (baseline)
 e os representantes de interesse do NSGA-II.
 
+**Os números saem do artefato, não do terminal.** Desde 2026-09-21 o `baselines.json`
+grava, por roster medido, as três tabelas cruas do dossiê: `per_gene_drift`,
+`differentiation` (1,201 no evoluído contra 1,353 no canônico — 89% da diferenciação
+preservada) e `behavioral_profile` (as 10 métricas por personagem, o fingerprint). O
+`report` e o `fingerprint` imprimem exatamente esses valores, porque usam o seed e o
+número de sims do protocolo. **Exceção a não esquecer:** o `archetype_validator` rodado
+sozinho usa seed 42 e imprime τ = 0,334 em vez dos 0,314 do artefato — citar sempre do
+`baselines.json` ou do `report`.
+
 ## 2. Histórico de convergência do AG escalar
 
 `run()` retorna `history` (lista de `GenerationStats`): `best/mean/worst fitness`,
@@ -31,6 +40,14 @@ curva sai do artefato, sem re-rodar. Plotar essas curvas mostra a **trajetória 
 otimização** — o AG melhora? converge, estagna ou bate o teto de gerações? como drift
 e dominância evoluem um contra o outro? É a evidência de que o processo *funciona*
 (ou de onde ele empaca).
+
+`py -m src.visualization.ga_plots` gera a figura (`results/single_run/plots/ga_convergence.png`),
+e o `main.py` a gera junto do artefato. Na seed 42 ela mostra o que as tabelas afirmam:
+`dominance` despenca de 0,80 para ~0,03 nas primeiras 20 gerações, `drift` estabiliza em
+~0,28 e cai devagar até 0,24, e a convergência na geração 31 cai onde as duas já
+achataram. Ao apresentá-la, dizer que as curvas **flutuam** de propósito: cada geração é
+avaliada num stream diferente, e é por isso que não existe evento de estagnação — não
+ler a oscilação como instabilidade do AG.
 
 ## 3. Fronteira de Pareto do NSGA-II (o artefato central)
 
@@ -42,6 +59,15 @@ peça que torna o trade-off explícito** e responde diretamente à pergunta de p
 - o `knee_point` = melhor compromisso;
 - o `scalar_optimum` = o ponto que minimiza a mesma soma que o AG escalar otimiza — o
   comparável dele.
+
+**Ao apresentar a figura, dizer que representantes coincidem.** Na bateria de 2026-09-21,
+`best_dominance` e `scalar_optimum` são o mesmo ponto da fronteira em **11 das 20
+sementes** (e `knee_point` = `ideal_point` em 11/20) — a seed 42, a do plot, é uma delas.
+O gráfico desenha os marcadores aninhados e anota as coincidências, mas o texto precisa
+explicá-las: na ponta de baixa dominância a fronteira é íngreme o bastante para que
+minimizar a soma ponderada e minimizar a dominância pura cheguem ao mesmo lugar. É
+também o argumento de que fixar a manchete antes da bateria foi conservador — em mais da
+metade das sementes a escolha não teria efeito nenhum.
 
 Mostrar a fronteira **e** os dossiês (`report --nsga2 best_dominance` vs
 `--nsga2 best_drift`) é o coração do capítulo: dá pra *ver* e *quantificar* o que se

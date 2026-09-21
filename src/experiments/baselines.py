@@ -45,19 +45,28 @@ from typing import Dict, List, Optional, Tuple
 
 from src.engine.archetypes import ARCHETYPE_ORDER, ARCHETYPES, ArchetypeID
 from src.engine.combat import seed_combat
-from src.engine.config import IDENTITY_BEHAVIORAL_SIMS, MULTI_RUN_SIMS, MULTI_RUN_VALIDATION_SEED
+from src.engine.config import (
+    GENE_NAMES,
+    IDENTITY_BEHAVIORAL_SIMS,
+    MULTI_RUN_SIMS,
+    MULTI_RUN_VALIDATION_SEED,
+)
 from src.engine.fitness import (
     FitnessDetail,
     _archetype_deviation,
+    canonical_genes,
+    drift_genes,
     evaluate_detail_n,
+    gene_drift,
     get_seed_base,
     set_seed_base,
 )
 from src.engine.individual import Individual
 from src.engine.paths import BASELINES_PATH, PROJECT_ROOT
 from src.engine.provenance import stamp
-from src.analysis.analyze_matchups import expected_winner
+from src.analysis.analyze_matchups import behavioral_profile, expected_winner
 from src.analysis.archetype_validator import run_validation
+from src.analysis.drift_table import mean_pairwise_distance
 
 # A resolução do p-valor empírico é 1/N: com 5 espelhos + 30 aleatórios, nenhum nulo
 # igualando o observado afirma p < 0,03. O default é o valor do protocolo, porque a
@@ -154,6 +163,23 @@ def circular_triads(detail: FitnessDetail) -> float:
     return comb(n, 3) - sum(d * (d - 1) / 2 for d in wins)
 
 
+def _per_gene_drift(individual: Individual) -> Dict[str, Dict[str, float]]:
+    """Δ normalizado gene a gene, por personagem — a matéria-prima do `drift_penalty`,
+    que o artefato só guardava agregada. Usa `drift_genes`, a mesma forma que o
+    `_archetype_deviation` compara (os 3 pesos entram reescalados para a soma
+    canônica), senão a linha não somaria no desvio do personagem."""
+    table: Dict[str, Dict[str, float]] = {}
+    for aid in ARCHETYPE_ORDER:
+        char     = individual.get(aid)
+        compared = drift_genes(char)
+        canon    = canonical_genes(char.archetype)
+        table[ARCHETYPES[aid].name] = {
+            name: gene_drift(compared[i], canon[i], i)
+            for i, name in enumerate(GENE_NAMES)
+        }
+    return table
+
+
 def measure(individual: Individual, sims: int, seed: int) -> dict:
     """Mede um roster sob `seed`, devolvendo o seed-base do processo como estava.
     Restaurar importa porque o `report` compõe esta função com outros tools."""
@@ -163,6 +189,10 @@ def measure(individual: Individual, sims: int, seed: int) -> dict:
     try:
         detail   = evaluate_detail_n(individual, sims)
         identity = run_validation(individual, behavioral_n=IDENTITY_BEHAVIORAL_SIMS, seed=seed)
+        # Mesma semeadura que o `run_validation` usa internamente, então o perfil aqui é
+        # bit a bit o que produziu a Layer 3 e o τ acima — não uma segunda medição.
+        seed_combat(seed)
+        profile = behavioral_profile(individual, IDENTITY_BEHAVIORAL_SIMS)
     finally:
         set_seed_base(previous_base)
 
@@ -174,6 +204,11 @@ def measure(individual: Individual, sims: int, seed: int) -> dict:
         "per_character_drift": [
             _archetype_deviation(individual.get(aid)) for aid in ARCHETYPE_ORDER
         ],
+        "per_gene_drift":      _per_gene_drift(individual),
+        "differentiation":     mean_pairwise_distance(individual),
+        "behavioral_profile": {
+            ARCHETYPES[aid].name: profile[aid] for aid in ARCHETYPE_ORDER
+        },
         "validator_structural": identity.passed_in("structural_inter", "structural_intra"),
         "validator_structural_total": identity.total_in("structural_inter", "structural_intra"),
         "validator_behavioral": identity.passed_in("behavioral"),

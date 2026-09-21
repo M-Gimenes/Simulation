@@ -1741,3 +1741,92 @@ E o `decis_term` não é inerte: removê-lo sozinho (`1 / 0,5 / 0`) leva os coun
 0,06–0,10 de drift e **mais da metade da concordância de ranking** (τ 0,159 e 0,113 contra
 0,415). A n = 5 e em orçamento reduzido a troca não se distingue de ruído, e o eixo que
 ela sacrifica é o da pergunta de pesquisa — manteve-se 1,0 / 0,5 / 0,5.
+
+## As tabelas cruas do dossiê passaram a viver no artefato (2026-09-21)
+
+**Problema — duas tabelas que a tese apresenta só existiam no terminal.** O
+[`06-results-to-present`](06-results-to-present.md) §1 lista, no dossiê do indivíduo, a
+**tabela de drift por gene**, a **diferenciação par-a-par** e o **fingerprint
+comportamental**. Nenhuma das três era gravada: o `baselines.json` guardava o
+`drift_penalty` (escalar) e o `per_character_drift` (5 valores), e do comportamento só o
+resultado agregado — `validator_behavioral` (5 bits) e `rank_agreement` (um número). O
+perfil de 10 métricas por personagem era calculado dentro do `run_validation`, usado para
+a Layer 3 e o τ, e descartado. Redigir exigiria re-rodar uma ferramenta e ler a saída do
+terminal, que é exatamente a fonte que o projeto não aceita para número citável.
+
+Havia um segundo problema, pior: `fingerprint` e `archetype_validator`, rodados sozinhos,
+tinham `--seed 42` chumbado, enquanto `report` e `baselines` usam
+`MULTI_RUN_VALIDATION_SEED`. O mesmo indivíduo dava **τ = +0,334 pelo caminho standalone e
++0,314 pelo protocolo** — e o melhor nulo é 0,316, então a frase "acima ou abaixo do
+melhor roster sem projeto" trocava conforme o caminho.
+
+**Mudança.** (i) O `measure()` do `baselines` passou a gravar, por roster de referência e
+para o alvo, `per_gene_drift`, `differentiation` e `behavioral_profile`. O perfil é
+recomputado sob a **mesma semeadura** que o `run_validation` usa internamente, então é bit
+a bit o que produziu a Layer 3 e o τ, não uma segunda medição. (ii) `fingerprint` passou a
+usar o seed do protocolo como default e `FINGERPRINT_SIMS = IDENTITY_BEHAVIORAL_SIMS`, em
+vez de um 200 repetido — duas constantes iguais por coincidência divergiriam no primeiro
+ajuste. (iii) `mean_pairwise_distance` virou pública no `drift_table`, fonte única dos
+dois consumidores.
+
+**O que NÃO mudou, e por quê.** O `archetype_validator` continua com `--seed 42` no
+standalone. O código dele está no digest de medição do `baselines`, do `multi_run` e da
+`external_validation`: trocar esse default marcaria como obsoletos os 4 `multi_run` da
+bateria e os 16 braços de sweep, e o `compare_algorithms` se recusaria a reescrever a
+partir deles — **~7h de recomputação para uma mudança que não altera número nenhum**, já
+que os três callers passam `seed=` explícito. O preço do digest cobrir código, e não
+comportamento, é declarado desde que ele existe; aqui ele foi cobrado. A regra passou a
+ser: **citar τ e o perfil comportamental do `baselines.json` ou do `report`, nunca do
+validador standalone.**
+
+**Resultado.** `baselines.json` reproduziu todos os agregados bit a bit (τ 0,314,
+Layer 3 3/5, drift 0,236, ciclo 5/10, dominance 0,031, os mesmos p) com as três tabelas
+novas junto — a extensão acrescentou dados sem tocar em medição. O `baselines` foi o único
+artefato invalidado, e custa 28 s. A diferenciação do evoluído sai em 1,201 contra 1,353
+do canônico: **89% da diferenciação preservada**, um número de homogeneização que antes
+não existia em lugar nenhum.
+
+## O histórico do AG escalar ganhou um plot (2026-09-21)
+
+**Problema.** O [`06-results-to-present`](06-results-to-present.md) §2 pede a curva de
+convergência do AG — e o `history` das 150 gerações estava no `single_run/ga.json` desde
+sempre, sem nada que o desenhasse. O NSGA-II tinha `nsga2_plots`; o escalar, nada.
+
+**Mudança.** `src/visualization/ga_plots.py`, com dois painéis: `best/mean/worst fitness`
+e os dois termos (`dominance_penalty`, `drift_penalty`) do melhor, com `converged_at` como
+linha vertical. Lê o **artefato**, não o objeto em memória, e é isso que o `main.py` chama
+depois de salvar — uma serialização só, em vez de duas para manter em sincronia. Roda
+sozinho (`py -m src.visualization.ga_plots`), sem re-executar o AG.
+
+**Resultado.** Na seed 42 a curva mostra o que as tabelas afirmam: `dominance` despenca de
+0,80 para ~0,03 nas primeiras 20 gerações, `drift` estabiliza em ~0,28 e cai devagar até
+0,24, e a convergência na geração 31 cai onde as duas curvas já achataram. O plot também
+torna visível a consequência declarada da rotação do stream — as curvas **flutuam** em vez
+de serem monotônicas, que é a razão de não existir evento de estagnação.
+
+## Os representantes da fronteira coincidem, e a figura precisava dizer isso (2026-09-21)
+
+**Problema.** O plot da fronteira desenhava os 5 representantes com o mesmo tamanho de
+marcador. Quando dois critérios escolhem **o mesmo ponto**, o segundo cobre o primeiro — e
+a figura central do capítulo de Resultados passa a ter uma legenda citando um marcador que
+não aparece nela. Na seed 42 é exatamente o caso: `scalar_optimum` cai sobre
+`best_dominance`, e `ideal_point` sobre `knee_point`.
+
+Não é acidente da seed 42. Medido sobre as 20 sementes da bateria: **`best_dominance` e
+`scalar_optimum` são o mesmo ponto em 11/20**, e `knee_point` e `ideal_point` em 11/20
+(`knee_point` = `scalar_optimum` em 2/20).
+
+**Mudança.** Os marcadores passam a ser desenhados **aninhados** — agrupados por posição e
+ordenados do maior ao menor —, e a caixa de anotação lista as coincidências
+("Melhor dominância = Ótimo escalar"). O `nsga2_plots` também ganhou o caminho a partir do
+artefato (`py -m src.visualization.nsga2_plots`), como o `ga_plots`: redesenhar a figura
+não custa mais os 7 min de uma execução do NSGA-II.
+
+**Resultado, e por que ele importa além da figura.** Que a manchete (`scalar_optimum`) e a
+leitura secundária (`best_dominance`) sejam **o mesmo ponto em mais da metade das
+sementes** é um dado sobre o formato da fronteira, não só sobre o desenho: na ponta de
+baixa dominância a fronteira é íngreme o bastante para que minimizar a soma ponderada e
+minimizar a dominância pura levem ao mesmo lugar. Reforça, por outro caminho, a decisão de
+fixar a manchete **antes** da bateria: em 11 sementes a escolha nem teria efeito, e nas 9
+restantes ela é a diferença entre comparar com o extremo da fronteira e comparar com o
+ponto que otimiza a mesma função do AG escalar.

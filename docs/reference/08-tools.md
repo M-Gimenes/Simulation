@@ -107,6 +107,12 @@ não contaminar a defesa real com o artefato de encurralamento (ver `04-combat-m
 O ataque é contado como evento (`atk_landed`), não como fração de sub-ticks: ele é
 instantâneo e gated por cooldown.
 
+O default de `--seed` é `MULTI_RUN_VALIDATION_SEED` e o de `--n` é
+`IDENTITY_BEHAVIORAL_SIMS` — os mesmos do `report` e do `baselines`, para que a tabela
+impressa aqui seja **a que está gravada** em `baselines.json` (campo
+`behavioral_profile`), e não um segundo perfil em circulação. Para redigir, citar do
+artefato; este tool é a leitura formatada dele.
+
 ```bash
 py -m src.analysis.fingerprint              # canônico (baseline, Δ=0)
 py -m src.analysis.fingerprint --evolved    # evoluído vs canônico
@@ -426,7 +432,7 @@ aleatórios):
 | validador (L1-L3) | ~6/23, com nulo chegando a **10/23** | 23/23 | score cru não é "% preservado" |
 | validador (L1-L2) | ~5/18, com nulo chegando a **9/18** | 18/18 | endógeno — vencer os nulos aqui é quase garantido para um roster otimizado com drift |
 | validador (L3) | ~1/5, com nulo chegando a 3/5 | 5/5 | a parte funcional, lida separada |
-| concordância de ranking (τ) | +0,00, com nulo chegando a ~+0,34 | 1,00 | a régua funcional contínua |
+| concordância de ranking (τ) | −0,04, com nulo chegando a **+0,32** | 1,00 | a régua funcional contínua |
 | `drift_penalty` | **0,377** (espelho) · 0,415 (aleatório) | 0,000 | 0,04 separa o espelho do aleatório |
 | `dominance_penalty` | ~1,1 (aleatório); os **espelhos** ficam em 0,025–0,037 (fora o do Zoner) | média dos espelhos | o teto de equilíbrio é a solução trivial, no piso de ruído |
 | arestas do ciclo | **5/10** (cada aresta é cara-ou-coroa) | 10/10 | descritiva — o canônico só realiza 6/10 |
@@ -454,6 +460,20 @@ Por isso o default de `--n-random` é **30**, o valor do protocolo.
 > um roster evoluído com penalidade de drift vencê-los em drift e nas Layers 1-2 é
 > esperado. O contrafactual é o controle `λ_drift = 0` (`multi_run` + `compare_algorithms
 > --control`).
+
+Além dos agregados, cada roster medido (as referências e o alvo) leva no artefato as
+**três tabelas cruas** que os sustentam, para que a redação não dependa de re-rodar um
+tool e ler o terminal:
+
+- `per_gene_drift` — o Δ normalizado gene a gene, por personagem, via `drift_genes`: a
+  mesma forma que o `_archetype_deviation` compara (os 3 pesos entram reescalados para a
+  soma canônica), então as linhas somam no desvio do personagem;
+- `differentiation` — a distância média par-a-par dos 5 (`drift_table.mean_pairwise_distance`),
+  o medidor de homogeneização. O evoluído da seed 42 dá 1,201 contra 1,353 do canônico:
+  **89% da diferenciação preservada**;
+- `behavioral_profile` — as 10 métricas comportamentais por personagem, recomputadas sob a
+  **mesma semeadura** que o `run_validation` usa internamente, então são bit a bit o perfil
+  que produziu a Layer 3 e o τ daquele roster, não uma segunda medição.
 
 ```bash
 py -m src.experiments.baselines                      # só os rosters de referência
@@ -492,4 +512,34 @@ py -m src.visualization.web_viewer      # browser interativo em localhost:8080
 
 Plot 2D da fronteira de Pareto (dominance × drift) com os 5 representantes
 destacados, anotado com hipervolume e spacing. Chamado automaticamente por `py main.py --algorithm nsga2`; salva em
-`results/single_run/plots/<timestamp>/pareto_front.png`.
+`results/single_run/plots/<timestamp>/pareto_front.png`. Como o `ga_plots`, também
+redesenha **a partir do artefato** (`py -m src.visualization.nsga2_plots`), sem re-rodar
+os 7 min do NSGA-II.
+
+**Representantes coincidem com frequência, e a figura mostra isso.** Nada impede dois
+critérios de escolherem o mesmo ponto: na bateria de 2026-09-21, `best_dominance` e
+`scalar_optimum` caem no mesmo ponto em **11 das 20 sementes**, e `knee_point` e
+`ideal_point` também em 11/20. Desenhados no mesmo tamanho, o segundo cobriria o primeiro
+e a legenda citaria um marcador ausente da figura — então os marcadores são desenhados
+**aninhados** (do maior ao menor em cada posição) e a caixa de anotação lista as
+coincidências.
+
+### `ga_plots`
+
+A contraparte escalar: as **curvas de convergência** do AG, em dois painéis —
+`best/mean/worst fitness` e os dois termos (`dominance_penalty`, `drift_penalty`) do
+melhor indivíduo, com `converged_at` como linha vertical. É o item §2 do
+[`../thesis/06-results-to-present.md`](../thesis/06-results-to-present.md).
+
+Lê o **artefato** (`single_run/ga.json`), não o objeto em memória: o `main.py` o chama
+logo depois de salvar, e rodar sozinho não re-executa o AG. Salva em
+`results/single_run/plots/ga_convergence.png`.
+
+As curvas **flutuam** entre gerações em vez de subir monotonicamente — é o efeito
+declarado da rotação do stream por geração, e a razão de não existir evento de
+estagnação (ver [05-genetic-algorithm.md](05-genetic-algorithm.md)).
+
+```bash
+py -m src.visualization.ga_plots                      # do single_run/ga.json
+py -m src.visualization.ga_plots --results <path>     # de outro artefato de AG
+```
