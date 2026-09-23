@@ -8,3 +8,7 @@ results/logs/
 # Logs das execucoes de diagnostico: mesma razao de results/logs/ — sao o
 # acompanhamento de uma noite, nao artefato. As saidas ficam em diagnostics/data/*.json.
 diagnostics/data/*.log
+
+
+# Backup da bateria citavel antes de uma re-execucao que a obsoleta.
+results_backup_*/

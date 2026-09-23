@@ -80,6 +80,8 @@ from src.engine.fitness import (
     set_seed_base,
 )
 from src.engine.ga import run as run_ga
+from src.engine.hybrid import HYBRID_CARRY, HYBRID_SPLIT
+from src.engine.hybrid import run as run_hybrid
 from src.engine.individual import Individual
 from src.engine.nsga2 import run as run_nsga2
 from src.engine.operators import get_selection, set_selection_override
@@ -132,7 +134,9 @@ class SeedRun:
 
 
 def _run_algorithm(algorithm: str, seed: int, nsga2_representative: str,
-                   pop_size: int, n_generations: int, canonical_seed: bool) -> SeedRun:
+                   pop_size: int, n_generations: int, canonical_seed: bool,
+                   hybrid_split: float = HYBRID_SPLIT,
+                   hybrid_carry: str = HYBRID_CARRY) -> SeedRun:
     """Roda o algoritmo (silencioso).
     AG escalar → o melhor indivíduo, sem fronteira. NSGA-II → o representante pedido, os
     cinco representantes e os objetivos `(dominance, drift)` de toda a fronteira
@@ -148,9 +152,18 @@ def _run_algorithm(algorithm: str, seed: int, nsga2_representative: str,
     existem e não aparecem no agregado dele — melhor que gravar zeros que alguém
     agregaria sem perceber.
     """
-    if algorithm == "ga":
-        result = run_ga(seed=seed, verbose=False, pop_size=pop_size,
-                        n_generations=n_generations, canonical_seed=canonical_seed)
+    if algorithm in ("ga", "hybrid"):
+        # O híbrido entrega um PONTO, como o escalar — a fase 2 dele É um AG escalar —,
+        # então ele passa pelo mesmo caminho e produz o mesmo registro. `converged_at`
+        # já vem deslocado para a escala do orçamento inteiro (ver `hybrid.py`), senão o
+        # eixo de velocidade compararia gerações da fase 2 com gerações do run inteiro.
+        if algorithm == "hybrid":
+            result = run_hybrid(seed=seed, verbose=False, pop_size=pop_size,
+                                n_generations=n_generations, split=hybrid_split,
+                                carry=hybrid_carry)
+        else:
+            result = run_ga(seed=seed, verbose=False, pop_size=pop_size,
+                            n_generations=n_generations, canonical_seed=canonical_seed)
         return SeedRun(result.best, {
             "converged_at":           result.converged_at,
             "convergence_gate_fired": result.convergence_gate_fired,
@@ -334,7 +347,9 @@ def aggregate_algorithm(algorithm: str, seeds: List[int], sims: int,
                         nsga2_representative: str,
                         pop_size: int = POPULATION_SIZE,
                         n_generations: int = MAX_GENERATIONS,
-                        canonical_seed: bool = GA_CANONICAL_SEED) -> dict:
+                        canonical_seed: bool = GA_CANONICAL_SEED,
+                        hybrid_split: float = HYBRID_SPLIT,
+                        hybrid_carry: str = HYBRID_CARRY) -> dict:
     records: List[dict] = []
     rep_label = f", representante {nsga2_representative}" if algorithm == "nsga2" else ""
     print(f"\n{'═' * 70}")
@@ -345,7 +360,7 @@ def aggregate_algorithm(algorithm: str, seeds: List[int], sims: int,
     for idx, seed in enumerate(seeds, start=1):
         print(f"  [{idx:>2}/{len(seeds)}] seed={seed} ... ", end="", flush=True)
         run = _run_algorithm(algorithm, seed, nsga2_representative, pop_size, n_generations,
-                             canonical_seed)
+                             canonical_seed, hybrid_split, hybrid_carry)
         record = _seed_record(run, seed, sims)
         records.append(record)
         hv_part = f"  hv={record['hypervolume']:.4f}" if "hypervolume" in record else ""
@@ -378,6 +393,11 @@ def aggregate_algorithm(algorithm: str, seeds: List[int], sims: int,
     }
     if algorithm == "ga":
         result["canonical_seed"] = canonical_seed
+    elif algorithm == "hybrid":
+        # A repartição do orçamento é configuração do experimento, como λ e o orçamento:
+        # vai no CORPO, e é o que `artifact_path` usa para nomear o braço.
+        result["hybrid_split"] = hybrid_split
+        result["hybrid_carry"] = hybrid_carry
     else:
         result["nsga2_representative"] = nsga2_representative
     return result
@@ -489,6 +509,12 @@ def artifact_path(result: dict) -> Path:
         partes.append("unseeded")
     if algorithm == "nsga2" and result["nsga2_representative"] != HEADLINE_REPRESENTATIVE:
         partes.append(f"rep-{result['nsga2_representative']}")
+    if algorithm == "hybrid":
+        # O híbrido NUNCA cai no caminho principal: `multi_run_ga.json` e
+        # `multi_run_nsga2.json` são os dois algoritmos que a pergunta de pesquisa compara,
+        # e o híbrido é um terceiro braço. Split e carry entram sempre no nome, mesmo nos
+        # valores default, porque é deles que a comparação entre braços trata.
+        partes.append(f"split{result['hybrid_split']:g}_{result['hybrid_carry']}")
     if not partes:
         return MULTI_RUN_GA_PATH if algorithm == "ga" else MULTI_RUN_NSGA2_PATH
     folder = EXPLORATORY_DIR if sample_deviates else CONTROLS_DIR
@@ -512,7 +538,13 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description="N execuções independentes + estatística agregada (metodologia 1.1)"
     )
-    parser.add_argument("--algorithm", choices=["ga", "nsga2", "both"], default="both",
+    parser.add_argument("--hybrid-split", type=float, default=HYBRID_SPLIT,
+                        help=f"fração do orçamento na fase NSGA-II do híbrido "
+                             f"(default: {HYBRID_SPLIT})")
+    parser.add_argument("--hybrid-carry", default=HYBRID_CARRY,
+                        help=f"o que a fase 1 entrega à fase 2: 'front' (a fronteira "
+                             f"inteira) ou o nome de um representante (default: {HYBRID_CARRY})")
+    parser.add_argument("--algorithm", choices=["ga", "nsga2", "hybrid", "both"], default="both",
                         help="Algoritmo(s) a agregar (default: both)")
     parser.add_argument("--n-seeds", type=int, default=MULTI_RUN_N_SEEDS,
                         help=f"Número de execuções (default: {MULTI_RUN_N_SEEDS})")
@@ -608,7 +640,9 @@ def main():
         override_budget(args.pop, args.generations, algorithm)
         result = aggregate_algorithm(algorithm, seeds, args.sims, args.nsga2_representative,
                                      pop_size=args.pop, n_generations=args.generations,
-                                     canonical_seed=args.canonical_seed)
+                                     canonical_seed=args.canonical_seed,
+                                     hybrid_split=args.hybrid_split,
+                                     hybrid_carry=args.hybrid_carry)
         _print_summary(result)
         _save(result)
 

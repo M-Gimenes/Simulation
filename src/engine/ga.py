@@ -134,9 +134,11 @@ def _confirm_convergence(individual: Individual) -> FitnessDetail:
     para SELEÇÃO, porque a diferença de fitness passa a refletir genes e não sorteio.
     Mas reavaliar no mesmo stream não confirma nada — mede a mesma realização do RNG
     com mais amostras, e a confirmação não pode discordar do gate. Aqui o base vira
-    `seed + CONVERGENCE_SEED_OFFSET`, então convergir significa que o equilíbrio
-    **sobrevive a um stream que o AG nunca viu**. Sem semente (`None`) as avaliações
-    já usam entropia e são independentes por si."""
+    o stream da geração corrente **mais** `CONVERGENCE_SEED_OFFSET` — o base vigente é
+    lido de `get_seed_base()`, então a confirmação roda num stream diferente **a cada
+    geração**, e convergir significa que o equilíbrio sobrevive a um stream que o AG
+    nunca viu. Sem semente (`None`) as avaliações já usam entropia e são independentes
+    por si."""
     training_base = get_seed_base()
     if training_base is None:
         return evaluate_detail_n(individual, SIMS_CONVERGENCE_CHECK)
@@ -158,6 +160,8 @@ def run(
     pop_size: int = POPULATION_SIZE,
     n_generations: int = MAX_GENERATIONS,
     canonical_seed: bool = GA_CANONICAL_SEED,
+    initial_population: Optional[List[Individual]] = None,
+    gen_offset: int = 0,
 ) -> GAResult:
     """`pop_size` e `n_generations` são o ORÇAMENTO da execução. Ficam como parâmetro, e
     não só como constante, porque experimentos exploratórios (sweeps de calibração) rodam
@@ -168,18 +172,33 @@ def run(
 
     `canonical_seed` põe o roster canônico na população inicial (o default). Desligado,
     a população nasce 100% aleatória, como a do NSGA-II — é o braço de controle que
-    separa o efeito do ALGORITMO do efeito da INICIALIZAÇÃO na comparação entre os dois."""
+    separa o efeito do ALGORITMO do efeito da INICIALIZAÇÃO na comparação entre os dois.
+
+    `initial_population` substitui a semeadura: a lista entra clonada e o resto da
+    população nasce aleatório. É o que o `hybrid` usa para entregar a fronteira do NSGA-II
+    à fase escalar; com ela, `canonical_seed` é ignorado (quem semeia é a fase anterior).
+
+    `gen_offset` desloca o stream de avaliação: a geração `g` roda em
+    `generation_seed(seed, gen_offset + g)`. Serve para uma segunda fase **continuar** a
+    rotação em vez de reciclar os streams que a primeira já viu — sem ele, o híbrido
+    reavaliaria a fase 2 nos mesmos sorteios da fase 1, e a rotação deixaria de proteger
+    contra ajuste ao stream exatamente onde ela é mais necessária."""
     if seed is not None:
         random.seed(seed)
         np.random.seed(seed)
         seed_combat(seed)
-    set_seed_base(generation_seed(seed, 0) if seed is not None else None)
+    set_seed_base(generation_seed(seed, gen_offset) if seed is not None else None)
 
     _log_header(verbose, pop_size, n_generations)
     t_start = time.time()
 
-    seeded = [Individual.from_canonical()] if canonical_seed else []
-    population = seeded + [Individual.random() for _ in range(pop_size - len(seeded))]
+    if initial_population is not None:
+        carried = [ind.clone() for ind in initial_population[:pop_size]]
+    else:
+        carried = [Individual.from_canonical()] if canonical_seed else []
+    population = carried + [Individual.random() for _ in range(pop_size - len(carried))]
+    for ind in population:
+        ind.invalidate_fitness()
     evaluate_population(population)
 
     history: List[GenerationStats] = []
@@ -231,9 +250,14 @@ def run(
             # stream anterior, então a geração inteira é reavaliada — é o custo do
             # protocolo, e é o que mantém a comparação DENTRO da geração consistente
             # (CRN) enquanto impede o ajuste a uma única realização do RNG.
-            set_seed_base(generation_seed(seed, gen + 1))
-            for ind in population:
-                ind.invalidate_fitness()
+            set_seed_base(generation_seed(seed, gen_offset + gen + 1))
+        # A invalidação vale COM E SEM semente. Sem ela, `Individual.clone()` copia o
+        # fitness e `evaluate_population` pula quem já tem — um elite que tirou uma
+        # avaliação de sorte ficava com aquele número para sempre, nunca regredia à
+        # média e se reclonava geração após geração. É a patologia que a rotação de
+        # stream existe para impedir, e ela não pode depender de haver semente.
+        for ind in population:
+            ind.invalidate_fitness()
         evaluate_population(population)
 
     # O laço produz uma geração a mais que as logadas: `history` cobre

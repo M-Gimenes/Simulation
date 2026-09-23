@@ -263,10 +263,11 @@ MULTI_RUN_VALIDATION_SEED = 9999  # seed comum de reavaliação (CRN): desacopla
 # em 5 sementes, o veredito a 200 sims INVERTEU contra a reavaliação a 1000 sims em 4
 # sorteios. Ler diferença por semente exige 1000.
 #
-# Subir para 1000 é quase de graça — 10 pares × 1000 = 10.000 lutas por semente, contra
-# as 67.500.000 da execução que a produziu — mas entra no carimbo de proveniência e
-# obsoleta toda a bateria, então a troca acompanha a próxima re-execução, não antecede.
-MULTI_RUN_SIMS = 200
+# Subiu para 1000 em 2026-09-22, junto da re-execução que o híbrido exigiu: 10 pares ×
+# 1000 = 10.000 lutas por semente, contra as 67.500.000 da execução que a produziu. A
+# constante entra no carimbo de proveniência, então a troca só podia acompanhar uma
+# bateria nova — nunca antecedê-la.
+MULTI_RUN_SIMS = 1000
 
 # Sims/matchup do perfil comportamental que mede identidade FUNCIONAL (Layer 3 do
 # validador e concordância de ranking) — no multi_run, nos modelos nulos e no dossiê.

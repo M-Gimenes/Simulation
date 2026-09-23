@@ -43,6 +43,14 @@ $py = Join-Path $raiz ".venv\Scripts\python.exe"
 if (-not (Test-Path $py)) { throw "Ambiente nao encontrado. Rode .\scripts\setup.ps1 primeiro." }
 $env:PYTHONIOENCODING = "utf-8"
 
+# O caminho do braco hibrido sai das MESMAS constantes que a execucao usa, em vez de
+# escrito a mao: split e carry entram no nome do artefato (multi_run.artifact_path), e
+# um nome fixo aqui passaria a apontar para o arquivo errado no dia em que a
+# configuracao mudasse - silenciosamente, porque o compare_algorithms leria um braco
+# antigo que ainda existe no disco.
+$hybridArtifact = (& $py -c "from src.engine.hybrid import HYBRID_SPLIT as S, HYBRID_CARRY as C; print('results/controls/multi_run_hybrid_split%g_%s.json' % (S, C))").Trim()
+if (-not $hybridArtifact) { throw "Nao consegui derivar o caminho do braco hibrido." }
+
 # Os `Min` sao ESTIMATIVAS com o pool persistente: os tempos medidos na bateria de
 # 2026-09-18 (pool recriado por geracao) escalados pela razao medida na seed 42 - AG
 # 6,7 -> 3,0 min, NSGA-II 9,7 -> 5,8 min - e por +13% da semente por luta (CRN). A medicao
@@ -115,6 +123,16 @@ $passos = @(
     # Precisa dos dois multi_run (passos 1-2): mede as 20 sementes de cada.
     @{ N = 17; Min = 4; Nome = "cycle_structure (ciclo autoral a 16.000 lutas/par)"
        Args = @("-m", "src.experiments.cycle_structure") }
+
+    # --- o terceiro braco: NSGA-II -> AG escalar com o orcamento repartido ---
+    # Configuracao escolhida pelo run_hybrid_sweep.ps1 nas sementes 1000-1004 (disjuntas
+    # destas), e fixada em hybrid.HYBRID_SPLIT / HYBRID_CARRY. Custa a soma das duas
+    # fases: ~split x NSGA-II + (1-split) x AG escalar.
+    @{ N = 18; Min = 103; Nome = "hibrido NSGA-II -> AG escalar, 20 sementes"
+       Args = @("-m", "src.experiments.multi_run", "--algorithm", "hybrid") }
+
+    @{ N = 19; Min = 1; Nome = "compare_algorithms: AG escalar x hibrido"
+       Args = @("-m", "src.experiments.compare_algorithms", "--control", $hybridArtifact) }
 )
 
 $restantes = @($passos | Where-Object { $_.N -ge $From })

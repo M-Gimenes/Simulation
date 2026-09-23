@@ -356,8 +356,10 @@ def run(
             # comparáveis — então os pais têm de ser reavaliados junto, 2×pop por
             # geração em vez de pop.
             set_seed_base(generation_seed(seed, gen + 1))
-            for ind in population:
-                ind.invalidate_fitness()
+        # Invalidar vale COM E SEM semente: sem ela, um pai que tirou uma avaliação de
+        # sorte sobreviveria no rank 0 para sempre, sem nunca regredir à média.
+        for ind in population:
+            ind.invalidate_fitness()
 
         # Pais + filhos numa chamada só: `_evaluate_population` filtra quem tem objetivo
         # em cache, então sem rotação isto avalia só os filhos.

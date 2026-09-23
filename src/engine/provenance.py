@@ -104,11 +104,15 @@ def override_budget(pop_size: int, n_generations: int, algorithm: str) -> None:
     `NSGA2_POP_SIZE`/`NSGA2_GENERATIONS` — que no `config.py` são derivados dos
     primeiros, mas são constantes distintas. Registrar os quatro quando só um algoritmo
     rodou afirmaria um orçamento que ninguém usou; registrar o par errado seria pior.
+
+    O **híbrido** roda as duas fases e portanto lê os quatro: o orçamento registrado é o
+    do run inteiro, e a repartição entre as fases fica no corpo do artefato
+    (`hybrid_split`), não aqui — o carimbo diz quanto se gastou, o corpo diz como.
     """
-    if algorithm == "ga":
+    if algorithm in ("ga", "hybrid"):
         override("POPULATION_SIZE", pop_size)
         override("MAX_GENERATIONS", n_generations)
-    else:
+    if algorithm in ("nsga2", "hybrid"):
         override("NSGA2_POP_SIZE", pop_size)
         override("NSGA2_GENERATIONS", n_generations)
 

@@ -187,8 +187,6 @@ ARCHETYPE_ORDER: List[ArchetypeID] = [
     ArchetypeID.TURTLE,
 ]
 
-NUM_ARCHETYPES = len(ARCHETYPE_ORDER)
-
 ARCHETYPE_ALIASES: Dict[str, ArchetypeID] = {
     "zoner":       ArchetypeID.ZONER,
     "z":           ArchetypeID.ZONER,
