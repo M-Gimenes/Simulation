@@ -1,5 +1,5 @@
 """hybrid_choice.py — aplica o critério pré-registrado que escolhe a configuração do
-híbrido, sobre os braços do `run_hybrid_sweep.ps1`.
+híbrido, sobre os braços do `run_sweeps.ps1` (passos 17–22).
 
 A escolha é uma decisão de projeto, e decisão de projeto tomada depois de ver os números
 não é decisão, é ajuste. Por isso o critério mora aqui, em código, e grava a **trilha**
@@ -190,7 +190,7 @@ def _load() -> Tuple[dict, List[dict]]:
     anchor_path = EXPLORATORY_DIR / ANCHOR_GLOB
     if not anchor_path.exists():
         raise SystemExit(f"Âncora não encontrada: {anchor_path}\n"
-                         f"Rode `.\\scripts\\run_hybrid_sweep.ps1` primeiro.")
+                         f"Rode `.\\scripts\\run_sweeps.ps1` primeiro.")
     anchor = json.loads(anchor_path.read_text(encoding="utf-8"))
     arms = [json.loads(p.read_text(encoding="utf-8"))
             for p in sorted(EXPLORATORY_DIR.glob(ARM_GLOB))]

@@ -83,8 +83,7 @@ Em `scripts/`. Os dois primeiros são retomáveis (`-From N` retoma de um passo;
 só lista e estima o custo); o `run_overnight.ps1` não tem `-WhatIf` — chamado, ele roda:
 
 ```powershell
-.\scripts\run_sweeps.ps1        # 16 bracos exploratorios em orcamento reduzido (~1h40)
-.\scripts\run_hybrid_sweep.ps1  # 7 bracos: escolhe o split/carry do hibrido (~35min)
+.\scripts\run_sweeps.ps1        # 22 bracos exploratorios em orcamento reduzido (~2h30)
 .\scripts\run_battery.ps1       # a bateria citavel, n = 20 sementes, 19 passos (~8h)
 .\scripts\run_overnight.ps1     # encadeia sweeps + bateria e roda desassistido
 ```

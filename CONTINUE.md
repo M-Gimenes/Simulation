@@ -56,8 +56,19 @@ O que falta é **redação** — [`docs/status/HANDOFF.md`](docs/status/HANDOFF.
 
 ## `diagnostics/`
 
-Scripts da investigação, fora de `src/` e sem carimbo de proveniência. Os que ainda
-servem: `battery_numbers.py` (extrai do disco todo número que os docs citam — usar sempre
-que uma bateria nova sair), `exp_holdout.py` (reavalia um braço a N lutas em sorteios
-novos) e `exp_diag.py` (réplica instrumentada do laço). Os `exp_cycle*.py` viraram
-`src/experiments/cycle_structure.py` e ficam só como rastro.
+Três scripts, fora de `src/` e sem carimbo de proveniência — o que sobrou depois da
+limpeza de 2026-09-23:
+
+- **`battery_numbers.py`** — extrai do disco todo número que os docs citam. Usar sempre
+  que uma bateria nova sair; atualizar documentação de memória é como se erra.
+- **`exp_holdout.py`** — reavalia qualquer braço a N lutas em sorteios novos. É o
+  instrumento que mede o ruído de uma régua antes de ela decidir uma comparação.
+- **`exp_diag.py`** — réplica instrumentada do laço do AG, com `data/base42.json`: é dela
+  que sai o "a linhagem fiel morre na geração 7".
+
+`data/noise.json` guarda o ruído do `dominance` por indivíduo (0,015–0,028 a 150 lutas),
+o número que motivou `MULTI_RUN_SIMS = 1000`.
+
+Foram apagados os que viraram código do projeto (`exp_cycle*` → `cycle_structure`,
+`exp_hybrid` → `engine/hybrid`, `exp_score`/`summary` → `battery_numbers` e o próprio
+`multi_run`) e os dados de braços que a bateria depois mediu direito.

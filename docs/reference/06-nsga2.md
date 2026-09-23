@@ -187,7 +187,7 @@ default) ou um representante só (`scalar_optimum`, …). A diferença entre os 
 quanto do efeito vem da **diversidade preservada** e quanto vem apenas de começar de um
 roster bom.
 
-`HYBRID_SPLIT` e `HYBRID_CARRY` são escolhidos pelo `run_hybrid_sweep.ps1` nas sementes
+`HYBRID_SPLIT` e `HYBRID_CARRY` são escolhidos pelo `run_sweeps.ps1` (passos 17–22) nas sementes
 1000–1004 e pelo critério de [`hybrid_choice`](08-tools.md) — nunca nas sementes da
 bateria. O braço devolve um **ponto**, como o escalar, então o `multi_run` o consome pelo
 mesmo caminho; o artefato vai para `results/controls/` com split e carry no nome.

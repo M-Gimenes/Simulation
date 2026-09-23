@@ -527,7 +527,7 @@ de 50%, então equilíbrio global com pares decididos força intransitividade.
 
 ### `hybrid_choice` — o critério que escolhe a configuração do híbrido
 
-Lê os braços do `run_hybrid_sweep.ps1` em `results/exploratory/` e grava
+Lê os braços do `run_sweeps.ps1` (passos 17–22) em `results/exploratory/` e grava
 `hybrid_choice.json` com a **trilha da decisão**: quem foi eliminado, por quê, e o que
 decidiu o desempate. O critério mora em código porque decisão de projeto tomada depois de
 ver os números não é decisão, é ajuste.

@@ -8,14 +8,19 @@
 # Numero citavel nao transfere - esse sai da bateria (run_battery.ps1). Os artefatos daqui
 # vao para results/exploratory/, fora dos caminhos que o compare_algorithms le.
 #
-# POR QUE OS TRES SWEEPS NO MESMO SCRIPT: eles COMPARTILHAM o braco default (passo 1).
-# Rodado uma vez, serve de ancora aos tres - e, mais importante, garante que os 16 bracos
+# POR QUE OS QUATRO SWEEPS NO MESMO SCRIPT: eles COMPARTILHAM o braco default (passo 1).
+# Rodado uma vez, serve de ancora aos quatro - e, mais importante, garante que os 16 bracos
 # saiam do MESMO digest de motor. Foi exatamente isso que faltou em 2026-09-17: os bracos
 # de lambda rodaram antes de um refactor e os de peso depois, e metade do conjunto passou a
 # se declarar obsoleta enquanto a outra metade se declarava atual. Comportamento identico,
 # leitura incoerente.
 #
-# POR QUE SO O AG ESCALAR: a fronteira do NSGA-II e lambda-independente
+# O QUARTO SWEEP (passos 17-22) escolhe a reparticao do orcamento do hibrido, e a leitura
+# dele e do `py -m src.experiments.hybrid_choice`, que aplica o criterio pre-registrado.
+# Ele viveu num script separado por um dia e voltou para ca: duplicava a ancora, que e
+# exatamente o que este cabecalho diz para nao fazer.
+#
+# POR QUE SO O AG ESCALAR NOS TRES PRIMEIROS: a fronteira do NSGA-II e lambda-independente
 # (nsga2.scalar_objective le os LAMBDA_* so para ESCOLHER o scalar_optimum, nunca para
 # buscar), e elitismo/torneio sao lidos so por operators.next_generation e
 # tournament_selection - o NSGA-II usa rank de Pareto e torneio binario. Rodar o NSGA-II
@@ -45,6 +50,9 @@ $env:PYTHONIOENCODING = "utf-8"
 # testa a escolha seria a mesma que a fez - selecao e avaliacao sobre os mesmos dados.
 $base = @("-m", "src.experiments.multi_run", "--algorithm", "ga", "--n-seeds", "5",
           "--seed-start", "1000", "--pop", "120", "--generations", "60")
+# Mesma amostra e mesmo orcamento; so o algoritmo muda.
+$hibrido = @("-m", "src.experiments.multi_run", "--algorithm", "hybrid", "--n-seeds", "5",
+             "--seed-start", "1000", "--pop", "120", "--generations", "60")
 
 # Os `Min` sao ESTIMATIVAS com o pool persistente: ~10,4 min por braco medidos em
 # 2026-09-18 com o pool recriado por geracao, escalados pela razao que o AG mostrou na
@@ -93,6 +101,29 @@ $passos = @(
        Args = $base + @("--dom-decis", "0") }
     @{ N = 16; Min = 6; Nome = "pesos 1 / 0 / 0 - a falsificacao: so o termo primario"
        Args = $base + @("--dom-cap", "0", "--dom-decis", "0") }
+
+    # --- QUARTO SWEEP: a reparticao do orcamento do hibrido (split e carry) ---
+    # Usa a MESMA ancora do passo 1 - o AG escalar nestas sementes e neste orcamento -,
+    # que e a razao de estes bracos morarem aqui e nao num script proprio. O hibrido,
+    # porem, roda com --algorithm hybrid e nao com o $base, que e do escalar.
+    #
+    # `carry` isola quanto do efeito vem da DIVERSIDADE preservada (a fronteira inteira)
+    # e quanto vem so de comecar de um roster bom (um ponto so).
+    #
+    # Custam mais que o escalar no mesmo orcamento: a fase de Pareto avalia pais + filhos
+    # (2x pop por geracao), entao um split s custa ~(1 + s) vezes o escalar.
+    @{ N = 17; Min = 8; Nome = "hibrido split 0,25 - fronteira inteira"
+       Args = $hibrido + @("--hybrid-split", "0.25", "--hybrid-carry", "front") }
+    @{ N = 18; Min = 9; Nome = "hibrido split 0,50 - fronteira inteira (o default)"
+       Args = $hibrido + @("--hybrid-split", "0.5", "--hybrid-carry", "front") }
+    @{ N = 19; Min = 11; Nome = "hibrido split 0,75 - fronteira inteira"
+       Args = $hibrido + @("--hybrid-split", "0.75", "--hybrid-carry", "front") }
+    @{ N = 20; Min = 8; Nome = "hibrido split 0,25 - so o scalar_optimum"
+       Args = $hibrido + @("--hybrid-split", "0.25", "--hybrid-carry", "scalar_optimum") }
+    @{ N = 21; Min = 9; Nome = "hibrido split 0,50 - so o scalar_optimum"
+       Args = $hibrido + @("--hybrid-split", "0.5", "--hybrid-carry", "scalar_optimum") }
+    @{ N = 22; Min = 11; Nome = "hibrido split 0,75 - so o scalar_optimum"
+       Args = $hibrido + @("--hybrid-split", "0.75", "--hybrid-carry", "scalar_optimum") }
 )
 
 $restantes = @($passos | Where-Object { $_.N -ge $From })

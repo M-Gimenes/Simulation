@@ -68,9 +68,8 @@ pip install -r requirements.txt
 ├── requirements.txt
 ├── scripts/                   # PowerShell; rodam a partir da raiz, de onde forem chamados
 │   ├── setup.ps1              # cria o .venv
-│   ├── run_sweeps.ps1         # os 16 braços exploratórios (orçamento reduzido)
+│   ├── run_sweeps.ps1         # os 22 braços exploratórios (orçamento reduzido), incl. o do híbrido
 │   ├── run_battery.ps1        # a bateria citável (n = 20), em passos retomáveis
-│   ├── run_hybrid_sweep.ps1   # os 7 braços que escolhem a config do híbrido
 │   └── run_overnight.ps1      # sweeps + bateria, desassistido
 ├── src/                       # pacote raiz (importável como `src`)
 │   ├── engine/                # o modelo: combate, fitness e os dois algoritmos

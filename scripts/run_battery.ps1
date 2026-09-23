@@ -125,7 +125,7 @@ $passos = @(
        Args = @("-m", "src.experiments.cycle_structure") }
 
     # --- o terceiro braco: NSGA-II -> AG escalar com o orcamento repartido ---
-    # Configuracao escolhida pelo run_hybrid_sweep.ps1 nas sementes 1000-1004 (disjuntas
+    # Configuracao escolhida pelo run_sweeps.ps1 (passos 17-22) nas sementes 1000-1004 (disjuntas
     # destas), e fixada em hybrid.HYBRID_SPLIT / HYBRID_CARRY. Custa a soma das duas
     # fases: ~split x NSGA-II + (1-split) x AG escalar.
     @{ N = 18; Min = 103; Nome = "hibrido NSGA-II -> AG escalar, 20 sementes"
