@@ -196,7 +196,7 @@ julgamento entra depois de ver os p-valores.
 
 Até a bateria de 2026-09-18 a família eram as 4 primeiras (3 depois da exclusão); as
 métricas de identidade entraram quando a comparação passou a responder também "o método
-preserva identidade?" — antes da bateria que as mede. Na bateria de 2026-09-21 a família
+preserva identidade?" — antes da bateria que as mede. Na bateria de 2026-09-23 a família
 é de **6** nas quatro comparações (`n_chars_balanced` sai por degenerescência), e o
 multiplicador só muda um veredito em quatro comparações: em AG × NSGA-II os seis p brutos
 vão de 0,0037 a 6,8 × 10⁻⁸ e os seis sobrevivem a Holm; no controle `λ_drift = 0` o único
@@ -210,7 +210,7 @@ semente, o drift passa (0,0071 → 0,043) e o resto não chega perto nem sem cor
 
 A métrica `n_chars_balanced` (quantos dos 5 personagens ficam em banda) deu **5 em
 todas as execuções** de todos os braços — 20 de 20 na bateria de 2026-09-16 e, na de
-2026-09-21, 80 de 80 somando AG, NSGA-II e os dois controles.
+2026-09-23, 100 de 100 somando AG, NSGA-II, o híbrido e os dois controles.
 
 Mann-Whitney devolve `p = nan`. Não é bug: o teste compara postos, e com todos os
 valores empatados a correção de empates zera o denominador da variância. Não há

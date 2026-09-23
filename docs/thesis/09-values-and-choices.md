@@ -107,7 +107,7 @@ defensável que um que separa os que foram medidos dos que são escolha.
   pergunta de trade-off) e com a linha premissa/resposta. → [03](03-fitness-formulation.md).
 - **`LAMBDA_DRIFT = LAMBDA_DOMINANCE = 1,0`** — **[medido]**. Só a razão importa; o sweep de λ
   mostrou 1,0 como o joelho da curva (dominance plano até ali, explosão depois). Re-rodado
-  sobre o motor atual (2026-09-21), λ = 1,0 deixou de empatar com λ = 0,25 e 0,5 e passou a
+  sobre o motor atual (2026-09-23), λ = 1,0 deixou de empatar com λ = 0,25 e 0,5 e passou a
   **dominá-los**: mesmo dominance, drift 0,10–0,13 melhor, τ dez vezes maior. →
   [04](04-design-decisions.md) "O sweep de λ" e "λ = 1,0 deixou de empatar com os λ menores".
 - **Drift normalizado pelo range do bound** — **[medido]**: é o que faz a ordenação por drift
@@ -223,7 +223,7 @@ defensável que um que separa os que foram medidos dos que são escolha.
   — **[projeto]**, com a razão escrita: mais lutas que o treino onde se **mede** em vez de
   **selecionar** — ±3,5% por par a 200; na validação externa as 10 sementes são somadas
   numa amostra de 5000 lutas por par (IC de ±1,4%).
-- **`MULTI_RUN_SIMS` não é `SIMS_CONVERGENCE_CHECK`, apesar dos dois valerem 200** —
+- **`MULTI_RUN_SIMS` (1000) não é `SIMS_CONVERGENCE_CHECK` (200)** —
   **[coerência]**. A confirmação roda *dentro* do laço, a cada disparo do gate; a
   reavaliação, uma vez por execução, sobre um indivíduo só. Custos e restrições diferentes,
   então constantes diferentes.
@@ -233,10 +233,14 @@ defensável que um que separa os que foram medidos dos que são escolha.
   inofensivo: o ruído é simétrico entre braços e a média o dilui. **Numa amostra pequena
   não é** — comparando dois braços em 5 sementes, o veredito a 200 sims inverteu contra a
   reavaliação a 1000 sims em 4 sorteios. Regra de leitura: nenhuma conclusão por semente,
-  nem comparação de braço em amostra pequena, a 200. Subir para 1000 custa 10.000 lutas por
-  semente contra 67.500.000 da execução, mas obsoleta a bateria — pendência 5 de
-  [`../reference/10-known-issues.md`](../reference/10-known-issues.md). →
-  [07](07-findings-and-limitations.md) "O AG escalar não é ótimo na própria função".
+  nem comparação de braço em amostra pequena, a 200. **Subiu para 1000 em 2026-09-23**,
+  junto da re-execução que o híbrido exigiu: custa 10.000 lutas por semente contra
+  67.500.000 da execução, e a constante entra no carimbo, então só podia acompanhar uma
+  bateria nova. **Efeito medido**, com os mesmos indivíduos: identidade inalterada,
+  `dominance` mediano do AG 0,0399 → 0,0355 e rosters equilibrados 14/20 → 16/20 — a régua
+  antiga subestimava o equilíbrio —, e uma afirmação da tese caiu (o controle λ = 0 deixou
+  de separar em equilíbrio). → [04](04-design-decisions.md), "`MULTI_RUN_SIMS` saiu de
+  `SIMS_CONVERGENCE_CHECK`" e [07](07-findings-and-limitations.md).
 - **Validação externa: veredito pelo IC, replicação e regras perturbadas** — **[coerência] +
   [projeto]**. O IC contra a banda não fica mais severo com o número de sementes, como o
   quantificador "em alguma das K" ficava. As perturbações de regra (distância 40/60, campo

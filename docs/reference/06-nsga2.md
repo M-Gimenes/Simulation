@@ -111,7 +111,7 @@ invariância à unidade.
   LAMBDA iguais, `scalar_optimum` é o mínimo **L1** em unidades cruas. Medido no orçamento
   de produção, a afirmação não vale literalmente: o ponto do escalar fica **além** da
   ponta de baixa dominância da fronteira, e os dois são mutuamente não-dominados em
-  **18 das 20 sementes** da bateria de 2026-09-21 (o AG domina um ponto da fronteira numa
+  **18 das 20 sementes** da bateria de 2026-09-23 (o AG domina um ponto da fronteira numa
   semente e é dominado em outra).
 
   No teste entre algoritmos (n = 20) o NSGA-II entra pelo **`scalar_optimum`**
@@ -135,7 +135,7 @@ Comparar fronteiras "no olho" não escala (Deb 2001/2002). Em `src/engine/pareto
   não-dominada: `Σ (x_{i+1} − x_i)·(r1 − y_i)`, com `x_{n+1} = r0`. Com a referência
   anterior, (2,0; 1,0) — os máximos teóricos —, o HV saturava em 90% da área e mal
   separava uma fronteira de outra (coeficiente de variação 2,0% entre sementes, contra
-  2,9% com a atual: **0,3954 ± 0,0114** na bateria de 2026-09-21; spacing 0,0118 ± 0,0033).
+  2,9% com a atual: **0,3954 ± 0,0114** na bateria de 2026-09-23; spacing 0,0118 ± 0,0033).
 - **`spacing(front)`** — desvio-padrão (Schott) da distância Manhattan de cada ponto
   ao vizinho mais próximo. Mede a **uniformidade** da distribuição; **menor é melhor**.
 

@@ -36,7 +36,7 @@ direção de cada aresta de um roster equilibrado é sorteio) para
 decisão em [`../thesis/04-design-decisions.md`](../thesis/04-design-decisions.md), «O ciclo
 saiu do `baselines`».
 
-O resto da instrumentação está fechado: a bateria de 2026-09-21 rodou sobre o motor atual (CRN por luta,
+O resto da instrumentação está fechado: a bateria de 2026-09-23 rodou sobre o motor atual (CRN por luta,
 timers com resto acumulado) e o protocolo completo (os dois controles, manchete no
 `scalar_optimum` com relação de Pareto, concordância de ranking, validação externa com
 regras perturbadas, sensibilidade nos 11 genes, validador com empate contra a asserção,
@@ -111,7 +111,7 @@ Precisam aparecer explicitamente na Discussão, não só em Trabalhos Futuros.
   equilíbrio sob confronto uniforme.
 - **Genes de recurso são hipersensíveis.** Com o ataque como regra de resolução, a luta
   é uma corrida de DPS quase determinística e a resposta é íngreme. Na sensibilidade de
-  2026-09-21, uma janela de 2σ de mutação move a WR média em `range` **30,8%**, `damage`
+  2026-09-23, uma janela de 2σ de mutação move a WR média em `range` **30,8%**, `damage`
   26,2%, `attack_cooldown` 25,7% e `hp` 23,9%, contra um piso de ruído de 3,5% — sinal
   sobre ruído de 7× a 9×, uma ordem de grandeza acima dos genes de política. E
   **30 dos 30 rosters aleatórios** dos modelos nulos têm ao menos um par saturado (WR fora
@@ -119,7 +119,7 @@ Precisam aparecer explicitamente na Discussão, não só em Trabalhos Futuros.
   potencialmente frágil é a descrição correta do regime; amortecer (variância no dano,
   mais sims) é trabalho futuro.
 - **A política é o que o AG menos enxerga pelo equilíbrio.** Na sensibilidade da bateria
-  de 2026-09-21 (11 genes, janela 2σ, piso medido em 3,5%), **os três pesos ocupam o fundo
+  de 2026-09-23 (11 genes, janela 2σ, piso medido em 3,5%), **os três pesos ocupam o fundo
   do ranking**: `w_defend` 2,9% e `w_aggressiveness` 3,0% abaixo do piso, `w_retreat` 4,8%
   no limiar — ao lado de `knockback` 4,3% e `speed` 3,5% —, contra `range` 30,8% no topo.
   O único gradiente que puxa a política de volta ao canônico é o do drift, e o controle
@@ -155,7 +155,7 @@ Precisam aparecer explicitamente na Discussão, não só em Trabalhos Futuros.
 
 ## 3. Estado dos artefatos em `results/`
 
-> ✅ **`results/` está COMPLETO e ATUAL** — os números são os da bateria de 2026-09-21
+> ✅ **`results/` está COMPLETO e ATUAL** — os números são os da bateria de 2026-09-23
 > com **n = 20**, sobre o motor e o protocolo atuais.
 
 **Regra:** ao mexer em `config.py`, nos canônicos ou no motor, todo `results/` fica

@@ -580,7 +580,7 @@ redesenha **a partir do artefato** (`py -m src.visualization.nsga2_plots`), sem 
 os 7 min do NSGA-II.
 
 **Representantes coincidem com frequência, e a figura mostra isso.** Nada impede dois
-critérios de escolherem o mesmo ponto: na bateria de 2026-09-21, `best_dominance` e
+critérios de escolherem o mesmo ponto: na bateria de 2026-09-23, `best_dominance` e
 `scalar_optimum` caem no mesmo ponto em **11 das 20 sementes**, e `knee_point` e
 `ideal_point` também em 11/20. Desenhados no mesmo tamanho, o segundo cobriria o primeiro
 e a legenda citaria um marcador ausente da figura — então os marcadores são desenhados
