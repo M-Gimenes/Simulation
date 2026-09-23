@@ -214,3 +214,32 @@ Quatro números/figuras que a redação deve usar:
 > O que **não** vai nos resultados (é sobre o AG/processo, não sobre um indivíduo):
 > detalhes de mecânica, e o "como" técnico — esses ficam na Metodologia, referenciando
 > [`../`](../reference/README.md).
+
+## A trajetória entra na monografia? (regra, 2026-09-23)
+
+`04-design-decisions.md` carrega ~85 afirmações da forma *"a 200 lutas dava X; a 1000 dá
+Y"*, e os artefatos que sustentam o lado **X** estão em `results_previous/2026-09-21/`.
+Isso é **registro de trabalho**, e a regra é:
+
+**Não vai para os Resultados.** Ali se apresenta a medição final. Narrar a história de
+cada número deixaria o capítulo ilegível e passaria a impressão errada — de trabalho
+instável, quando foi o contrário.
+
+**Vai para a Metodologia, como justificativa** — o histórico vira a *evidência* da
+escolha, não a narrativa dela. Escreve-se *"a reavaliação usa 1000 lutas por par porque a
+200 o desvio do `dominance` de um mesmo roster (0,015–0,028) é da ordem do próprio valor
+medido (~0,04)"*, e não *"era 200 e virou 1000"*.
+
+**Vai para a Discussão, como achado de método** — e é dos itens mais fortes que o trabalho
+tem: *uma régua de resolução insuficiente não erra simetricamente; ela penaliza mais o
+braço com mais ruído, e o teste com mais poder estatístico é justamente o que converte
+esse viés em significância.* Isso é resultado, não confissão.
+
+**Leva junto a defesa contra a objeção de p-hacking**, registrada em
+[04](04-design-decisions.md) («`MULTI_RUN_SIMS` saiu de `SIMS_CONVERGENCE_CHECK`»): a
+motivação veio de outro braço, a troca foi uniforme sobre os mesmos indivíduos, e o efeito
+foi **enfraquecer** a afirmação principal.
+
+**E o que não pode aparecer:** que tirar o termo de identidade *piora* o equilíbrio. Essa
+foi retirada. Nada foi publicado, então não há retratação a fazer — mas a afirmação está
+morta, e a versão viva é *"a identidade não custa equilíbrio"*.

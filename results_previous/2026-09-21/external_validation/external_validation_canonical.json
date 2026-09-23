@@ -1,0 +1,1520 @@
+{
+  "provenance": {
+    "generated_at": "2026-09-21T00:49:42-03:00",
+    "fingerprint": "371966d9f335",
+    "engine_digest": "6b18ff49b38a",
+    "archetypes_digest": "e37725dd4b7c",
+    "config": {
+      "ACTION_PERSISTENCE_SUBTICKS": 5,
+      "ATTRIBUTE_BOUNDS": [
+        [
+          250.0,
+          450.0
+        ],
+        [
+          15.0,
+          30.0
+        ],
+        [
+          1.0,
+          5.0
+        ],
+        [
+          5.0,
+          20.0
+        ],
+        [
+          1.0,
+          5.0
+        ],
+        [
+          0.0,
+          0.6
+        ],
+        [
+          0.0,
+          3.0
+        ],
+        [
+          0.0,
+          1.0
+        ]
+      ],
+      "ATTRIBUTE_MUTATION_SIGMA": 0.1,
+      "ATTRIBUTE_NAMES": [
+        "hp",
+        "damage",
+        "attack_cooldown",
+        "range",
+        "speed",
+        "stun",
+        "knockback",
+        "grab_power"
+      ],
+      "CONVERGENCE_SEED_OFFSET": 100000,
+      "DEFEND_DAMAGE_REDUCTION": 0.6,
+      "DOMINANCE_CAP_WEIGHT": 0.5,
+      "DOMINANCE_DECIS_WEIGHT": 0.5,
+      "DOMINANCE_GLOBAL_WEIGHT": 1.0,
+      "DRIFT_DEFINING_WEIGHT": 3.0,
+      "ELITE_RATE": 0.1,
+      "EXTERNAL_VALIDATION_N_SEEDS": 10,
+      "EXTERNAL_VALIDATION_RULE_PERTURBATIONS": [
+        [
+          "INITIAL_DISTANCE",
+          40.0
+        ],
+        [
+          "INITIAL_DISTANCE",
+          60.0
+        ],
+        [
+          "FIELD_SIZE",
+          80.0
+        ],
+        [
+          "FIELD_SIZE",
+          120.0
+        ],
+        [
+          "ACTION_PERSISTENCE_SUBTICKS",
+          4
+        ],
+        [
+          "ACTION_PERSISTENCE_SUBTICKS",
+          6
+        ],
+        [
+          "DEFEND_DAMAGE_REDUCTION",
+          0.55
+        ],
+        [
+          "DEFEND_DAMAGE_REDUCTION",
+          0.65
+        ]
+      ],
+      "EXTERNAL_VALIDATION_SEED_START": 10000,
+      "EXTERNAL_VALIDATION_SIMS": 500,
+      "FIELD_SIZE": 100,
+      "GA_CANONICAL_SEED": true,
+      "GENERATION_SEED_STRIDE": 1000,
+      "GENE_BOUNDS": [
+        [
+          250.0,
+          450.0
+        ],
+        [
+          15.0,
+          30.0
+        ],
+        [
+          1.0,
+          5.0
+        ],
+        [
+          5.0,
+          20.0
+        ],
+        [
+          1.0,
+          5.0
+        ],
+        [
+          0.0,
+          0.6
+        ],
+        [
+          0.0,
+          3.0
+        ],
+        [
+          0.0,
+          1.0
+        ],
+        [
+          0.0,
+          1.0
+        ],
+        [
+          0.0,
+          1.0
+        ],
+        [
+          0.0,
+          1.0
+        ]
+      ],
+      "GENE_NAMES": [
+        "hp",
+        "damage",
+        "attack_cooldown",
+        "range",
+        "speed",
+        "stun",
+        "knockback",
+        "grab_power",
+        "w_retreat",
+        "w_defend",
+        "w_aggressiveness"
+      ],
+      "GLOBAL_CONVERGENCE_THRESHOLD": 0.1,
+      "HYPERVOLUME_REFERENCE": [
+        1.3,
+        0.4
+      ],
+      "IDENTITY_BEHAVIORAL_SIMS": 200,
+      "INITIAL_DISTANCE": 50,
+      "LAMBDA_DOMINANCE": 1.0,
+      "LAMBDA_DRIFT": 1.0,
+      "MATCHUP_FLOOR": 0.02,
+      "MATCHUP_THRESHOLD": 0.2,
+      "MATCHUP_WR_CAP": 0.15,
+      "MAX_GENERATIONS": 150,
+      "MAX_TICKS": 2500,
+      "MULTI_RUN_SEED_START": 42,
+      "MULTI_RUN_SIMS": 200,
+      "MULTI_RUN_VALIDATION_SEED": 9999,
+      "MUTATION_RATE": 0.05,
+      "NSGA2_GENERATIONS": 150,
+      "NSGA2_OBJECTIVES": [
+        "dominance_penalty",
+        "drift_penalty"
+      ],
+      "NSGA2_POP_SIZE": 300,
+      "POPULATION_SIZE": 300,
+      "SIMS_CONVERGENCE_CHECK": 200,
+      "SIMS_PER_MATCHUP": 150,
+      "TICK_SCALE": 5,
+      "TOURNAMENT_SIZE": 3,
+      "WEIGHT_BOUNDS": [
+        [
+          0.0,
+          1.0
+        ],
+        [
+          0.0,
+          1.0
+        ],
+        [
+          0.0,
+          1.0
+        ]
+      ],
+      "WEIGHT_MUTATION_SIGMA": 0.025,
+      "WEIGHT_NAMES": [
+        "w_retreat",
+        "w_defend",
+        "w_aggressiveness"
+      ]
+    },
+    "measurement": {
+      "tool": "src.experiments.external_validation",
+      "modules": [
+        "src.analysis.analyze_matchups",
+        "src.analysis.archetype_validator",
+        "src.experiments.external_validation",
+        "src.experiments.multi_run"
+      ],
+      "digest": "39d7821baec6"
+    }
+  },
+  "individual": "canonical",
+  "seeds": [
+    10000,
+    10001,
+    10002,
+    10003,
+    10004,
+    10005,
+    10006,
+    10007,
+    10008,
+    10009
+  ],
+  "sims_per_matchup": 500,
+  "character_band": [
+    0.4,
+    0.6
+  ],
+  "pair_band": [
+    0.35,
+    0.65
+  ],
+  "conditions": {
+    "replicação (regras do treino)": {
+      "rules": {
+        "field_size": 100.0,
+        "initial_distance": 50.0,
+        "max_ticks": 2500,
+        "tick_scale": 5.0,
+        "defend_damage_reduction": 0.6,
+        "action_persistence_subticks": 5
+      },
+      "fights_per_pair": 5000,
+      "dominance_penalty": {
+        "mean": 1.2770972207467381,
+        "std": 0.0018569890846638682
+      },
+      "drift_penalty": 0.0,
+      "characters": {
+        "Zoner": {
+          "wr": 0.40952500000000003,
+          "ci": [
+            0.40272775348542217,
+            0.4163569967157594
+          ],
+          "status": "dentro"
+        },
+        "Rushdown": {
+          "wr": 0.9981500000000001,
+          "ci": [
+            0.9974511964864954,
+            0.9986574709606619
+          ],
+          "status": "fora"
+        },
+        "Combo Master": {
+          "wr": 0.499375,
+          "ci": [
+            0.49244614441093176,
+            0.5063040956429589
+          ],
+          "status": "dentro"
+        },
+        "Grappler": {
+          "wr": 0.59295,
+          "ci": [
+            0.5861239265228568,
+            0.5997403726625556
+          ],
+          "status": "dentro"
+        },
+        "Turtle": {
+          "wr": 0.0,
+          "ci": [
+            0.0,
+            0.00019204311235897808
+          ],
+          "status": "fora"
+        }
+      },
+      "matchups": {
+        "Zoner vs Rushdown": {
+          "wr": 0.0,
+          "ci": [
+            0.0,
+            0.000767730137580694
+          ],
+          "status": "fora"
+        },
+        "Zoner vs Combo Master": {
+          "wr": 0.0047,
+          "ci": [
+            0.003147391590778537,
+            0.007013121883508899
+          ],
+          "status": "fora"
+        },
+        "Zoner vs Grappler": {
+          "wr": 0.6334,
+          "ci": [
+            0.6199454001266687,
+            0.6466497694726248
+          ],
+          "status": "dentro"
+        },
+        "Zoner vs Turtle": {
+          "wr": 1.0,
+          "ci": [
+            0.9992322698624194,
+            1.0
+          ],
+          "status": "fora"
+        },
+        "Rushdown vs Combo Master": {
+          "wr": 1.0,
+          "ci": [
+            0.9992322698624194,
+            1.0
+          ],
+          "status": "fora"
+        },
+        "Rushdown vs Grappler": {
+          "wr": 0.9926,
+          "ci": [
+            0.9898171986694128,
+            0.9946264335990428
+          ],
+          "status": "fora"
+        },
+        "Rushdown vs Turtle": {
+          "wr": 1.0,
+          "ci": [
+            0.9992322698624194,
+            1.0
+          ],
+          "status": "fora"
+        },
+        "Combo Master vs Grappler": {
+          "wr": 0.0021999999999999997,
+          "ci": [
+            0.0012289026120903687,
+            0.00393544951288497
+          ],
+          "status": "fora"
+        },
+        "Combo Master vs Turtle": {
+          "wr": 1.0,
+          "ci": [
+            0.9992322698624194,
+            1.0
+          ],
+          "status": "fora"
+        },
+        "Grappler vs Turtle": {
+          "wr": 1.0,
+          "ci": [
+            0.9992322698624194,
+            1.0
+          ],
+          "status": "fora"
+        }
+      },
+      "verdict": "FRÁGIL"
+    },
+    "INITIAL_DISTANCE=40": {
+      "rules": {
+        "field_size": 100.0,
+        "initial_distance": 40.0,
+        "max_ticks": 2500,
+        "tick_scale": 5.0,
+        "defend_damage_reduction": 0.6,
+        "action_persistence_subticks": 5
+      },
+      "fights_per_pair": 5000,
+      "dominance_penalty": {
+        "mean": 1.2766306477676734,
+        "std": 0.0008416408375664849
+      },
+      "drift_penalty": 0.0,
+      "characters": {
+        "Zoner": {
+          "wr": 0.407925,
+          "ci": [
+            0.4011321767658918,
+            0.41475318797324917
+          ],
+          "status": "dentro"
+        },
+        "Rushdown": {
+          "wr": 0.9981,
+          "ci": [
+            0.9973933287291997,
+            0.9986153579222684
+          ],
+          "status": "fora"
+        },
+        "Combo Master": {
+          "wr": 0.49965000000000004,
+          "ci": [
+            0.4927210878841214,
+            0.5065790465460573
+          ],
+          "status": "dentro"
+        },
+        "Grappler": {
+          "wr": 0.594325,
+          "ci": [
+            0.5875022944976538,
+            0.6011114765691996
+          ],
+          "status": "inconclusivo"
+        },
+        "Turtle": {
+          "wr": 0.0,
+          "ci": [
+            0.0,
+            0.00019204311235897808
+          ],
+          "status": "fora"
+        }
+      },
+      "matchups": {
+        "Zoner vs Rushdown": {
+          "wr": 0.0,
+          "ci": [
+            0.0,
+            0.000767730137580694
+          ],
+          "status": "fora"
+        },
+        "Zoner vs Combo Master": {
+          "wr": 0.0036000000000000003,
+          "ci": [
+            0.0022784219199114787,
+            0.005683780560678634
+          ],
+          "status": "fora"
+        },
+        "Zoner vs Grappler": {
+          "wr": 0.6281,
+          "ci": [
+            0.6146097138713138,
+            0.641393593667438
+          ],
+          "status": "dentro"
+        },
+        "Zoner vs Turtle": {
+          "wr": 1.0,
+          "ci": [
+            0.9992322698624194,
+            1.0
+          ],
+          "status": "fora"
+        },
+        "Rushdown vs Combo Master": {
+          "wr": 1.0,
+          "ci": [
+            0.9992322698624194,
+            1.0
+          ],
+          "status": "fora"
+        },
+        "Rushdown vs Grappler": {
+          "wr": 0.9924,
+          "ci": [
+            0.9895861306306641,
+            0.9944578087298463
+          ],
+          "status": "fora"
+        },
+        "Rushdown vs Turtle": {
+          "wr": 1.0,
+          "ci": [
+            0.9992322698624194,
+            1.0
+          ],
+          "status": "fora"
+        },
+        "Combo Master vs Grappler": {
+          "wr": 0.0021999999999999997,
+          "ci": [
+            0.0012289026120903687,
+            0.00393544951288497
+          ],
+          "status": "fora"
+        },
+        "Combo Master vs Turtle": {
+          "wr": 1.0,
+          "ci": [
+            0.9992322698624194,
+            1.0
+          ],
+          "status": "fora"
+        },
+        "Grappler vs Turtle": {
+          "wr": 1.0,
+          "ci": [
+            0.9992322698624194,
+            1.0
+          ],
+          "status": "fora"
+        }
+      },
+      "verdict": "FRÁGIL"
+    },
+    "INITIAL_DISTANCE=60": {
+      "rules": {
+        "field_size": 100.0,
+        "initial_distance": 60.0,
+        "max_ticks": 2500,
+        "tick_scale": 5.0,
+        "defend_damage_reduction": 0.6,
+        "action_persistence_subticks": 5
+      },
+      "fights_per_pair": 5000,
+      "dominance_penalty": {
+        "mean": 1.2784192902886118,
+        "std": 0.00116391088206762
+      },
+      "drift_penalty": 0.0,
+      "characters": {
+        "Zoner": {
+          "wr": 0.41027500000000006,
+          "ci": [
+            0.4034757057510476,
+            0.4171087563854656
+          ],
+          "status": "dentro"
+        },
+        "Rushdown": {
+          "wr": 0.9986,
+          "ci": [
+            0.997977319859875,
+            0.9990311747484807
+          ],
+          "status": "fora"
+        },
+        "Combo Master": {
+          "wr": 0.499575,
+          "ci": [
+            0.49264610309269447,
+            0.5065040601439512
+          ],
+          "status": "dentro"
+        },
+        "Grappler": {
+          "wr": 0.59155,
+          "ci": [
+            0.5847205540549341,
+            0.5983442828511931
+          ],
+          "status": "dentro"
+        },
+        "Turtle": {
+          "wr": 0.0,
+          "ci": [
+            0.0,
+            0.00019204311235897808
+          ],
+          "status": "fora"
+        }
+      },
+      "matchups": {
+        "Zoner vs Rushdown": {
+          "wr": 0.0,
+          "ci": [
+            0.0,
+            0.000767730137580694
+          ],
+          "status": "fora"
+        },
+        "Zoner vs Combo Master": {
+          "wr": 0.0039,
+          "ci": [
+            0.0025123876672112654,
+            0.0060493541752963
+          ],
+          "status": "fora"
+        },
+        "Zoner vs Grappler": {
+          "wr": 0.6372,
+          "ci": [
+            0.6237720550659239,
+            0.6504172797843238
+          ],
+          "status": "inconclusivo"
+        },
+        "Zoner vs Turtle": {
+          "wr": 1.0,
+          "ci": [
+            0.9992322698624194,
+            1.0
+          ],
+          "status": "fora"
+        },
+        "Rushdown vs Combo Master": {
+          "wr": 1.0,
+          "ci": [
+            0.9992322698624194,
+            1.0
+          ],
+          "status": "fora"
+        },
+        "Rushdown vs Grappler": {
+          "wr": 0.9944,
+          "ci": [
+            0.9919182251593253,
+            0.9961226432806349
+          ],
+          "status": "fora"
+        },
+        "Rushdown vs Turtle": {
+          "wr": 1.0,
+          "ci": [
+            0.9992322698624194,
+            1.0
+          ],
+          "status": "fora"
+        },
+        "Combo Master vs Grappler": {
+          "wr": 0.0021999999999999997,
+          "ci": [
+            0.0012289026120903687,
+            0.00393544951288497
+          ],
+          "status": "fora"
+        },
+        "Combo Master vs Turtle": {
+          "wr": 1.0,
+          "ci": [
+            0.9992322698624194,
+            1.0
+          ],
+          "status": "fora"
+        },
+        "Grappler vs Turtle": {
+          "wr": 1.0,
+          "ci": [
+            0.9992322698624194,
+            1.0
+          ],
+          "status": "fora"
+        }
+      },
+      "verdict": "FRÁGIL"
+    },
+    "FIELD_SIZE=80": {
+      "rules": {
+        "field_size": 80.0,
+        "initial_distance": 50.0,
+        "max_ticks": 2500,
+        "tick_scale": 5.0,
+        "defend_damage_reduction": 0.6,
+        "action_persistence_subticks": 5
+      },
+      "fights_per_pair": 5000,
+      "dominance_penalty": {
+        "mean": 1.2969418374442645,
+        "std": 0.0019869200338246307
+      },
+      "drift_penalty": 0.0,
+      "characters": {
+        "Zoner": {
+          "wr": 0.35695,
+          "ci": [
+            0.35033806693798597,
+            0.36361687659646
+          ],
+          "status": "fora"
+        },
+        "Rushdown": {
+          "wr": 0.9984999999999999,
+          "ci": [
+            0.9978594752889082,
+            0.9989490577280701
+          ],
+          "status": "fora"
+        },
+        "Combo Master": {
+          "wr": 0.5004500000000001,
+          "ci": [
+            0.493520935358056,
+            0.5073788918031431
+          ],
+          "status": "dentro"
+        },
+        "Grappler": {
+          "wr": 0.6441000000000001,
+          "ci": [
+            0.6374372828674151,
+            0.6507073703076034
+          ],
+          "status": "fora"
+        },
+        "Turtle": {
+          "wr": 0.0,
+          "ci": [
+            0.0,
+            0.00019204311235897808
+          ],
+          "status": "fora"
+        }
+      },
+      "matchups": {
+        "Zoner vs Rushdown": {
+          "wr": 0.0,
+          "ci": [
+            0.0,
+            0.000767730137580694
+          ],
+          "status": "fora"
+        },
+        "Zoner vs Combo Master": {
+          "wr": 0.0004,
+          "ci": [
+            0.0001096989857531115,
+            0.001457416967717518
+          ],
+          "status": "fora"
+        },
+        "Zoner vs Grappler": {
+          "wr": 0.4274,
+          "ci": [
+            0.41374847199090103,
+            0.4411630024250758
+          ],
+          "status": "dentro"
+        },
+        "Zoner vs Turtle": {
+          "wr": 1.0,
+          "ci": [
+            0.9992322698624194,
+            1.0
+          ],
+          "status": "fora"
+        },
+        "Rushdown vs Combo Master": {
+          "wr": 1.0,
+          "ci": [
+            0.9992322698624194,
+            1.0
+          ],
+          "status": "fora"
+        },
+        "Rushdown vs Grappler": {
+          "wr": 0.994,
+          "ci": [
+            0.991447591594936,
+            0.9957938910291343
+          ],
+          "status": "fora"
+        },
+        "Rushdown vs Turtle": {
+          "wr": 1.0,
+          "ci": [
+            0.9992322698624194,
+            1.0
+          ],
+          "status": "fora"
+        },
+        "Combo Master vs Grappler": {
+          "wr": 0.0021999999999999997,
+          "ci": [
+            0.0012289026120903687,
+            0.00393544951288497
+          ],
+          "status": "fora"
+        },
+        "Combo Master vs Turtle": {
+          "wr": 1.0,
+          "ci": [
+            0.9992322698624194,
+            1.0
+          ],
+          "status": "fora"
+        },
+        "Grappler vs Turtle": {
+          "wr": 1.0,
+          "ci": [
+            0.9992322698624194,
+            1.0
+          ],
+          "status": "fora"
+        }
+      },
+      "verdict": "FRÁGIL"
+    },
+    "FIELD_SIZE=120": {
+      "rules": {
+        "field_size": 120.0,
+        "initial_distance": 50.0,
+        "max_ticks": 2500,
+        "tick_scale": 5.0,
+        "defend_damage_reduction": 0.6,
+        "action_persistence_subticks": 5
+      },
+      "fights_per_pair": 5000,
+      "dominance_penalty": {
+        "mean": 1.271766440055721,
+        "std": 0.0019620501157516577
+      },
+      "drift_penalty": 0.0,
+      "characters": {
+        "Zoner": {
+          "wr": 0.427975,
+          "ci": [
+            0.42113210335274237,
+            0.434845560457593
+          ],
+          "status": "dentro"
+        },
+        "Rushdown": {
+          "wr": 0.9981500000000001,
+          "ci": [
+            0.9974511964864954,
+            0.9986574709606619
+          ],
+          "status": "fora"
+        },
+        "Combo Master": {
+          "wr": 0.49792500000000006,
+          "ci": [
+            0.49099647711720185,
+            0.5048543198617148
+          ],
+          "status": "dentro"
+        },
+        "Grappler": {
+          "wr": 0.57595,
+          "ci": [
+            0.5690868225826226,
+            0.5827840060686101
+          ],
+          "status": "dentro"
+        },
+        "Turtle": {
+          "wr": 0.0,
+          "ci": [
+            0.0,
+            0.00019204311235897808
+          ],
+          "status": "fora"
+        }
+      },
+      "matchups": {
+        "Zoner vs Rushdown": {
+          "wr": 0.0,
+          "ci": [
+            0.0,
+            0.000767730137580694
+          ],
+          "status": "fora"
+        },
+        "Zoner vs Combo Master": {
+          "wr": 0.010499999999999999,
+          "ci": [
+            0.008026636871449295,
+            0.013724970933242202
+          ],
+          "status": "fora"
+        },
+        "Zoner vs Grappler": {
+          "wr": 0.7013999999999999,
+          "ci": [
+            0.6885640620707841,
+            0.7139266962297982
+          ],
+          "status": "fora"
+        },
+        "Zoner vs Turtle": {
+          "wr": 1.0,
+          "ci": [
+            0.9992322698624194,
+            1.0
+          ],
+          "status": "fora"
+        },
+        "Rushdown vs Combo Master": {
+          "wr": 1.0,
+          "ci": [
+            0.9992322698624194,
+            1.0
+          ],
+          "status": "fora"
+        },
+        "Rushdown vs Grappler": {
+          "wr": 0.9926,
+          "ci": [
+            0.9898171986694128,
+            0.9946264335990428
+          ],
+          "status": "fora"
+        },
+        "Rushdown vs Turtle": {
+          "wr": 1.0,
+          "ci": [
+            0.9992322698624194,
+            1.0
+          ],
+          "status": "fora"
+        },
+        "Combo Master vs Grappler": {
+          "wr": 0.0021999999999999997,
+          "ci": [
+            0.0012289026120903687,
+            0.00393544951288497
+          ],
+          "status": "fora"
+        },
+        "Combo Master vs Turtle": {
+          "wr": 1.0,
+          "ci": [
+            0.9992322698624194,
+            1.0
+          ],
+          "status": "fora"
+        },
+        "Grappler vs Turtle": {
+          "wr": 1.0,
+          "ci": [
+            0.9992322698624194,
+            1.0
+          ],
+          "status": "fora"
+        }
+      },
+      "verdict": "FRÁGIL"
+    },
+    "ACTION_PERSISTENCE_SUBTICKS=4": {
+      "rules": {
+        "field_size": 100.0,
+        "initial_distance": 50.0,
+        "max_ticks": 2500,
+        "tick_scale": 5.0,
+        "defend_damage_reduction": 0.6,
+        "action_persistence_subticks": 4
+      },
+      "fights_per_pair": 5000,
+      "dominance_penalty": {
+        "mean": 1.2831336943294798,
+        "std": 0.0009917071461305734
+      },
+      "drift_penalty": 0.0,
+      "characters": {
+        "Zoner": {
+          "wr": 0.432625,
+          "ci": [
+            0.42577214056792756,
+            0.43950373724146286
+          ],
+          "status": "dentro"
+        },
+        "Rushdown": {
+          "wr": 0.9993500000000001,
+          "ci": [
+            0.9988881209399073,
+            0.9996200856037797
+          ],
+          "status": "fora"
+        },
+        "Combo Master": {
+          "wr": 0.499175,
+          "ci": [
+            0.49224618683759575,
+            0.5061041300335398
+          ],
+          "status": "dentro"
+        },
+        "Grappler": {
+          "wr": 0.5688500000000001,
+          "ci": [
+            0.5619737896611726,
+            0.5756997660022557
+          ],
+          "status": "dentro"
+        },
+        "Turtle": {
+          "wr": 0.0,
+          "ci": [
+            0.0,
+            0.00019204311235897808
+          ],
+          "status": "fora"
+        }
+      },
+      "matchups": {
+        "Zoner vs Rushdown": {
+          "wr": 0.0,
+          "ci": [
+            0.0,
+            0.000767730137580694
+          ],
+          "status": "fora"
+        },
+        "Zoner vs Combo Master": {
+          "wr": 0.0039,
+          "ci": [
+            0.0025123876672112654,
+            0.0060493541752963
+          ],
+          "status": "fora"
+        },
+        "Zoner vs Grappler": {
+          "wr": 0.7266,
+          "ci": [
+            0.714075253839536,
+            0.7387768108621126
+          ],
+          "status": "fora"
+        },
+        "Zoner vs Turtle": {
+          "wr": 1.0,
+          "ci": [
+            0.9992322698624194,
+            1.0
+          ],
+          "status": "fora"
+        },
+        "Rushdown vs Combo Master": {
+          "wr": 1.0,
+          "ci": [
+            0.9992322698624194,
+            1.0
+          ],
+          "status": "fora"
+        },
+        "Rushdown vs Grappler": {
+          "wr": 0.9974000000000001,
+          "ci": [
+            0.9955563744107833,
+            0.9984798876483515
+          ],
+          "status": "fora"
+        },
+        "Rushdown vs Turtle": {
+          "wr": 1.0,
+          "ci": [
+            0.9992322698624194,
+            1.0
+          ],
+          "status": "fora"
+        },
+        "Combo Master vs Grappler": {
+          "wr": 0.0006000000000000001,
+          "ci": [
+            0.0002040709608855032,
+            0.001762737900530094
+          ],
+          "status": "fora"
+        },
+        "Combo Master vs Turtle": {
+          "wr": 1.0,
+          "ci": [
+            0.9992322698624194,
+            1.0
+          ],
+          "status": "fora"
+        },
+        "Grappler vs Turtle": {
+          "wr": 1.0,
+          "ci": [
+            0.9992322698624194,
+            1.0
+          ],
+          "status": "fora"
+        }
+      },
+      "verdict": "FRÁGIL"
+    },
+    "ACTION_PERSISTENCE_SUBTICKS=6": {
+      "rules": {
+        "field_size": 100.0,
+        "initial_distance": 50.0,
+        "max_ticks": 2500,
+        "tick_scale": 5.0,
+        "defend_damage_reduction": 0.6,
+        "action_persistence_subticks": 6
+      },
+      "fights_per_pair": 5000,
+      "dominance_penalty": {
+        "mean": 1.2714139311366148,
+        "std": 0.0011504314823682987
+      },
+      "drift_penalty": 0.0,
+      "characters": {
+        "Zoner": {
+          "wr": 0.39165,
+          "ci": [
+            0.3849064395925067,
+            0.3984351761499416
+          ],
+          "status": "fora"
+        },
+        "Rushdown": {
+          "wr": 0.99885,
+          "ci": [
+            0.9982748524695011,
+            0.9992335461172985
+          ],
+          "status": "fora"
+        },
+        "Combo Master": {
+          "wr": 0.500525,
+          "ci": [
+            0.4935959219679918,
+            0.5074538763867401
+          ],
+          "status": "dentro"
+        },
+        "Grappler": {
+          "wr": 0.608975,
+          "ci": [
+            0.6021916318349104,
+            0.615716512368751
+          ],
+          "status": "fora"
+        },
+        "Turtle": {
+          "wr": 0.0,
+          "ci": [
+            0.0,
+            0.00019204311235897808
+          ],
+          "status": "fora"
+        }
+      },
+      "matchups": {
+        "Zoner vs Rushdown": {
+          "wr": 0.0,
+          "ci": [
+            0.0,
+            0.000767730137580694
+          ],
+          "status": "fora"
+        },
+        "Zoner vs Combo Master": {
+          "wr": 0.0039,
+          "ci": [
+            0.0025123876672112654,
+            0.0060493541752963
+          ],
+          "status": "fora"
+        },
+        "Zoner vs Grappler": {
+          "wr": 0.5627,
+          "ci": [
+            0.548907166825997,
+            0.5763965598147502
+          ],
+          "status": "dentro"
+        },
+        "Zoner vs Turtle": {
+          "wr": 1.0,
+          "ci": [
+            0.9992322698624194,
+            1.0
+          ],
+          "status": "fora"
+        },
+        "Rushdown vs Combo Master": {
+          "wr": 1.0,
+          "ci": [
+            0.9992322698624194,
+            1.0
+          ],
+          "status": "fora"
+        },
+        "Rushdown vs Grappler": {
+          "wr": 0.9954000000000001,
+          "ci": [
+            0.9931065624565739,
+            0.9969327705231111
+          ],
+          "status": "fora"
+        },
+        "Rushdown vs Turtle": {
+          "wr": 1.0,
+          "ci": [
+            0.9992322698624194,
+            1.0
+          ],
+          "status": "fora"
+        },
+        "Combo Master vs Grappler": {
+          "wr": 0.006,
+          "ci": [
+            0.0042061089708657195,
+            0.008552408405064008
+          ],
+          "status": "fora"
+        },
+        "Combo Master vs Turtle": {
+          "wr": 1.0,
+          "ci": [
+            0.9992322698624194,
+            1.0
+          ],
+          "status": "fora"
+        },
+        "Grappler vs Turtle": {
+          "wr": 1.0,
+          "ci": [
+            0.9992322698624194,
+            1.0
+          ],
+          "status": "fora"
+        }
+      },
+      "verdict": "FRÁGIL"
+    },
+    "DEFEND_DAMAGE_REDUCTION=0.55": {
+      "rules": {
+        "field_size": 100.0,
+        "initial_distance": 50.0,
+        "max_ticks": 2500,
+        "tick_scale": 5.0,
+        "defend_damage_reduction": 0.55,
+        "action_persistence_subticks": 5
+      },
+      "fights_per_pair": 5000,
+      "dominance_penalty": {
+        "mean": 1.2768254168112985,
+        "std": 0.001931838404351818
+      },
+      "drift_penalty": 0.0,
+      "characters": {
+        "Zoner": {
+          "wr": 0.40605,
+          "ci": [
+            0.3992624553777059,
+            0.41287362952310647
+          ],
+          "status": "inconclusivo"
+        },
+        "Rushdown": {
+          "wr": 0.9984999999999999,
+          "ci": [
+            0.9978594752889082,
+            0.9989490577280701
+          ],
+          "status": "fora"
+        },
+        "Combo Master": {
+          "wr": 0.499425,
+          "ci": [
+            0.49249613397745745,
+            0.5063540868721218
+          ],
+          "status": "dentro"
+        },
+        "Grappler": {
+          "wr": 0.596025,
+          "ci": [
+            0.589206535022859,
+            0.6028065830974125
+          ],
+          "status": "inconclusivo"
+        },
+        "Turtle": {
+          "wr": 0.0,
+          "ci": [
+            0.0,
+            0.00019204311235897808
+          ],
+          "status": "fora"
+        }
+      },
+      "matchups": {
+        "Zoner vs Rushdown": {
+          "wr": 0.0,
+          "ci": [
+            0.0,
+            0.000767730137580694
+          ],
+          "status": "fora"
+        },
+        "Zoner vs Combo Master": {
+          "wr": 0.0033,
+          "ci": [
+            0.0020471459422891384,
+            0.005315517176383524
+          ],
+          "status": "fora"
+        },
+        "Zoner vs Grappler": {
+          "wr": 0.6209,
+          "ci": [
+            0.6073639904312755,
+            0.6342503724214574
+          ],
+          "status": "dentro"
+        },
+        "Zoner vs Turtle": {
+          "wr": 1.0,
+          "ci": [
+            0.9992322698624194,
+            1.0
+          ],
+          "status": "fora"
+        },
+        "Rushdown vs Combo Master": {
+          "wr": 1.0,
+          "ci": [
+            0.9992322698624194,
+            1.0
+          ],
+          "status": "fora"
+        },
+        "Rushdown vs Grappler": {
+          "wr": 0.994,
+          "ci": [
+            0.991447591594936,
+            0.9957938910291343
+          ],
+          "status": "fora"
+        },
+        "Rushdown vs Turtle": {
+          "wr": 1.0,
+          "ci": [
+            0.9992322698624194,
+            1.0
+          ],
+          "status": "fora"
+        },
+        "Combo Master vs Grappler": {
+          "wr": 0.001,
+          "ci": [
+            0.00042720718893578876,
+            0.0023389874883697442
+          ],
+          "status": "fora"
+        },
+        "Combo Master vs Turtle": {
+          "wr": 1.0,
+          "ci": [
+            0.9992322698624194,
+            1.0
+          ],
+          "status": "fora"
+        },
+        "Grappler vs Turtle": {
+          "wr": 1.0,
+          "ci": [
+            0.9992322698624194,
+            1.0
+          ],
+          "status": "fora"
+        }
+      },
+      "verdict": "FRÁGIL"
+    },
+    "DEFEND_DAMAGE_REDUCTION=0.65": {
+      "rules": {
+        "field_size": 100.0,
+        "initial_distance": 50.0,
+        "max_ticks": 2500,
+        "tick_scale": 5.0,
+        "defend_damage_reduction": 0.65,
+        "action_persistence_subticks": 5
+      },
+      "fights_per_pair": 5000,
+      "dominance_penalty": {
+        "mean": 1.278013646576956,
+        "std": 0.0015539047362816212
+      },
+      "drift_penalty": 0.0,
+      "characters": {
+        "Zoner": {
+          "wr": 0.41535,
+          "ci": [
+            0.40853727893339015,
+            0.4221952339655323
+          ],
+          "status": "dentro"
+        },
+        "Rushdown": {
+          "wr": 0.9984,
+          "ci": [
+            0.9977422015783677,
+            0.9988663698472329
+          ],
+          "status": "fora"
+        },
+        "Combo Master": {
+          "wr": 0.49989999999999996,
+          "ci": [
+            0.4929710383146218,
+            0.5068290000940008
+          ],
+          "status": "dentro"
+        },
+        "Grappler": {
+          "wr": 0.58635,
+          "ci": [
+            0.5795085275027991,
+            0.5931583066516966
+          ],
+          "status": "dentro"
+        },
+        "Turtle": {
+          "wr": 0.0,
+          "ci": [
+            0.0,
+            0.00019204311235897808
+          ],
+          "status": "fora"
+        }
+      },
+      "matchups": {
+        "Zoner vs Rushdown": {
+          "wr": 0.0,
+          "ci": [
+            0.0,
+            0.000767730137580694
+          ],
+          "status": "fora"
+        },
+        "Zoner vs Combo Master": {
+          "wr": 0.004,
+          "ci": [
+            0.0025909223507485585,
+            0.006170665945731489
+          ],
+          "status": "fora"
+        },
+        "Zoner vs Grappler": {
+          "wr": 0.6574,
+          "ci": [
+            0.6441289955141577,
+            0.670429323038532
+          ],
+          "status": "inconclusivo"
+        },
+        "Zoner vs Turtle": {
+          "wr": 1.0,
+          "ci": [
+            0.9992322698624194,
+            1.0
+          ],
+          "status": "fora"
+        },
+        "Rushdown vs Combo Master": {
+          "wr": 1.0,
+          "ci": [
+            0.9992322698624194,
+            1.0
+          ],
+          "status": "fora"
+        },
+        "Rushdown vs Grappler": {
+          "wr": 0.9936,
+          "ci": [
+            0.9909792564944511,
+            0.9954628403137293
+          ],
+          "status": "fora"
+        },
+        "Rushdown vs Turtle": {
+          "wr": 1.0,
+          "ci": [
+            0.9992322698624194,
+            1.0
+          ],
+          "status": "fora"
+        },
+        "Combo Master vs Grappler": {
+          "wr": 0.0036000000000000003,
+          "ci": [
+            0.0022784219199114787,
+            0.005683780560678634
+          ],
+          "status": "fora"
+        },
+        "Combo Master vs Turtle": {
+          "wr": 1.0,
+          "ci": [
+            0.9992322698624194,
+            1.0
+          ],
+          "status": "fora"
+        },
+        "Grappler vs Turtle": {
+          "wr": 1.0,
+          "ci": [
+            0.9992322698624194,
+            1.0
+          ],
+          "status": "fora"
+        }
+      },
+      "verdict": "FRÁGIL"
+    }
+  },
+  "replication_verdict": "FRÁGIL",
+  "robustness_verdicts": {
+    "ROBUSTO": 0,
+    "INCONCLUSIVO": 0,
+    "FRÁGIL": 8
+  }
+}

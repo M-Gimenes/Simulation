@@ -59,8 +59,9 @@ trabalho das sessões anteriores, no git (a última versão longa deste arquivo 
 > que deriva de `dominance`. Duas leituras viraram de lado por causa disso, e as duas
 > estão marcadas com ⚠ abaixo.
 >
-> A bateria anterior está preservada em `results_backup_2026-09-21_pre-hibrido/`, fora do
-> git.
+> A bateria anterior está versionada em
+> [`results_previous/2026-09-21/`](../../results_previous/README.md) — não é citável, mas
+> é o que sustenta cada nota de revisão "a 200 lutas dava X".
 
 Bateria: NSGA-II e AG escalar com **20 sementes** (42–61), `compare_algorithms` no
 `scalar_optimum` (manchete) e no `best_dominance`, os **dois braços de controle** com a

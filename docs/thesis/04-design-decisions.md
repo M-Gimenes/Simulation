@@ -1986,6 +1986,28 @@ sims (quatro streams) — a 200, o braço novo parecia pagar equilíbrio pela id
 re-execução: a constante entra no carimbo de config, então trocá-la agora obsoletaria a
 bateria de 2026-09-21 inteira sem nenhum número novo para pôr no lugar.
 
+**A objeção que a banca pode levantar, e a resposta.** *"Você trocou a medição depois de
+ver os resultados"* — sim, e é preciso mostrar por que isso aqui não é escolher a régua
+pelo resultado. Três fatos, todos verificáveis no git:
+
+1. **A motivação veio de outro lugar.** A troca nasceu de uma comparação entre braços do
+   híbrido cujo veredito **inverteu** entre 200 e 1000 lutas. Naquele momento ninguém
+   tinha olhado o efeito sobre o controle `λ_drift = 0`; a decisão foi tomada sobre um
+   problema de instrumentação, não sobre um p-valor que incomodava.
+2. **Foi aplicada uniformemente.** Todos os braços — os dois algoritmos, os dois
+   controles, o híbrido e os 22 do sweep — foram remedidos com a mesma régua, sobre
+   **os mesmos indivíduos** (40 de 40 genes bit a bit idênticos). Não houve escolha de
+   onde aplicar.
+3. **O efeito foi enfraquecer, não fortalecer.** A troca derrubou a afirmação que a tese
+   chamava de "o resultado que domina todos os outros" (p_Holm 0,038 → 0,059). Ninguém
+   ajusta a medida para **perder** o próprio resultado principal — é o oposto do
+   incentivo que o p-hacking descreve.
+
+O que a troca fortaleceu foi outra coisa, e de graça: 16/20 rosters equilibrados em vez
+de 14/20, e o default de elitismo/torneio recuperando o menor `cap_term`. **A régua grossa
+errava nos dois sentidos** — é essa simetria de correção que mostra que o critério foi a
+resolução, e não a direção do resultado.
+
 **Resultado.** O desacoplamento não muda valor gravado nenhum — a bateria segue *atual* —,
 mas separa duas decisões que estavam presas uma na outra e deixa a regra de leitura
 escrita onde quem cita vai olhar ([09](09-values-and-choices.md) §6): **nenhuma conclusão
@@ -2161,7 +2183,7 @@ motor diferente do que a documentação descrevia, e ninguém saberia.
 
 **Mudança.** A re-execução de 2026-09-23 rodou com os consertos aplicados, sobre as mesmas
 20 sementes. Os genes dos indivíduos foram comparados um a um contra a bateria anterior
-(preservada em `results_backup_2026-09-21_pre-hibrido/`).
+(versionada em [`results_previous/2026-09-21/`](../../results_previous/README.md)).
 
 **Resultado: 40 de 40 execuções com semente produziram indivíduos bit a bit idênticos** —
 20 do AG escalar e 20 do NSGA-II. A política estava certa, e agora está medida em vez de

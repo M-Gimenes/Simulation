@@ -1,0 +1,385 @@
+{
+  "provenance": {
+    "generated_at": "2026-09-21T10:25:28-03:00",
+    "fingerprint": "371966d9f335",
+    "engine_digest": "6b18ff49b38a",
+    "archetypes_digest": "e37725dd4b7c",
+    "config": {
+      "ACTION_PERSISTENCE_SUBTICKS": 5,
+      "ATTRIBUTE_BOUNDS": [
+        [
+          250.0,
+          450.0
+        ],
+        [
+          15.0,
+          30.0
+        ],
+        [
+          1.0,
+          5.0
+        ],
+        [
+          5.0,
+          20.0
+        ],
+        [
+          1.0,
+          5.0
+        ],
+        [
+          0.0,
+          0.6
+        ],
+        [
+          0.0,
+          3.0
+        ],
+        [
+          0.0,
+          1.0
+        ]
+      ],
+      "ATTRIBUTE_MUTATION_SIGMA": 0.1,
+      "ATTRIBUTE_NAMES": [
+        "hp",
+        "damage",
+        "attack_cooldown",
+        "range",
+        "speed",
+        "stun",
+        "knockback",
+        "grab_power"
+      ],
+      "CONVERGENCE_SEED_OFFSET": 100000,
+      "DEFEND_DAMAGE_REDUCTION": 0.6,
+      "DOMINANCE_CAP_WEIGHT": 0.5,
+      "DOMINANCE_DECIS_WEIGHT": 0.5,
+      "DOMINANCE_GLOBAL_WEIGHT": 1.0,
+      "DRIFT_DEFINING_WEIGHT": 3.0,
+      "ELITE_RATE": 0.1,
+      "EXTERNAL_VALIDATION_N_SEEDS": 10,
+      "EXTERNAL_VALIDATION_RULE_PERTURBATIONS": [
+        [
+          "INITIAL_DISTANCE",
+          40.0
+        ],
+        [
+          "INITIAL_DISTANCE",
+          60.0
+        ],
+        [
+          "FIELD_SIZE",
+          80.0
+        ],
+        [
+          "FIELD_SIZE",
+          120.0
+        ],
+        [
+          "ACTION_PERSISTENCE_SUBTICKS",
+          4
+        ],
+        [
+          "ACTION_PERSISTENCE_SUBTICKS",
+          6
+        ],
+        [
+          "DEFEND_DAMAGE_REDUCTION",
+          0.55
+        ],
+        [
+          "DEFEND_DAMAGE_REDUCTION",
+          0.65
+        ]
+      ],
+      "EXTERNAL_VALIDATION_SEED_START": 10000,
+      "EXTERNAL_VALIDATION_SIMS": 500,
+      "FIELD_SIZE": 100,
+      "GA_CANONICAL_SEED": true,
+      "GENERATION_SEED_STRIDE": 1000,
+      "GENE_BOUNDS": [
+        [
+          250.0,
+          450.0
+        ],
+        [
+          15.0,
+          30.0
+        ],
+        [
+          1.0,
+          5.0
+        ],
+        [
+          5.0,
+          20.0
+        ],
+        [
+          1.0,
+          5.0
+        ],
+        [
+          0.0,
+          0.6
+        ],
+        [
+          0.0,
+          3.0
+        ],
+        [
+          0.0,
+          1.0
+        ],
+        [
+          0.0,
+          1.0
+        ],
+        [
+          0.0,
+          1.0
+        ],
+        [
+          0.0,
+          1.0
+        ]
+      ],
+      "GENE_NAMES": [
+        "hp",
+        "damage",
+        "attack_cooldown",
+        "range",
+        "speed",
+        "stun",
+        "knockback",
+        "grab_power",
+        "w_retreat",
+        "w_defend",
+        "w_aggressiveness"
+      ],
+      "GLOBAL_CONVERGENCE_THRESHOLD": 0.1,
+      "HYPERVOLUME_REFERENCE": [
+        1.3,
+        0.4
+      ],
+      "IDENTITY_BEHAVIORAL_SIMS": 200,
+      "INITIAL_DISTANCE": 50,
+      "LAMBDA_DOMINANCE": 1.0,
+      "LAMBDA_DRIFT": 1.0,
+      "MATCHUP_FLOOR": 0.02,
+      "MATCHUP_THRESHOLD": 0.2,
+      "MATCHUP_WR_CAP": 0.15,
+      "MAX_GENERATIONS": 150,
+      "MAX_TICKS": 2500,
+      "MULTI_RUN_SEED_START": 42,
+      "MULTI_RUN_SIMS": 200,
+      "MULTI_RUN_VALIDATION_SEED": 9999,
+      "MUTATION_RATE": 0.05,
+      "NSGA2_GENERATIONS": 150,
+      "NSGA2_OBJECTIVES": [
+        "dominance_penalty",
+        "drift_penalty"
+      ],
+      "NSGA2_POP_SIZE": 300,
+      "POPULATION_SIZE": 300,
+      "SIMS_CONVERGENCE_CHECK": 200,
+      "SIMS_PER_MATCHUP": 150,
+      "TICK_SCALE": 5,
+      "TOURNAMENT_SIZE": 3,
+      "WEIGHT_BOUNDS": [
+        [
+          0.0,
+          1.0
+        ],
+        [
+          0.0,
+          1.0
+        ],
+        [
+          0.0,
+          1.0
+        ]
+      ],
+      "WEIGHT_MUTATION_SIGMA": 0.025,
+      "WEIGHT_NAMES": [
+        "w_retreat",
+        "w_defend",
+        "w_aggressiveness"
+      ]
+    },
+    "measurement": {
+      "tool": "src.experiments.compare_algorithms",
+      "modules": [
+        "src.experiments.compare_algorithms"
+      ],
+      "digest": "c3514eb436ea"
+    }
+  },
+  "a": "AG",
+  "b": "ga_drift0_dom1",
+  "test": "Wilcoxon signed-rank pareado (bicaudal)",
+  "test_secondary": "Mann-Whitney U (bicaudal, não-pareado) — reportado como robustez",
+  "effect_size": "Vargha-Delaney A12 (a vs b)",
+  "correction": "Holm-Bonferroni",
+  "alpha": 0.05,
+  "n_seeds": 20,
+  "seeds": [
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50,
+    51,
+    52,
+    53,
+    54,
+    55,
+    56,
+    57,
+    58,
+    59,
+    60,
+    61
+  ],
+  "validation_seed": 9999,
+  "sims_per_matchup": 200,
+  "family_size": 6,
+  "excluded_from_family": [
+    "n_chars_balanced"
+  ],
+  "metrics": [
+    {
+      "metric": "dominance_penalty",
+      "label": "dominance_penalty",
+      "better_is": "lower",
+      "median_a": 0.03987229134283217,
+      "median_b": 0.05338887314560374,
+      "w_statistic": 43.0,
+      "p_value": 0.01923370361328125,
+      "p_value_unpaired": 0.03151710207456157,
+      "a12_a_vs_b": 0.3,
+      "better": "a",
+      "degenerate": false,
+      "p_holm": 0.0384674072265625,
+      "significant": true,
+      "effect_magnitude": "médio"
+    },
+    {
+      "metric": "n_hard_counters",
+      "label": "hard-counters por execução",
+      "better_is": "lower",
+      "median_a": 0.0,
+      "median_b": 0.0,
+      "w_statistic": 16.0,
+      "p_value": 0.763024600552995,
+      "p_value_unpaired": 0.5533836170565779,
+      "a12_a_vs_b": 0.5425,
+      "better": "empate",
+      "degenerate": false,
+      "p_holm": 0.763024600552995,
+      "significant": false,
+      "effect_magnitude": "desprezível"
+    },
+    {
+      "metric": "n_chars_balanced",
+      "label": "bonecos em banda por execução",
+      "better_is": "higher",
+      "median_a": 5.0,
+      "median_b": 5.0,
+      "w_statistic": null,
+      "p_value": null,
+      "p_value_unpaired": null,
+      "a12_a_vs_b": 0.5,
+      "better": "empate",
+      "degenerate": true,
+      "effect_magnitude": "desprezível",
+      "p_holm": null,
+      "significant": false
+    },
+    {
+      "metric": "drift_penalty",
+      "label": "drift_penalty",
+      "better_is": "lower",
+      "median_a": 0.24730661719761463,
+      "median_b": 0.40554669367433477,
+      "w_statistic": 0.0,
+      "p_value": 1.9073486328125e-06,
+      "p_value_unpaired": 6.795615128173358e-08,
+      "a12_a_vs_b": 0.0,
+      "better": "a",
+      "degenerate": false,
+      "p_holm": 1.1444091796875e-05,
+      "significant": true,
+      "effect_magnitude": "grande"
+    },
+    {
+      "metric": "validator_structural",
+      "label": "validador estrutural (L1+L2)",
+      "better_is": "higher",
+      "median_a": 11.0,
+      "median_b": 6.0,
+      "w_statistic": 0.0,
+      "p_value": 8.378218840902654e-05,
+      "p_value_unpaired": 2.2266563155509682e-07,
+      "a12_a_vs_b": 0.9775,
+      "better": "a",
+      "degenerate": false,
+      "p_holm": 0.00041891094204513275,
+      "significant": true,
+      "effect_magnitude": "grande"
+    },
+    {
+      "metric": "validator_behavioral",
+      "label": "validador comportamental (L3)",
+      "better_is": "higher",
+      "median_a": 3.0,
+      "median_b": 1.0,
+      "w_statistic": 7.5,
+      "p_value": 0.0014681425857760188,
+      "p_value_unpaired": 8.099089213512984e-05,
+      "a12_a_vs_b": 0.855,
+      "better": "a",
+      "degenerate": false,
+      "p_holm": 0.004404427757328057,
+      "significant": true,
+      "effect_magnitude": "grande"
+    },
+    {
+      "metric": "rank_agreement",
+      "label": "concordância de ranking (τ)",
+      "better_is": "higher",
+      "median_a": 0.28110177634953865,
+      "median_b": -0.030370551372373503,
+      "w_statistic": 13.0,
+      "p_value": 0.0001678466796875,
+      "p_value_unpaired": 5.562226778445779e-05,
+      "a12_a_vs_b": 0.87375,
+      "better": "a",
+      "degenerate": false,
+      "p_holm": 0.00067138671875,
+      "significant": true,
+      "effect_magnitude": "grande"
+    }
+  ],
+  "dominance_decomposition": {
+    "global_term": {
+      "median_a": 0.03683591238505664,
+      "median_b": 0.05338887314560374,
+      "weight": 1.0
+    },
+    "cap_term": {
+      "median_a": 0.0,
+      "median_b": 0.0,
+      "weight": 0.5
+    },
+    "decis_term": {
+      "median_a": 0.0,
+      "median_b": 0.0,
+      "weight": 0.5
+    }
+  }
+}

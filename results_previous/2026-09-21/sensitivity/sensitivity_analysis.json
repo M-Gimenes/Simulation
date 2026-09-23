@@ -1,0 +1,331 @@
+{
+  "provenance": {
+    "generated_at": "2026-09-21T10:26:31-03:00",
+    "fingerprint": "371966d9f335",
+    "engine_digest": "6b18ff49b38a",
+    "archetypes_digest": "e37725dd4b7c",
+    "config": {
+      "ACTION_PERSISTENCE_SUBTICKS": 5,
+      "ATTRIBUTE_BOUNDS": [
+        [
+          250.0,
+          450.0
+        ],
+        [
+          15.0,
+          30.0
+        ],
+        [
+          1.0,
+          5.0
+        ],
+        [
+          5.0,
+          20.0
+        ],
+        [
+          1.0,
+          5.0
+        ],
+        [
+          0.0,
+          0.6
+        ],
+        [
+          0.0,
+          3.0
+        ],
+        [
+          0.0,
+          1.0
+        ]
+      ],
+      "ATTRIBUTE_MUTATION_SIGMA": 0.1,
+      "ATTRIBUTE_NAMES": [
+        "hp",
+        "damage",
+        "attack_cooldown",
+        "range",
+        "speed",
+        "stun",
+        "knockback",
+        "grab_power"
+      ],
+      "CONVERGENCE_SEED_OFFSET": 100000,
+      "DEFEND_DAMAGE_REDUCTION": 0.6,
+      "DOMINANCE_CAP_WEIGHT": 0.5,
+      "DOMINANCE_DECIS_WEIGHT": 0.5,
+      "DOMINANCE_GLOBAL_WEIGHT": 1.0,
+      "DRIFT_DEFINING_WEIGHT": 3.0,
+      "ELITE_RATE": 0.1,
+      "EXTERNAL_VALIDATION_N_SEEDS": 10,
+      "EXTERNAL_VALIDATION_RULE_PERTURBATIONS": [
+        [
+          "INITIAL_DISTANCE",
+          40.0
+        ],
+        [
+          "INITIAL_DISTANCE",
+          60.0
+        ],
+        [
+          "FIELD_SIZE",
+          80.0
+        ],
+        [
+          "FIELD_SIZE",
+          120.0
+        ],
+        [
+          "ACTION_PERSISTENCE_SUBTICKS",
+          4
+        ],
+        [
+          "ACTION_PERSISTENCE_SUBTICKS",
+          6
+        ],
+        [
+          "DEFEND_DAMAGE_REDUCTION",
+          0.55
+        ],
+        [
+          "DEFEND_DAMAGE_REDUCTION",
+          0.65
+        ]
+      ],
+      "EXTERNAL_VALIDATION_SEED_START": 10000,
+      "EXTERNAL_VALIDATION_SIMS": 500,
+      "FIELD_SIZE": 100,
+      "GA_CANONICAL_SEED": true,
+      "GENERATION_SEED_STRIDE": 1000,
+      "GENE_BOUNDS": [
+        [
+          250.0,
+          450.0
+        ],
+        [
+          15.0,
+          30.0
+        ],
+        [
+          1.0,
+          5.0
+        ],
+        [
+          5.0,
+          20.0
+        ],
+        [
+          1.0,
+          5.0
+        ],
+        [
+          0.0,
+          0.6
+        ],
+        [
+          0.0,
+          3.0
+        ],
+        [
+          0.0,
+          1.0
+        ],
+        [
+          0.0,
+          1.0
+        ],
+        [
+          0.0,
+          1.0
+        ],
+        [
+          0.0,
+          1.0
+        ]
+      ],
+      "GENE_NAMES": [
+        "hp",
+        "damage",
+        "attack_cooldown",
+        "range",
+        "speed",
+        "stun",
+        "knockback",
+        "grab_power",
+        "w_retreat",
+        "w_defend",
+        "w_aggressiveness"
+      ],
+      "GLOBAL_CONVERGENCE_THRESHOLD": 0.1,
+      "HYPERVOLUME_REFERENCE": [
+        1.3,
+        0.4
+      ],
+      "IDENTITY_BEHAVIORAL_SIMS": 200,
+      "INITIAL_DISTANCE": 50,
+      "LAMBDA_DOMINANCE": 1.0,
+      "LAMBDA_DRIFT": 1.0,
+      "MATCHUP_FLOOR": 0.02,
+      "MATCHUP_THRESHOLD": 0.2,
+      "MATCHUP_WR_CAP": 0.15,
+      "MAX_GENERATIONS": 150,
+      "MAX_TICKS": 2500,
+      "MULTI_RUN_SEED_START": 42,
+      "MULTI_RUN_SIMS": 200,
+      "MULTI_RUN_VALIDATION_SEED": 9999,
+      "MUTATION_RATE": 0.05,
+      "NSGA2_GENERATIONS": 150,
+      "NSGA2_OBJECTIVES": [
+        "dominance_penalty",
+        "drift_penalty"
+      ],
+      "NSGA2_POP_SIZE": 300,
+      "POPULATION_SIZE": 300,
+      "SIMS_CONVERGENCE_CHECK": 200,
+      "SIMS_PER_MATCHUP": 150,
+      "TICK_SCALE": 5,
+      "TOURNAMENT_SIZE": 3,
+      "WEIGHT_BOUNDS": [
+        [
+          0.0,
+          1.0
+        ],
+        [
+          0.0,
+          1.0
+        ],
+        [
+          0.0,
+          1.0
+        ]
+      ],
+      "WEIGHT_MUTATION_SIGMA": 0.025,
+      "WEIGHT_NAMES": [
+        "w_retreat",
+        "w_defend",
+        "w_aggressiveness"
+      ]
+    },
+    "measurement": {
+      "tool": "src.experiments.sensitivity_analysis",
+      "modules": [
+        "src.experiments.sensitivity_analysis"
+      ],
+      "digest": "19b7a9607866"
+    }
+  },
+  "individual": "EVOLUÍDO (single_run/ga.json)",
+  "sims_per_matchup": 200,
+  "sigma_mult": 1.0,
+  "seed": 42,
+  "null_reps": 3,
+  "sigmas": {
+    "hp": 20.0,
+    "damage": 1.5,
+    "attack_cooldown": 0.4,
+    "range": 1.5,
+    "speed": 0.4,
+    "stun": 0.06,
+    "knockback": 0.30000000000000004,
+    "grab_power": 0.1,
+    "w_retreat": 0.025,
+    "w_defend": 0.025,
+    "w_aggressiveness": 0.025
+  },
+  "noise_floor_measured": 0.034624999999999996,
+  "noise_floor_mean": 0.018212121212121214,
+  "delta_wr": {
+    "Zoner": {
+      "hp": 0.22625000000000006,
+      "damage": 0.2625,
+      "attack_cooldown": -0.20625,
+      "range": 0.24187500000000006,
+      "speed": -0.03499999999999992,
+      "stun": 0.09187499999999998,
+      "knockback": 0.010624999999999996,
+      "grab_power": 0.145625,
+      "w_retreat": 0.08187499999999998,
+      "w_defend": -0.011250000000000093,
+      "w_aggressiveness": 0.015625000000000056
+    },
+    "Rushdown": {
+      "hp": 0.2475,
+      "damage": 0.18312499999999998,
+      "attack_cooldown": -0.38125,
+      "range": 0.37374999999999997,
+      "speed": 0.030000000000000027,
+      "stun": 0.010624999999999996,
+      "knockback": -0.083125,
+      "grab_power": 0.17625000000000002,
+      "w_retreat": -0.03562499999999996,
+      "w_defend": -0.03437499999999999,
+      "w_aggressiveness": 0.02812500000000001
+    },
+    "Combo Master": {
+      "hp": 0.26999999999999996,
+      "damage": 0.40375,
+      "attack_cooldown": -0.285625,
+      "range": 0.2925,
+      "speed": 0.038124999999999964,
+      "stun": 0.28125,
+      "knockback": 0.024999999999999967,
+      "grab_power": 0.334375,
+      "w_retreat": -0.008125000000000049,
+      "w_defend": -0.05312499999999998,
+      "w_aggressiveness": 0.016874999999999973
+    },
+    "Grappler": {
+      "hp": 0.2825,
+      "damage": 0.20187500000000003,
+      "attack_cooldown": -0.13375000000000004,
+      "range": 0.29,
+      "speed": 0.05812500000000004,
+      "stun": 0.05124999999999996,
+      "knockback": 0.0025000000000000022,
+      "grab_power": 0.12500000000000006,
+      "w_retreat": -0.02250000000000002,
+      "w_defend": -0.013124999999999998,
+      "w_aggressiveness": 0.03937500000000005
+    },
+    "Turtle": {
+      "hp": 0.16687500000000005,
+      "damage": 0.26,
+      "attack_cooldown": -0.27625000000000005,
+      "range": 0.34249999999999997,
+      "speed": -0.014375000000000027,
+      "stun": 0.08562500000000006,
+      "knockback": 0.09187499999999993,
+      "grab_power": 0.14937499999999998,
+      "w_retreat": 0.08999999999999997,
+      "w_defend": -0.03187499999999999,
+      "w_aggressiveness": 0.04999999999999999
+    }
+  },
+  "mean_abs_delta_wr": {
+    "hp": 0.238625,
+    "damage": 0.26225,
+    "attack_cooldown": 0.256625,
+    "range": 0.308125,
+    "speed": 0.035124999999999997,
+    "stun": 0.104125,
+    "knockback": 0.04262499999999998,
+    "grab_power": 0.186125,
+    "w_retreat": 0.047624999999999994,
+    "w_defend": 0.028750000000000008,
+    "w_aggressiveness": 0.030000000000000016
+  },
+  "classification": {
+    "hp": "✓ visível",
+    "damage": "✓ visível",
+    "attack_cooldown": "✓ visível",
+    "range": "✓ visível",
+    "speed": "~ borderline",
+    "stun": "✓ visível",
+    "knockback": "~ borderline",
+    "grab_power": "✓ visível",
+    "w_retreat": "~ borderline",
+    "w_defend": "✗ neutro",
+    "w_aggressiveness": "✗ neutro"
+  }
+}
