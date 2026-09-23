@@ -2035,3 +2035,102 @@ Terceira lição de método na mesma direção das duas anteriores
 errada): **antes de reportar uma métrica, medir o que ela marca quando não há nada para
 marcar.** O espelho fez esse papel aqui, e é por isso que ele entrou no tool novo como
 controle de ruído — não como piso de identidade, que é o papel dele no `baselines`.
+
+## Os cinco consertos adiados saíram juntos (2026-09-23)
+
+**Problema.** Cinco defeitos conhecidos estavam parados havia semanas — três em
+`src/engine/`, um no digest de medição e um numa constante —, todos pela mesma razão
+registrada em [`10-known-issues`](../reference/10-known-issues.md): **cada um obsoletava
+todo o `results/` e nenhum mudava um número de execução com semente.** Consertá-los
+custaria uma noite de recomputação para produzir artefatos bit a bit iguais.
+
+Isso é uma dívida com juros escondidos. O defeito 1 — `ga.run(seed=None)` e
+`nsga2.run(seed=None)` não reavaliando os elites, porque a invalidação estava dentro do
+`if seed is not None` — é **exatamente a patologia que a rotação de stream existe para
+impedir**: um elite que tirasse uma avaliação de sorte ficava com aquele número para
+sempre e se reclonava geração após geração. Ele era inalcançável pela CLI (o `main.py`
+ganhou `--seed` com default), mas continuava no código, esperando a primeira pessoa que
+chamasse `run()` de um script.
+
+**Mudança.** O braço híbrido exigiu mexer no motor (`ga.run` ganhou `initial_population` e
+`gen_offset`) e portanto uma re-execução completa. Era a condição que os cinco esperavam,
+e os cinco saíram junto: a invalidação de fitness passou a valer com e sem semente nos
+dois algoritmos, `archetypes.NUM_ARCHETYPES` (constante morta) foi removida, o docstring
+de `_confirm_convergence` passou a descrever o que o código faz — stream diferente **a
+cada geração**, mais forte do que dizia —, e `MULTI_RUN_SIMS` subiu de 200 para 1000.
+
+O quinto, separar medição de impressão no `analyze_matchups`, **não** saiu: ele é um
+refactor de superfície de API (quatro funções mudam de módulo, cinco arquivos mudam de
+import) e misturá-lo com a mudança de motor faria uma noite de bateria depender de duas
+coisas ao mesmo tempo. Segue registrado, agora como o único item aberto da lista.
+
+**Resultado, e a política que ele fecha.** Adiar conserto inerte até a próxima mudança que
+já exija re-rodar é a política certa — mas ela só funciona se a lista for **revisitada** na
+hora em que a condição chega. Sem isso, "adiado" vira "esquecido" e o `10-known-issues`
+vira um cemitério em vez de uma fila. A regra que fica: **quando uma tarefa for obsoletar o
+`results/`, ler a lista de adiados antes de começar**, não depois.
+
+## O híbrido NSGA-II → AG escalar: o desenho (2026-09-23)
+
+*Esta entrada registra o **desenho** e por que ele é assim. O veredito — se o híbrido entra
+como contribuição de método ou fica como braço descritivo — sai da bateria, em entrada
+própria.*
+
+**Problema.** A investigação de 2026-09-22 (ver [07](07-findings-and-limitations.md), «O AG
+escalar não é ótimo na própria função») achou um mecanismo, não só um número: os dois termos
+do fitness escalar têm **ruído diferente**. `drift` sai dos genes e é exato; `dominance` é
+amostrado, com desvio 0,015–0,028 a 150 lutas por par. Passada a geração de convergência, o
+gradiente verdadeiro do `dominance` está esgotado e o ruído não — e o ruído é ~60× maior
+que o ganho de drift por geração. A seleção escalar passa a gastar a pressão em sorte: a
+linhagem de drift mínimo morre na **geração 7**, a diversidade de drift colapsa até a 20, e
+as 130 gerações restantes rendem 0,05 de drift.
+
+No NSGA-II isso não acontece, e o motivo é estrutural: `drift` é objetivo **separado** e sem
+ruído, e o extremo de drift baixo fica imortal no rank 0 pela crowding infinita. É
+**multi-objetivização** (Knowles, Watson & Corne 2001) agindo como **robustez a ruído** —
+leitura que vai além da fonte original, que trata de escapar de ótimos locais.
+
+**Mudança.** `src/engine/hybrid.py` reparte **um** orçamento: `split × n_generations`
+gerações de NSGA-II, o resto de `ga.run`, que passou a aceitar `initial_population` e
+`gen_offset`. A fase de Pareto preserva a linhagem fiel enquanto o equilíbrio é procurado; a
+fase escalar refina o equilíbrio a partir de uma população que já é de drift baixo, sem ter
+de matar ninguém para chegar lá.
+
+Três detalhes sem os quais o braço venceria por artefato, e é por isso que cada um tem teste
+(`test_hybrid.py`):
+
+1. **O orçamento soma o do escalar sozinho.** É o que separa este braço do diagnóstico
+   `from_nsga`, que usava o dobro e por isso não servia de resultado.
+2. **A fase 2 continua a rotação de stream** (`gen_offset`), em vez de reciclar os sorteios
+   da fase 1. Sem isso, a proteção contra ajuste ao stream falharia exatamente na fase em
+   que o ruído decide a seleção. O último stream avaliado é `generation_seed(seed,
+   n_generations)` — o mesmo do AG escalar e da fronteira da mesma semente —, então
+   `in_loop_objectives` segue comparável.
+3. **`converged_at` vem na escala do run inteiro.** Convergir na geração 3 da fase escalar
+   de um split 50/50 sobre 150 gerações é convergir na 78. Sem o deslocamento, o eixo de
+   velocidade compararia gerações da fase 2 com gerações do run inteiro.
+
+**A configuração é escolhida por critério em código, não à mão.**
+`src/experiments/hybrid_choice.py` aplica uma regra registrada **antes** do sweep rodar e
+grava a trilha da decisão: elimina quem é pior em equilíbrio (a entrega é um elenco
+equilibrado, e comprar identidade com equilíbrio responde outra pergunta), maximiza as
+réguas de identidade batidas, desempata por τ e depois pela configuração mais simples. Não
+usa a soma `dominance + drift`: braços se comparam pelos **termos**, nunca pelo composto
+que os `LAMBDA_*` definem — ordenar por ele embutiria a escolha de λ na decisão.
+
+**Ressalva que o próprio sweep produziu, e ela é forte.** O sweep roda em orçamento
+reduzido (pop 120 × 60), onde a âncora **ainda não degradou**: o AG escalar a 60 gerações dá
+τ = 0,463 contra 0,281 a 150 (amostras diferentes, n = 5 contra 20 — indício, não prova, mas
+a direção é a do mecanismo). Ou seja, o sweep compara o híbrido contra um escalar
+artificialmente forte, e tende a **subestimá-lo**. Medido: os três braços `front` ficaram
+piores que a âncora nas duas medidas de equilíbrio, e o split 0,75 desabou (3,0 hard
+counters por execução) porque 15 gerações escalares não limpam os counters que a fronteira
+traz. Esse último ponto é o único do sweep que **transfere** de orçamento — a fase escalar
+precisa ser longa o bastante —, e é o que descarta 0,75.
+
+Por isso o escopo do critério foi corrigido no mesmo dia, antes de ver os braços: **o sweep
+escolhe a configuração, a bateria decide a adoção.** É a regra geral do projeto aplicada
+aqui — orçamento reduzido ordena configurações, nunca declara vencedor. Quando nenhum braço
+passa no filtro, a escolha cai na configuração mais simples com `adoption_deferred = true` e
+a bateria mede o braço com n = 20 de qualquer forma: 104 min de uma bateria de 8 h para
+trocar 5 sementes em orçamento reduzido por 20 no orçamento inteiro.

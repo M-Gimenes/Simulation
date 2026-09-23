@@ -21,12 +21,37 @@ O CRITÉRIO, na ordem (registrado em 2026-09-22, antes do sweep rodar):
    inteira). Com n = 5 nada separa do ruído, e um braço escolhido por um fio é um braço
    escolhido por sorte.
 
-Se **nenhum** braço sobreviver ao passo 1, o híbrido não é adotado e a bateria roda o
-protocolo padrão — o achado fica como limitação declarada.
+ESTE TOOL ESCOLHE A CONFIGURAÇÃO, NÃO DECIDE A ADOÇÃO — correção de escopo feita em
+2026-09-23, depois de medir a âncora e **antes** de ver os braços. A versão anterior do
+critério deixava o sweep recusar o híbrido, e isso contraria a regra do próprio projeto:
+*orçamento reduzido ordena configurações, nunca declara vencedor.*
+
+O que forçou a correção foi a âncora. O AG escalar a 60 gerações tem **τ = 0,463**; a 150,
+**0,281** (amostras diferentes, n = 5 contra 20, então é indício e não prova — mas a
+direção é a do mecanismo). Ou seja: o escalar perde identidade *ao longo* da execução,
+e a 60 gerações ele ainda não degradou. O sweep, portanto, compara o híbrido contra uma
+âncora artificialmente forte, e tende a **subestimar** o braço. Deixar essa amostra vetar
+a adoção seria decidir pelo artefato de orçamento.
+
+Então: se nenhum braço sobreviver ao passo 1, a escolha cai na configuração mais simples
+(0,5 / front) com `adoption_deferred = true`. A bateria mede o braço com n = 20 no
+orçamento inteiro de qualquer forma — custa 104 min de uma bateria de 8h —, e é ela, com
+o teste pareado, que decide se o híbrido entra como **contribuição de método** ou fica
+como **braço descritivo** ao lado do achado do AG escalar.
 
 O que o critério NÃO é: a soma `dominance + drift`. Os braços se comparam pelos termos e
 pelas métricas post-hoc, nunca pelo composto, que os `LAMBDA_*` definem — ordenar por ele
 embutiria a escolha de λ na decisão.
+
+RESSALVA DECLARADA, e ela é mais forte aqui que num sweep comum. O projeto usa orçamento
+reduzido para ORDENAR configurações porque ordenação costuma transferir de orçamento. No
+híbrido isso é mais frágil: o mecanismo dele depende de a fase de Pareto ter gerações
+suficientes para a fronteira se abrir, e a 60 gerações um split 0,25 dá só 15 gerações de
+NSGA-II contra 75 no orçamento da bateria. A ordenação **entre splits** pode, portanto,
+não transferir. É por isso que o passo 4 desempata pela configuração mais simples em vez
+de pelo melhor número: com n = 5 e essa dependência de orçamento, escolher por um fio é
+escolher por sorte. Quem avalia a configuração escolhida é a bateria, com n = 20 e o
+orçamento inteiro.
 
 Uso:
     py -m src.experiments.hybrid_choice
@@ -128,33 +153,37 @@ def choose(cards: List[dict]) -> Tuple[Optional[dict], List[str]]:
     trail.append(f"passo 1: {len(survivors)} de {len(cards)} braços sobrevivem ao filtro "
                  f"de equilíbrio")
     if not survivors:
-        trail.append("nenhum sobrevivente — o híbrido NÃO é adotado; a bateria roda o "
-                     "protocolo padrão e o achado fica como limitação declarada")
-        return None, trail
+        trail.append("nenhum sobrevivente no orçamento reduzido — a ADOÇÃO fica para a "
+                     "bateria (n = 20, orçamento inteiro), que é quem pode decidi-la")
+        fallback = [c for c in cards if (c["split"], c["carry"]) == SIMPLEST]
+        chosen = fallback[0] if fallback else cards[0]
+        chosen = dict(chosen, adoption_deferred=True)
+        trail.append(f"configuração a medir na bateria: a mais simples ({chosen['label']})")
+        return chosen, trail
 
     best_count = max(c["n_identity_beaten"] for c in survivors)
     finalists = [c for c in survivors if c["n_identity_beaten"] == best_count]
     trail.append(f"passo 2: melhor contagem de identidade = {best_count}/4 "
                  f"({len(finalists)} braço(s): {', '.join(c['label'] for c in finalists)})")
     if len(finalists) == 1:
-        return finalists[0], trail
+        return dict(finalists[0], adoption_deferred=False), trail
 
     best_tau = max(c["rank_agreement_median"] for c in finalists)
     tau_finalists = [c for c in finalists if c["rank_agreement_median"] == best_tau]
     trail.append(f"passo 3: desempate por τ — melhor mediana {best_tau:+.4f} "
                  f"({len(tau_finalists)} braço(s))")
     if len(tau_finalists) == 1:
-        return tau_finalists[0], trail
+        return dict(tau_finalists[0], adoption_deferred=False), trail
 
     simplest = [c for c in tau_finalists if (c["split"], c["carry"]) == SIMPLEST]
     if simplest:
         trail.append(f"passo 4: empate em τ — fica a configuração mais simples "
                      f"(split {SIMPLEST[0]:g} / {SIMPLEST[1]})")
-        return simplest[0], trail
+        return dict(simplest[0], adoption_deferred=False), trail
     chosen = sorted(tau_finalists, key=lambda c: (abs(c["split"] - SIMPLEST[0]), c["carry"]))[0]
     trail.append(f"passo 4: empate em τ e a mais simples não está entre os finalistas — "
                  f"fica a mais próxima dela ({chosen['label']})")
-    return chosen, trail
+    return dict(chosen, adoption_deferred=False), trail
 
 
 def _load() -> Tuple[dict, List[dict]]:
@@ -184,7 +213,7 @@ def _print(anchor: dict, cards: List[dict], chosen: Optional[dict], trail: List[
     print("  " + "─" * 94)
     print(f"  {'ÂNCORA — AG escalar':<26}{_median(anchor, 'dominance_penalty'):>11.4f}"
           f"{'—':>7}{_mean(anchor, 'n_hard_counters'):>10.2f}"
-          f"{sum(r['roster_balanced'] for r in anchor['per_seed'])}/{len(anchor['per_seed']):<4}"
+          f"{sum(r['roster_balanced'] for r in anchor['per_seed']):>3}/{len(anchor['per_seed']):<2}"
           f"{_median(anchor, 'drift_penalty'):>9.4f}"
           f"{_median(anchor, 'validator_structural'):>7.1f}"
           f"{_median(anchor, 'validator_behavioral'):>5.1f}"
@@ -212,11 +241,14 @@ def _print(anchor: dict, cards: List[dict], chosen: Optional[dict], trail: List[
     for step in trail:
         print(f"  • {step}")
     print()
-    if chosen:
-        print(f"  ESCOLHIDO: split {chosen['split']:g}, carry {chosen['carry']}")
-        print(f"  Identidade batida: {', '.join(chosen['identity_beaten']) or '(nenhuma)'}")
-    else:
-        print("  NENHUM — o híbrido não é adotado.")
+    print(f"  CONFIGURAÇÃO ESCOLHIDA: split {chosen['split']:g}, carry {chosen['carry']}")
+    print(f"  Identidade batida: {', '.join(chosen['identity_beaten']) or '(nenhuma)'}")
+    if chosen.get("adoption_deferred"):
+        print()
+        print("  ADOÇÃO ADIADA para a bateria: nenhum braço passou no filtro de equilíbrio")
+        print("  em orçamento reduzido — onde a âncora ainda não degradou (τ 0,46 a 60")
+        print("  gerações contra 0,28 a 150) e o híbrido tem menos a consertar. Quem")
+        print("  decide é o teste pareado com n = 20 no orçamento inteiro.")
     print(line)
 
 
@@ -244,6 +276,16 @@ def main() -> None:
             "arms": cards,
             "decision_trail": trail,
             "chosen": chosen,
+            # A ressalva viaja no artefato, não só no docstring: quem citar a escolha
+            # precisa citar o que ela pressupõe.
+            "caveat": (
+                "Ordenação medida em orçamento reduzido (pop 120 × 60). O mecanismo do "
+                "híbrido depende de a fase de Pareto ter gerações para a fronteira se "
+                "abrir — a 60 gerações um split 0,25 dá 15 gerações de NSGA-II contra 75 "
+                "no orçamento da bateria —, então a ordenação ENTRE SPLITS pode não "
+                "transferir. O desempate pela configuração mais simples é a proteção "
+                "contra isso. Quem avalia a configuração escolhida é a bateria."
+            ),
         }, fh, indent=2, ensure_ascii=False)
     print(f"\n  → {CHOICE_PATH.relative_to(RESULTS_DIR.parent)}")
 

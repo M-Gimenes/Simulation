@@ -150,3 +150,44 @@ representantes com genes e objetivos, e histórico por geração). Plots em
 `results/single_run/plots/<timestamp>/` via `nsga2_plots.save_plots` (ver
 [08-tools.md](08-tools.md)) — anotados com hipervolume e spacing. Representantes
 consumidos por tools via `Individual.from_nsga2(representative=...)`.
+
+## O híbrido: a fronteira como fase, não como resultado (`src/engine/hybrid.py`)
+
+Terceiro braço, adicionado em 2026-09-23. Reparte **um** orçamento entre uma fase de
+Pareto e uma fase escalar: `split × n_generations` gerações de NSGA-II, o resto de
+`ga.run`. O total é o mesmo do AG escalar sozinho — é a única forma de a comparação ser
+honesta, e é o que separa este braço do diagnóstico `from_nsga`, que usava o dobro.
+
+**Por que isso deveria ajudar.** Os dois termos do fitness escalar têm ruído diferente:
+`drift` sai dos genes e é exato, `dominance` é amostrado (desvio 0,015–0,028 a 150 lutas
+por par). Passada a convergência, o gradiente verdadeiro do `dominance` está esgotado e o
+ruído não, e ele é ~60× maior que o ganho de drift por geração — a seleção escalar passa a
+gastar a pressão em sorte, a linhagem de drift mínimo morre na geração 7 e a diversidade
+de drift colapsa até a 20. No NSGA-II isso não ocorre: `drift` é objetivo separado e sem
+ruído, e o extremo de drift baixo fica protegido no rank 0 pela crowding infinita
+(multi-objetivização — Knowles, Watson & Corne 2001 — agindo como robustez a ruído). O
+híbrido usa a fase de Pareto para preservar a linhagem fiel enquanto o equilíbrio é
+procurado, e a fase escalar para refinar o equilíbrio a partir de uma população que já é
+de drift baixo.
+
+**Dois detalhes que fazem a comparação valer:**
+
+- **`gen_offset`** — a fase 2 recebe `gen_offset = generations_pareto` e **continua** a
+  rotação de stream (`generation_seed(seed, gen_offset + g)`) em vez de reciclar os
+  sorteios que a fase 1 já viu. Sem isso, a proteção contra ajuste ao stream falharia
+  exatamente na fase em que o ruído decide a seleção. O último stream avaliado é
+  `generation_seed(seed, n_generations)`, o mesmo do AG escalar e da fronteira da mesma
+  semente — então `in_loop_objectives` segue comparável sem ruído de stream.
+- **`converged_at` deslocado** — convergir na geração 3 da fase escalar de um split 50/50
+  sobre 150 gerações é convergir na geração 78, não na 3. Sem o deslocamento o eixo de
+  **velocidade** compararia gerações da fase 2 com gerações do run inteiro.
+
+**O que a fase 1 entrega** é configurável (`carry`): a fronteira inteira (`front`, o
+default) ou um representante só (`scalar_optimum`, …). A diferença entre os dois isola
+quanto do efeito vem da **diversidade preservada** e quanto vem apenas de começar de um
+roster bom.
+
+`HYBRID_SPLIT` e `HYBRID_CARRY` são escolhidos pelo `run_hybrid_sweep.ps1` nas sementes
+1000–1004 e pelo critério de [`hybrid_choice`](08-tools.md) — nunca nas sementes da
+bateria. O braço devolve um **ponto**, como o escalar, então o `multi_run` o consome pelo
+mesmo caminho; o artefato vai para `results/controls/` com split e carry no nome.

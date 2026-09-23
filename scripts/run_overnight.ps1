@@ -108,11 +108,23 @@ if (-not $SkipSweeps) {
             Escreve "sweeps FALHARAM (exit $codigoSweeps) - seguindo para a bateria mesmo assim."
             Escreve "Retome os sweeps a mao com .\scripts\run_sweeps.ps1 -From N (o N esta nas linhas acima)."
         }
+
+        # O sweep do hibrido e separado porque decide outra coisa: como repartir o
+        # orcamento entre as duas fases. O run_battery le a escolha de
+        # hybrid.HYBRID_SPLIT/HYBRID_CARRY, entao este sweep roda ANTES da bateria.
+        Escreve "rodando o sweep do hibrido (run_hybrid_sweep.ps1)"
+        $LASTEXITCODE = 0
+        & (Join-Path $PSScriptRoot "run_hybrid_sweep.ps1") *>&1 | ForEach-Object { Escreve "  | $_" }
+        $codigoHibrido = if ($null -eq $LASTEXITCODE) { 0 } else { $LASTEXITCODE }
+        if ($codigoHibrido -ne 0) {
+            Escreve "sweep do hibrido FALHOU (exit $codigoHibrido) - seguindo para a bateria."
+            Escreve "A bateria usa a config vigente em hybrid.py; a escolha nao foi refeita."
+        }
     }
 
     # Os bracos rodam nas sementes 1000-1004, entao o nome de todos leva `seed1000`.
     $bracos = @(Get-ChildItem (Join-Path $raiz "results\exploratory") -Filter "*seed1000*.json" -ErrorAction SilentlyContinue)
-    Escreve "bracos exploratorios no disco: $($bracos.Count) (esperado 16)"
+    Escreve "bracos exploratorios no disco: $($bracos.Count) (esperado 23: 16 + 7 do hibrido)"
 }
 
 # -- 3. Bateria, com uma retomada ---------------------------------------------------------

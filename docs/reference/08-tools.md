@@ -525,6 +525,41 @@ de 50%, então equilíbrio global com pares decididos força intransitividade.
 > reportá-lo por execução. Status e leitura em
 > [`../thesis/02-canonical-cycle.md`](../thesis/02-canonical-cycle.md).
 
+### `hybrid_choice` — o critério que escolhe a configuração do híbrido
+
+Lê os braços do `run_hybrid_sweep.ps1` em `results/exploratory/` e grava
+`hybrid_choice.json` com a **trilha da decisão**: quem foi eliminado, por quê, e o que
+decidiu o desempate. O critério mora em código porque decisão de projeto tomada depois de
+ver os números não é decisão, é ajuste.
+
+```bash
+py -m src.experiments.hybrid_choice
+```
+
+Na ordem:
+
+1. **Elimina quem é pior em equilíbrio** — a entrega é um elenco equilibrado, e um braço
+   que compra identidade com equilíbrio responde outra pergunta. Com n = 5 uma mediana por
+   um fio é ruído, então a eliminação exige evidência consistente: perder
+   `dominance_penalty` em ≥ 4 das 5 sementes, **ou** ser pior nas duas medidas ao mesmo
+   tempo.
+2. **Maximiza quantas das 4 réguas de identidade bate** (drift, L1+L2, Layer 3, τ).
+3. **Desempata por τ** — a régua funcional contínua, a que responde *"functional
+   identities"*.
+4. **Desempata pela configuração mais simples** (0,5 / `front`). Com n = 5 nada separa do
+   ruído, e escolher por um fio é escolher por sorte.
+
+Não usa a soma `dominance + drift`: braços se comparam pelos **termos** e pelas métricas
+post-hoc, nunca pelo composto que os `LAMBDA_*` definem.
+
+> **Ele escolhe a CONFIGURAÇÃO; quem decide a ADOÇÃO é a bateria.** Em orçamento reduzido
+> a âncora ainda não degradou — o AG escalar a 60 gerações tem τ = 0,463 contra 0,281 a
+> 150 —, então o sweep compara o híbrido contra um escalar artificialmente forte e tende a
+> **subestimá-lo**. Se nenhum braço passar no filtro, a escolha cai na configuração mais
+> simples com `adoption_deferred = true`, e a bateria mede o braço com n = 20 de qualquer
+> forma. É a regra geral do projeto aplicada aqui: orçamento reduzido ordena
+> configurações, nunca declara vencedor.
+
 ## `src.visualization` — viewers e plots
 
 ### `viewer` / `web_viewer`

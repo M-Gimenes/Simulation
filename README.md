@@ -13,7 +13,7 @@ The system evolves a set of 5 characters (one per archetype) through a GA, evalu
 ## How it works
 
 - **Simulation layer** — tick-based 1v1 combat on **two action channels**: the sampled intention governs only the *stance* (Advance / Retreat / Defend), while the *attack* is a resolution rule that fires whenever cooldown is ready and the opponent is in range and the stance is not Defend. Advancing and retreating both hit; only guarding gives up the blow. The intention is sampled from the character's behavioral weights and held for a few sub-ticks (commitment).
-- **GA layer** — each individual encodes 5 characters (8 attributes + 3 behavioral weights each = **55 genes**); fitness balances archetype drift against dominance (no single archetype dominates the roster, plus a hard-counter cap and a decisiveness band). NSGA-II variant optimizes the same two as unweighted Pareto objectives.
+- **GA layer** — each individual encodes 5 characters (8 attributes + 3 behavioral weights each = **55 genes**); fitness balances archetype drift against dominance (no single archetype dominates the roster, plus a hard-counter cap and a decisiveness band). NSGA-II variant optimizes the same two as unweighted Pareto objectives, and a **hybrid** splits one budget between a Pareto phase and a scalar phase.
 
 ## Setup
 
@@ -67,6 +67,9 @@ py -m src.experiments.compare_algorithms --control results/controls/multi_run_ga
 py -m src.experiments.external_validation --nsga2 knee_point  # replicacao + robustez a regras perturbadas
 py -m src.experiments.sensitivity_analysis --evolved  # delta-WR por gene, janela 2sigma (no canonico satura)
 py -m src.experiments.baselines --evolved             # modelos nulos: piso/teto de cada metrica
+py -m src.experiments.cycle_structure                 # o ciclo autoral a 16.000 lutas/par (falsificacao)
+py -m src.experiments.multi_run --algorithm hybrid    # o terceiro braco: NSGA-II -> AG escalar
+py -m src.experiments.hybrid_choice                   # o criterio que escolhe a config do hibrido
 
 # src.visualization
 py -m src.visualization.web_viewer                    # browser viewer em localhost:8080
@@ -80,9 +83,10 @@ Em `scripts/`. Os dois primeiros são retomáveis (`-From N` retoma de um passo;
 só lista e estima o custo); o `run_overnight.ps1` não tem `-WhatIf` — chamado, ele roda:
 
 ```powershell
-.\scripts\run_sweeps.ps1     # 16 bracos exploratorios em orcamento reduzido (~1h40)
-.\scripts\run_battery.ps1    # a bateria citavel, n = 20 sementes, com os dois controles (~6h12)
-.\scripts\run_overnight.ps1  # encadeia os dois e roda desassistido
+.\scripts\run_sweeps.ps1        # 16 bracos exploratorios em orcamento reduzido (~1h40)
+.\scripts\run_hybrid_sweep.ps1  # 7 bracos: escolhe o split/carry do hibrido (~35min)
+.\scripts\run_battery.ps1       # a bateria citavel, n = 20 sementes, 19 passos (~8h)
+.\scripts\run_overnight.ps1     # encadeia sweeps + bateria e roda desassistido
 ```
 
 > **Nesta ordem.** Implementar um braço de sweep mexe no motor, e mexer no motor depois da
@@ -124,6 +128,9 @@ Smoke tests rodam como módulo a partir da raiz:
 ```powershell
 py -m src.tests.test_base
 py -m src.tests.test_baselines
+py -m src.tests.test_cycle_structure
+py -m src.tests.test_hybrid
+py -m src.tests.test_hybrid_choice
 py -m src.tests.test_combat
 py -m src.tests.test_fitness
 py -m src.tests.test_ga

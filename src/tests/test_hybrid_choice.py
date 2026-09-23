@@ -3,7 +3,7 @@ Smoke test do critério que escolhe a configuração do híbrido.
 
 O critério é uma decisão de projeto escrita em código justamente para não ser ajustada
 depois de ver os números. Este teste é o que garante que ele faz o que o texto diz — cada
-um dos quatro passos, e o caso em que ele **recusa** adotar o híbrido.
+um dos quatro passos, e o caso em que ele ADIA a adoção para a bateria.
 
 Rode com: py -m src.tests.test_hybrid_choice
 """
@@ -118,17 +118,29 @@ def test_simplicity_breaks_a_full_tie():
     print("    (com n = 5 nada separa do ruído; escolher por um fio é escolher por sorte)")
 
 
-def test_refuses_to_adopt_when_nobody_survives():
-    separator("o critério sabe dizer NÃO")
+def test_defers_adoption_when_nobody_survives():
+    separator("ninguém sobrevive → escolhe a mais simples e ADIA a adoção")
     arms = [
         evaluate_arm(_artifact(0.080, 1.5, 0.100, 17, 5, 0.70, split=s), ANCHOR)
         for s in (0.25, 0.5, 0.75)
     ]
     chosen, trail = choose(arms)
-    assert chosen is None, "todos piores em equilíbrio → não adotar"
-    assert any("NÃO é adotado" in s for s in trail)
-    print("  ✓ todos eliminados → híbrido não adotado, bateria roda o protocolo padrão")
-    print("    (um critério que só sabe escolher não é critério, é justificativa)")
+    assert chosen is not None, "a bateria mede um braço de qualquer forma"
+    assert chosen["adoption_deferred"] is True
+    assert (chosen["split"], chosen["carry"]) == (0.5, "front"), chosen
+    assert any("ADOÇÃO fica para a bateria" in s for s in trail)
+    print("  ✓ todos eliminados → mede split 0,5 / front, adoption_deferred = True")
+    print("    (o sweep ordena configurações; quem declara vencedor é a bateria —")
+    print("     e em orçamento reduzido a âncora ainda não degradou, então o sweep")
+    print("     subestima o híbrido por construção)")
+
+
+def test_survivor_is_not_deferred():
+    separator("com sobrevivente, a adoção NÃO é adiada")
+    good = evaluate_arm(_artifact(0.030, 0.2, 0.150, 15, 4, 0.55), ANCHOR)
+    chosen, _ = choose([good])
+    assert chosen["adoption_deferred"] is False
+    print("  ✓ braço que passa no filtro → adoption_deferred = False")
 
 
 if __name__ == "__main__":
@@ -138,7 +150,8 @@ if __name__ == "__main__":
     test_counts_identity_rulers()
     test_tau_breaks_the_tie()
     test_simplicity_breaks_a_full_tie()
-    test_refuses_to_adopt_when_nobody_survives()
+    test_defers_adoption_when_nobody_survives()
+    test_survivor_is_not_deferred()
 
     print(f"\n{'─'*60}")
     print("  Todos os testes de hybrid_choice passaram ✓")

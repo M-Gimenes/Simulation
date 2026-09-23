@@ -43,46 +43,32 @@ os dela.
 Fora essa, não há pendência de instrumentação. O que resta é **redação**
 ([`../status/HANDOFF.md`](../status/HANDOFF.md) §4).
 
-**Cinco consertos adiados de propósito.** Os três primeiros estão em `src/engine/`:
-editar qualquer arquivo do motor troca o `engine_digest` e marca **todo** o `results/`
-como obsoleto — uma noite de recomputação para produzir números bit a bit iguais, porque
-nenhum deles muda uma execução com semente. Os dois últimos obsoletam pelo mesmo motivo,
-por outro caminho (digest de medição e carimbo de config). Ficam para a próxima mudança
-que já exija re-rodar, e nenhum afeta número citado:
+**Os cinco consertos adiados foram feitos em 2026-09-22**, junto da re-execução que o
+braço híbrido exigiu — era exatamente a condição que eles esperavam ("a próxima mudança
+que já exija re-rodar"). Ficam registrados aqui porque a razão de terem esperado é a
+lição, não o conserto em si: **editar `src/engine/` troca o `engine_digest` e marca todo o
+`results/` como obsoleto**, e nenhum deles mudava um número de execução com semente.
 
-1. **`ga.run(seed=None)` e `nsga2.run(seed=None)` não reavaliam os elites.**
-   `Individual.clone()` copia o `fitness`, `evaluate_population` pula quem já tem
-   fitness, e a invalidação por geração está dentro de `if seed is not None`. Sem semente,
-   um elite que tirou uma avaliação de sorte nunca é re-medido e nunca regride à média —
-   exatamente a patologia que a rotação de stream existe para impedir. **Mitigado onde
-   era alcançável:** `main.py --seed` passou a ter default (a semente do protocolo), então
-   nenhuma invocação pela CLI chega nesse caminho. O conserto de verdade é mover as duas
-   linhas de `invalidate_fitness()` para fora do `if`.
-2. **`archetypes.NUM_ARCHETYPES` é constante morta** — definida, referenciada em lugar
-   nenhum.
-3. **O docstring de `_confirm_convergence` diz `seed + CONVERGENCE_SEED_OFFSET`** quando o
-   código usa `generation_seed(seed, gen) + OFFSET` — a confirmação roda num stream
-   diferente **a cada geração**, que é mais forte do que o texto descreve. O `config.py`
-   (fora do digest) já descreve certo, e o `CLAUDE.md` foi corrigido.
-4. **`src/analysis/analyze_matchups.py` mistura medição e impressão, e está no digest de
-   medição da bateria.** Ele exporta o que mede identidade (`behavioral_profile`,
-   `BEHAVIORAL_KEYS`, `expected_winner`, `wilson_ci`) *e* as funções que imprimem as
-   tabelas do CLI, no mesmo módulo — e `multi_run`, `baselines`, `external_validation` e o
-   validador importam dali, então `provenance.measurement_modules` hasheia o arquivo
-   inteiro. **Consequência medida (2026-09-22): trocar o texto de uma legenda obsoletou
-   `multi_run`, `baselines` e a validação externa de uma vez.** Conserto: extrair as
-   funções de medição para um módulo sem impressão e deixar `analyze_matchups.py` como
-   front-end de CLI. Enquanto não for feito, **nenhuma edição cosmética nesse arquivo é
-   segura** — a que motivou este item foi revertida para preservar a bateria (era a coluna
-   `WR` do resumo por matchup, que mostra a WR do favorito canônico do par e não a do lado
-   esquerdo; o rótulo ainda engana e o conserto acompanha a extração).
-5. **`MULTI_RUN_SIMS = 200` → 1000.** A 200 sims o desvio do `dominance` de um mesmo roster
-   é 0,015–0,028, da ordem do próprio valor evoluído (~0,04), e ranquear braços nessa
-   resolução inverte o veredito (medido em 2026-09-22). Subir custa 10.000 lutas por
-   semente contra as 67.500.000 da execução — mas a constante entra no carimbo de config e
-   obsoleta toda a bateria. Já **desacoplada** de `SIMS_CONVERGENCE_CHECK` (que roda dentro
-   do laço e tem outro custo), com a evidência no comentário do `config.py`; falta só o
-   valor, junto da próxima re-execução.
+1. **`ga.run(seed=None)` e `nsga2.run(seed=None)` não reavaliavam os elites** — a
+   invalidação estava dentro do `if seed is not None`, então um elite com avaliação de
+   sorte nunca regredia à média. Corrigido: a invalidação vale com e sem semente.
+2. **`archetypes.NUM_ARCHETYPES` era constante morta** — removida.
+3. **O docstring de `_confirm_convergence`** dizia `seed + CONVERGENCE_SEED_OFFSET` quando
+   o código usa o stream da geração corrente + o offset — mais forte do que o texto dizia.
+4. **`src/analysis/analyze_matchups.py` misturava medição e impressão** dentro do digest
+   de medição da bateria, e trocar o texto de uma legenda obsoletava `multi_run`,
+   `baselines` e a validação externa de uma vez. *(Pendente: a extração ainda não foi
+   feita — ver abaixo.)*
+5. **`MULTI_RUN_SIMS` 200 → 1000** — a 200 o desvio do `dominance` de um mesmo roster é
+   0,015–0,028, da ordem do próprio valor evoluído. Feito.
+
+**Ainda aberto (item 4):** separar medição de impressão no `analyze_matchups`. As funções
+que medem identidade (`behavioral_profile`, `BEHAVIORAL_KEYS`, `expected_winner`,
+`wilson_ci`) continuam no mesmo módulo das que imprimem as tabelas do CLI, então **nenhuma
+edição cosmética nesse arquivo é segura** — ela obsoleta a bateria. O conserto é extrair as
+funções de medição para um módulo sem impressão. Junto dele vai a coluna `WR` do resumo
+por matchup, que mostra a WR do favorito canônico do par e não a do lado esquerdo, e cujo
+rótulo ainda engana.
 
 Se o motor ou o `config.py` mudarem de novo, a sequência é a de sempre: rodar
 `.\scripts\run_overnight.ps1` (os 16 braços de sweep nas sementes 1000–1004, depois a

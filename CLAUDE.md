@@ -70,6 +70,7 @@ pip install -r requirements.txt
 │   ├── setup.ps1              # cria o .venv
 │   ├── run_sweeps.ps1         # os 16 braços exploratórios (orçamento reduzido)
 │   ├── run_battery.ps1        # a bateria citável (n = 20), em passos retomáveis
+│   ├── run_hybrid_sweep.ps1   # os 7 braços que escolhem a config do híbrido
 │   └── run_overnight.ps1      # sweeps + bateria, desassistido
 ├── src/                       # pacote raiz (importável como `src`)
 │   ├── engine/                # o modelo: combate, fitness e os dois algoritmos
@@ -84,6 +85,7 @@ pip install -r requirements.txt
 │   │   ├── operators.py       # selection / crossover / mutation
 │   │   ├── ga.py              # scalar GA loop
 │   │   ├── nsga2.py           # NSGA-II loop
+│   │   ├── hybrid.py          # NSGA-II → AG escalar, orçamento repartido entre as fases
 │   │   └── pareto_metrics.py  # hipervolume + spacing da fronteira (metodologia 1.2)
 │   ├── experiments/           # o protocolo da tese — cada um GRAVA um artefato em results/
 │   │   ├── multi_run.py       # N execuções + estatística agregada (metodologia 1.1)
@@ -91,7 +93,8 @@ pip install -r requirements.txt
 │   │   ├── external_validation.py  # replicação e robustez a regras fora do laço (metodologia 3.2)
 │   │   ├── sensitivity_analysis.py # Δ WR por gene contra o piso de ruído medido
 │   │   ├── baselines.py       # modelos nulos: piso/teto de cada métrica post-hoc
-│   │   └── cycle_structure.py # o ciclo autoral falsificado uma vez, a 16.000 lutas/par
+│   │   ├── cycle_structure.py # o ciclo autoral falsificado uma vez, a 16.000 lutas/par
+│   │   └── hybrid_choice.py   # o critério pré-registrado que escolhe a config do híbrido
 │   ├── analysis/              # inspeciona UM roster e imprime — não grava nada
 │   │   ├── report.py          # dossiê do indivíduo (compõe os outros)
 │   │   ├── analyze_matchups.py
@@ -138,6 +141,8 @@ py -m src.analysis.archetype_validator              # identity checks: structura
 py -m src.experiments.multi_run --algorithm both       # N execuções + estatística agregada (metodologia 1.1)
 py -m src.experiments.multi_run --algorithm ga --lambda-drift 0      # controle: sem drift (grava em results/controls/)
 py -m src.experiments.multi_run --algorithm ga --no-canonical-seed   # controle: sem semente canônica
+py -m src.experiments.multi_run --algorithm hybrid                   # terceiro braço: NSGA-II → AG escalar
+py -m src.experiments.hybrid_choice                    # aplica o critério que escolhe split/carry do híbrido
 py -m src.experiments.multi_run --algorithm ga --lambda-drift 0.25 --n-seeds 5 --seed-start 1000 --pop 120 --generations 60   # braço de sweep (results/exploratory/)
 py -m src.experiments.compare_algorithms               # AG × NSGA-II (scalar_optimum) + relação de Pareto
 py -m src.experiments.compare_algorithms --nsga2-representative best_dominance   # o mesmo, contra o extremo da fronteira
@@ -156,6 +161,8 @@ py -m src.visualization.nsga2_plots                    # fronteira de Pareto, a 
 py -m src.tests.test_base
 py -m src.tests.test_baselines
 py -m src.tests.test_cycle_structure
+py -m src.tests.test_hybrid
+py -m src.tests.test_hybrid_choice
 py -m src.tests.test_combat
 py -m src.tests.test_fitness
 py -m src.tests.test_ga
@@ -185,6 +192,8 @@ All GA/NSGA-II outputs go to `results/` (created automatically on first run). **
 | `results/multi_run/comparison_ga_vs_nsga2.json` | `py -m src.experiments.compare_algorithms` (teste estatístico entre os dois algoritmos, NSGA-II pelo `scalar_optimum`, + relação de Pareto por semente) |
 | `results/multi_run/comparison_ga_vs_nsga2_<rep>.json` | `py -m src.experiments.compare_algorithms --nsga2-representative <rep>` (a mesma comparação contra outro ponto da fronteira — a bateria roda `best_dominance`) |
 | `results/controls/multi_run_ga_<desvio>.json` | braços de controle — amostra e orçamento da bateria, um fator de desenho trocado (`drift0_dom1`, `unseeded`) |
+| `results/controls/multi_run_hybrid_split<s>_<carry>.json` | `py -m src.experiments.multi_run --algorithm hybrid` — o terceiro braço, com amostra e orçamento do protocolo. Split e carry entram **sempre** no nome: o híbrido nunca cai no caminho principal, que é dos dois algoritmos que a pergunta compara |
+| `results/exploratory/hybrid_choice.json` | `py -m src.experiments.hybrid_choice` (a escolha da configuração, com a trilha da decisão e a ressalva de orçamento reduzido) |
 | `results/controls/comparison_ga_vs_<braço>.json` | `py -m src.experiments.compare_algorithms --control <artefato>` |
 | `results/external_validation/external_validation_<label>.json` | `py -m src.experiments.external_validation` (replicação e robustez a regras perturbadas) |
 | `results/sensitivity/sensitivity_analysis.json` | `py -m src.experiments.sensitivity_analysis` (matriz Δ WR por gene) |
