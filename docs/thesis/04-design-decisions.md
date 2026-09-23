@@ -1722,7 +1722,8 @@ por dominance 0,006 pior": um empate favorável, não uma dominância.
 nas sementes 1000–1004.
 
 **Resultado.** O formato da curva se manteve (`dominance` 0,060–0,065 em λ = 0,25, 0,5 e
-1,0; 0,198 em λ = 2,0; 0,358 em λ = 4,0), mas λ = 1,0 **passou a dominar** os dois braços
+1,0; 0,198 em λ = 2,0; 0,358 em λ = 4,0 — refeito a 1000 lutas em 2026-09-23:
+0,041–0,044; 0,183; 0,356, mesmo formato), mas λ = 1,0 **passou a dominar** os dois braços
 mais baratos: mesmo `dominance`, drift 0,2448 contra 0,3462 e 0,3773, e τ = **+0,415**
 contra +0,018 e −0,050. Abaixo de λ = 1,0 o AG paga identidade sem comprar equilíbrio —
 não há razão nenhuma para ficar lá.

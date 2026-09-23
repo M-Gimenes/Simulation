@@ -20,8 +20,10 @@ trabalho das sessões anteriores, no git (a última versão longa deste arquivo 
 2. **`results/` está COMPLETO e ATUAL.** A bateria de 2026-09-23 (19 passos) rodou
    sobre o motor atual, com os dois controles; `py -m src.tests.test_provenance` marca
    tudo como *atual* ou *braço de experimento*. **Os números da §2 são os citáveis.**
-3. **O sistema está fechado.** Motor e fitness calibrados, os três sweeps feitos, os
-   controles que isolam o método medidos. Não há pendência de instrumentação.
+3. **O sistema está fechado.** Motor e fitness calibrados, os três sweeps refeitos sobre
+   o motor atual (2026-09-23, 47,8 min), os controles que isolam o método medidos, o
+   híbrido adotado. `test_provenance`: 18 artefatos atuais, 24 braços de experimento,
+   **zero obsoletos**.
 4. **O híbrido foi adotado (2026-09-23), e ele responde o achado do AG escalar.** A
    escalarização direta perde a linhagem fiel sob avaliação ruidosa — `dominance` é
    amostrado e `drift` não, e depois da geração ~31 a seleção gasta a pressão em sorte.
@@ -352,13 +354,13 @@ bateria. Orçamento reduzido ordena configurações; não dá número citável.
 
 | λ_drift | dominance | drift | counters | L1+L2 | τ | conv |
 |---|---|---|---|---|---|---|
-| 0,25 | 0,0620 | 0,3773 | 1,2 | 5,4 | +0,018 | 80% |
-| 0,5 | 0,0648 | 0,3462 | 1,2 | 5,2 | −0,050 | 80% |
-| **1,0** | **0,0600** | **0,2448** | 0,8 | **10,2** | **+0,415** | 80% |
-| 2,0 | 0,1979 | 0,1395 | 3,8 | 15,0 | +0,601 | 20% |
-| 4,0 | 0,3581 | 0,0902 | 7,8 | 15,8 | +0,716 | 0% |
+| 0,25 | 0,0408 | 0,3773 | 1,2 | 5,4 | +0,018 | 80% |
+| 0,5 | 0,0444 | 0,3462 | 0,4 | 5,2 | −0,050 | 80% |
+| **1,0** | **0,0415** | **0,2448** | 0,4 | **10,2** | **+0,415** | 80% |
+| 2,0 | 0,1829 | 0,1395 | 4,2 | 15,0 | +0,601 | 20% |
+| 4,0 | 0,3561 | 0,0902 | 7,8 | 15,8 | +0,716 | 0% |
 
-O formato é o mesmo de antes — `dominance` plano em 0,060–0,065 até λ = 1,0 e explodindo
+O formato é o mesmo de antes — `dominance` plano em 0,041–0,044 até λ = 1,0 e explodindo
 depois —, mas a conclusão ficou mais forte: **λ = 1,0 não empata com os λ menores, ele os
 domina**. Mesmo `dominance`, drift 0,10–0,13 melhor, e τ dez vezes maior. Abaixo de 1,0 o
 AG paga identidade sem comprar equilíbrio.
@@ -367,19 +369,19 @@ AG paga identidade sem comprar equilíbrio.
 
 | pesos g/cap/decis | global_term | cap_term | decis_term | drift | counters | roster eq. |
 |---|---|---|---|---|---|---|
-| 1 / 2 / 0,5 | 0,0482 | **0,0027** | 0,0082 | 0,3481 | **0,2** | 80% |
-| 1 / 1 / 1 | 0,0437 | 0,0036 | 0,0000 | 0,3008 | **0,2** | 80% |
-| **1 / 0,5 / 0,5** | 0,0512 | 0,0176 | 0,0000 | **0,2448** | 0,8 | 20% |
-| 1 / 0,5 / 0 | 0,0462 | 0,1212 | 0,0000 | 0,2479 | 2,2 | 20% |
-| 1 / 0 / 0 | **0,0275** | 0,7921 | 0,2668 | 0,1564 | **8,8** | 0% |
+| 1 / 2 / 0,5 | 0,0413 | **0,0000** | 0,0043 | 0,3481 | **0,0** | 100% |
+| 1 / 1 / 1 | 0,0304 | **0,0000** | 0,0000 | 0,3008 | **0,0** | 100% |
+| **1 / 0,5 / 0,5** | 0,0398 | 0,0034 | 0,0000 | **0,2448** | 0,4 | 60% |
+| 1 / 0,5 / 0 | 0,0308 | 0,1188 | 0,0000 | 0,2479 | 2,6 | 20% |
+| 1 / 0 / 0 | **0,0230** | 0,7970 | 0,2689 | 0,1564 | **8,6** | 0% |
 
 **`1/0/0` continua sendo a falsificação.** Sem os secundários o AG atinge o melhor
-`global_term` de todos (0,0275 — é a única coisa que resta a otimizar) e entrega 8,8 dos
+`global_term` de todos (0,0230 — é a única coisa que resta a otimizar) e entrega 8,6 dos
 10 pares como counter duro: os cinco na banda global, toda luta um massacre. É o
 *blowout-coinflip* que a formulação C2 previa.
 
 **E o `decis_term` não é inerte.** Removê-lo sozinho (1 / 0,5 / 0) leva os counters de
-0,8 a 2,2 e **piora o próprio `cap_term`**, de 0,0176 para 0,1212. Ler 0,0000 no
+0,4 a 2,6 e **piora o próprio `cap_term`**, de 0,0034 para 0,1188. Ler 0,0000 no
 indivíduo final é o termo tendo funcionado.
 
 **`config.py` inalterado.** Subir o peso do cap melhora counters e roster equilibrado ao
@@ -391,23 +393,28 @@ justamente o da pergunta de pesquisa.
 
 | braço | global_term | cap_term | drift | counters | L1+L2 | τ |
 |---|---|---|---|---|---|---|
-| elitismo 0 | 0,0673 | **0,0063** | 0,2689 | 0,6 | 10,2 | +0,301 |
-| elitismo 5% | **0,0400** | 0,0124 | 0,2890 | 0,6 | 9,0 | +0,238 |
-| **elitismo 10% · torneio 3** | 0,0512 | 0,0176 | **0,2448** | 0,8 | 10,2 | **+0,415** |
-| elitismo 20% | 0,0438 | 0,0195 | 0,2809 | 0,8 | 8,8 | +0,186 |
-| elitismo 30% | 0,0447 | 0,0780 | 0,2848 | 1,8 | 8,6 | +0,204 |
-| torneio 2 | 0,0515 | 0,0083 | 0,2637 | 0,6 | **10,8** | +0,356 |
-| torneio 5 | 0,0410 | 0,0311 | 0,2913 | 1,2 | 7,8 | +0,172 |
-| torneio 7 | 0,0448 | 0,0119 | 0,3402 | 0,8 | 7,0 | +0,047 |
+| elitismo 0 | 0,0640 | 0,0074 | 0,2689 | 0,8 | 10,2 | +0,301 |
+| elitismo 5% | 0,0377 | 0,0096 | 0,2890 | 0,6 | 9,0 | +0,238 |
+| **elitismo 10% · torneio 3** | 0,0398 | 0,0034 | **0,2448** | 0,4 | 10,2 | **+0,415** |
+| elitismo 20% | 0,0398 | 0,0087 | 0,2809 | 0,6 | 8,8 | +0,186 |
+| elitismo 30% | 0,0320 | 0,0790 | 0,2848 | 1,6 | 8,6 | +0,204 |
+| torneio 2 | 0,0401 | **0,0003** | 0,2637 | **0,2** | **10,8** | +0,356 |
+| torneio 5 | 0,0309 | 0,0163 | 0,2913 | 0,6 | 7,8 | +0,172 |
+| torneio 7 | 0,0324 | 0,0115 | 0,3402 | 0,6 | 7,0 | +0,047 |
 
-**Nenhum braço domina o default, mas a razão mudou.** Na bateria anterior ele tinha o
-menor `cap_term` e o menor número de counters dos oito; agora **não tem nem um nem
-outro** — elitismo 0, elitismo 5% e torneio 2 fazem 0,6 counter contra 0,8, e três braços
-têm `cap_term` menor. O que o default tem é o **melhor drift e a melhor concordância de
-ranking** dos oito, e cada braço que o supera em counters paga nos dois. A n = 5 nada
-disso se separa do ruído (os desvios de counters vão a 1,3), e o torneio segue com padrão
-não monotônico. A afirmação continua sendo "testados, nenhum braço os domina" — não
-"ótimos".
+**Nenhum braço domina o default, e com a régua fina ele ficou mais forte.** Tem o **melhor
+drift e a melhor concordância de ranking** dos oito, e agora também o segundo menor
+`cap_term` e o segundo menor número de counters — só o torneio 2 o supera nesses dois
+(0,2 counter contra 0,4; `cap_term` 0,0003 contra 0,0034), e paga com drift pior
+(0,2637 contra 0,2448) e τ menor (+0,356 contra +0,415). A n = 5 nada disso se separa do
+ruído, e o torneio segue com padrão não monotônico. A afirmação continua sendo "testados,
+nenhum braço os domina" — não "ótimos".
+
+> A leitura de 2026-09-21 dizia que o default **não** tinha nem o menor `cap_term` nem o
+> menor número de counters. Era a régua de 200 lutas: ela inflava o `cap_term` do default
+> de 0,0034 para 0,0176 e os counters de 0,4 para 0,8, o bastante para três braços
+> passarem à frente. Mesmos indivíduos, mesma conclusão de fundo — mas a razão pela qual
+> o default se mantém voltou a ser a simples.
 
 ## 3. Limites estruturais
 
