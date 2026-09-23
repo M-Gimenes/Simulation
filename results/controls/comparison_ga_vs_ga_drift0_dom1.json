@@ -1,8 +1,8 @@
 {
   "provenance": {
-    "generated_at": "2026-09-21T10:25:28-03:00",
-    "fingerprint": "371966d9f335",
-    "engine_digest": "6b18ff49b38a",
+    "generated_at": "2026-09-23T06:12:33-03:00",
+    "fingerprint": "92b3ca4aefae",
+    "engine_digest": "cbb81a8a540d",
     "archetypes_digest": "e37725dd4b7c",
     "config": {
       "ACTION_PERSISTENCE_SUBTICKS": 5,
@@ -172,7 +172,7 @@
       "MAX_GENERATIONS": 150,
       "MAX_TICKS": 2500,
       "MULTI_RUN_SEED_START": 42,
-      "MULTI_RUN_SIMS": 200,
+      "MULTI_RUN_SIMS": 1000,
       "MULTI_RUN_VALIDATION_SEED": 9999,
       "MUTATION_RATE": 0.05,
       "NSGA2_GENERATIONS": 150,
@@ -246,7 +246,7 @@
     61
   ],
   "validation_seed": 9999,
-  "sims_per_matchup": 200,
+  "sims_per_matchup": 1000,
   "family_size": 6,
   "excluded_from_family": [
     "n_chars_balanced"
@@ -256,16 +256,16 @@
       "metric": "dominance_penalty",
       "label": "dominance_penalty",
       "better_is": "lower",
-      "median_a": 0.03987229134283217,
-      "median_b": 0.05338887314560374,
-      "w_statistic": 43.0,
-      "p_value": 0.01923370361328125,
-      "p_value_unpaired": 0.03151710207456157,
-      "a12_a_vs_b": 0.3,
+      "median_a": 0.035511644738571865,
+      "median_b": 0.04315911159500936,
+      "w_statistic": 47.0,
+      "p_value": 0.029575347900390625,
+      "p_value_unpaired": 0.033717668936863225,
+      "a12_a_vs_b": 0.3025,
       "better": "a",
       "degenerate": false,
-      "p_holm": 0.0384674072265625,
-      "significant": true,
+      "p_holm": 0.05915069580078125,
+      "significant": false,
       "effect_magnitude": "médio"
     },
     {
@@ -274,15 +274,15 @@
       "better_is": "lower",
       "median_a": 0.0,
       "median_b": 0.0,
-      "w_statistic": 16.0,
-      "p_value": 0.763024600552995,
-      "p_value_unpaired": 0.5533836170565779,
-      "a12_a_vs_b": 0.5425,
+      "w_statistic": 3.0,
+      "p_value": 0.17971249487899976,
+      "p_value_unpaired": 0.163732144155325,
+      "a12_a_vs_b": 0.575,
       "better": "empate",
       "degenerate": false,
-      "p_holm": 0.763024600552995,
+      "p_holm": 0.17971249487899976,
       "significant": false,
-      "effect_magnitude": "desprezível"
+      "effect_magnitude": "pequeno"
     },
     {
       "metric": "n_chars_balanced",
@@ -367,8 +367,8 @@
   ],
   "dominance_decomposition": {
     "global_term": {
-      "median_a": 0.03683591238505664,
-      "median_b": 0.05338887314560374,
+      "median_a": 0.03181736228201491,
+      "median_b": 0.04315911159500936,
       "weight": 1.0
     },
     "cap_term": {

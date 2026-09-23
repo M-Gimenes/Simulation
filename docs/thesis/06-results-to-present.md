@@ -172,10 +172,10 @@ Quatro números/figuras que a redação deve usar:
   mesmo composto. **Nunca citar o composto sozinho numa comparação.**
 - **Contagem de rejeições da confirmação de convergência.** O gate dispara N vezes e a
   confirmação fora do stream rejeita M delas — é o ajuste ao stream de RNG quantificado,
-  em uma linha. Medido em 60 gerações: 16 disparos, 16 rejeições. Na bateria de 2026-09-21
+  em uma linha. Medido em 60 gerações: 16 disparos, 16 rejeições. Na bateria de 2026-09-23
   (n = 20, 150 gerações): 70 disparos, 50 rejeições (71%), e mesmo assim as 20 sementes
   convergem, na geração 31,3 ± 13,2 — e os dois controles dão a mesma faixa (67% e 63%).
-  Junto, sempre, a fração que **termina** equilibrada (14/20): convergir é o primeiro
+  Junto, sempre, a fração que **termina** equilibrada (16/20): convergir é o primeiro
   sucesso de um teste repetido, não equilíbrio estável.
 - **A fronteira do NSGA-II com e sem o seed canônico**, lado a lado. É a figura que
   mostra que um detalhe de inicialização consumia metade da fronteira — e serve de aviso

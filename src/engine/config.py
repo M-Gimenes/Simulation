@@ -267,6 +267,13 @@ MULTI_RUN_VALIDATION_SEED = 9999  # seed comum de reavaliação (CRN): desacopla
 # 1000 = 10.000 lutas por semente, contra as 67.500.000 da execução que a produziu. A
 # constante entra no carimbo de proveniência, então a troca só podia acompanhar uma
 # bateria nova — nunca antecedê-la.
+#
+# EFEITO MEDIDO na re-execução (mesmas 20 sementes, genes bit a bit idênticos, então a
+# única variável é esta): as métricas de IDENTIDADE não se mexeram (drift, validador e τ
+# saem dos genes e de IDENTITY_BEHAVIORAL_SIMS, que não mudou). O `dominance` mediano do
+# AG caiu de 0,0399 para 0,0355 e os rosters equilibrados subiram de 14/20 para 16/20 —
+# a régua antiga **subestimava** o equilíbrio, jogando para fora da banda pares que,
+# medidos direito, estão dentro. A manchete da comparação não se moveu.
 MULTI_RUN_SIMS = 1000
 
 # Sims/matchup do perfil comportamental que mede identidade FUNCIONAL (Layer 3 do

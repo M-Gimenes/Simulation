@@ -1576,6 +1576,7 @@ e zera a identidade**:
 |---|---|---|---|---|
 | `dominance_penalty` | 0,0399 | 0,0534 | 0,063 | 0,30 |
 | hard-counters | 0 | 0 | 0,553 | 0,54 |
+<!-- 2026-09-23, 1000 lutas/par: dominance 0,0355 × 0,0432, p_Holm 0,059, Â₁₂ 0,30 -->
 | `drift_penalty` | 0,2473 | 0,4055 | 4,1 × 10⁻⁷ | 0,00 |
 | validador L1+L2 | 11 | 6 | 1,1 × 10⁻⁶ | 0,98 |
 | validador L3 | 3 | 1 | 0,00024 | 0,85 |
@@ -1893,6 +1894,21 @@ separar a favor do braço com o termo, e só os hard-counters empatam. O achado 
 bateria fica mais forte, não mais fraco, e por um motivo metodológico que não depende
 dele.
 
+> **Nota de revisão (2026-09-23): esta última leitura não sobreviveu à régua fina, e a
+> troca de teste segue certa pelo motivo do desenho.** Refeita a bateria com
+> `MULTI_RUN_SIMS` = 1000 e os **mesmos indivíduos** (genes bit a bit idênticos), a mesma
+> célula dá p bruto 0,0296 → **p_Holm = 0,0592**, e o não-pareado 0,0337. Os dois testes
+> passam a concordar: **sem diferença** sob Holm. As 24 células das quatro comparações
+> concordam agora, contra 23 antes.
+>
+> O que explica: o braço λ = 0 é o mais ruidoso (inflação dentro→fora de 3,21× contra
+> 2,58×), e régua grossa não erra simetricamente — penaliza mais quem tem mais ruído. O
+> teste pareado, por ter mais poder, foi justamente o que transformou esse viés de
+> medição em significância. **Mais poder estatístico não conserta medida grossa.** O
+> Wilcoxon continua sendo o teste certo, pela razão do desenho; o que cai é a conclusão
+> que vivia dentro do ruído da régua. Ver [07](07-findings-and-limitations.md), a
+> correção na entrada do controle λ = 0.
+
 ## O piso da sensibilidade depende de quantas nulas você roda (2026-09-21)
 
 **Problema.** O piso de ruído é o **máximo** sobre `reps × 11` médias nulas. Máximo de
@@ -2134,3 +2150,96 @@ aqui — orçamento reduzido ordena configurações, nunca declara vencedor. Qua
 passa no filtro, a escolha cai na configuração mais simples com `adoption_deferred = true` e
 a bateria mede o braço com n = 20 de qualquer forma: 104 min de uma bateria de 8 h para
 trocar 5 sementes em orçamento reduzido por 20 no orçamento inteiro.
+
+## A política de adiar conserto inerte foi verificada, não argumentada (2026-09-23)
+
+**Problema.** O `10-known-issues` afirmava, por três semanas, que os consertos adiados
+"não mudam uma execução com semente". Era um argumento de leitura de código — plausível,
+nunca medido. Se estivesse errado, a bateria de 2026-09-21 teria sido produzida por um
+motor diferente do que a documentação descrevia, e ninguém saberia.
+
+**Mudança.** A re-execução de 2026-09-23 rodou com os consertos aplicados, sobre as mesmas
+20 sementes. Os genes dos indivíduos foram comparados um a um contra a bateria anterior
+(preservada em `results_backup_2026-09-21_pre-hibrido/`).
+
+**Resultado: 40 de 40 execuções com semente produziram indivíduos bit a bit idênticos** —
+20 do AG escalar e 20 do NSGA-II. A política estava certa, e agora está medida em vez de
+afirmada.
+
+A consequência prática é grande para a redação: **nenhum número de identidade mudou.** Com
+os genes idênticos e `IDENTITY_BEHAVIORAL_SIMS` intocado, drift, validador e τ saem iguais
+nas 20 sementes — drift 0,2473, L1+L2 11, L3 3, τ +0,2811, os mesmos da bateria anterior.
+O que mudou foi só o que `MULTI_RUN_SIMS` mede.
+
+**E o que mudou revela que a régua antiga subestimava o equilíbrio.** A 1000 lutas por par,
+o `dominance` mediano do AG é **0,0355** contra 0,0399 a 200, e **16 de 20** sementes
+terminam com o roster equilibrado contra 14. Os "14/20" eram em parte artefato de
+resolução: a 200 lutas o ruído joga pares para fora da banda que, medidos direito, estão
+dentro. A manchete da comparação não se move — as seis métricas seguem significativas com
+efeito grande e mesmas direções, e o Â₁₂ do `dominance` até aperta (0,10 → 0,07).
+
+Duas lições, e a segunda é a que importa: adiar conserto inerte é política correta **e
+verificável** — basta guardar a bateria anterior antes de re-rodar; e uma medida grossa não
+erra só para um lado, ela erra **contra o próprio sistema** tão facilmente quanto a favor.
+
+## O híbrido é adotado: mesma balança, o dobro da identidade (2026-09-23)
+
+*Veredito da bateria. O desenho e o porquê estão na entrada anterior; aqui está o que a
+medição com n = 20 e orçamento inteiro respondeu.*
+
+**Problema.** O sweep em orçamento reduzido eliminou os seis braços do híbrido no filtro
+de equilíbrio, e a adoção foi explicitamente **adiada** para a bateria — porque a 60
+gerações a âncora ainda não degradou (τ = 0,463 contra 0,281 a 150) e o sweep compara o
+híbrido contra um escalar artificialmente forte. A pergunta que sobrou: com 150 gerações,
+20 sementes e o teste pareado, o híbrido paga o equilíbrio que o sweep sugeria?
+
+**Resultado: não paga nada.** Wilcoxon pareado + Holm, família de 6, medianas:
+
+| métrica | AG escalar | híbrido | p (Holm) | Â₁₂ |
+|---|---|---|---|---|
+| `dominance_penalty` | 0,0355 | 0,0287 | 1,00 | 0,51 (desprezível) |
+| hard-counters | 0 | 0 | 1,00 | 0,49 (desprezível) |
+| bonecos em banda | 5/5 | 5/5 | (fora da família) | — |
+| `drift_penalty` | 0,2473 | **0,1663** | **1,1 × 10⁻⁵** | 0,97 (grande) |
+| validador L1+L2 | 11 | **15** | **0,0026** | 0,12 (grande) |
+| validador L3 | 3 | **4** | **0,0058** | 0,24 (grande) |
+| concordância τ | 0,2811 | **0,5215** | **0,00084** | 0,15 (grande) |
+
+**As duas métricas de equilíbrio não se movem** — Â₁₂ 0,51 e 0,49, o mais próximo de
+"nenhum efeito" que estes números chegam —, e **as quatro de identidade separam com efeito
+grande**. Fora da família: rosters equilibrados **16/20 nos dois braços**, hard-counters
+por execução 0,20 contra 0,25.
+
+Contra o NSGA-II a leitura é ainda mais dura: o híbrido tem a identidade dele (drift
+0,1708 contra 0,1484; τ +0,484 contra +0,521; Layer 3 **3,70 contra 3,65**, ligeiramente
+melhor) com **0,25 hard-counters contra 2,80** e **16/20 rosters equilibrados contra
+0/20**. Ele pega a metade boa de cada algoritmo.
+
+**Por que funciona, e a previsão que se confirmou.** O mecanismo dizia que a fase de
+Pareto protege a linhagem de drift baixo enquanto o equilíbrio é procurado, e que a fase
+escalar refina o equilíbrio sem precisar matá-la. Três números confirmam:
+
+- o **drift** do híbrido (0,1663) fica onde o NSGA-II chega, não onde o escalar chega —
+  a linhagem fiel sobreviveu à fase 1;
+- o **sobreajuste ao stream** cai: inflação dentro→fora de **1,67×** contra 1,80× do
+  escalar e 2,33× do controle λ = 0, na mesma ordem que o mecanismo prevê (menos pressão
+  gasta no termo ruidoso);
+- a **convergência** chega tarde — geração 98,3 ± 20,2 contra 31,3 ± 13,2 do escalar, com
+  81% dos disparos do gate recusados contra 71%. Faz sentido: as 75 primeiras gerações são
+  de Pareto e não perseguem o predicado de equilíbrio. **Velocidade é o preço**, e é o
+  único que o híbrido cobra.
+
+**Mudança.** O híbrido entra como **terceiro braço do protocolo**, passos 18–19 da
+bateria, com `HYBRID_SPLIT = 0,5` e `HYBRID_CARRY = "front"`. A pergunta de pesquisa segue
+sendo comparada entre AG escalar e NSGA-II — são os dois algoritmos da literatura —, e o
+híbrido é reportado como **contribuição de método**: a escalarização direta perde a
+linhagem fiel sob avaliação ruidosa, e repartir o mesmo orçamento entre decomposição de
+Pareto e refino escalar recupera a identidade **sem custo em equilíbrio**.
+
+**Ressalva que fica.** A configuração (0,5 / `front`) foi escolhida pelo desempate de
+simplicidade, não por evidência: no orçamento reduzido nenhum braço passou no filtro, e a
+ordenação entre splits não transferiu. O que o sweep descartou com razão que transfere foi
+o 0,75 — 15 gerações escalares não limpam os counters que a fronteira traz. Se alguém
+quiser afirmar que 0,5 é o **melhor** split, isso exige um sweep no orçamento inteiro, que
+não foi feito. O que está medido é que **este** split, contra o AG escalar, troca
+identidade grande por equilíbrio nenhum.

@@ -17,23 +17,21 @@ trabalho das sessões anteriores, no git (a última versão longa deste arquivo 
 
 1. **O ambiente não sobe sozinho.** `.venv/` é gitignored e o Python do sistema (3.14)
    não tem `numpy`/`numba`/`scipy`. Rode `setup.ps1` antes de qualquer coisa.
-2. **`results/` está COMPLETO e ATUAL.** A bateria de 2026-09-21 (16 passos, 6h59) rodou
+2. **`results/` está COMPLETO e ATUAL.** A bateria de 2026-09-23 (19 passos) rodou
    sobre o motor atual, com os dois controles; `py -m src.tests.test_provenance` marca
    tudo como *atual* ou *braço de experimento*. **Os números da §2 são os citáveis.**
 3. **O sistema está fechado.** Motor e fitness calibrados, os três sweeps feitos, os
    controles que isolam o método medidos. Não há pendência de instrumentação.
-4. **Um achado em aberto, de 2026-09-22: o AG escalar não é ótimo na própria função.**
-   `dominance` é amostrado e `drift` não, e depois da geração ~31 a seleção escalar gasta a
-   pressão em ruído: a fronteira do NSGA-II tem um ponto melhor na soma `dominance + drift`
-   em 20/20 sementes, e um híbrido NSGA-II → AG escalar **com o mesmo orçamento** quase
-   domina o AG (dom 0,0254 contra 0,0380, drift 0,1664 contra 0,2396, τ +0,551 contra
-   +0,284, nas sementes 42–46 a 1000 lutas). **Não invalida a bateria** — os agregados de
-   n = 20 seguem válidos — mas qualifica a leitura: o trade-off medido é um **teto** do
-   custo da identidade. Registro de trabalho em `CONTINUE.md`, achado e números em
-   [`../thesis/07-findings-and-limitations.md`](../thesis/07-findings-and-limitations.md),
-   sequência para fechar lá em §«O que ainda falta». Duas correções de leitura saíram
-   dele: a §2 «O número de dentro do laço» abaixo e a nota de revisão em
-   [04](../thesis/04-design-decisions.md) sobre "o escalar vence na própria função".
+4. **O híbrido foi adotado (2026-09-23), e ele responde o achado do AG escalar.** A
+   escalarização direta perde a linhagem fiel sob avaliação ruidosa — `dominance` é
+   amostrado e `drift` não, e depois da geração ~31 a seleção gasta a pressão em sorte.
+   Repartir o **mesmo** orçamento entre 75 gerações de NSGA-II e 75 do AG escalar:
+   `drift` 0,1663 contra 0,2473, τ **+0,5215 contra +0,2811**, Layer 3 4 contra 3, todas
+   com efeito grande — e **as duas métricas de equilíbrio não se movem** (Â₁₂ 0,51 e 0,49,
+   16/20 rosters equilibrados nos dois). Entra como passos 18–19 da bateria e como
+   **contribuição de método**. Detalhe em
+   [`../thesis/07-findings-and-limitations.md`](../thesis/07-findings-and-limitations.md)
+   e [04](../thesis/04-design-decisions.md).
 5. **O que falta é a redação** (§4) — a começar pelo `values.tex`, inteiramente obsoleto.
    Agora existem números definitivos para preenchê-lo.
 
@@ -46,22 +44,36 @@ trabalho das sessões anteriores, no git (a última versão longa deste arquivo 
 | **Recurso** | hp, damage, DEFEND, grab_power | ✅ coerente — o agarrão é o counter da guarda |
 | **Política** | 3 pesos, amostragem proporcional | contínua, e a escala dos pesos não contamina a identidade (`drift_genes` reescala); segue **cega ao estado** e, medido, **quase invisível ao equilíbrio** — os três pesos ocupam o fundo do ranking de sensibilidade (§2), e só o drift puxa a política de volta ao canônico |
 
-## 2. Resultados da bateria (2026-09-21, n = 20)
+## 2. Resultados da bateria (2026-09-23, n = 20)
+
+> **Esta é a bateria de 2026-09-23**, 19 passos. Ela re-executa a de 2026-09-21 sobre o
+> motor com os cinco consertos adiados aplicados e com `MULTI_RUN_SIMS` = 1000 (era 200),
+> e acrescenta dois passos: `cycle_structure` e o braço **híbrido**.
+>
+> **Os indivíduos são os mesmos.** Comparados gene a gene, 40 de 40 execuções com semente
+> saíram bit a bit idênticas às da bateria anterior — os consertos de motor são inertes,
+> como o `10-known-issues` afirmava e agora está medido. Logo **nenhum número de
+> identidade mudou** (drift, validador, τ). O que mudou foi só o que a régua mede: tudo
+> que deriva de `dominance`. Duas leituras viraram de lado por causa disso, e as duas
+> estão marcadas com ⚠ abaixo.
+>
+> A bateria anterior está preservada em `results_backup_2026-09-21_pre-hibrido/`, fora do
+> git.
 
 Bateria: NSGA-II e AG escalar com **20 sementes** (42–61), `compare_algorithms` no
 `scalar_optimum` (manchete) e no `best_dominance`, os **dois braços de controle** com a
 mesma amostra e o mesmo orçamento, os indivíduos da seed 42, os quatro rótulos de
 `external_validation`, `sensitivity_analysis` e `baselines` com 35 nulos.
 
-### O resultado que domina todos os outros: o controle `λ_drift = 0`
+### O controle `λ_drift = 0`: o contrafactual da pergunta de pesquisa
 
-É o contrafactual da pergunta de pesquisa — equilibrar **sem** o termo de identidade —, e
-responde as duas metades de uma vez.
+Equilibrar **sem** o termo de identidade. Responde as duas metades de uma vez — e desde
+2026-09-23 responde **assimetricamente**, que é o ponto desta seção.
 
 | | AG (λ_drift = 1) | controle λ_drift = 0 | p (Holm) | Â₁₂ |
 |---|---|---|---|---|
-| `dominance_penalty` | **0,0399** | 0,0534 | **0,038** | 0,30 |
-| hard-counters/execução | 0 | 0 | 0,763 | 0,54 |
+| `dominance_penalty` | 0,0355 | 0,0432 | 0,059 | 0,30 (médio) |
+| hard-counters/execução | 0 | 0 | 0,180 | 0,57 |
 | `drift_penalty` | **0,2473** | 0,4055 | **1,1 × 10⁻⁵** | 0,00 |
 | validador estrutural (L1+L2) | **11** | 6 | **0,00042** | 0,98 |
 | validador comportamental (L3) | **3** | 1 | **0,0044** | 0,85 |
@@ -70,33 +82,81 @@ responde as duas metades de uma vez.
 (medianas sobre as 20 execuções; Wilcoxon pareado + Holm, família de 6 — `bonecos em
 banda` sai por ser constante, 5/5 em todas as execuções dos dois braços)
 
-**Tirar o termo de drift piora o equilíbrio e zera a identidade.** Cinco das seis
-métricas separam a favor do braço *com* o termo: as quatro de identidade com efeito
-grande, e o próprio `dominance` com efeito médio. Só os hard-counters empatam (os dois
-braços fazem ~0,2–0,3 por execução). Na média das 20 execuções o braço λ = 0 dá
-τ = **+0,007 ± 0,151** — o acaso com três casas decimais — contra +0,259 ± 0,159 do AG.
+**O que é sólido: tirar o termo de drift zera a identidade.** As quatro réguas separam com
+efeito grande e p_Holm entre 1,1 × 10⁻⁵ e 0,0044. Na média das 20 execuções o braço λ = 0
+dá τ = **+0,007 ± 0,151** — o acaso com três casas decimais — contra +0,259 ± 0,159 do AG.
+Este é o achado que responde à pergunta de pesquisa, e ele não dependeu de resolução:
+os genes são idênticos aos da bateria anterior, e os números de identidade também.
 
-A leitura: **a identidade não custa equilíbrio — melhora.** O trade-off que o sweep de λ
-mostra existe, mas o joelho está longe o bastante de λ = 1,0 para que o termo saia de
-graça; e neste orçamento ele ainda ajuda a busca, provavelmente por manter os cinco
-diferenciados enquanto o equilíbrio é procurado.
+**O que NÃO é sólido, e mudou de status em 2026-09-23: o efeito no equilíbrio.**
 
-> Sob o Mann-Whitney **não-pareado** (o teste anterior) essa primeira linha dava
-> p_Holm = 0,063, "sem diferença". O desenho é pareado por construção — as mesmas
-> sementes fixam população inicial, operadores e streams nos dois braços —, e o teste
-> passou a ser o Wilcoxon pareado; o não-pareado segue impresso ao lado, como robustez.
-> Ver [`thesis/04`](../thesis/04-design-decisions.md), "O teste passou a ser o pareado".
+> ⚠ **Correção.** A bateria anterior media a reavaliação a 200 lutas por par e dava
+> `dominance` 0,0399 contra 0,0534, **p_Holm = 0,038 — significativo**, sustentando a
+> frase "a identidade não custa equilíbrio, **melhora**". A 1000 lutas, com os **mesmos
+> indivíduos** (genes bit a bit idênticos), a mesma linha dá 0,0355 contra 0,0432,
+> **p_Holm = 0,059 — não significativo**.
+>
+> O que sobrevive: a **direção** (o braço com o termo equilibra melhor), o **tamanho de
+> efeito** (Â₁₂ = 0,30, médio, inalterado) e o **p bruto** (0,0296, ainda abaixo de 0,05).
+> O que cai é a sobrevivência à correção de Holm sobre a família de 6.
+>
+> Por que mudou: o braço λ = 0 é o mais ruidoso dos dois (inflação dentro→fora do laço de
+> 3,21× contra 2,58× na medição antiga), então a régua grossa o penalizava mais. Parte da
+> diferença que a 200 lutas parecia efeito era **a medida errando contra o braço mais
+> ruidoso**. A frase honesta agora é: *"tirar o termo de identidade está associado a pior
+> equilíbrio, com efeito médio que não alcança significância"* — não *"piora o
+> equilíbrio"*.
+
+A leitura que fica: **a identidade não custa equilíbrio.** Isso é o que os dados sustentam
+— o trade-off que o sweep de λ mostra existe, mas o joelho está longe o bastante de
+λ = 1,0 para que o termo saia de graça. O que **não** se pode mais afirmar é que ele
+*melhora* o equilíbrio.
+
+> Sob o Mann-Whitney **não-pareado** a mesma linha dá p_Holm = 0,0337 bruto; o desenho é
+> pareado por construção — as mesmas sementes fixam população inicial, operadores e
+> streams nos dois braços —, e o teste é o Wilcoxon pareado, com o não-pareado impresso ao
+> lado como robustez. Ver [`thesis/04`](../thesis/04-design-decisions.md), "O teste passou
+> a ser o pareado".
+
+### O terceiro braço: o híbrido NSGA-II → AG escalar
+
+Mesmo orçamento do AG escalar, repartido: 75 gerações de NSGA-II, 75 de escalar.
+
+| | AG escalar | híbrido | p (Holm) | Â₁₂ |
+|---|---|---|---|---|
+| `dominance_penalty` | 0,0355 | 0,0287 | 1,00 | 0,51 (desprezível) |
+| hard-counters | 0 | 0 | 1,00 | 0,49 (desprezível) |
+| `drift_penalty` | 0,2473 | **0,1663** | **1,1 × 10⁻⁵** | 0,97 |
+| validador L1+L2 | 11 | **15** | **0,0026** | 0,12 |
+| validador L3 | 3 | **4** | **0,0058** | 0,24 |
+| concordância τ | 0,2811 | **0,5215** | **0,00084** | 0,15 |
+
+**Troca identidade grande por equilíbrio nenhum.** As duas de equilíbrio não se movem
+(16/20 rosters equilibrados nos dois braços, hard-counters 0,20 contra 0,25 por execução)
+e as quatro de identidade separam com efeito grande. Contra o NSGA-II: mesma identidade
+(drift 0,1708 contra 0,1484; τ +0,484 contra +0,521; Layer 3 **3,70 contra 3,65**) com
+**0,25 hard-counters contra 2,80** e **16/20 equilibrados contra 0/20**.
+
+**O preço é velocidade.** Converge na geração **98,3 ± 20,2** contra 31,3 ± 13,2 do
+escalar, com 81% dos disparos do gate recusados contra 71% — as 75 primeiras gerações são
+de Pareto e não perseguem o predicado de equilíbrio. O sobreajuste ao stream cai para
+**1,67×** contra 1,80× do escalar, na direção que o mecanismo prevê.
+
+**Ressalva:** o split 0,5 veio do desempate de simplicidade do critério, não de evidência
+— no sweep em orçamento reduzido nenhum braço passou no filtro de equilíbrio e a ordenação
+entre splits não transferiu. Afirmar que 0,5 é o *melhor* split exige um sweep no
+orçamento inteiro, que não foi feito.
 
 ### O segundo controle: a semente canônica não explica nada
 
 | | AG | controle sem semente | p (Holm) |
 |---|---|---|---|
-| `dominance_penalty` | 0,0399 | 0,0403 | 0,818 |
-| hard-counters | 0 | 0 | 0,818 |
+| `dominance_penalty` | 0,0355 | 0,0264 | 0,985 |
+| hard-counters | 0 | 0 | 0,828 |
 | `drift_penalty` | **0,2473** | 0,2703 | **0,0073** |
-| validador estrutural | 11 | 10,5 | 0,306 |
+| validador estrutural | 11 | 10,5 | 0,305 |
 | validador comportamental | 3 | 2 | 0,593 |
-| τ | 0,2811 | 0,1931 | 0,387 |
+| τ | 0,2811 | 0,1931 | 0,386 |
 
 Separa **só no drift**, e por pouco. A semente canônica dá uma dianteira estrutural
 modesta e nada mais: a diferença entre os dois algoritmos **não** é inicialização.
@@ -107,10 +167,11 @@ Média ± desvio; o NSGA-II representado pelo `scalar_optimum` (a manchete).
 
 | | dominance | drift | hard-counters | roster equilibrado | L1+L2 | L3 | τ |
 |---|---|---|---|---|---|---|---|
-| **AG escalar** | **0,0412** ± 0,0150 | 0,2495 ± 0,0273 | **0,30** ± 0,47 | **14/20** (70%) | 11,5 ± 2,2 | 2,45 ± 1,00 | +0,259 ± 0,159 |
-| **NSGA-II** | 0,0902 ± 0,0393 | **0,1484** ± 0,0233 | 3,00 ± 1,49 | 0/20 (0%) | **15,5** ± 1,1 | **3,65** ± 1,18 | **+0,521** ± 0,120 |
-| controle λ = 0 | 0,0523 ± 0,0142 | 0,4089 ± 0,0353 | 0,25 ± 0,55 | 16/20 (80%) | 5,7 ± 2,0 | 0,90 ± 0,97 | +0,007 ± 0,151 |
-| controle sem semente | 0,0434 ± 0,0197 | 0,2759 ± 0,0298 | 0,20 ± 0,41 | 16/20 (80%) | 10,4 ± 1,9 | 2,00 ± 0,97 | +0,172 ± 0,149 |
+| **AG escalar** | **0,0334** ± 0,0132 | 0,2495 ± 0,0273 | **0,20** ± 0,41 | **16/20** (80%) | 11,5 ± 2,2 | 2,45 ± 1,00 | +0,259 ± 0,159 |
+| **NSGA-II** | 0,0779 ± 0,0334 | **0,1484** ± 0,0233 | 2,80 ± 1,61 | 0/20 (0%) | **15,4** ± 1,1 | 3,65 ± 1,18 | **+0,521** ± 0,120 |
+| **híbrido** | 0,0352 ± 0,0190 | 0,1708 ± 0,0280 | 0,25 ± 0,55 | **16/20** (80%) | 14,8 ± 1,9 | **3,70** ± 1,34 | +0,484 ± 0,148 |
+| controle λ = 0 | 0,0413 ± 0,0130 | 0,4089 ± 0,0353 | 0,05 ± 0,22 | 19/20 (95%) | 5,7 ± 2,0 | 0,90 ± 0,97 | +0,007 ± 0,151 |
+| controle sem semente | 0,0334 ± 0,0193 | 0,2759 ± 0,0298 | 0,10 ± 0,31 | 18/20 (90%) | 10,3 ± 1,9 | 2,00 ± 0,97 | +0,172 ± 0,149 |
 
 Os dois algoritmos ocupam extremos nítidos e **as seis métricas da família são
 significativas, todas com efeito grande** — o AG ganha as duas de equilíbrio, o NSGA-II
@@ -118,26 +179,26 @@ as quatro de identidade:
 
 | métrica | mediana AG | mediana NSGA-II | p (Holm) | Â₁₂ | vencedor |
 |---|---|---|---|---|---|
-| `dominance_penalty` | 0,0399 | 0,0796 | 0,00013 | 0,10 | AG escalar |
+| `dominance_penalty` | 0,0355 | 0,0759 | 9,5 × 10⁻⁵ | 0,07 | AG escalar |
 | hard-counters/execução | 0 | 3 | 0,00034 | 0,03 | AG escalar |
 | `drift_penalty` | 0,2473 | 0,1445 | 1,1 × 10⁻⁵ | 1,00 | NSGA-II |
 | validador estrutural (L1+L2) | 11 | 15 | 0,00034 | 0,05 | NSGA-II |
 | validador comportamental (L3) | 3 | 4 | 0,0027 | 0,24 | NSGA-II |
-| concordância de ranking (τ) | 0,2811 | 0,5430 | 0,00013 | 0,09 | NSGA-II |
+| concordância de ranking (τ) | 0,2811 | 0,5430 | 0,00011 | 0,09 | NSGA-II |
 
 `bonecos em banda` fica fora da família nas quatro comparações: **5/5 em todas as
 execuções de todos os braços**. Equilibrar os cinco globalmente deixou de discriminar
 qualquer coisa — o que discrimina são os pares.
 
 Contra o `best_dominance` (leitura secundária) as mesmas seis, nas mesmas direções, um
-pouco mais fracas: `dominance` p_Holm = 0,0029, hard-counters 0 contra 2, τ 0,2811 contra
-0,5072. Nenhum representante da fronteira chega perto do AG no critério completo —
-rosters equilibrados por representante: `best_dominance` 2/20, `scalar_optimum` 0/20,
-`knee_point` 0/20, `ideal_point` 0/20, `best_drift` 0/20, contra **14/20** do AG.
+pouco mais fracas: `dominance` 0,0355 contra 0,0551 (p_Holm = 0,0034), hard-counters 0
+contra 2, τ 0,2811 contra 0,5072. Nenhum representante da fronteira chega perto do AG no critério completo —
+rosters equilibrados por representante: `best_dominance` 4/20, `scalar_optimum` 0/20,
+`knee_point` 0/20, `ideal_point` 0/20, `best_drift` 0/20, contra **16/20** do AG.
 
 **A decomposição diz de onde vem a diferença.** O AG vence nos dois termos, mas por
-margens muito diferentes — `global_term` **0,0397 contra 0,0490**, `cap_term` **0,0030
-contra 0,0807**. Globalmente os dois equilibram parecido; o NSGA-II perde por deixar par
+margens muito diferentes — `global_term` **0,0318 contra 0,0401**, `cap_term` **0,0032
+contra 0,0736**. Globalmente os dois equilibram parecido; o NSGA-II perde por deixar par
 passar do teto. O `decis_term` fica em 0,0000 nos dois (0,0017 ± 0,0072 no NSGA-II).
 
 **Relação de Pareto por semente** (descritiva, fora da família): **18/20 mutuamente
@@ -155,7 +216,8 @@ condições independentes (`external_validation`, seeds 10000+, 5000 lutas por p
 | | dentro → fora | degradação |
 |---|---|---|
 | bateria 2026-09-16 (sem rotação) | 0,0039 → 0,0804 | **21×** |
-| bateria 2026-09-21 | 0,0251 → **0,0373** | **1,5×** |
+| bateria 2026-09-21 (200 lutas) | 0,0251 → 0,0373 | 1,5× |
+| bateria 2026-09-23 (1000 lutas) | 0,0251 → **0,0456** | **1,8×** |
 
 A rotação do stream por geração fez o que prometia: a degradação caiu de 21× para a casa
 de 1–3×.
@@ -163,9 +225,8 @@ de 1–3×.
 > **Correção (2026-09-22): a linha acima é da seed 42, e ela é a 2ª semente mais favorável
 > das 20.** A conclusão "o número de dentro do laço é essencialmente o de fora" **não**
 > transfere para a amostra. Medido nas 20 sementes (razão reavaliação / dentro do laço):
-> mediana **2,59×**, e a seed 42 dá 1,24× — só a seed 58 é melhor. Com um instrumento de
-> baixo ruído (1000 lutas × 4 sorteios novos, sementes 42–46) a mediana é **2,05×**, então
-> não é artefato de medição: é viés de seleção (o número do laço é o mínimo de 300
+> mediana **2,59×** a 200 lutas e **1,80×** a 1000 (a régua grossa também inflava esta
+> razão), e a seed 42 é das mais favoráveis das 20. Não é artefato de medição: é viés de seleção (o número do laço é o mínimo de 300
 > indivíduos num stream) somado ao ruído residual do `dominance`. O que sobrevive da
 > afirmação é o **ganho** da rotação (de 21× para ~2×), não a igualdade dentro/fora.
 > Ao citar, usar o número de fora e a razão da amostra, nunca a de uma semente. Mecanismo
@@ -181,7 +242,7 @@ de 1–3×.
 | validador (L3) | 3/5 | 0,97 | 3 | 5 | 50% | **0,03** |
 | concordância (τ) | 0,314 | −0,039 | 0,316 | 1,00 | 34% | 0,06 |
 | `drift_penalty` | 0,236 | 0,409 | 0,327 | 0,000 | 42% | **< 0,03** |
-| `dominance_penalty` | 0,031 | 1,146 | 0,024 | 0,057 | 102% | 0,06 |
+| `dominance_penalty` | 0,046 | 1,143 | 0,011 | 0,033 | 99% | 0,11 |
 
 Três leituras:
 
@@ -195,7 +256,15 @@ Três leituras:
    para concluir; sobre 20 sementes contra o controle λ = 0, dá — e separa com efeito
    grande. **É uma correção da leitura preliminar de 2026-09-18**, que dava a identidade
    funcional no piso (L3 1/5, p = 0,74; τ = 0,19).
-3. **O ciclo autoral não é realizado — e a linha dele saiu desta tabela.** A métrica
+3. **O equilíbrio do evoluído está no nível do espelho, ligeiramente abaixo.**
+   `dominance` 0,046 contra 0,033 dos espelhos (posição 99%, p = 0,11). A 200 lutas a
+   mesma linha dava 0,031 contra 0,057 e **posição 102%**, sugerindo que o evoluído
+   equilibrava *melhor* que a simetria perfeita — o que nunca fez sentido e era artefato
+   de resolução: cinco cópias idênticas são perfeitamente equilibradas por construção, e
+   era o ruído de 200 lutas que as penalizava. A leitura certa é *"tão equilibrado quanto
+   a simetria perfeita, dentro do ruído"*, e é o que responde à objeção "por que não
+   deixar os cinco iguais?" — a resposta está na identidade, não no equilíbrio.
+4. **O ciclo autoral não é realizado — e a linha dele saiu desta tabela.** A métrica
    mudou de casa em 2026-09-22: a 200 lutas por par a direção de cada aresta de um roster
    equilibrado é sorteio (margem mediana 0,048 contra σ = 0,035), e os espelhos — estrutura
    de torneio zero por construção — marcavam 5,40/10 "mantidas" com 1,00/10 decididas.
@@ -245,8 +314,9 @@ fixa e cega ao estado.
 
 - **Convergiu em 20/20 sementes**, sempre confirmado num stream que o AG nunca viu, na
   geração **31,3 ± 13,2** (13 a 56). A seed 42 converge na 31.
-- Convergir não é terminar equilibrado: das 20 convergidas, **14** terminam com o roster
-  equilibrado na reavaliação.
+- Convergir não é terminar equilibrado: das 20 convergidas, **16** terminam com o roster
+  equilibrado na reavaliação. *(Eram 14 a 200 lutas por par — dois dos "não equilibrados"
+  eram ruído da régua, não desequilíbrio.)*
 - **O gate disparou 70 vezes e a confirmação recusou 50 (71%)** — ~3 de cada 4 vezes em
   que o roster parece equilibrado sob o stream de treino, ele não sobrevive a um stream
   inédito. É o que a rotação por geração existe para combater, e a taxa é a mesma nos

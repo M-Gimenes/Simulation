@@ -1,8 +1,8 @@
 {
   "provenance": {
-    "generated_at": "2026-09-21T10:25:16-03:00",
-    "fingerprint": "371966d9f335",
-    "engine_digest": "6b18ff49b38a",
+    "generated_at": "2026-09-23T03:59:04-03:00",
+    "fingerprint": "92b3ca4aefae",
+    "engine_digest": "cbb81a8a540d",
     "archetypes_digest": "e37725dd4b7c",
     "config": {
       "ACTION_PERSISTENCE_SUBTICKS": 5,
@@ -172,7 +172,7 @@
       "MAX_GENERATIONS": 150,
       "MAX_TICKS": 2500,
       "MULTI_RUN_SEED_START": 42,
-      "MULTI_RUN_SIMS": 200,
+      "MULTI_RUN_SIMS": 1000,
       "MULTI_RUN_VALIDATION_SEED": 9999,
       "MUTATION_RATE": 0.05,
       "NSGA2_GENERATIONS": 150,
@@ -246,7 +246,7 @@
     61
   ],
   "validation_seed": 9999,
-  "sims_per_matchup": 200,
+  "sims_per_matchup": 1000,
   "family_size": 6,
   "excluded_from_family": [
     "n_chars_balanced"
@@ -256,15 +256,15 @@
       "metric": "dominance_penalty",
       "label": "dominance_penalty",
       "better_is": "lower",
-      "median_a": 0.03987229134283217,
-      "median_b": 0.0666795988141934,
-      "w_statistic": 24.0,
-      "p_value": 0.0014324188232421875,
-      "p_value_unpaired": 0.0005629035598941275,
-      "a12_a_vs_b": 0.18,
+      "median_a": 0.035511644738571865,
+      "median_b": 0.05508583770306669,
+      "w_statistic": 25.0,
+      "p_value": 0.001689910888671875,
+      "p_value_unpaired": 0.0006219975867469958,
+      "a12_a_vs_b": 0.1825,
       "better": "a",
       "degenerate": false,
-      "p_holm": 0.002864837646484375,
+      "p_holm": 0.00337982177734375,
       "significant": true,
       "effect_magnitude": "grande"
     },
@@ -274,13 +274,13 @@
       "better_is": "lower",
       "median_a": 0.0,
       "median_b": 2.0,
-      "w_statistic": 4.0,
-      "p_value": 0.00033232219363804155,
-      "p_value_unpaired": 7.0771011206559e-06,
-      "a12_a_vs_b": 0.1025,
+      "w_statistic": 3.0,
+      "p_value": 0.0006870203767822763,
+      "p_value_unpaired": 3.7137098277822024e-05,
+      "a12_a_vs_b": 0.145,
       "better": "a",
       "degenerate": false,
-      "p_holm": 0.0012558204187589671,
+      "p_holm": 0.0020610611303468287,
       "significant": true,
       "effect_magnitude": "grande"
     },
@@ -344,7 +344,7 @@
       "a12_a_vs_b": 0.23875,
       "better": "b",
       "degenerate": false,
-      "p_holm": 0.002864837646484375,
+      "p_holm": 0.00337982177734375,
       "significant": true,
       "effect_magnitude": "grande"
     },
@@ -367,13 +367,13 @@
   ],
   "dominance_decomposition": {
     "global_term": {
-      "median_a": 0.03683591238505664,
-      "median_b": 0.04324419242631736,
+      "median_a": 0.03181736228201491,
+      "median_b": 0.037776319226999255,
       "weight": 1.0
     },
     "cap_term": {
       "median_a": 0.0,
-      "median_b": 0.031666150413822244,
+      "median_b": 0.02872974972938018,
       "weight": 0.5
     },
     "decis_term": {

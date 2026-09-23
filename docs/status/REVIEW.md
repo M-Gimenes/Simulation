@@ -81,8 +81,8 @@ precisava de conserto, e a decisão foi declará-los na Discussão. Detalhe em
   controle. A leitura preliminar (Layer 3 e τ no piso) **não se confirmou**: L3 3/5 e
   τ = 0,31 no indivíduo da seed 42. Contra os 35 nulos um único roster não tem resolução
   (L3 empata com o melhor nulo, τ fica um fio abaixo); contra o braço `λ_drift = 0`, sobre
-  20 execuções de cada lado, as duas réguas separam com efeito grande (p_Holm 0,00024 e
-  0,00022) — e o braço sem o termo dá τ = +0,007, o acaso. Segue valendo que o AG quase
+  20 execuções de cada lado, as duas réguas separam com efeito grande (p_Holm 0,0044 e
+  0,00067 na bateria de 2026-09-23) — e o braço sem o termo dá τ = +0,007, o acaso. Segue valendo que o AG quase
   não enxerga a política pelo equilíbrio: os três pesos ocupam o fundo do ranking de
   sensibilidade.
 

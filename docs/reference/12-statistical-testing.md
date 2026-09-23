@@ -57,8 +57,9 @@ o bloco é **conservador** — joga fora o poder que o CRN pagou —, não invá
 impresso ao lado do pareado, cru (fora do Holm), por uma razão de honestidade: o projeto
 trocou de teste depois de já ter resultados, e a defesa contra a acusação de escolher o
 teste pelo p-valor é **não esconder o outro**. Quem lê confere que as conclusões não
-dependem da escolha — e, na bateria de 2026-09-21, dependem em exatamente uma célula
-(ver §7).
+dependem da escolha — e, na bateria de 2026-09-23, **não dependem em nenhuma célula das
+24**. Dependiam em uma na de 2026-09-21, e o que resolveu foi medir melhor, não trocar de
+teste (ver §7).
 
 ### Â₁₂ de Vargha-Delaney, em uma frase
 
@@ -265,18 +266,33 @@ concordância de ranking (τ)  p_Holm 0,00013   Â₁₂ 0,09 (grande)   NSGA-II
 
 ### A única célula em que os dois testes discordam
 
-Nas quatro comparações da bateria, pareado e não-pareado dão o mesmo veredito em 23 das
-24 células. A exceção é o controle `λ_drift = 0`, em `dominance_penalty`:
+Nas quatro comparações da bateria, pareado e não-pareado dão o mesmo veredito em **24 das
+24 células**. A célula que já foi a exceção — o controle `λ_drift = 0`, em
+`dominance_penalty` — deixou de ser, e a história dela vale como aula:
 
-| | p bruto | p_Holm | veredito |
-|---|---|---|---|
-| Mann-Whitney (não-pareado) | 0,0315 | 0,0630 | sem diferença |
-| **Wilcoxon (pareado)** | 0,0192 | **0,0385** | **AG melhor, efeito médio** |
+| bateria | teste | p bruto | p_Holm | veredito |
+|---|---|---|---|---|
+| 2026-09-21 (200 lutas/par) | Mann-Whitney | 0,0315 | 0,0630 | sem diferença |
+| 2026-09-21 (200 lutas/par) | **Wilcoxon pareado** | 0,0192 | **0,0385** | **AG melhor** |
+| 2026-09-23 (1000 lutas/par) | Mann-Whitney | 0,0337 | — | sem diferença |
+| 2026-09-23 (1000 lutas/par) | Wilcoxon pareado | 0,0296 | **0,0592** | sem diferença |
 
-É uma diferença de leitura substantiva: o teste do desenho diz que tirar o termo de
-identidade **piora o equilíbrio**, e não apenas que deixa de melhorá-lo. Como a troca de
-teste nasceu de uma auditoria do desenho e não de um p-valor, e como o não-pareado
-continua impresso ao lado, o leitor tem os dois números para julgar.
+A 200 lutas por par, o teste do desenho dizia que tirar o termo de identidade **piora o
+equilíbrio**, e o não-pareado não dizia. Era tentador ler isso como "o teste pareado tem
+mais poder, então ele enxerga o efeito que o outro perde" — e é verdade que ele tem mais
+poder. Mas a 1000 lutas por par, **com os mesmos indivíduos** (genes bit a bit idênticos),
+os dois convergem para o mesmo veredito: sem diferença sob Holm.
+
+O que aconteceu: o braço `λ_drift = 0` é o mais ruidoso dos dois (inflação dentro→fora do
+laço de 3,21× contra 2,58×), e uma régua grossa **não erra simetricamente** — ela penaliza
+mais quem tem mais ruído. Parte da diferença que o pareado enxergava era a medida errando
+contra o braço ruidoso, não efeito.
+
+**A lição não é sobre qual teste usar** — o desenho é pareado e o Wilcoxon continua sendo
+o teste certo, pelas razões do desenho e não por um p-valor. A lição é que **mais poder
+estatístico não conserta uma medida grossa**: o teste mais sensível é justamente o que
+transforma viés de medição em significância. Antes de comemorar um p que só um dos testes
+enxerga, medir o ruído da régua — ver §8, "Não protege de régua grossa".
 
 Traduzindo: **as seis diferenças são significativas e grandes**, e se dividem exatamente
 nas duas metades da pergunta — o AG ganha as duas métricas de equilíbrio, o NSGA-II as

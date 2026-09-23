@@ -195,9 +195,9 @@ não a busca.
 > convergência (média 31,3 na bateria), o gradiente verdadeiro de `dominance` está
 > esgotado e o que sobra para a seleção enxergar é ruído ~60× maior que o ganho de drift
 > por geração (0,0003). A consequência é medível em três lugares: a confirmação recusa 71%
-> dos disparos do gate; a `dominance` do laço infla 2,6× (mediana) na reavaliação; e o
-> drift mínimo da população sai de 0 (a semente canônica) para 0,24 já na geração 20 — a
-> linhagem fiel morre na g7. **Não é bug**: é o comportamento esperado de uma soma que
+> dos disparos do gate; a `dominance` do laço infla **1,8×** (mediana, a 1000 lutas por
+> par) na reavaliação; e o drift mínimo da população sai de 0 (a semente canônica) para
+> 0,24 já na geração 20 — a linhagem fiel morre na g7. **Não é bug**: é o comportamento esperado de uma soma que
 > mistura um termo ruidoso com um exato. O achado, com o híbrido que o contorna, está em
 > [`../thesis/07-findings-and-limitations.md`](../thesis/07-findings-and-limitations.md)
 > §«O AG escalar não é ótimo na própria função»; a pendência, em

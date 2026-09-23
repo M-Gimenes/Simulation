@@ -10,17 +10,22 @@ do sistema nos docs 01–09.
 
 ## 1. Pendências acionáveis
 
-**Uma, aberta em 2026-09-22: o AG escalar não é ótimo na própria função.** Sob avaliação
-amostrada, `dominance` tem ruído e `drift` não, e depois da geração ~31 a seleção escalar
-gasta a pressão em sorte — a fronteira do NSGA-II tem um ponto melhor na soma
-`dominance + drift` em 20/20 sementes, e um híbrido NSGA-II → AG escalar **com o mesmo
-orçamento** quase domina o AG. Achado e números em
-[`../thesis/07-findings-and-limitations.md`](../thesis/07-findings-and-limitations.md)
-(«O AG escalar não é ótimo na própria função»); registro de trabalho, scripts e dados
-brutos em `CONTINUE.md` e `diagnostics/`. **Não invalida a bateria** — os agregados de
-n = 20 seguem válidos, porque o ruído de medição é simétrico entre braços. O que ele
-qualifica é a leitura: o trade-off medido é um **teto** do custo da identidade. A sequência
-para fechar está em [07](../thesis/07-findings-and-limitations.md) §«O que ainda falta».
+**Nenhuma aberta.** A última — «o AG escalar não é ótimo na própria função», aberta em
+2026-09-22 — foi **fechada em 2026-09-23** pela adoção do braço híbrido.
+
+Em resumo: `dominance` é amostrado e `drift` não, e depois da geração ~31 a seleção
+escalar gasta a pressão em ruído; a linhagem de drift mínimo morre na geração 7. Repartir
+o **mesmo** orçamento entre uma fase de Pareto e uma escalar recupera a identidade sem
+custo em equilíbrio — drift 0,1663 contra 0,2473 e τ +0,5215 contra +0,2811 (efeito
+grande), com `dominance` e hard-counters imóveis (Â₁₂ 0,51 e 0,49). Achado e números em
+[`../thesis/07-findings-and-limitations.md`](../thesis/07-findings-and-limitations.md),
+decisão em [`../thesis/04-design-decisions.md`](../thesis/04-design-decisions.md).
+
+Sobrou uma **pergunta declarada, não uma pendência**: qual o melhor split. O 0,5 veio do
+desempate de simplicidade do critério de escolha, porque no sweep em orçamento reduzido
+nenhum braço passou no filtro de equilíbrio e a ordenação entre splits não transferiu.
+Afirmar que 0,5 é o melhor exigiria um sweep no orçamento inteiro — o que está medido é
+que **este** split não cobra equilíbrio pela identidade que entrega.
 
 **Fechada em 2026-09-22: o ciclo autoral era medido numa resolução em que não funcionava.**
 `cycle_edges_kept` e `circular_triads` saíram do `baselines` (200 lutas por par, onde a
@@ -43,11 +48,18 @@ os dela.
 Fora essa, não há pendência de instrumentação. O que resta é **redação**
 ([`../status/HANDOFF.md`](../status/HANDOFF.md) §4).
 
-**Os cinco consertos adiados foram feitos em 2026-09-22**, junto da re-execução que o
+**Os cinco consertos adiados foram feitos em 2026-09-22/23**, junto da re-execução que o
 braço híbrido exigiu — era exatamente a condição que eles esperavam ("a próxima mudança
 que já exija re-rodar"). Ficam registrados aqui porque a razão de terem esperado é a
 lição, não o conserto em si: **editar `src/engine/` troca o `engine_digest` e marca todo o
 `results/` como obsoleto**, e nenhum deles mudava um número de execução com semente.
+
+> **Isso deixou de ser argumento e virou medição (2026-09-23).** Comparados gene a gene
+> contra a bateria anterior, **40 de 40 execuções com semente** — 20 do AG escalar e 20 do
+> NSGA-II — produziram indivíduos **bit a bit idênticos**. Nenhum número de identidade
+> mudou na re-execução; o que mudou foi só o que `MULTI_RUN_SIMS` mede. Ver
+> [`../thesis/04-design-decisions.md`](../thesis/04-design-decisions.md), «A política de
+> adiar conserto inerte foi verificada».
 
 1. **`ga.run(seed=None)` e `nsga2.run(seed=None)` não reavaliavam os elites** — a
    invalidação estava dentro do `if seed is not None`, então um elite com avaliação de
