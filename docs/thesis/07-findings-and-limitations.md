@@ -75,8 +75,11 @@ método, o último é sobre o objeto.
   Enquanto a fronteira estava contaminada, toda comparação media sub-convergência do
   NSGA-II, não trade-off. Removendo o seed (só do NSGA-II — no escalar ele ajuda), o mapa
   do trade-off passou a existir, e no orçamento de produção os dois ficam **mutuamente
-  não-dominados**: o escalar domina 0 dos 64 pontos, nenhum o domina, e ele vence na
-  própria função que otimiza (L1 0,2331 contra 0,2487). Vale como lição de método na
+  não-dominados**: na bateria de 2026-09-21 isso vale em 18 das 20 sementes, com uma
+  semente para cada lado. O que **não** vale é o escalar vencer na própria função: na
+  soma `dominance + drift` (λ = 1/1) a fronteira do NSGA-II tem um ponto melhor em
+  **20/20** sementes no stream do laço (medianas 0,2658 contra 0,2052) — ver
+  "O AG escalar perde na própria função" abaixo. Vale como lição de método na
   Discussão: **um detalhe de inicialização pode inverter a conclusão de uma comparação
   entre algoritmos** — e, no mesmo item, o orçamento também inverteu (a pop 120 a leitura
   era 0,2115 contra 0,2945, a favor do NSGA-II), o que é a razão de a comparação de
@@ -92,8 +95,15 @@ nulos (5 espelhos + 30 aleatórios), bateria de 2026-09-18:
 |---|---|---|---|
 | validador (L1-L3) | 6,4/23 (5,97 com o empate contado contra a asserção) | **10/23** | 23/23 |
 | `drift_penalty` | 0,377 (espelho) · 0,415 (aleatório) | 0,327 | 0,000 |
-| arestas do ciclo | 5/10 (cada aresta é cara-ou-coroa) | 8/10 | 10/10 |
+| arestas do ciclo ⚠ | 5/10 (cada aresta é cara-ou-coroa) | 8/10 | 10/10 |
 | concordância de ranking (τ, desde 2026-09-18) | +0,001 | +0,338 | 1,000 |
+
+> ⚠ **A linha do ciclo foi refeita em 2026-09-22.** O piso de 5/10 segue válido (os nulos
+> aleatórios têm arestas decididas), mas o "pior nulo 8/10" e qualquer valor de alvo medidos
+> a 200 lutas por par são ruído: a margem mediana das arestas de um roster equilibrado é
+> 0,048 contra σ = 0,035. A métrica saiu do `baselines` para
+> `src.experiments.cycle_structure` — ver «O ciclo era medido numa resolução em que não
+> funcionava», abaixo. As outras três linhas da tabela não são afetadas.
 
 Consequências para a redação:
 
@@ -165,9 +175,11 @@ Estes são os achados citáveis. Os números completos estão em
   (`dominance` 0,0373 fora contra 0,0251 dentro — degradação de 1,5×, contra 21× na
   bateria pré-rotação), robusto a 4 das 8 regras perturbadas, 2 inconclusivas, 2 frágeis.
   Canônico, NSGA-II `scalar_optimum` e `knee_point` falham a replicação e as 8 regras.
-- **O ciclo autoral não sobrevive ao equilíbrio.** 5/10 arestas, a média exata dos nulos,
-  posição 0%, p = 0,63 — o objetivo é cego à direção por construção. O Grappler × Turtle,
-  aresta canônica forte (100% no canônico), é achatado a 51% ± 6% nas 20 sementes.
+- **O ciclo autoral não sobrevive ao equilíbrio** — e o objetivo é cego à direção por
+  construção. O Grappler × Turtle, aresta canônica forte (100% no canônico), é achatado a
+  51% ± 6% nas 20 sementes. **O número desta linha foi refeito em 2026-09-22** (era "5/10,
+  posição 0%, p = 0,63", medido a 200 lutas por par, onde a direção de cada aresta é
+  sorteio): ver «O ciclo era medido numa resolução em que não funcionava», abaixo.
 - **Convergência é regra, não exceção — mesmo com a confirmação fora do stream.** O AG
   convergiu em 20/20 sementes, na geração 31,3 ± 13,2, embora a confirmação tenha recusado
   71% dos disparos do gate (50 de 70). Convergir é o **primeiro** sucesso de um teste
@@ -186,6 +198,111 @@ Estes são os achados citáveis. Os números completos estão em
   afirmação passou de "nenhum braço os supera" para "**nenhum braço os domina**".
 - **O stun era um gene de platô para o atacante rápido.** Até a correção dos timers, variar
   o stun do Rushdown evoluído em 31 valores dava 5 WR distintas; agora, 27.
+
+### O AG escalar não é ótimo na própria função (2026-09-22)
+
+Investigação sobre os artefatos da bateria de 2026-09-21, scripts e dados em
+`diagnostics/` (fora de `src/`, sem carimbo de proveniência). **Registro de trabalho em
+`CONTINUE.md`**; o que está aqui é o achado. Ainda **não** rodou na bateria — os braços
+abaixo usam as sementes 42–46, que são as da bateria, e por isso ainda não escolhem
+configuração (ver «O que ainda falta»).
+
+- **O NSGA-II vence o AG escalar na soma que o escalar otimiza.** Em `dominance + drift`
+  (λ = 1/1), a fronteira tem um ponto melhor em **20/20** sementes no stream do laço
+  (medianas 0,2658 contra 0,2052), o `scalar_optimum` vence em **18/20** na reavaliação e
+  em **5/5** a 1000 lutas × 8 streams. Isso **não** contradiz a relação de Pareto: os dois
+  seguem mutuamente não-dominados em 18/20, porque o ponto do AG fica *além* da ponta de
+  menor dominance da fronteira em **19/20** (0,017 contra 0,05). Ele não está atrás da
+  fronteira — está num extremo dela, e o extremo não é o ótimo de λ = 1/1.
+- **A causa é uma assimetria de ruído entre os dois termos do escalar.** `drift` é
+  determinístico; `dominance` é amostrado, com desvio 0,015–0,028 a 150 lutas (mesmo
+  roster, 30 streams). Depois da geração ~31 — exatamente a geração média de convergência
+  — o gradiente verdadeiro de `dominance` acabou e o que sobra é ruído ~60× maior que o
+  ganho de drift por geração (0,0003). A seleção escalar gasta a pressão em sorte.
+- **Sobreajuste ao stream, quantificado** (`dominance` no laço → reavaliado): AG escalar
+  0,0172 → 0,0399 (**2,58×**, pior em 19/20); controle λ = 0 0,0184 → 0,0534 (**3,21×**);
+  NSGA-II 0,0559 → 0,0796 (1,52×). **Quanto mais a seleção se concentra no termo ruidoso,
+  mais a execução compra sorte** — e o braço sem identidade, que só tem o termo ruidoso,
+  é o pior dos três. Casa com os 71% de disparos do gate recusados pela confirmação.
+- **A linhagem fiel morre na geração 7.** Réplica instrumentada da seed 42
+  (`diagnostics/data/base42.json`, reproduz o artefato bit a bit): o drift mínimo da
+  população sai de 0,0000 (g0–g2, a semente canônica) para 0,17 em **g7** e 0,24 em g20,
+  quando `dominance` ainda tinha 1,13 dos seus 1,35 por entregar. Em g20 a população é um
+  aglomerado de largura 0,045 (mínimo 0,2406, mediana 0,2861): não sobrou diversidade de
+  drift para recombinar, e as 130 gerações seguintes rendem 0,05. No NSGA-II isso não
+  ocorre — `drift` é objetivo separado e sem ruído, e o extremo de drift baixo fica
+  protegido no rank 0 pela crowding infinita. É **multi-objetivização** (Knowles, Watson
+  & Corne 2001) agindo como robustez a ruído, leitura que [08](08-literature-methods.md)
+  ainda não cobre.
+- **Consequência para a pergunta de pesquisa: o trade-off medido é um teto do custo da
+  identidade, não o custo.** Um híbrido NSGA-II 75 gerações → AG escalar 75 (**orçamento
+  igual**, mesmas 300 × 150 no total) reavaliado a 1000 lutas em 4 sorteios novos:
+
+  | braço | dom | hard counters | drift | L1+L2 | L3 | τ | soma |
+  |---|---|---|---|---|---|---|---|
+  | AG escalar | 0,0380 | 0,30 | 0,2396 | 12,2 | 2,40 | +0,284 | 0,2776 |
+  | NSGA-II `scalar_optimum` | 0,0835 | 3,50 | 0,1487 | 15,4 | 4,00 | +0,593 | 0,2322 |
+  | **híbrido, orçamento igual** | **0,0254** | **0,30** | **0,1664** | **15,2** | **4,40** | **+0,551** | **0,1918** |
+  | híbrido com 2× orçamento | 0,0364 | 0,30 | 0,1492 | 15,0 | 4,00 | +0,606 | 0,1856 |
+
+  Contra o AG escalar, por semente: melhor em `dominance` **4/5**, em drift **5/5**, em τ
+  **5/5**, empate em hard counters e em elencos equilibrados (14/20 contra 16/20 medições,
+  dentro do ruído). Boa parte do que hoje se lê como "o AG troca identidade por
+  equilíbrio" é **falha de busca sob avaliação ruidosa**, não trade-off da função — o que
+  torna a resposta à pergunta de pesquisa mais afirmativa, não menos.
+- **`MULTI_RUN_SIMS = 200` não tem resolução para ranquear rosters.** O veredito acima
+  **inverteu** entre 200 sims (um stream) e 1000 sims (quatro): a 200, o híbrido parecia
+  pagar equilíbrio pela identidade. Serve de alerta de método: o ruído de medição é
+  simétrico entre braços e a média de n = 20 o dilui, então os agregados da bateria
+  seguem válidos — mas **nenhuma leitura por semente, nem nenhuma comparação em amostra
+  pequena, pode ser feita a 200**. Ver [04](04-design-decisions.md) e
+  [09](09-values-and-choices.md).
+
+### O ciclo era medido numa resolução em que não funcionava (2026-09-22)
+
+Achado de método com consequência direta numa afirmação da tese. `cycle_edges_kept` vivia
+no `baselines`, medido a `MULTI_RUN_SIMS` = 200 lutas por par — e a margem mediana das
+arestas de um roster **equilibrado** é 0,048, contra um desvio binomial de 0,035 a 200
+lutas. Nessa resolução a direção de cada aresta é cara-ou-coroa.
+
+O que expôs isso foram os **espelhos**: cinco cópias do mesmo arquétipo, estrutura de
+torneio zero por construção, marcavam **5,40/10 "mantidas" com 1,00/10 decididas**. Uma
+métrica que dá acima do piso num roster sem nenhuma estrutura está medindo sorteio. E o
+mesmo roster do dossiê lê **5/10 a 200 lutas e 8/10 a 16.000**.
+
+Refeito em `src/experiments/cycle_structure.py` (16 × 1000 = 16.000 lutas por par,
+σ = 0,0040), contando só as arestas **decididas** (`|WR − 0,5| > 2σ`):
+
+| grupo | n | mantidas | decididas | mantidas **E** decididas | margem mediana | tríades |
+|---|---|---|---|---|---|---|
+| canônico | 1 | 6,00/10 | 10,00/10 | 6,00/10 | 0,5000 | **1,00** |
+| AG escalar | 20 | 5,60/10 | 9,30/10 | 5,25/10 | 0,0481 | 3,71 |
+| NSGA-II | 20 | 4,95/10 | 9,85/10 | 4,90/10 | 0,1037 | 4,17 |
+| espelhos (controle de ruído) | 5 | 5,40/10 | **1,00/10** | 0,60/10 | 0,0033 | 2,59 |
+| aleatórios (piso) | 30 | 4,97/10 | 10,00/10 | 4,97/10 | 0,4909 | 0,40 |
+
+- **O veredito não mudou de sinal, mudou de qualidade.** O AG mantém **105 de 186 arestas
+  decididas — 56,5%, binomial p = 0,091**; os 30 nulos ficam em 49,7% (p = 0,128,
+  Â₁₂ = 0,63); o NSGA-II dá 4,90/10. A frase certa não é "destruído" nem "preservado", é
+  **indistinguível do acaso**, com inclinação fraca e não significativa na direção autoral.
+- **Achado novo que a resolução antiga escondia: o canônico também não tem um ciclo.**
+  Realiza 6/10, e as 4 arestas que quebra são **inversões totais** (Combo Master >
+  Grappler 0,002; Grappler > Rushdown 0,006; Turtle > Rushdown 0,000; Turtle > Combo
+  Master 0,000). Lidas juntas: o Rushdown ganha de todos e a Turtle perde para todos —
+  hierarquia, não pedra-papel-tesoura. As tríades confirmam: **1,00 de 5** no canônico
+  contra 3,71 do AG e 0,40 dos aleatórios. **A estrutura cíclica não foi destruída pelo
+  equilíbrio; ela nunca existiu no motor.** Isso reforça o argumento já registrado em
+  [02](02-canonical-cycle.md): não se preserva o que a premissa não tinha.
+- **Quem produz não-transitividade é o AG**, com ressalva: equilíbrio global com pares
+  decididos **força** intransitividade (um roster estritamente transitivo teria WRs
+  100/75/50/25/0), então as 3,71 tríades são em boa parte consequência do objetivo, não
+  evidência independente dele. O que o objetivo não implica é as arestas seguirem
+  decididas — e 9,3/10 decididas a 16.000 lutas é o que mostra isso.
+- **Consequência de instrumentação:** as duas métricas saíram do `baselines` (que mede 36
+  rosters a 200 lutas e não podia subir de resolução junto) para um experimento próprio,
+  passo 17 da bateria. O campo `beats` fica no código: é premissa declarada e a parte
+  verificável da não-circularidade. Ver [04](04-design-decisions.md), «O ciclo saiu do
+  `baselines`».
 
 ## Limitações conhecidas
 
@@ -222,12 +339,31 @@ Estes são os achados citáveis. Os números completos estão em
 
 ## O que ainda falta
 
-**A base experimental está rodada.** A bateria de 2026-09-21 cobriu os 16 passos sobre o
-motor atual, com os dois controles, e `py -m src.tests.test_provenance` marca todo
-`results/` como *atual* ou *braço de experimento*. Os achados acima são os dela. As
-pendências de instrumentação de
-[`../reference/10-known-issues.md`](../reference/10-known-issues.md) estão fechadas; o que
-resta lá são os limites estruturais, que são escopo declarado e vão para a Discussão.
+**A base experimental está rodada.** A bateria de 2026-09-21 cobriu os 16 passos que
+existiam então, sobre o motor atual e com os dois controles; o passo 17
+(`cycle_structure`) foi criado e rodado em 2026-09-22, à parte. `py -m
+src.tests.test_provenance` marca todo `results/` como *atual* ou *braço de experimento*, e
+os achados acima são desses artefatos. Em
+[`../reference/10-known-issues.md`](../reference/10-known-issues.md) restam **uma pendência
+acionável** (o híbrido, abaixo), **cinco consertos adiados** que só valem junto da próxima
+re-execução, e os limites estruturais, que são escopo declarado e vão para a Discussão.
+
+**Uma decisão em aberto, aberta pela investigação de 2026-09-22:** o híbrido NSGA-II → AG
+escalar quase domina o AG escalar com o mesmo orçamento. Para virar resultado citável, na
+ordem:
+
+1. Subir `MULTI_RUN_SIMS` para 1000 — a 200 o veredito entre braços inverte.
+2. **Escolher a configuração nas sementes 1000–1004**, não nas 42–46. O número da tabela
+   acima foi medido na amostra da própria bateria, o que quebra a regra do projeto ("a
+   amostra que escolhe uma configuração não é a que a avalia"). Varrer o split
+   (25/50, 50/50, 75/25) e o que a fase 2 carrega (fronteira inteira × `scalar_optimum`).
+3. Rodar a bateria (n = 20) com o braço escolhido e comparar com `compare_algorithms`.
+4. Registrar em [04](04-design-decisions.md), [09](09-values-and-choices.md), no
+   `CLAUDE.md` e em `docs/reference/`.
+
+Se o híbrido não se sustentar nas sementes novas, o achado permanece como **limitação
+declarada** ("a escalarização direta não é ótima na própria função sob avaliação
+amostrada") e não muda o método.
 
 Falta a **redação**: a monografia e os artigos descrevem gerações anteriores do modelo, e
 o `values.tex` está inteiramente obsoleto — agora com números definitivos para refazê-lo

@@ -13,7 +13,7 @@ reúne, num relatório único:
 | Bloco | Evidencia |
 |---|---|
 | Cabeçalho: `fitness`, `drift_penalty`, `dominance_penalty` | onde o indivíduo está no trade-off |
-| Matriz de matchups + WR global + tríades circulares | **equilíbrio** alcançado, e se os pares seguem decididos (as tríades só valem com pares decididos, e são em boa parte implicadas pelo equilíbrio; as arestas do ciclo autoral são descritivas — o canônico só realiza 6/10) |
+| Matriz de matchups + WR global + espalhamento das WR por par | **equilíbrio** alcançado, e se os pares seguem decididos. A estrutura do torneio (ciclo autoral e tríades circulares) **não** sai daqui: ela exige 16.000 lutas por par e vive em `results/cycle/cycle_structure.json` — ver [02](02-canonical-cycle.md) |
 | Tabela de drift por gene + `drift_penalty` | **identidade de genes** — *o preço pago* pela evolução |
 | Diferenciação par-a-par (`ratio`) | **homogeneização** — os 5 ainda são distintos? |
 | Fingerprint (canônico vs evoluído) | **identidade comportamental** — ainda joga como o arquétipo? (o Δ mistura o personagem com os oponentes, que também mudaram) |

@@ -39,8 +39,11 @@ central.
 - Por quê: codificar a resposta no fitness tornaria a pergunta de pesquisa
   **circular**.
 
-O status epistemológico do ciclo (construção do autor, uma operacionalização entre
-várias defensáveis) está em [thesis/02-canonical-cycle.md](../thesis/02-canonical-cycle.md).
+O status epistemológico do ciclo — construção do autor, uma operacionalização entre várias
+defensáveis, e **premissa falsificada**: o motor não a realiza nem no canônico (6/10, e
+hierarquia em vez de ciclo) — está em
+[thesis/02-canonical-cycle.md](../thesis/02-canonical-cycle.md); a medição, em
+`src.experiments.cycle_structure` ([08-tools.md](08-tools.md)).
 
 ## As duas camadas
 

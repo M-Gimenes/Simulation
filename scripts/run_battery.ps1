@@ -111,6 +111,10 @@ $passos = @(
 
     @{ N = 16; Min = 2; Nome = "baselines (modelos nulos)"
        Args = @("-m", "src.experiments.baselines", "--evolved") }
+
+    # Precisa dos dois multi_run (passos 1-2): mede as 20 sementes de cada.
+    @{ N = 17; Min = 4; Nome = "cycle_structure (ciclo autoral a 16.000 lutas/par)"
+       Args = @("-m", "src.experiments.cycle_structure") }
 )
 
 $restantes = @($passos | Where-Object { $_.N -ge $From })

@@ -9,8 +9,7 @@ como se o piso fosse zero. Nenhuma tem piso zero:
     porque asserção de ranking entre 5 acerta por acaso uma vez em 5;
   • drift      — o espelho dá ~0.38 e um roster aleatório ~0.42, então entre
     "identidade preservada" e "aniquilação total" cabem ~0.04;
-  • concordância de ranking comportamental — o acaso dá ~0, com nulo chegando a ~0,34;
-  • ciclo      — cada aresta é cara-ou-coroa, então o acaso já entrega 5/10.
+  • concordância de ranking comportamental — o acaso dá ~0, com nulo chegando a ~0,34.
 
 Os valores exatos dependem da semente de avaliação: por isso o piso é reportado como
 **distribuição** (média, pior nulo, p-valor empírico) e recalculado junto do alvo, nunca
@@ -39,8 +38,6 @@ from __future__ import annotations
 import argparse
 import json
 import random
-from itertools import combinations
-from math import comb
 from typing import Dict, List, Optional, Tuple
 
 from src.engine.archetypes import ARCHETYPE_ORDER, ARCHETYPES, ArchetypeID
@@ -64,7 +61,7 @@ from src.engine.fitness import (
 from src.engine.individual import Individual
 from src.engine.paths import BASELINES_PATH, PROJECT_ROOT
 from src.engine.provenance import stamp
-from src.analysis.analyze_matchups import behavioral_profile, expected_winner
+from src.analysis.analyze_matchups import behavioral_profile
 from src.analysis.archetype_validator import run_validation
 from src.analysis.drift_table import mean_pairwise_distance
 
@@ -114,53 +111,6 @@ def reference_rosters(n_random: int, seed: int) -> List[Tuple[str, str, Individu
 # ─────────────────────────────────────────────────────────────────────────────
 # Métricas
 # ─────────────────────────────────────────────────────────────────────────────
-
-
-def cycle_edges_kept(detail: FitnessDetail) -> int:
-    """Arestas do ciclo AUTORAL (`beats`) realizadas. **Piso de acaso = 5/10**: com a
-    direção de cada aresta decidida por cara-ou-coroa, o acaso entrega metade.
-
-    Com arestas decididas o número É informativo contra o acaso (10/10 teria p = 1/1024).
-    O que o limita é outra coisa: o ciclo é autoral, e o próprio canônico não o realiza
-    inteiro no motor — não se preserva o que a premissa não tinha. E com as WR por par
-    coladas em 50% a direção de cada aresta é ruído, então a contagem só vale ao lado do
-    espalhamento das WR."""
-    kept = 0
-    for (i, j), wr in detail.matchup_winrates.items():
-        id_a, id_b = ARCHETYPE_ORDER[i], ARCHETYPE_ORDER[j]
-        expected = expected_winner(id_a, id_b)
-        observed = id_a if wr > 0.5 else id_b if wr < 0.5 else None
-        kept += observed == expected
-    return kept
-
-
-def circular_triads(detail: FitnessDetail) -> float:
-    """Tríades circulares do torneio de matchups (Kendall & Babington Smith 1940):
-    `C(n,3) − Σ C(d_i, 2)`, com `d_i` = vitórias do personagem i.
-
-    Mede estrutura **sem depender de autoria**: 0 = ordem estrita (bicho-papão),
-    2.5 = torneio aleatório, 5 = máximo em 5 personagens — o torneio REGULAR, em que
-    cada um vence 2 e perde 2. Um roster estritamente transitivo tem WRs 100/75/50/25/0,
-    incompatível com todo mundo perto de 50%: equilíbrio global com pares DECIDIDOS
-    força intransitividade. Por isso as tríades de um roster equilibrado são em boa parte
-    consequência do objetivo, não achado independente dele — o que não é implicado é os
-    pares seguirem decididos, e isso o espalhamento das WR mostra.
-
-    **Só significa algo com arestas decididas.** Num espelho os pares ficam em 44%–58%
-    (ruído binomial puro) e a direção de cada aresta é sorteio, então a contagem vira
-    lixo — por isso o relatório sempre traz o espalhamento das WR ao lado."""
-    wins = [0.0] * len(ARCHETYPE_ORDER)
-    for (i, j), wr in detail.matchup_winrates.items():
-        if wr > 0.5:
-            wins[i] += 1
-        elif wr < 0.5:
-            wins[j] += 1
-        else:
-            wins[i] += 0.5
-            wins[j] += 0.5
-    n = len(wins)
-    # Empates dão meia-vitória; C(d,2) = d(d−1)/2 estende para d fracionário.
-    return comb(n, 3) - sum(d * (d - 1) / 2 for d in wins)
 
 
 def _per_gene_drift(individual: Individual) -> Dict[str, Dict[str, float]]:
@@ -216,8 +166,6 @@ def measure(individual: Individual, sims: int, seed: int) -> dict:
         "validator_full":      identity.passed,
         "validator_full_total": identity.total,
         "rank_agreement":      identity.rank_agreement,
-        "cycle_edges_kept":    cycle_edges_kept(detail),
-        "circular_triads":     circular_triads(detail),
         "pair_wr_min":         pair_wrs[0],
         "pair_wr_max":         pair_wrs[-1],
         "global_wr":           list(detail.winrates),
@@ -276,14 +224,12 @@ def floors_and_ceilings(measured: List[Tuple[str, str, dict]]) -> dict:
     randoms = by_role.get("chao_absoluto", [])
     canon   = by_role["teto_identidade"][0]
 
-    n_pairs = len(list(combinations(ARCHETYPE_ORDER, 2)))
     spec = [
         ("validator_full",       "validator_full",       "maior", canon["validator_full_total"]),
         ("validator_structural", "validator_structural", "maior", canon["validator_structural_total"]),
         ("validator_behavioral", "validator_behavioral", "maior", canon["validator_behavioral_total"]),
         ("rank_agreement",       "rank_agreement",       "maior", 1.0),
         ("drift_penalty",        "drift_penalty",        "menor", 0.0),
-        ("cycle_edges_kept",     "cycle_edges_kept",     "maior", n_pairs),
         ("dominance_penalty",    "dominance_penalty",    "menor", _mean([m["dominance_penalty"] for m in mirrors])),
     ]
 
@@ -299,9 +245,6 @@ def floors_and_ceilings(measured: List[Tuple[str, str, dict]]) -> dict:
             "piso":           _mean(nulls),
             "piso_extremo":   max(nulls) if better == "maior" else min(nulls),
         }
-    # O ciclo tem piso ANALÍTICO, não empírico: cada aresta é cara-ou-coroa, então o
-    # acaso entrega n_pairs/2.
-    refs["cycle_edges_kept"]["piso"] = n_pairs / 2
     return refs
 
 
@@ -325,8 +268,8 @@ def print_reference_table(measured: List[Tuple[str, str, dict]]) -> None:
     print("  ROSTERS DE REFERÊNCIA")
     print(_LINE)
     print(f"  {'roster':<24}{'dominance':>10}{'drift':>8}{'L1+L2':>8}{'L3':>6}{'τ':>7}"
-          f"{'ciclo':>7}{'tríades':>9}{'WR par':>13}")
-    print("  " + "─" * 80)
+          f"{'WR par':>13}")
+    print("  " + "─" * 66)
     current_role = None
     for label, role, m in measured:
         if role != current_role:
@@ -336,7 +279,6 @@ def print_reference_table(measured: List[Tuple[str, str, dict]]) -> None:
               f"{m['validator_structural']:>5}/{m['validator_structural_total']:<2}"
               f"{m['validator_behavioral']:>4}/{m['validator_behavioral_total']:<1}"
               f"{m['rank_agreement']:>+7.2f}"
-              f"{m['cycle_edges_kept']:>4}/10{m['circular_triads']:>9.1f}"
               f"{m['pair_wr_min']:>8.0%}–{m['pair_wr_max']:.0%}")
 
 
@@ -353,7 +295,6 @@ _METRIC_LABEL = {
     "validator_behavioral": "validador (L3)",
     "rank_agreement":       "concordância (τ)",
     "drift_penalty":        "drift_penalty",
-    "cycle_edges_kept":     "arestas do ciclo",
     "dominance_penalty":    "dominance_penalty",
 }
 
@@ -383,12 +324,10 @@ def print_position_table(label: str, measured: dict, refs: dict) -> None:
     print("           empírico). Com poucos nulos, `p = 0` só afirma `p < 1/N`.")
     print()
     print(f"  Espalhamento das WR por par: "
-          f"{measured['pair_wr_min']:.0%}–{measured['pair_wr_max']:.0%}   "
-          f"tríades circulares: {measured['circular_triads']:.1f}")
-    print("  (tríades: 0 = ordem estrita · 2.5 = acaso · 5 = máximo, o torneio regular.")
-    print("   Só significam algo com arestas DECIDIDAS — a 200 lutas por par um espelho")
-    print("   chega a 4 por ruído —, e equilíbrio global com pares decididos já força")
-    print("   intransitividade: o que o objetivo não implica é os pares seguirem decididos.)")
+          f"{measured['pair_wr_min']:.0%}–{measured['pair_wr_max']:.0%}")
+    print("  A estrutura do torneio — ciclo autoral e tríades circulares — é medida à")
+    print("  parte, por `src.experiments.cycle_structure`: nesta resolução a direção de")
+    print("  cada aresta de um roster equilibrado é sorteio, não estrutura.")
     print(_LINE)
 
 

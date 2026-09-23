@@ -4,33 +4,14 @@ Smoke test dos modelos nulos — a matemática que sustenta "posição entre pis
 Rode com: py -m src.tests.test_baselines
 """
 
-from itertools import combinations
-
 from src.engine.archetypes import ARCHETYPE_ORDER, ARCHETYPES
-from src.engine.fitness import FitnessDetail
-from src.experiments.baselines import (
-    circular_triads,
-    cycle_edges_kept,
-    empirical_p,
-    mirror_roster,
-    position,
-)
+from src.experiments.baselines import empirical_p, mirror_roster, position
 
 
 def separator(title: str) -> None:
     print(f"\n{'─'*60}")
     print(f"  {title}")
     print('─'*60)
-
-
-def _detail(matchup_wr) -> FitnessDetail:
-    return FitnessDetail(
-        fitness=0.0,
-        winrates=[0.5] * 5,
-        matchup_winrates={
-            pair: wr for pair, wr in zip(combinations(range(5), 2), matchup_wr)
-        },
-    )
 
 
 # ── 1. Espelho: identidade zero por construção ──────────────────────────────
@@ -52,39 +33,7 @@ assert proto.attributes == list(canon.initial_attributes)
 print(f"  ✓ o protótipo é o canônico do arquétipo espelhado ({canon.name})")
 
 
-# ── 2. Tríades circulares — a escala 0 / 2.5 / 5 ────────────────────────────
-
-separator("circular_triads: ordem estrita = 0, torneio regular = máximo")
-
-# Ordem estrita 0>1>2>3>4: o de índice menor vence sempre (wr do par (i,j) > 0.5).
-transitive = _detail([1.0] * 10)
-assert circular_triads(transitive) == 0.0, "torneio transitivo deve ter 0 tríades"
-print("  ✓ bicho-papão estrito (graus 4-3-2-1-0) → 0 tríades circulares")
-
-# Torneio regular: cada personagem vence exatamente 2. Usa o próprio ciclo canônico,
-# que É um torneio regular — e por isso o MÁXIMO de tríades em 5 vértices.
-regular_wr = []
-for i, j in combinations(range(5), 2):
-    id_a, id_b = ARCHETYPE_ORDER[i], ARCHETYPE_ORDER[j]
-    regular_wr.append(1.0 if id_b in ARCHETYPES[id_a].beats else 0.0)
-regular = _detail(regular_wr)
-assert circular_triads(regular) == 5.0, (
-    f"torneio regular deve ter 5 tríades, deu {circular_triads(regular)}"
-)
-print("  ✓ o ciclo canônico é um torneio REGULAR → 5 tríades (máximo em 5 personagens)")
-print("    (um roster estritamente transitivo não pode ter todos perto de 50%)")
-
-assert cycle_edges_kept(regular) == 10, "o próprio ciclo canônico deve dar 10/10"
-print("  ✓ cycle_edges_kept reconhece o ciclo canônico perfeito (10/10)")
-
-inverted = _detail([1.0 - wr for wr in regular_wr])
-assert cycle_edges_kept(inverted) == 0, "o ciclo invertido deve dar 0/10"
-assert circular_triads(inverted) == 5.0, "invertido ainda é regular → 5 tríades"
-print("  ✓ ciclo INVERTIDO dá 0/10 arestas mas ainda 5 tríades — as tríades medem a")
-print("    estrutura, independentes do rótulo; as arestas medem o rótulo autoral")
-
-
-# ── 3. Posição entre piso e teto ────────────────────────────────────────────
+# ── 2. Posição entre piso e teto ────────────────────────────────────────────
 
 separator("position: o valor cru não diz nada sem o piso")
 
@@ -101,7 +50,7 @@ assert position(5, 5, 5) is None
 print("  ✓ piso == teto devolve None em vez de dividir por zero")
 
 
-# ── 4. p-valor empírico ─────────────────────────────────────────────────────
+# ── 3. p-valor empírico ─────────────────────────────────────────────────────
 
 separator("empirical_p: quantos rosters sem estrutura alcançam isso?")
 

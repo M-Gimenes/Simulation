@@ -282,6 +282,13 @@ pergunta central fica ambígua — eu estaria forçando a preservação."*
   domina, e a `dominance` dele (0,0153) fica abaixo de toda a faixa dela ([0,0483; 1,1438]).
   Na função que o *escalar* otimiza, quem vence é o escalar — L1 0,2331 contra 0,2487.
   Não é que um domine o outro: cada um alcança uma parte diferente do trade-off.
+  > **Nota de revisão (2026-09-22): a segunda frase se manteve, a primeira caiu.** Sobre a
+  > bateria (n = 20, não uma semente), os dois seguem mutuamente não-dominados em 18/20 —
+  > mas na soma `dominance + drift` a fronteira tem um ponto **melhor** em 20/20 sementes
+  > (medianas 0,2658 contra 0,2052). O 0,2331 contra 0,2487 era de um run diagnóstico de
+  > uma semente. Ser não-dominado não é ser ótimo em λ = 1/1: o escalar para num extremo
+  > do trade-off porque `dominance` é amostrado e `drift` não. Ver
+  > [07](07-findings-and-limitations.md) §«O AG escalar não é ótimo na própria função».
 - **Ressalva de método que este item produziu:** o run diagnóstico rodou a pop **120**, e
   ali a leitura era a inversa (L1 0,2115 do NSGA-II contra 0,2945 do escalar). A conclusão
   sobre a **inicialização** transfere — é o mecanismo, e ele independe do orçamento; a
@@ -339,7 +346,9 @@ diagnóstico saiu **muito maior** que o item.
   acidente. O `drift_penalty` lê ~0,33 num **espelho** (cinco personagens idênticos,
   identidade zero por construção) e ~0,41 num aleatório: só **0,04** separam "identidade
   cuidadosamente preservada" de aniquilação total. E o ciclo canônico tem piso **5/10**,
-  porque cada aresta é cara-ou-coroa.
+  porque cada aresta é cara-ou-coroa. *(O piso 5/10 segue válido — os nulos aleatórios têm
+  arestas decididas. O que não era válido era medir o ALVO na mesma resolução; ver «O ciclo
+  saiu do `baselines`», 2026-09-22.)*
 - **Por que isso importa:** ler `8/21` como "38% da identidade sobreviveu" é o mesmo erro
   que ler 20% numa prova de múltipla escolha de cinco opções como "sabe 20% da matéria".
 - **Mudança:** `src/experiments/baselines.py` monta canônico + 5 espelhos + N aleatórios e
@@ -352,7 +361,9 @@ diagnóstico saiu **muito maior** que o item.
   Segunda, e mais forte: **o ciclo autoral não pode ser resultado.** Ele é um torneio
   *regular* (cada arquétipo vence exatamente 2), e existem **24** torneios regulares
   rotulados em 5 vértices — acertar o rótulo específico é loteria de 1/24 enquanto o
-  acaso já dá 5/10. O que **é** resultado, e não depende de autoria, é a
+  acaso já dá 5/10. *(O argumento do 1/24 foi depois corrigido neste mesmo arquivo: com
+  arestas decididas, 10/10 teria p = 1/1024, informativo. O que desqualifica o ciclo como
+  régua é o canônico realizar só 6/10.)* O que **é** resultado, e não depende de autoria, é a
   **não-transitividade em si**: equilíbrio global e pedra-papel-tesoura são a mesma
   estrutura, porque um roster estritamente transitivo teria WRs 100/75/50/25/0,
   incompatível com todos perto de 50%. Medida por `circular_triads` (Kendall & Babington
@@ -1538,8 +1549,10 @@ registradas porque o erro é instrutivo, e porque a próxima bateria não pode r
   decididas, realizar as 10 arestas teria p = 1/1024 sob cara-ou-coroa, altamente
   informativo. O motivo real de o ciclo não servir de régua é outro: **o próprio canônico
   realiza só 6/10** dele no motor. E contra as direções que o canônico **realiza** —
-  consequência da premissa, não da autoria —, o evoluído mantém 5/10 (2000 lutas por par):
-  exatamente o acaso. O favorito de cada confronto não sobreviveu ao equilíbrio.
+  consequência da premissa, não da autoria —, o favorito de cada confronto não sobreviveu
+  ao equilíbrio: 105 de 186 arestas decididas (56,5%, p = 0,091) contra 49,7% dos nulos,
+  a 16.000 lutas por par. *(O número desta linha era "5/10 a 2000 lutas por par"; refeito
+  em 2026-09-22 — ver «O ciclo saiu do `baselines`».)*
 - **"A identidade supera os 35 nulos nos três eixos (p < 0,03)."** Os três eixos eram o
   drift (no fitness), as Layers 1-2 (endógenas) e o validador completo, dominado pelas
   estruturais. Na régua funcional isolada, o evoluído passava em 1/5 da Layer 3, com
@@ -1669,6 +1682,16 @@ canônico): o AG a **achata** para 51% ± 6% nas 20 sementes, hard-counter em ne
 
 O ciclo segue como leitura post-hoc e **não** como régua de identidade — o canônico mesmo
 não o realiza inteiro.
+
+> **Nota de revisão (2026-09-22): a conclusão se manteve; a evidência era ruído e foi
+> substituída.** Ver «O ciclo saiu do `baselines` e virou experimento próprio», abaixo.
+> Em resumo: «5/10, posição 0%, p = 0,63» era **um** roster medido a 200 lutas por par, e
+> a margem mediana das arestas de um roster equilibrado é 0,048 contra σ = 0,035 a 200
+> lutas — o mesmo roster lê 5/10 a 200 lutas e 8/10 a 16.000. O número que vale, sobre as
+> 20 sementes a 16.000 lutas por par e contando só arestas decididas: **105 de 186
+> (56,5%), binomial p = 0,091**, contra 49,7% dos nulos. Não é "exatamente o piso" como o
+> item dizia: é **indistinguível do acaso**, com inclinação fraca e não significativa na
+> direção autoral.
 
 ## A validação externa: só o AG escalar replica (2026-09-21)
 
@@ -1920,3 +1943,95 @@ comportamento coerente com o resto do projeto — a economia de uma noite é con
 não motivo. É a mesma decisão tomada duas vezes antes (o seed default do
 `archetype_validator`, as tabelas cruas do dossiê): não pagar horas de recomputação por
 números idênticos, desde que a ressalva fique escrita onde quem cita vai olhar.
+
+## `MULTI_RUN_SIMS` saiu de `SIMS_CONVERGENCE_CHECK` (2026-09-22)
+
+**Problema.** As duas constantes valiam 200 porque uma era definida como a outra
+(`MULTI_RUN_SIMS = SIMS_CONVERGENCE_CHECK`), mas elas respondem a perguntas diferentes e
+têm custos incomparáveis: a confirmação de convergência roda **dentro** do laço, a cada
+disparo do gate, e subir o valor dela encarece a busca; a reavaliação do `multi_run` roda
+**uma vez por execução**, sobre um indivíduo só, e custa 10 pares × sims lutas — 2.000
+contra as 67.500.000 da execução que a produziu. Acopladas, a segunda não podia ganhar
+resolução sem a primeira ficar mais cara.
+
+E a resolução importava mais do que parecia. Medido em 30 streams, o desvio do
+`dominance` de um mesmo roster a 150–200 lutas é **0,015–0,028** — da ordem do próprio
+valor evoluído (~0,04). Nos agregados de n = 20 isso é inofensivo, porque o ruído é
+simétrico entre os braços e a média o dilui; o teste pareado inclusive absorve o excesso
+de variância como conservadorismo. Numa amostra pequena, não é: comparando dois braços em
+5 sementes, o veredito **inverteu** entre a reavaliação a 200 sims (um stream) e a 1000
+sims (quatro streams) — a 200, o braço novo parecia pagar equilíbrio pela identidade; a
+1000, ele equilibra melhor *e* preserva mais identidade.
+
+**Mudança.** `MULTI_RUN_SIMS` passou a ser um literal, com a evidência no comentário do
+`config.py`, e a pendência do **valor** (200 → 1000) foi registrada em
+[`10-known-issues`](../reference/10-known-issues.md) §1 para acompanhar a próxima
+re-execução: a constante entra no carimbo de config, então trocá-la agora obsoletaria a
+bateria de 2026-09-21 inteira sem nenhum número novo para pôr no lugar.
+
+**Resultado.** O desacoplamento não muda valor gravado nenhum — a bateria segue *atual* —,
+mas separa duas decisões que estavam presas uma na outra e deixa a regra de leitura
+escrita onde quem cita vai olhar ([09](09-values-and-choices.md) §6): **nenhuma conclusão
+por semente, nem comparação de braço em amostra pequena, a 200 sims.** É a terceira vez
+que a resolução de uma medida muda uma leitura neste projeto — as outras duas foram
+`IDENTITY_BEHAVIORAL_SIMS` (120 → 200, τ variando 0,19–0,28) e o piso da sensibilidade
+medido na estatística errada. O padrão vale como lição de método: **antes de comparar dois
+braços, medir o ruído da régua que vai decidir a comparação.**
+
+## O ciclo saiu do `baselines` e virou experimento próprio (2026-09-22)
+
+**Problema — em duas camadas.** A primeira: `cycle_edges_kept` e `circular_triads` viviam
+no `baselines.py`, medidos a `MULTI_RUN_SIMS` = 200 lutas por par e reportados na tabela de
+piso/teto ao lado de `drift_penalty`, do validador e de τ, com `piso`, `posição` e `p`.
+Essa formatação afirma "isto é uma régua". Não é: o ciclo nunca esteve no fitness, o
+próprio canônico não o realiza, e — a parte nova — **a resolução não dava para medi-lo**.
+A margem mediana das arestas de um roster *equilibrado* é 0,048 contra um desvio binomial
+de 0,035 a 200 lutas: a direção de cada aresta era cara-ou-coroa.
+
+A segunda camada é o que provou isso: os **espelhos**. Cinco cópias do mesmo arquétipo têm
+estrutura de torneio zero por construção, e marcavam **5,40/10 "mantidas" com 1,00/10
+decididas**. Uma métrica que dá acima do piso num roster sem nenhuma estrutura está
+medindo sorteio. O mesmo roster do dossiê lê **5/10 a 200 lutas e 8/10 a 16.000**.
+
+**Mudança.** As duas funções saíram do `baselines` para
+`src/experiments/cycle_structure.py`, que grava `results/cycle/cycle_structure.json` e é o
+passo 17 da bateria. Três diferenças de desenho:
+
+1. **Resolução própria:** 16 × 1000 = 16.000 lutas por par (σ = 0,0040), contra as 200 do
+   resto do `baselines`. Não dava para subir a resolução de todas as métricas junto — o
+   `baselines` mede 36 rosters com perfil comportamental —, e é o motivo de a métrica ter
+   de sair em vez de ser consertada no lugar.
+2. **Só arestas decididas contam** (`|WR − 0,5| > 2σ`). Aresta indecisa é sorteio, e
+   contá-la mistura sinal com ruído nos dois sentidos.
+3. **Grupos comparados pela taxa mantidas/decididas, não pela contagem.** Um roster
+   aleatório decide 10/10 arestas e um equilibrado 9,3/10; comparar contagem crua puniria o
+   equilibrado por ter uma aresta em cima do limiar. Coberto em
+   `test_cycle_structure.py`, que é onde o contrato "aresta indecisa não conta" está
+   protegido: 10 arestas a 50,2% com limiar de 1% dão `kept = 10` e
+   `kept_and_decided = 0`.
+
+O campo `beats` **fica** em `archetypes.py`. É premissa declarada, custa 5 tuplas, e é a
+parte verificável do argumento de não-circularidade: a resposta está escrita no código e
+nenhuma função de fitness a lê. Tirá-lo trocaria uma prova por uma promessa — e mudaria o
+digest dos canônicos, obsoletando todo o `results/` por nada. A coluna `Ciclo` do
+`analyze_matchups` também fica: é descritiva, é onde um humano *olha* um roster.
+
+**Resultado.** O veredito não mudou de sinal, mudou de qualidade: passou de um número que
+media ruído para um teste. Sobre as 20 sementes, o AG mantém **105 de 186 arestas
+decididas — 56,5%, binomial p = 0,091**; os 30 nulos ficam em 49,7% (p = 0,128,
+Â₁₂ = 0,63); o NSGA-II dá 4,90/10, o acaso com duas casas. **Indistinguível do acaso**, com
+inclinação fraca e não significativa na direção autoral — nem "destruído" nem "preservado".
+
+E apareceu um achado que a resolução antiga escondia: **o canônico também não tem um
+ciclo.** Realiza 6/10, e as 4 arestas que quebra são inversões totais (0,000–0,006) — o
+Rushdown ganha de todos, a Turtle perde para todos. Tríades circulares: canônico **1,00 de
+5** (ordem quase estrita) contra 3,71 do AG e 0,40 dos aleatórios. A estrutura cíclica não
+foi destruída pelo equilíbrio; **ela nunca existiu no motor**. Quem produz
+não-transitividade é o AG — com a ressalva, já registrada, de que equilíbrio global com
+pares decididos a força em boa parte.
+
+Terceira lição de método na mesma direção das duas anteriores
+(`IDENTITY_BEHAVIORAL_SIMS` 120 → 200; o piso da sensibilidade medido na estatística
+errada): **antes de reportar uma métrica, medir o que ela marca quando não há nada para
+marcar.** O espelho fez esse papel aqui, e é por isso que ele entrou no tool novo como
+controle de ruído — não como piso de identidade, que é o papel dele no `baselines`.

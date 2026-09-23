@@ -63,9 +63,9 @@ def make_offspring(parents, n):
 
 
 def run(seed, pop_size=300, gens=150, survivor="generational", init=None, sims=SIMS_PER_MATCHUP,
-        canonical=True, log=None):
+        canonical=True, gen_offset=0, log=None):
     random.seed(seed); np.random.seed(seed); seed_combat(seed)
-    F.set_seed_base(F.generation_seed(seed, 0))
+    F.set_seed_base(F.generation_seed(seed, gen_offset))
     if init is None:
         seeded = [Individual.from_canonical()] if canonical else []
         pop = seeded + [Individual.random() for _ in range(pop_size - len(seeded))]
@@ -88,7 +88,7 @@ def run(seed, pop_size=300, gens=150, survivor="generational", init=None, sims=S
         else:
             offspring = make_offspring(pop, pop_size)
             pop = pop + offspring
-        F.set_seed_base(F.generation_seed(seed, gen + 1))
+        F.set_seed_base(F.generation_seed(seed, gen_offset + gen + 1))
         for ind in pop:
             ind.invalidate_fitness()
         evaluate_all(pop, sims)

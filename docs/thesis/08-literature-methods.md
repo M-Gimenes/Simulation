@@ -197,6 +197,37 @@ no `ga.py`/`nsga2.py`). Se a população colapsa cedo, justifica mexer em
 
 **Custo/prioridade:** baixo. **🟡 Baixa** — bom como diagnóstico de apoio.
 
+> **Feito em 2026-09-22, e achou algo.** O diagnóstico saiu de "se sobrar tempo" para
+> achado: na réplica instrumentada da seed 42, o drift mínimo da população sai de 0,0000
+> (a semente canônica) para 0,17 em **g7** e 0,24 em g20, quando `dominance` ainda tinha
+> 1,13 dos seus 1,35 por entregar — e daí em diante mínimo, p10 e mediana ficam a ~0,005
+> um do outro. **É convergência prematura no eixo da identidade**, e é o mecanismo por trás
+> de o AG escalar não ser ótimo na própria função (→
+> [07](07-findings-and-limitations.md)). Note que o remédio não foi mexer em
+> `MUTATION_RATE`/`TOURNAMENT_SIZE`/`ELITE_RATE` como o item previa — o sweep desses três
+> não domina os defaults —, e sim **decompor o objetivo**: ver 4.3.
+
+### 4.3 Multi-objetivização como robustez a ruído
+**Fontes:** Knowles, Watson & Corne 2001 (*Reducing local optima in single-objective
+problems by multi-objectivization*); Jensen 2004 (funções auxiliares); Fieldsend & Everson
+2015 (otimização multiobjetivo sob avaliação ruidosa).
+
+**O que fazem:** decompor um objetivo único em vários e otimizá-los por dominância de
+Pareto muda a paisagem de busca — ótimos locais do escalar deixam de ser ótimos, e
+extremos da fronteira ficam protegidos da extinção.
+
+**No nosso sistema:** é a explicação do achado de 2026-09-22, e a leitura vai além da
+fonte original. O escalar soma um termo **ruidoso** (`dominance`, desvio 0,015–0,028) com
+um **determinístico** (`drift`); passada a convergência, a seleção responde ao ruído do
+primeiro e a linhagem fiel morre. No NSGA-II o `drift` é objetivo separado e sem ruído, e
+o extremo de drift baixo fica **imortal no rank 0** pela crowding infinita. A
+multi-objetivização aqui não está removendo ótimo local — está **protegendo a linhagem que
+o ruído mataria**. O híbrido (NSGA-II → AG escalar, orçamento igual) explora as duas
+coisas: a decomposição preserva a diversidade, o escalar refina o equilíbrio.
+
+**Custo/prioridade:** já medido nas sementes 42–46; falta escolher nas 1000–1004 e rodar a
+bateria. **🟢 Alta** se o achado se sustentar — é contribuição de método, não ferramenta.
+
 ---
 
 ## Resumo priorizado
@@ -269,6 +300,13 @@ Detalhe técnico de cada um na referência: [`../reference/08-tools.md`](../refe
   viraria outro projeto. Valem como **Trabalhos Futuros**, e o gancho teórico
   **Lehman ↔ não-circularidade** (não codificar o objetivo ↔ não codificar o ciclo)
   é forte na Discussão.
-- **2.2 — Restricted play** (Hom 2007; Jaffe 2012) e **4.2 — Diagnóstico de
-  diversidade** (Eiben 1998; Whitley 1994): baixo/médio custo e úteis, mas **não são
-  requisitos**. Ficam como "se sobrar tempo" / trabalho futuro.
+- **2.2 — Restricted play** (Hom 2007; Jaffe 2012): baixo/médio custo e útil, mas **não é
+  requisito**. Fica como "se sobrar tempo" / trabalho futuro.
+
+### ⏳ Reclassificado em 2026-09-22
+- **4.2 — Diagnóstico de diversidade** (Eiben 1998; Whitley 1994) saiu de "se sobrar
+  tempo" para **feito, e com achado**: a população colapsa no eixo da identidade na
+  geração 7. Entra em Resultados/Discussão, não em Trabalhos Futuros.
+- **4.3 — Multi-objetivização** (Knowles, Watson & Corne 2001; Jensen 2004; Fieldsend &
+  Everson 2015) é **referência nova**, ainda fora dos três `.bib`. Sustenta a explicação do
+  achado e, se o híbrido se sustentar nas sementes 1000–1004, a contribuição de método.

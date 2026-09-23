@@ -223,6 +223,20 @@ defensável que um que separa os que foram medidos dos que são escolha.
   — **[projeto]**, com a razão escrita: mais lutas que o treino onde se **mede** em vez de
   **selecionar** — ±3,5% por par a 200; na validação externa as 10 sementes são somadas
   numa amostra de 5000 lutas por par (IC de ±1,4%).
+- **`MULTI_RUN_SIMS` não é `SIMS_CONVERGENCE_CHECK`, apesar dos dois valerem 200** —
+  **[coerência]**. A confirmação roda *dentro* do laço, a cada disparo do gate; a
+  reavaliação, uma vez por execução, sobre um indivíduo só. Custos e restrições diferentes,
+  então constantes diferentes.
+- **A resolução de 200 sims é suficiente para os agregados e insuficiente para ranquear
+  rosters** — **[medido]** (2026-09-22). O desvio do `dominance` de um mesmo roster em 30
+  streams é 0,015–0,028, da ordem do valor evoluído (~0,04). Nos agregados de n = 20 isso é
+  inofensivo: o ruído é simétrico entre braços e a média o dilui. **Numa amostra pequena
+  não é** — comparando dois braços em 5 sementes, o veredito a 200 sims inverteu contra a
+  reavaliação a 1000 sims em 4 sorteios. Regra de leitura: nenhuma conclusão por semente,
+  nem comparação de braço em amostra pequena, a 200. Subir para 1000 custa 10.000 lutas por
+  semente contra 67.500.000 da execução, mas obsoleta a bateria — pendência 5 de
+  [`../reference/10-known-issues.md`](../reference/10-known-issues.md). →
+  [07](07-findings-and-limitations.md) "O AG escalar não é ótimo na própria função".
 - **Validação externa: veredito pelo IC, replicação e regras perturbadas** — **[coerência] +
   [projeto]**. O IC contra a banda não fica mais severo com o número de sementes, como o
   quantificador "em alguma das K" ficava. As perturbações de regra (distância 40/60, campo

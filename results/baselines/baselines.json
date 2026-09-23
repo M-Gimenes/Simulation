@@ -1,6 +1,6 @@
 {
   "provenance": {
-    "generated_at": "2026-09-21T09:52:18-03:00",
+    "generated_at": "2026-09-22T22:18:10-03:00",
     "fingerprint": "371966d9f335",
     "engine_digest": "6b18ff49b38a",
     "archetypes_digest": "e37725dd4b7c",
@@ -215,7 +215,7 @@
         "src.analysis.drift_table",
         "src.experiments.baselines"
       ],
-      "digest": "c959a6e4f4f8"
+      "digest": "25e21a47f709"
     }
   },
   "sims_per_matchup": 200,
@@ -376,8 +376,6 @@
       "validator_full": 23,
       "validator_full_total": 23,
       "rank_agreement": 1.0,
-      "cycle_edges_kept": 6,
-      "circular_triads": 1.0,
       "pair_wr_min": 0.0,
       "pair_wr_max": 1.0,
       "global_wr": [
@@ -542,8 +540,6 @@
       "validator_full": 2,
       "validator_full_total": 23,
       "rank_agreement": -0.2799601494365011,
-      "cycle_edges_kept": 2,
-      "circular_triads": 4.0,
       "pair_wr_min": 0.435,
       "pair_wr_max": 0.61,
       "global_wr": [
@@ -708,8 +704,6 @@
       "validator_full": 2,
       "validator_full_total": 23,
       "rank_agreement": -0.28,
-      "cycle_edges_kept": 5,
-      "circular_triads": 4.0,
       "pair_wr_min": 0.43,
       "pair_wr_max": 0.5325,
       "global_wr": [
@@ -874,8 +868,6 @@
       "validator_full": 4,
       "validator_full_total": 23,
       "rank_agreement": 0.02,
-      "cycle_edges_kept": 3,
-      "circular_triads": 3.0,
       "pair_wr_min": 0.425,
       "pair_wr_max": 0.5375,
       "global_wr": [
@@ -1040,8 +1032,6 @@
       "validator_full": 4,
       "validator_full_total": 23,
       "rank_agreement": -0.13999999999999999,
-      "cycle_edges_kept": 4,
-      "circular_triads": 1.25,
       "pair_wr_min": 0.47,
       "pair_wr_max": 0.5325,
       "global_wr": [
@@ -1206,8 +1196,6 @@
       "validator_full": 4,
       "validator_full_total": 23,
       "rank_agreement": -0.2,
-      "cycle_edges_kept": 5,
-      "circular_triads": 2.0,
       "pair_wr_min": 0.4675,
       "pair_wr_max": 0.575,
       "global_wr": [
@@ -1372,8 +1360,6 @@
       "validator_full": 5,
       "validator_full_total": 23,
       "rank_agreement": 0.20285714285714285,
-      "cycle_edges_kept": 6,
-      "circular_triads": 0.0,
       "pair_wr_min": 0.0,
       "pair_wr_max": 0.98,
       "global_wr": [
@@ -1538,8 +1524,6 @@
       "validator_full": 9,
       "validator_full_total": 23,
       "rank_agreement": -0.21559289460184541,
-      "cycle_edges_kept": 3,
-      "circular_triads": 2.0,
       "pair_wr_min": 0.0,
       "pair_wr_max": 1.0,
       "global_wr": [
@@ -1704,8 +1688,6 @@
       "validator_full": 7,
       "validator_full_total": 23,
       "rank_agreement": 0.04220355269907729,
-      "cycle_edges_kept": 5,
-      "circular_triads": 0.0,
       "pair_wr_min": 0.0,
       "pair_wr_max": 1.0,
       "global_wr": [
@@ -1870,8 +1852,6 @@
       "validator_full": 10,
       "validator_full_total": 23,
       "rank_agreement": 0.23195228609334392,
-      "cycle_edges_kept": 6,
-      "circular_triads": 0.0,
       "pair_wr_min": 0.48,
       "pair_wr_max": 1.0,
       "global_wr": [
@@ -2036,8 +2016,6 @@
       "validator_full": 9,
       "validator_full_total": 23,
       "rank_agreement": -0.29195228609334395,
-      "cycle_edges_kept": 4,
-      "circular_triads": 2.0,
       "pair_wr_min": 0.0,
       "pair_wr_max": 1.0,
       "global_wr": [
@@ -2202,8 +2180,6 @@
       "validator_full": 3,
       "validator_full_total": 23,
       "rank_agreement": -0.290395263067897,
-      "cycle_edges_kept": 4,
-      "circular_triads": 2.0,
       "pair_wr_min": 0.0,
       "pair_wr_max": 1.0,
       "global_wr": [
@@ -2368,8 +2344,6 @@
       "validator_full": 5,
       "validator_full_total": 23,
       "rank_agreement": -0.06571428571428573,
-      "cycle_edges_kept": 5,
-      "circular_triads": 0.0,
       "pair_wr_min": 0.0,
       "pair_wr_max": 1.0,
       "global_wr": [
@@ -2534,8 +2508,6 @@
       "validator_full": 4,
       "validator_full_total": 23,
       "rank_agreement": -0.2571428571428572,
-      "cycle_edges_kept": 5,
-      "circular_triads": 2.0,
       "pair_wr_min": 0.0,
       "pair_wr_max": 1.0,
       "global_wr": [
@@ -2700,8 +2672,6 @@
       "validator_full": 5,
       "validator_full_total": 23,
       "rank_agreement": 0.1280477139066561,
-      "cycle_edges_kept": 5,
-      "circular_triads": 1.0,
       "pair_wr_min": 0.0,
       "pair_wr_max": 1.0,
       "global_wr": [
@@ -2866,8 +2836,6 @@
       "validator_full": 6,
       "validator_full_total": 23,
       "rank_agreement": -0.09585685828003179,
-      "cycle_edges_kept": 5,
-      "circular_triads": 0.0,
       "pair_wr_min": 0.0,
       "pair_wr_max": 1.0,
       "global_wr": [
@@ -3032,8 +3000,6 @@
       "validator_full": 10,
       "validator_full_total": 23,
       "rank_agreement": 0.1229940788348712,
-      "cycle_edges_kept": 6,
-      "circular_triads": 0.0,
       "pair_wr_min": 0.0,
       "pair_wr_max": 1.0,
       "global_wr": [
@@ -3198,8 +3164,6 @@
       "validator_full": 6,
       "validator_full_total": 23,
       "rank_agreement": -0.04023856953328033,
-      "cycle_edges_kept": 4,
-      "circular_triads": 1.0,
       "pair_wr_min": 0.0,
       "pair_wr_max": 1.0,
       "global_wr": [
@@ -3364,8 +3328,6 @@
       "validator_full": 8,
       "validator_full_total": 23,
       "rank_agreement": 0.3155928946018455,
-      "cycle_edges_kept": 4,
-      "circular_triads": 0.0,
       "pair_wr_min": 0.0,
       "pair_wr_max": 1.0,
       "global_wr": [
@@ -3530,8 +3492,6 @@
       "validator_full": 5,
       "validator_full_total": 23,
       "rank_agreement": 0.055592894601845445,
-      "cycle_edges_kept": 4,
-      "circular_triads": 0.0,
       "pair_wr_min": 0.0,
       "pair_wr_max": 1.0,
       "global_wr": [
@@ -3696,8 +3656,6 @@
       "validator_full": 7,
       "validator_full_total": 23,
       "rank_agreement": 0.10220355269907729,
-      "cycle_edges_kept": 5,
-      "circular_triads": 0.0,
       "pair_wr_min": 0.0,
       "pair_wr_max": 1.0,
       "global_wr": [
@@ -3862,8 +3820,6 @@
       "validator_full": 8,
       "validator_full_total": 23,
       "rank_agreement": 0.3158568582800318,
-      "cycle_edges_kept": 3,
-      "circular_triads": 0.0,
       "pair_wr_min": 0.025,
       "pair_wr_max": 1.0,
       "global_wr": [
@@ -4028,8 +3984,6 @@
       "validator_full": 5,
       "validator_full_total": 23,
       "rank_agreement": -0.12519763153394847,
-      "cycle_edges_kept": 4,
-      "circular_triads": 0.0,
       "pair_wr_min": 0.0,
       "pair_wr_max": 1.0,
       "global_wr": [
@@ -4194,8 +4148,6 @@
       "validator_full": 4,
       "validator_full_total": 23,
       "rank_agreement": -0.07428571428571429,
-      "cycle_edges_kept": 6,
-      "circular_triads": 0.0,
       "pair_wr_min": 0.03,
       "pair_wr_max": 1.0,
       "global_wr": [
@@ -4360,8 +4312,6 @@
       "validator_full": 7,
       "validator_full_total": 23,
       "rank_agreement": -0.025197631533948484,
-      "cycle_edges_kept": 5,
-      "circular_triads": 0.0,
       "pair_wr_min": 0.0,
       "pair_wr_max": 1.0,
       "global_wr": [
@@ -4526,8 +4476,6 @@
       "validator_full": 6,
       "validator_full_total": 23,
       "rank_agreement": -0.21559289460184544,
-      "cycle_edges_kept": 5,
-      "circular_triads": 0.0,
       "pair_wr_min": 0.035,
       "pair_wr_max": 1.0,
       "global_wr": [
@@ -4692,8 +4640,6 @@
       "validator_full": 9,
       "validator_full_total": 23,
       "rank_agreement": -0.09714285714285713,
-      "cycle_edges_kept": 6,
-      "circular_triads": 0.0,
       "pair_wr_min": 0.0,
       "pair_wr_max": 1.0,
       "global_wr": [
@@ -4858,8 +4804,6 @@
       "validator_full": 8,
       "validator_full_total": 23,
       "rank_agreement": 0.11559289460184544,
-      "cycle_edges_kept": 6,
-      "circular_triads": 0.0,
       "pair_wr_min": 0.0,
       "pair_wr_max": 1.0,
       "global_wr": [
@@ -5024,8 +4968,6 @@
       "validator_full": 6,
       "validator_full_total": 23,
       "rank_agreement": 0.02,
-      "cycle_edges_kept": 6,
-      "circular_triads": 0.0,
       "pair_wr_min": 0.0,
       "pair_wr_max": 1.0,
       "global_wr": [
@@ -5190,8 +5132,6 @@
       "validator_full": 6,
       "validator_full_total": 23,
       "rank_agreement": 0.0,
-      "cycle_edges_kept": 6,
-      "circular_triads": 0.0,
       "pair_wr_min": 0.0,
       "pair_wr_max": 1.0,
       "global_wr": [
@@ -5356,8 +5296,6 @@
       "validator_full": 7,
       "validator_full_total": 23,
       "rank_agreement": 0.2942857142857143,
-      "cycle_edges_kept": 6,
-      "circular_triads": 0.0,
       "pair_wr_min": 0.3425,
       "pair_wr_max": 1.0,
       "global_wr": [
@@ -5522,8 +5460,6 @@
       "validator_full": 8,
       "validator_full_total": 23,
       "rank_agreement": -0.21195228609334396,
-      "cycle_edges_kept": 4,
-      "circular_triads": 0.0,
       "pair_wr_min": 0.0,
       "pair_wr_max": 1.0,
       "global_wr": [
@@ -5688,8 +5624,6 @@
       "validator_full": 3,
       "validator_full_total": 23,
       "rank_agreement": -0.14804771390665608,
-      "cycle_edges_kept": 7,
-      "circular_triads": 1.0,
       "pair_wr_min": 0.0,
       "pair_wr_max": 0.765,
       "global_wr": [
@@ -5854,8 +5788,6 @@
       "validator_full": 6,
       "validator_full_total": 23,
       "rank_agreement": -0.1797614304667197,
-      "cycle_edges_kept": 4,
-      "circular_triads": 0.0,
       "pair_wr_min": 0.0,
       "pair_wr_max": 0.99,
       "global_wr": [
@@ -6020,8 +5952,6 @@
       "validator_full": 10,
       "validator_full_total": 23,
       "rank_agreement": 0.17480236846605152,
-      "cycle_edges_kept": 5,
-      "circular_triads": 1.0,
       "pair_wr_min": 0.0,
       "pair_wr_max": 1.0,
       "global_wr": [
@@ -6186,8 +6116,6 @@
       "validator_full": 2,
       "validator_full_total": 23,
       "rank_agreement": -0.2851976315339485,
-      "cycle_edges_kept": 6,
-      "circular_triads": 0.0,
       "pair_wr_min": 0.0,
       "pair_wr_max": 1.0,
       "global_wr": [
@@ -6475,61 +6403,6 @@
       "piso": 0.4093218936187819,
       "piso_extremo": 0.3267347249651118
     },
-    "cycle_edges_kept": {
-      "melhor": "maior",
-      "teto": 10,
-      "nulos": [
-        2,
-        5,
-        3,
-        4,
-        5,
-        6,
-        3,
-        5,
-        6,
-        4,
-        4,
-        5,
-        5,
-        5,
-        5,
-        6,
-        4,
-        4,
-        4,
-        5,
-        3,
-        4,
-        6,
-        5,
-        5,
-        6,
-        6,
-        6,
-        6,
-        6,
-        4,
-        7,
-        4,
-        5,
-        6
-      ],
-      "espelho": {
-        "media": 3.8,
-        "desvio": 1.16619037896906,
-        "extremo": 5,
-        "n": 5
-      },
-      "aleatorio": {
-        "media": 5.0,
-        "desvio": 1.0,
-        "extremo": 7,
-        "n": 30
-      },
-      "piso": 5.0,
-      "piso_extremo": 7
-    },
     "dominance_penalty": {
       "melhor": "menor",
       "teto": 0.057318530879553034,
@@ -6739,8 +6612,6 @@
     "validator_full": 17,
     "validator_full_total": 23,
     "rank_agreement": 0.3142857142857143,
-    "cycle_edges_kept": 5,
-    "circular_triads": 4.0,
     "pair_wr_min": 0.405,
     "pair_wr_max": 0.5825,
     "global_wr": [

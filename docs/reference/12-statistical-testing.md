@@ -338,6 +338,16 @@ acima — a n = 20 fixo, um efeito maior é efeito maior, não inflação amostr
 - **Não controla o que você não reportou.** Se você rodou 10 análises e reportou 3, a
   família honesta é 10. A correção só vale se a família for a verdade.
 - **Não substitui o tamanho de efeito.** Ver §7.
+- **Não protege de régua grossa.** Holm controla o erro de *decisão*; nada nele sabe qual
+  é a resolução da medida que entrou. Medido em 2026-09-22: a `dominance` de um mesmo
+  roster varia 0,015–0,028 entre streams a 200 sims — a ordem do próprio valor evoluído
+  (~0,04). Nos agregados de n = 20 isso é inofensivo (o ruído é simétrico entre os braços,
+  a média o dilui, e o teste pareado absorve o excesso de variância como
+  conservadorismo); numa amostra de 5 sementes **inverteu o veredito** entre dois braços
+  contra uma reavaliação a 1000 sims. Regra: **antes de comparar dois braços, medir o
+  ruído da régua que vai decidir a comparação** — `diagnostics/exp_holdout.py` faz isso
+  para qualquer braço. Ver
+  [`../thesis/09-values-and-choices.md`](../thesis/09-values-and-choices.md) §6.
 
 ---
 

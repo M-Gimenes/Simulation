@@ -435,7 +435,6 @@ aleatórios):
 | concordância de ranking (τ) | −0,04, com nulo chegando a **+0,32** | 1,00 | a régua funcional contínua |
 | `drift_penalty` | **0,377** (espelho) · 0,415 (aleatório) | 0,000 | 0,04 separa o espelho do aleatório |
 | `dominance_penalty` | ~1,1 (aleatório); os **espelhos** ficam em 0,025–0,037 (fora o do Zoner) | média dos espelhos | o teto de equilíbrio é a solução trivial, no piso de ruído |
-| arestas do ciclo | **5/10** (cada aresta é cara-ou-coroa) | 10/10 | descritiva — o canônico só realiza 6/10 |
 
 O validador conta empate **contra** a asserção: cinco cópias do mesmo personagem não têm
 "o de maior alcance". Antes de 2026-09-18 o desempate era pela ordem do índice, e todo
@@ -482,20 +481,49 @@ py -m src.experiments.baselines --nsga2 scalar_optimum
 py -m src.experiments.baselines --n-random 60 --sims 400   # mais nulos = mais resolução no p
 ```
 
-Também reporta **tríades circulares** (Kendall & Babington Smith 1940) como medida de
-estrutura **sem autoria**: `C(n,3) − Σ C(dᵢ,2)`, na escala 0 (ordem estrita) · 2,5
-(acaso) · 5 (máximo, o torneio **regular**). Um roster estritamente transitivo teria WRs
-100/75/50/25/0, incompatível com todos perto de 50%, então **equilíbrio global com pares
-decididos força intransitividade** — as tríades de um roster equilibrado são em boa parte
-consequência do objetivo. E só significam algo com arestas *decididas*: a 200 lutas por
-par, um espelho (puro ruído) chega a 4 tríades. Por isso o espalhamento das WR por par vem
-sempre ao lado, e a evidência de pares decididos vem da amostra grande da validação
-externa.
+> **O ciclo e as tríades saíram daqui em 2026-09-22** para
+> `src.experiments.cycle_structure`. A 200 lutas por par a direção de cada aresta de um
+> roster equilibrado é sorteio (margem mediana 0,048 contra σ = 0,035), e os espelhos —
+> estrutura de torneio zero por construção — marcavam 5,40/10 "mantidas" com 1,00/10
+> decididas. O `baselines` mede 36 rosters com perfil comportamental e não podia subir de
+> resolução junto, então a métrica mudou de casa em vez de ser consertada no lugar.
 
-> **Por que o ciclo canônico não serve de régua.** Com arestas decididas, contar as
-> mantidas é informativo (10/10 teria p = 1/1024). O que impede é outra coisa: **o
-> próprio canônico só realiza 6/10** do ciclo no motor — não se preserva o que a premissa
-> não tinha. `cycle_edges_kept` fica como descritiva.
+### `cycle_structure` — o ciclo autoral, falsificado uma vez
+
+Grava `results/cycle/cycle_structure.json`. Mede a estrutura do torneio de matchups na
+resolução que ela exige: **16 × 1000 = 16.000 lutas por par** (σ = 0,0040), sobre o
+canônico, as 20 sementes de cada algoritmo, 30 rosters aleatórios (piso) e os 5 espelhos
+(controle de ruído). Os streams são compartilhados entre rosters (CRN), então a diferença
+entre grupos é de genes.
+
+```bash
+py -m src.experiments.cycle_structure                   # protocolo (passo 17 da bateria)
+py -m src.experiments.cycle_structure --streams 4 --sims 500   # rodada barata
+```
+
+Três regras de desenho, e todas vêm do erro que motivou o tool:
+
+- **Só arestas decididas contam** (`|WR − 0,5| > 2σ`). Aresta indecisa é sorteio, e
+  contá-la mistura sinal com ruído nos dois sentidos. A 200 lutas, 10 arestas "mantidas"
+  por 0,002 de margem não são estrutura nenhuma.
+- **Grupos comparados pela taxa `mantidas/decididas`, nunca pela contagem.** Um roster
+  aleatório decide 10/10 arestas e um equilibrado 9,3/10: comparar contagem crua puniria o
+  equilibrado por ter uma aresta em cima do limiar.
+- **O espelho entra como controle de ruído**, não como piso de identidade (o papel dele no
+  `baselines`). Cinco cópias do mesmo arquétipo têm estrutura de torneio zero por
+  construção, então o que a métrica marcar neles é o que ela marca sem nada para marcar.
+
+Reporta ainda as **tríades circulares** (Kendall & Babington Smith 1940),
+`C(n,3) − Σ C(dᵢ,2)`, na escala 0 (ordem estrita) · 2,5 (acaso) · 5 (máximo, o torneio
+regular). Elas não dependem de autoria, mas são em boa parte **implicadas** pelo objetivo:
+um roster estritamente transitivo teria WRs 100/75/50/25/0, incompatível com todos perto
+de 50%, então equilíbrio global com pares decididos força intransitividade.
+
+> **O ciclo é premissa, não régua.** Ele nunca esteve no fitness (o objetivo é cego à
+> direção), e o próprio canônico realiza só 6/10 dele — não se preserva o que a premissa
+> não tinha. Este tool existe para falsificá-lo **uma vez**, com número citável, não para
+> reportá-lo por execução. Status e leitura em
+> [`../thesis/02-canonical-cycle.md`](../thesis/02-canonical-cycle.md).
 
 ## `src.visualization` — viewers e plots
 

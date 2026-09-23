@@ -4,3 +4,7 @@ __pycache__/
 
 # Logs de execucao desassistida: diagnostico da noite, nao artefato de resultado.
 results/logs/
+
+# Logs das execucoes de diagnostico: mesma razao de results/logs/ — sao o
+# acompanhamento de uma noite, nao artefato. As saidas ficam em diagnostics/data/*.json.
+diagnostics/data/*.log

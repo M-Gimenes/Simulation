@@ -10,7 +10,28 @@ do sistema nos docs 01–09.
 
 ## 1. Pendências acionáveis
 
-**Nenhuma no sistema.** A bateria de 2026-09-21 rodou sobre o motor atual (CRN por luta,
+**Uma, aberta em 2026-09-22: o AG escalar não é ótimo na própria função.** Sob avaliação
+amostrada, `dominance` tem ruído e `drift` não, e depois da geração ~31 a seleção escalar
+gasta a pressão em sorte — a fronteira do NSGA-II tem um ponto melhor na soma
+`dominance + drift` em 20/20 sementes, e um híbrido NSGA-II → AG escalar **com o mesmo
+orçamento** quase domina o AG. Achado e números em
+[`../thesis/07-findings-and-limitations.md`](../thesis/07-findings-and-limitations.md)
+(«O AG escalar não é ótimo na própria função»); registro de trabalho, scripts e dados
+brutos em `CONTINUE.md` e `diagnostics/`. **Não invalida a bateria** — os agregados de
+n = 20 seguem válidos, porque o ruído de medição é simétrico entre braços. O que ele
+qualifica é a leitura: o trade-off medido é um **teto** do custo da identidade. A sequência
+para fechar está em [07](../thesis/07-findings-and-limitations.md) §«O que ainda falta».
+
+**Fechada em 2026-09-22: o ciclo autoral era medido numa resolução em que não funcionava.**
+`cycle_edges_kept` e `circular_triads` saíram do `baselines` (200 lutas por par, onde a
+direção de cada aresta de um roster equilibrado é sorteio) para
+`src.experiments.cycle_structure`, que roda 16 × 1000 lutas por par, conta só arestas
+**decididas** e compara grupos pela taxa. É o passo 17 da bateria. Achado e números em
+[`../thesis/07-findings-and-limitations.md`](../thesis/07-findings-and-limitations.md);
+decisão em [`../thesis/04-design-decisions.md`](../thesis/04-design-decisions.md), «O ciclo
+saiu do `baselines`».
+
+O resto da instrumentação está fechado: a bateria de 2026-09-21 rodou sobre o motor atual (CRN por luta,
 timers com resto acumulado) e o protocolo completo (os dois controles, manchete no
 `scalar_optimum` com relação de Pareto, concordância de ranking, validação externa com
 regras perturbadas, sensibilidade nos 11 genes, validador com empate contra a asserção,
@@ -19,14 +40,15 @@ experimento*, os artefatos órfãos foram tirados do git, e os números de
 [`../status/HANDOFF.md`](../status/HANDOFF.md) §2, do `docs/thesis/` e do `CLAUDE.md` são
 os dela.
 
-Não há pendência de instrumentação nem de experimento. O que resta é **redação**
+Fora essa, não há pendência de instrumentação. O que resta é **redação**
 ([`../status/HANDOFF.md`](../status/HANDOFF.md) §4).
 
-**Três consertos adiados de propósito, todos em `src/engine/`.** Editar qualquer arquivo
-do motor troca o `engine_digest` e marca **todo** o `results/` como obsoleto — uma noite
-de recomputação para produzir números bit a bit iguais, porque nenhum deles muda uma
-execução com semente. Ficam para a próxima mudança de motor que já exija re-rodar, e
-nenhum afeta número citado:
+**Cinco consertos adiados de propósito.** Os três primeiros estão em `src/engine/`:
+editar qualquer arquivo do motor troca o `engine_digest` e marca **todo** o `results/`
+como obsoleto — uma noite de recomputação para produzir números bit a bit iguais, porque
+nenhum deles muda uma execução com semente. Os dois últimos obsoletam pelo mesmo motivo,
+por outro caminho (digest de medição e carimbo de config). Ficam para a próxima mudança
+que já exija re-rodar, e nenhum afeta número citado:
 
 1. **`ga.run(seed=None)` e `nsga2.run(seed=None)` não reavaliam os elites.**
    `Individual.clone()` copia o `fitness`, `evaluate_population` pula quem já tem
@@ -42,10 +64,29 @@ nenhum afeta número citado:
    código usa `generation_seed(seed, gen) + OFFSET` — a confirmação roda num stream
    diferente **a cada geração**, que é mais forte do que o texto descreve. O `config.py`
    (fora do digest) já descreve certo, e o `CLAUDE.md` foi corrigido.
+4. **`src/analysis/analyze_matchups.py` mistura medição e impressão, e está no digest de
+   medição da bateria.** Ele exporta o que mede identidade (`behavioral_profile`,
+   `BEHAVIORAL_KEYS`, `expected_winner`, `wilson_ci`) *e* as funções que imprimem as
+   tabelas do CLI, no mesmo módulo — e `multi_run`, `baselines`, `external_validation` e o
+   validador importam dali, então `provenance.measurement_modules` hasheia o arquivo
+   inteiro. **Consequência medida (2026-09-22): trocar o texto de uma legenda obsoletou
+   `multi_run`, `baselines` e a validação externa de uma vez.** Conserto: extrair as
+   funções de medição para um módulo sem impressão e deixar `analyze_matchups.py` como
+   front-end de CLI. Enquanto não for feito, **nenhuma edição cosmética nesse arquivo é
+   segura** — a que motivou este item foi revertida para preservar a bateria (era a coluna
+   `WR` do resumo por matchup, que mostra a WR do favorito canônico do par e não a do lado
+   esquerdo; o rótulo ainda engana e o conserto acompanha a extração).
+5. **`MULTI_RUN_SIMS = 200` → 1000.** A 200 sims o desvio do `dominance` de um mesmo roster
+   é 0,015–0,028, da ordem do próprio valor evoluído (~0,04), e ranquear braços nessa
+   resolução inverte o veredito (medido em 2026-09-22). Subir custa 10.000 lutas por
+   semente contra as 67.500.000 da execução — mas a constante entra no carimbo de config e
+   obsoleta toda a bateria. Já **desacoplada** de `SIMS_CONVERGENCE_CHECK` (que roda dentro
+   do laço e tem outro custo), com a evidência no comentário do `config.py`; falta só o
+   valor, junto da próxima re-execução.
 
 Se o motor ou o `config.py` mudarem de novo, a sequência é a de sempre: rodar
 `.\scripts\run_overnight.ps1` (os 16 braços de sweep nas sementes 1000–1004, depois a
-bateria de 16 passos), conferir com `py -m src.tests.test_provenance` e reler cada número
+bateria de 17 passos), conferir com `py -m src.tests.test_provenance` e reler cada número
 contra a bateria nova — §3 detalha.
 
 ## 2. Limites estruturais do método (decisões, não bugs)

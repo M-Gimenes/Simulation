@@ -189,6 +189,20 @@ rotacionando a cada geração, o "melhor fitness histórico" seria o máximo de 
 ruidosos — sobe por sorte e raramente é batido —, e o evento mediria a catraca do ruído,
 não a busca.
 
+> **O que acontece depois de convergir, medido em 2026-09-22.** Os dois termos do escalar
+> têm ruído diferente: `drift` é determinístico (sai dos genes), `dominance` é amostrado
+> (desvio 0,015–0,028 a 150 lutas, mesmo roster em 30 streams). Passada a geração de
+> convergência (média 31,3 na bateria), o gradiente verdadeiro de `dominance` está
+> esgotado e o que sobra para a seleção enxergar é ruído ~60× maior que o ganho de drift
+> por geração (0,0003). A consequência é medível em três lugares: a confirmação recusa 71%
+> dos disparos do gate; a `dominance` do laço infla 2,6× (mediana) na reavaliação; e o
+> drift mínimo da população sai de 0 (a semente canônica) para 0,24 já na geração 20 — a
+> linhagem fiel morre na g7. **Não é bug**: é o comportamento esperado de uma soma que
+> mistura um termo ruidoso com um exato. O achado, com o híbrido que o contorna, está em
+> [`../thesis/07-findings-and-limitations.md`](../thesis/07-findings-and-limitations.md)
+> §«O AG escalar não é ótimo na própria função»; a pendência, em
+> [10](10-known-issues.md) §1.
+
 > **Por que orçamento fixo nos dois algoritmos.** O NSGA-II não tem como parar pelo
 > critério do escalar: *"o roster está equilibrado?"* não se pergunta a uma **fronteira**,
 > que de propósito contém pontos desequilibrados e fiéis — e perguntar a um representante

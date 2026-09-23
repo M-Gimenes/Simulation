@@ -60,7 +60,10 @@ A assimetria é informativa e não acidental: o **Combo Master** tem um gene def
 É declaração de **premissa** (o que o arquétipo é), nunca de resposta (quem vence
 quem — `beats`, que o fitness jamais referencia). Consequência: as Layers 1-2 do
 validador passam a medir o mesmo eixo que o fitness otimiza, e são **parcialmente
-endógenas**; a leitura post-hoc de identidade fica com a **Layer 3** e o ciclo.
+endógenas**; a leitura post-hoc de identidade fica com a **Layer 3** e a concordância de
+ranking τ. **O ciclo não é régua de identidade**: o próprio canônico realiza só 6/10 dele
+no motor — não se preserva o que a premissa não tinha (ver
+[`../thesis/02-canonical-cycle.md`](../thesis/02-canonical-cycle.md)).
 
 ### Pesos comportamentais canônicos
 
@@ -97,9 +100,18 @@ no campo `beats` de cada `ArchetypeDefinition`.
 | Combo Master | Grappler, Zoner | Grappler lento morre pra combo; burst converte um acerto |
 | Turtle | Rushdown, Combo Master | bloqueio absorve pressão e quebra setup de combo |
 
-> **O ciclo não está codificado em nenhuma penalidade do fitness.** É medido
-> *post-hoc* como métrica de avaliação (ver `analyze_matchups` em
-> [08-tools.md](08-tools.md)). Forçá-lo tornaria a pergunta de pesquisa circular.
+> **O ciclo não está codificado em nenhuma penalidade do fitness.** O campo `beats` existe,
+> congelado, e nenhuma função de fitness o lê — é a parte verificável do argumento de
+> não-circularidade. Forçá-lo tornaria a pergunta de pesquisa circular.
+>
+> **E ele foi falsificado.** Medido a 16.000 lutas por par
+> (`src.experiments.cycle_structure`, [08-tools.md](08-tools.md)): o canônico realiza 6/10,
+> com as 4 arestas que quebra invertidas por completo (0,000–0,006) — o Rushdown ganha de
+> todos e a Turtle perde para todos, o que é **hierarquia, não ciclo** (1,00 de 5 tríades
+> circulares). Depois do equilíbrio, o AG mantém 105 de 186 arestas decididas (56,5%,
+> p = 0,091) contra 49,7% dos nulos: indistinguível do acaso. A tabela acima é **premissa
+> autoral**, não comportamento do modelo — status em
+> [`../thesis/02-canonical-cycle.md`](../thesis/02-canonical-cycle.md).
 
 ### Justificativa por arquétipo
 

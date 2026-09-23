@@ -252,7 +252,21 @@ MULTI_RUN_SEED_START = 42         # primeira semente; execuções usam 42, 43, .
 # `multi_run` grava no corpo.
 MULTI_RUN_N_SEEDS = 20
 MULTI_RUN_VALIDATION_SEED = 9999  # seed comum de reavaliação (CRN): desacopla a métrica da seed de treino
-MULTI_RUN_SIMS = SIMS_CONVERGENCE_CHECK  # sims/matchup na reavaliação independente
+# Sims/matchup na reavaliação independente. INDEPENDENTE de SIMS_CONVERGENCE_CHECK, que
+# tem o mesmo valor mas outro custo: a confirmação roda DENTRO do laço, a cada disparo do
+# gate, enquanto esta roda uma vez por execução, sobre um indivíduo só.
+#
+# 200 é resolução suficiente para os agregados de n = 20 (o ruído de medição é simétrico
+# entre braços e a média o dilui), mas NÃO para ranquear rosters individualmente: medido
+# em 30 streams, o desvio do `dominance` de um mesmo roster é 0,015–0,028 — da ordem do
+# próprio valor evoluído (~0,04). Consequência medida (2026-09-22): comparando dois braços
+# em 5 sementes, o veredito a 200 sims INVERTEU contra a reavaliação a 1000 sims em 4
+# sorteios. Ler diferença por semente exige 1000.
+#
+# Subir para 1000 é quase de graça — 10 pares × 1000 = 10.000 lutas por semente, contra
+# as 67.500.000 da execução que a produziu — mas entra no carimbo de proveniência e
+# obsoleta toda a bateria, então a troca acompanha a próxima re-execução, não antecede.
+MULTI_RUN_SIMS = 200
 
 # Sims/matchup do perfil comportamental que mede identidade FUNCIONAL (Layer 3 do
 # validador e concordância de ranking) — no multi_run, nos modelos nulos e no dossiê.

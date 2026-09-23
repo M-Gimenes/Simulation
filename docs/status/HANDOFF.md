@@ -21,9 +21,20 @@ trabalho das sessões anteriores, no git (a última versão longa deste arquivo 
    sobre o motor atual, com os dois controles; `py -m src.tests.test_provenance` marca
    tudo como *atual* ou *braço de experimento*. **Os números da §2 são os citáveis.**
 3. **O sistema está fechado.** Motor e fitness calibrados, os três sweeps feitos, os
-   controles que isolam o método medidos. Não há pendência de instrumentação nem de
-   experimento.
-4. **O que falta é a redação** (§4) — a começar pelo `values.tex`, inteiramente obsoleto.
+   controles que isolam o método medidos. Não há pendência de instrumentação.
+4. **Um achado em aberto, de 2026-09-22: o AG escalar não é ótimo na própria função.**
+   `dominance` é amostrado e `drift` não, e depois da geração ~31 a seleção escalar gasta a
+   pressão em ruído: a fronteira do NSGA-II tem um ponto melhor na soma `dominance + drift`
+   em 20/20 sementes, e um híbrido NSGA-II → AG escalar **com o mesmo orçamento** quase
+   domina o AG (dom 0,0254 contra 0,0380, drift 0,1664 contra 0,2396, τ +0,551 contra
+   +0,284, nas sementes 42–46 a 1000 lutas). **Não invalida a bateria** — os agregados de
+   n = 20 seguem válidos — mas qualifica a leitura: o trade-off medido é um **teto** do
+   custo da identidade. Registro de trabalho em `CONTINUE.md`, achado e números em
+   [`../thesis/07-findings-and-limitations.md`](../thesis/07-findings-and-limitations.md),
+   sequência para fechar lá em §«O que ainda falta». Duas correções de leitura saíram
+   dele: a §2 «O número de dentro do laço» abaixo e a nota de revisão em
+   [04](../thesis/04-design-decisions.md) sobre "o escalar vence na própria função".
+5. **O que falta é a redação** (§4) — a começar pelo `values.tex`, inteiramente obsoleto.
    Agora existem números definitivos para preenchê-lo.
 
 ## 1. O modelo em quatro eixos
@@ -146,9 +157,20 @@ condições independentes (`external_validation`, seeds 10000+, 5000 lutas por p
 | bateria 2026-09-16 (sem rotação) | 0,0039 → 0,0804 | **21×** |
 | bateria 2026-09-21 | 0,0251 → **0,0373** | **1,5×** |
 
-A rotação do stream por geração fez o que prometia, e o efeito persiste sob o CRN por
-luta: o número reportado durante a busca **é** essencialmente o número que sobrevive fora
-dela.
+A rotação do stream por geração fez o que prometia: a degradação caiu de 21× para a casa
+de 1–3×.
+
+> **Correção (2026-09-22): a linha acima é da seed 42, e ela é a 2ª semente mais favorável
+> das 20.** A conclusão "o número de dentro do laço é essencialmente o de fora" **não**
+> transfere para a amostra. Medido nas 20 sementes (razão reavaliação / dentro do laço):
+> mediana **2,59×**, e a seed 42 dá 1,24× — só a seed 58 é melhor. Com um instrumento de
+> baixo ruído (1000 lutas × 4 sorteios novos, sementes 42–46) a mediana é **2,05×**, então
+> não é artefato de medição: é viés de seleção (o número do laço é o mínimo de 300
+> indivíduos num stream) somado ao ruído residual do `dominance`. O que sobrevive da
+> afirmação é o **ganho** da rotação (de 21× para ~2×), não a igualdade dentro/fora.
+> Ao citar, usar o número de fora e a razão da amostra, nunca a de uma semente. Mecanismo
+> em [`../thesis/07-findings-and-limitations.md`](../thesis/07-findings-and-limitations.md)
+> §«O AG escalar não é ótimo na própria função».
 
 ### Contra os modelos nulos (melhor do AG, seed 42; 35 nulos)
 
@@ -159,7 +181,6 @@ dela.
 | validador (L3) | 3/5 | 0,97 | 3 | 5 | 50% | **0,03** |
 | concordância (τ) | 0,314 | −0,039 | 0,316 | 1,00 | 34% | 0,06 |
 | `drift_penalty` | 0,236 | 0,409 | 0,327 | 0,000 | 42% | **< 0,03** |
-| arestas do ciclo | 5/10 | 5,00 | 7 | 10 | 0% | 0,63 |
 | `dominance_penalty` | 0,031 | 1,146 | 0,024 | 0,057 | 102% | 0,06 |
 
 Três leituras:
@@ -174,13 +195,32 @@ Três leituras:
    para concluir; sobre 20 sementes contra o controle λ = 0, dá — e separa com efeito
    grande. **É uma correção da leitura preliminar de 2026-09-18**, que dava a identidade
    funcional no piso (L3 1/5, p = 0,74; τ = 0,19).
-3. **O ciclo autoral não é realizado** — 5/10 arestas, exatamente o piso, posição 0%.
-   Não é falha: o ciclo nunca esteve no fitness, e o próprio canônico só realiza 6/10
-   dele. O objetivo é cego à direção por construção.
+3. **O ciclo autoral não é realizado — e a linha dele saiu desta tabela.** A métrica
+   mudou de casa em 2026-09-22: a 200 lutas por par a direção de cada aresta de um roster
+   equilibrado é sorteio (margem mediana 0,048 contra σ = 0,035), e os espelhos — estrutura
+   de torneio zero por construção — marcavam 5,40/10 "mantidas" com 1,00/10 decididas.
+   Agora sai de `results/cycle/cycle_structure.json`
+   (`src.experiments.cycle_structure`, 16 × 1000 lutas por par, σ = 0,0040, passo 17 da
+   bateria), contando só arestas **decididas**:
 
-O `dominance` do evoluído (0,031) fica **no nível dos espelhos** (0,024–0,116, média
-0,057) — tão equilibrado quanto a simetria perfeita, dentro do ruído a 200 lutas, nunca
-"mais equilibrado". O espelho é a solução trivial; o que a separa do evoluído é o drift.
+   | grupo | n | mantidas | decididas | mantidas **E** decididas | tríades |
+   |---|---|---|---|---|---|
+   | canônico | 1 | 6,00/10 | 10,00/10 | 6,00/10 | **1,00** |
+   | AG escalar | 20 | 5,60/10 | 9,30/10 | 5,25/10 | 3,71 |
+   | NSGA-II | 20 | 4,95/10 | 9,85/10 | 4,90/10 | 4,17 |
+   | espelhos (ruído) | 5 | 5,40/10 | **1,00/10** | 0,60/10 | 2,59 |
+   | aleatórios (piso) | 30 | 4,97/10 | 10,00/10 | 4,97/10 | 0,40 |
+
+   **Veredito:** o AG mantém **105 de 186 arestas decididas — 56,5%, binomial p = 0,091**;
+   os nulos ficam em 49,7% (p = 0,128, Â₁₂ = 0,63). Nem "destruído" nem "preservado":
+   **indistinguível do acaso**, com inclinação fraca e não significativa na direção
+   autoral. Não é falha — o ciclo nunca esteve no fitness.
+
+   **E o canônico também não tem um ciclo:** realiza 6/10, com as 4 arestas que quebra
+   invertidas por completo (0,000–0,006) — o Rushdown ganha de todos, a Turtle perde para
+   todos. Tríades 1,00 de 5: hierarquia, não pedra-papel-tesoura. A estrutura cíclica não
+   foi destruída pelo equilíbrio, **nunca existiu no motor**. Detalhe em
+   [04](../thesis/04-design-decisions.md), «O ciclo saiu do `baselines`».
 
 ### Validação externa — os quatro rótulos
 
@@ -309,8 +349,10 @@ reforçou:
   bateria acrescenta duas evidências: os três pesos ocupam o fundo do ranking de
   sensibilidade (dois abaixo do piso de ruído), e as duas regras que quebram a robustez
   do AG são exatamente as que mexem em espaço e compromisso da política.
-- **O ciclo de vantagens não é realizado** (5/10, o piso). Consequência declarada de o
-  objetivo ser cego à direção.
+- **O ciclo de vantagens não é realizado** (105 de 186 arestas decididas, 56,5%,
+  p = 0,091; nulos 49,7%, a 16.000 lutas por par). Consequência declarada de o objetivo ser
+  cego à direção — e o próprio canônico realiza só 6/10, sendo uma hierarquia (1,00 de 5
+  tríades) e não um ciclo.
 - Crossover só por bloco de personagem; round-robin uniforme; genes de recurso
   hipersensíveis; `knockback` e `speed` no limiar do piso; o pareamento CRN acaba dentro
   da luta; sweeps em orçamento reduzido.

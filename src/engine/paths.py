@@ -41,3 +41,6 @@ BASELINES_PATH = BASELINES_DIR / "baselines.json"
 
 SENSITIVITY_DIR = RESULTS_DIR / "sensitivity"
 SENSITIVITY_PATH = SENSITIVITY_DIR / "sensitivity_analysis.json"
+
+CYCLE_DIR = RESULTS_DIR / "cycle"
+CYCLE_PATH = CYCLE_DIR / "cycle_structure.json"

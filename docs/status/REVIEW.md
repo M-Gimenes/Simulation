@@ -28,7 +28,8 @@ Achados que **não** estavam na pauta original ou que a contradiziam. Todos reso
 | **E** | O gate de convergência era inalcançável **por construção** (o termo é quantizado) | gate = o próprio predicado `roster_balanced`; confirmação em stream que o AG nunca viu | O critério de parada do AG |
 | **F** | Holm rodava sobre 4 métricas, uma delas degenerada (`p = nan`) | família montada pela variância da amostra conjunta; `_holm` recusa `nan` | A família de testes estatísticos |
 | **G** | A sensibilidade usava dois critérios de corte incompatíveis, e o piso de ruído estava subdimensionado | piso medido sob hipótese nula, critério único, `--evolved` | Os modelos nulos |
-| **H** | O ciclo canônico não era realizado nem pelo próprio canônico (5/10 = acaso) | o problema era geral: **nenhuma** métrica tinha piso — modelos nulos | Os modelos nulos |
+| **H** | O ciclo canônico não era realizado nem pelo próprio canônico | o problema era geral: **nenhuma** métrica tinha piso — modelos nulos | Os modelos nulos |
+| **H′** | E a contagem de arestas era medida a 200 lutas/par, onde a direção de cada aresta de um roster equilibrado é sorteio (2026-09-22) | métrica movida para `src.experiments.cycle_structure`, 16.000 lutas/par, só arestas decididas | O ciclo saiu do `baselines` |
 | **R** | Eixo Recurso sem counter: DEFEND sem custo, e o grab ausente era a identidade do Grappler e uma aresta do ciclo | `grab_power`, 8º atributo | O agarrão / quebra de guarda |
 
 A agenda de calibração que veio depois — as sete constantes rotuladas "provisório" —

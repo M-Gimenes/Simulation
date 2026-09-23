@@ -1,0 +1,1731 @@
+{
+  "provenance": {
+    "generated_at": "2026-09-22T22:19:40-03:00",
+    "fingerprint": "371966d9f335",
+    "engine_digest": "6b18ff49b38a",
+    "archetypes_digest": "e37725dd4b7c",
+    "config": {
+      "ACTION_PERSISTENCE_SUBTICKS": 5,
+      "ATTRIBUTE_BOUNDS": [
+        [
+          250.0,
+          450.0
+        ],
+        [
+          15.0,
+          30.0
+        ],
+        [
+          1.0,
+          5.0
+        ],
+        [
+          5.0,
+          20.0
+        ],
+        [
+          1.0,
+          5.0
+        ],
+        [
+          0.0,
+          0.6
+        ],
+        [
+          0.0,
+          3.0
+        ],
+        [
+          0.0,
+          1.0
+        ]
+      ],
+      "ATTRIBUTE_MUTATION_SIGMA": 0.1,
+      "ATTRIBUTE_NAMES": [
+        "hp",
+        "damage",
+        "attack_cooldown",
+        "range",
+        "speed",
+        "stun",
+        "knockback",
+        "grab_power"
+      ],
+      "CONVERGENCE_SEED_OFFSET": 100000,
+      "DEFEND_DAMAGE_REDUCTION": 0.6,
+      "DOMINANCE_CAP_WEIGHT": 0.5,
+      "DOMINANCE_DECIS_WEIGHT": 0.5,
+      "DOMINANCE_GLOBAL_WEIGHT": 1.0,
+      "DRIFT_DEFINING_WEIGHT": 3.0,
+      "ELITE_RATE": 0.1,
+      "EXTERNAL_VALIDATION_N_SEEDS": 10,
+      "EXTERNAL_VALIDATION_RULE_PERTURBATIONS": [
+        [
+          "INITIAL_DISTANCE",
+          40.0
+        ],
+        [
+          "INITIAL_DISTANCE",
+          60.0
+        ],
+        [
+          "FIELD_SIZE",
+          80.0
+        ],
+        [
+          "FIELD_SIZE",
+          120.0
+        ],
+        [
+          "ACTION_PERSISTENCE_SUBTICKS",
+          4
+        ],
+        [
+          "ACTION_PERSISTENCE_SUBTICKS",
+          6
+        ],
+        [
+          "DEFEND_DAMAGE_REDUCTION",
+          0.55
+        ],
+        [
+          "DEFEND_DAMAGE_REDUCTION",
+          0.65
+        ]
+      ],
+      "EXTERNAL_VALIDATION_SEED_START": 10000,
+      "EXTERNAL_VALIDATION_SIMS": 500,
+      "FIELD_SIZE": 100,
+      "GA_CANONICAL_SEED": true,
+      "GENERATION_SEED_STRIDE": 1000,
+      "GENE_BOUNDS": [
+        [
+          250.0,
+          450.0
+        ],
+        [
+          15.0,
+          30.0
+        ],
+        [
+          1.0,
+          5.0
+        ],
+        [
+          5.0,
+          20.0
+        ],
+        [
+          1.0,
+          5.0
+        ],
+        [
+          0.0,
+          0.6
+        ],
+        [
+          0.0,
+          3.0
+        ],
+        [
+          0.0,
+          1.0
+        ],
+        [
+          0.0,
+          1.0
+        ],
+        [
+          0.0,
+          1.0
+        ],
+        [
+          0.0,
+          1.0
+        ]
+      ],
+      "GENE_NAMES": [
+        "hp",
+        "damage",
+        "attack_cooldown",
+        "range",
+        "speed",
+        "stun",
+        "knockback",
+        "grab_power",
+        "w_retreat",
+        "w_defend",
+        "w_aggressiveness"
+      ],
+      "GLOBAL_CONVERGENCE_THRESHOLD": 0.1,
+      "HYPERVOLUME_REFERENCE": [
+        1.3,
+        0.4
+      ],
+      "IDENTITY_BEHAVIORAL_SIMS": 200,
+      "INITIAL_DISTANCE": 50,
+      "LAMBDA_DOMINANCE": 1.0,
+      "LAMBDA_DRIFT": 1.0,
+      "MATCHUP_FLOOR": 0.02,
+      "MATCHUP_THRESHOLD": 0.2,
+      "MATCHUP_WR_CAP": 0.15,
+      "MAX_GENERATIONS": 150,
+      "MAX_TICKS": 2500,
+      "MULTI_RUN_SEED_START": 42,
+      "MULTI_RUN_SIMS": 200,
+      "MULTI_RUN_VALIDATION_SEED": 9999,
+      "MUTATION_RATE": 0.05,
+      "NSGA2_GENERATIONS": 150,
+      "NSGA2_OBJECTIVES": [
+        "dominance_penalty",
+        "drift_penalty"
+      ],
+      "NSGA2_POP_SIZE": 300,
+      "POPULATION_SIZE": 300,
+      "SIMS_CONVERGENCE_CHECK": 200,
+      "SIMS_PER_MATCHUP": 150,
+      "TICK_SCALE": 5,
+      "TOURNAMENT_SIZE": 3,
+      "WEIGHT_BOUNDS": [
+        [
+          0.0,
+          1.0
+        ],
+        [
+          0.0,
+          1.0
+        ],
+        [
+          0.0,
+          1.0
+        ]
+      ],
+      "WEIGHT_MUTATION_SIGMA": 0.025,
+      "WEIGHT_NAMES": [
+        "w_retreat",
+        "w_defend",
+        "w_aggressiveness"
+      ]
+    },
+    "measurement": {
+      "tool": "src.experiments.cycle_structure",
+      "modules": [
+        "src.experiments.cycle_structure"
+      ],
+      "digest": "affd7c3e666b"
+    }
+  },
+  "streams": 16,
+  "sims_per_stream": 1000,
+  "fights_per_pair": 16000,
+  "decided_threshold": 0.007905694150420948,
+  "n_random": 30,
+  "seed": 9999,
+  "edges": [
+    [
+      "Zoner",
+      "Grappler"
+    ],
+    [
+      "Zoner",
+      "Turtle"
+    ],
+    [
+      "Rushdown",
+      "Zoner"
+    ],
+    [
+      "Rushdown",
+      "Combo Master"
+    ],
+    [
+      "Combo Master",
+      "Grappler"
+    ],
+    [
+      "Combo Master",
+      "Zoner"
+    ],
+    [
+      "Grappler",
+      "Rushdown"
+    ],
+    [
+      "Grappler",
+      "Turtle"
+    ],
+    [
+      "Turtle",
+      "Rushdown"
+    ],
+    [
+      "Turtle",
+      "Combo Master"
+    ]
+  ],
+  "groups": {
+    "canônico": [
+      {
+        "edge_winrates": [
+          0.63103125,
+          1.0,
+          1.0,
+          1.0,
+          0.0015625,
+          0.99646875,
+          0.006093749999999995,
+          1.0,
+          0.0,
+          0.0
+        ],
+        "kept": 6,
+        "decided": 10,
+        "kept_and_decided": 6,
+        "median_margin": 0.5,
+        "circular_triads": 1.0
+      }
+    ],
+    "AG escalar": [
+      {
+        "edge_winrates": [
+          0.50840625,
+          0.54084375,
+          0.5132187500000001,
+          0.39387500000000003,
+          0.5144375,
+          0.51103125,
+          0.46753125,
+          0.51909375,
+          0.55125,
+          0.553375
+        ],
+        "kept": 8,
+        "decided": 10,
+        "kept_and_decided": 8,
+        "median_margin": 0.025781250000000006,
+        "circular_triads": 3.65625
+      },
+      {
+        "edge_winrates": [
+          0.548125,
+          0.5213125,
+          0.5640625,
+          0.503375,
+          0.54871875,
+          0.40646875,
+          0.49953125,
+          0.5821875,
+          0.53740625,
+          0.5270625
+        ],
+        "kept": 8,
+        "decided": 8,
+        "kept_and_decided": 7,
+        "median_margin": 0.042765624999999974,
+        "circular_triads": 3.796875
+      },
+      {
+        "edge_winrates": [
+          0.5686249999999999,
+          0.4955625,
+          0.525875,
+          0.50278125,
+          0.543625,
+          0.48953125000000003,
+          0.57665625,
+          0.54896875,
+          0.55321875,
+          0.5224375
+        ],
+        "kept": 8,
+        "decided": 8,
+        "kept_and_decided": 7,
+        "median_margin": 0.03475,
+        "circular_triads": 3.9375
+      },
+      {
+        "edge_winrates": [
+          0.6305000000000001,
+          0.4468125,
+          0.56034375,
+          0.32471875,
+          0.438125,
+          0.58509375,
+          0.43696875,
+          0.570375,
+          0.4688125,
+          0.55565625
+        ],
+        "kept": 5,
+        "decided": 10,
+        "kept_and_decided": 5,
+        "median_margin": 0.062453125,
+        "circular_triads": 4.0
+      },
+      {
+        "edge_winrates": [
+          0.46925,
+          0.43359375,
+          0.43909375,
+          0.4794375,
+          0.5658125,
+          0.44471875,
+          0.46015625,
+          0.5690625,
+          0.46184375,
+          0.5620625
+        ],
+        "kept": 3,
+        "decided": 10,
+        "kept_and_decided": 3,
+        "median_margin": 0.05809375,
+        "circular_triads": 4.875
+      },
+      {
+        "edge_winrates": [
+          0.4389375,
+          0.35746875,
+          0.4175,
+          0.47415625,
+          0.47490625,
+          0.4030625,
+          0.4095,
+          0.55596875,
+          0.5744687500000001,
+          0.41831250000000003
+        ],
+        "kept": 2,
+        "decided": 10,
+        "kept_and_decided": 2,
+        "median_margin": 0.07807812500000003,
+        "circular_triads": 4.0
+      },
+      {
+        "edge_winrates": [
+          0.48015625,
+          0.57515625,
+          0.585125,
+          0.42825,
+          0.50609375,
+          0.5371874999999999,
+          0.475125,
+          0.50515625,
+          0.61071875,
+          0.49534375
+        ],
+        "kept": 6,
+        "decided": 7,
+        "kept_and_decided": 4,
+        "median_margin": 0.031031249999999955,
+        "circular_triads": 2.796875
+      },
+      {
+        "edge_winrates": [
+          0.54471875,
+          0.65584375,
+          0.6382187500000001,
+          0.45553125,
+          0.55140625,
+          0.5226875,
+          0.6018125,
+          0.39868750000000003,
+          0.455,
+          0.6085
+        ],
+        "kept": 7,
+        "decided": 10,
+        "kept_and_decided": 7,
+        "median_margin": 0.07635937499999998,
+        "circular_triads": 4.0
+      },
+      {
+        "edge_winrates": [
+          0.479,
+          0.45203125,
+          0.52846875,
+          0.52109375,
+          0.42784374999999997,
+          0.49178125,
+          0.52396875,
+          0.4003125,
+          0.422875,
+          0.36728125
+        ],
+        "kept": 3,
+        "decided": 10,
+        "kept_and_decided": 3,
+        "median_margin": 0.038218750000000024,
+        "circular_triads": 2.6875
+      },
+      {
+        "edge_winrates": [
+          0.6114375,
+          0.53290625,
+          0.63934375,
+          0.5148125,
+          0.40953125,
+          0.50825,
+          0.58846875,
+          0.51525,
+          0.51346875,
+          0.47690625
+        ],
+        "kept": 8,
+        "decided": 10,
+        "kept_and_decided": 8,
+        "median_margin": 0.028000000000000025,
+        "circular_triads": 3.5
+      },
+      {
+        "edge_winrates": [
+          0.485875,
+          0.56996875,
+          0.5590625,
+          0.35278125,
+          0.40921875,
+          0.49025,
+          0.3871875,
+          0.5709375,
+          0.5795,
+          0.5111875
+        ],
+        "kept": 5,
+        "decided": 10,
+        "kept_and_decided": 5,
+        "median_margin": 0.070453125,
+        "circular_triads": 4.0625
+      },
+      {
+        "edge_winrates": [
+          0.60140625,
+          0.52390625,
+          0.6258125,
+          0.4565,
+          0.49990625,
+          0.458125,
+          0.54259375,
+          0.49534374999999997,
+          0.4851875,
+          0.5928125
+        ],
+        "kept": 5,
+        "decided": 8,
+        "kept_and_decided": 5,
+        "median_margin": 0.04223437499999999,
+        "circular_triads": 3.671875
+      },
+      {
+        "edge_winrates": [
+          0.5973125,
+          0.4714375,
+          0.546625,
+          0.5306875,
+          0.471125,
+          0.5994375,
+          0.6066875,
+          0.38496875,
+          0.39159374999999996,
+          0.4791875
+        ],
+        "kept": 5,
+        "decided": 10,
+        "kept_and_decided": 5,
+        "median_margin": 0.07196875000000003,
+        "circular_triads": 3.875
+      },
+      {
+        "edge_winrates": [
+          0.6584375,
+          0.3721875,
+          0.50125,
+          0.46303125,
+          0.48084375,
+          0.47928125,
+          0.5195000000000001,
+          0.533625,
+          0.46646875,
+          0.44734375
+        ],
+        "kept": 4,
+        "decided": 9,
+        "kept_and_decided": 3,
+        "median_margin": 0.033578125000000014,
+        "circular_triads": 3.6875
+      },
+      {
+        "edge_winrates": [
+          0.51790625,
+          0.42584375,
+          0.41228125,
+          0.3789375,
+          0.51271875,
+          0.4115,
+          0.40425,
+          0.5965625,
+          0.53425,
+          0.524875
+        ],
+        "kept": 5,
+        "decided": 10,
+        "kept_and_decided": 5,
+        "median_margin": 0.0809375,
+        "circular_triads": 3.1875
+      },
+      {
+        "edge_winrates": [
+          0.48974999999999996,
+          0.40775,
+          0.43843750000000004,
+          0.5605625,
+          0.52003125,
+          0.49721875000000004,
+          0.53521875,
+          0.5754374999999999,
+          0.4870625,
+          0.464625
+        ],
+        "kept": 4,
+        "decided": 9,
+        "kept_and_decided": 4,
+        "median_margin": 0.03529687499999998,
+        "circular_triads": 3.625
+      },
+      {
+        "edge_winrates": [
+          0.59803125,
+          0.50478125,
+          0.5390625,
+          0.453625,
+          0.39340625,
+          0.5449375,
+          0.47978125,
+          0.49134374999999997,
+          0.519,
+          0.5219374999999999
+        ],
+        "kept": 6,
+        "decided": 9,
+        "kept_and_decided": 5,
+        "median_margin": 0.03049999999999997,
+        "circular_triads": 3.5625
+      },
+      {
+        "edge_winrates": [
+          0.5404375,
+          0.58659375,
+          0.4884375,
+          0.53803125,
+          0.542375,
+          0.55996875,
+          0.47525,
+          0.58815625,
+          0.54590625,
+          0.5831875
+        ],
+        "kept": 8,
+        "decided": 10,
+        "kept_and_decided": 8,
+        "median_margin": 0.044140625000000044,
+        "circular_triads": 4.0625
+      },
+      {
+        "edge_winrates": [
+          0.50440625,
+          0.54453125,
+          0.53040625,
+          0.42528125,
+          0.4936875,
+          0.5195625,
+          0.4489375,
+          0.47275,
+          0.52640625,
+          0.51396875
+        ],
+        "kept": 6,
+        "decided": 8,
+        "kept_and_decided": 5,
+        "median_margin": 0.02682812499999998,
+        "circular_triads": 3.1875
+      },
+      {
+        "edge_winrates": [
+          0.5385625,
+          0.44578125,
+          0.5453125,
+          0.48378125,
+          0.62453125,
+          0.38237499999999996,
+          0.55471875,
+          0.53409375,
+          0.5781875000000001,
+          0.4731875
+        ],
+        "kept": 6,
+        "decided": 10,
+        "kept_and_decided": 6,
+        "median_margin": 0.04976562499999998,
+        "circular_triads": 4.078125
+      }
+    ],
+    "NSGA-II": [
+      {
+        "edge_winrates": [
+          0.6428437499999999,
+          0.470625,
+          0.6245625,
+          0.326125,
+          0.34540625,
+          0.3753125,
+          0.494875,
+          0.52978125,
+          0.55996875,
+          0.3601875
+        ],
+        "kept": 4,
+        "decided": 9,
+        "kept_and_decided": 4,
+        "median_margin": 0.12462500000000001,
+        "circular_triads": 4.625
+      },
+      {
+        "edge_winrates": [
+          0.6658125,
+          0.51796875,
+          0.66615625,
+          0.35875,
+          0.4345625,
+          0.56934375,
+          0.5784375,
+          0.43590625,
+          0.429375,
+          0.53925
+        ],
+        "kept": 6,
+        "decided": 10,
+        "kept_and_decided": 6,
+        "median_margin": 0.06998437500000002,
+        "circular_triads": 4.9375
+      },
+      {
+        "edge_winrates": [
+          0.741,
+          0.35021875,
+          0.646375,
+          0.258625,
+          0.32334375,
+          0.441875,
+          0.33378125,
+          0.683875,
+          0.6028125,
+          0.42434375
+        ],
+        "kept": 4,
+        "decided": 10,
+        "kept_and_decided": 4,
+        "median_margin": 0.158,
+        "circular_triads": 5.0
+      },
+      {
+        "edge_winrates": [
+          0.63146875,
+          0.52784375,
+          0.5818125000000001,
+          0.32184375,
+          0.3590625,
+          0.43940625,
+          0.647125,
+          0.30343749999999997,
+          0.38659375,
+          0.4811875
+        ],
+        "kept": 4,
+        "decided": 10,
+        "kept_and_decided": 4,
+        "median_margin": 0.1224375,
+        "circular_triads": 4.0625
+      },
+      {
+        "edge_winrates": [
+          0.7599375,
+          0.3748125,
+          0.52421875,
+          0.30615625,
+          0.25821875,
+          0.58628125,
+          0.41109375,
+          0.59853125,
+          0.2944375,
+          0.63115625
+        ],
+        "kept": 5,
+        "decided": 10,
+        "kept_and_decided": 5,
+        "median_margin": 0.128171875,
+        "circular_triads": 4.0
+      },
+      {
+        "edge_winrates": [
+          0.71309375,
+          0.405125,
+          0.691375,
+          0.2164375,
+          0.4430625,
+          0.5038750000000001,
+          0.48071875,
+          0.5700625,
+          0.405,
+          0.5873437499999999
+        ],
+        "kept": 5,
+        "decided": 9,
+        "kept_and_decided": 4,
+        "median_margin": 0.09110937499999996,
+        "circular_triads": 4.0
+      },
+      {
+        "edge_winrates": [
+          0.681,
+          0.541625,
+          0.6604375,
+          0.27040625,
+          0.3050625,
+          0.48671875,
+          0.3988125,
+          0.5797187500000001,
+          0.5845,
+          0.61665625
+        ],
+        "kept": 6,
+        "decided": 10,
+        "kept_and_decided": 6,
+        "median_margin": 0.108921875,
+        "circular_triads": 4.25
+      },
+      {
+        "edge_winrates": [
+          0.8165625,
+          0.795625,
+          0.7395937499999999,
+          0.31165625,
+          0.22634375,
+          0.73146875,
+          0.40990625,
+          0.5215624999999999,
+          0.61903125,
+          0.60375
+        ],
+        "kept": 7,
+        "decided": 10,
+        "kept_and_decided": 7,
+        "median_margin": 0.20990625,
+        "circular_triads": 5.0
+      },
+      {
+        "edge_winrates": [
+          0.6489375,
+          0.55678125,
+          0.57490625,
+          0.4201875,
+          0.4255,
+          0.65990625,
+          0.5114062500000001,
+          0.598375,
+          0.54015625,
+          0.5605
+        ],
+        "kept": 8,
+        "decided": 10,
+        "kept_and_decided": 8,
+        "median_margin": 0.07470312499999998,
+        "circular_triads": 4.1875
+      },
+      {
+        "edge_winrates": [
+          0.34931249999999997,
+          0.59021875,
+          0.58646875,
+          0.436875,
+          0.5336875,
+          0.4025,
+          0.29450000000000004,
+          0.5884375,
+          0.6590625,
+          0.60175
+        ],
+        "kept": 6,
+        "decided": 10,
+        "kept_and_decided": 6,
+        "median_margin": 0.093859375,
+        "circular_triads": 5.0
+      },
+      {
+        "edge_winrates": [
+          0.5326875,
+          0.5375625,
+          0.65453125,
+          0.37765625,
+          0.512375,
+          0.46321875,
+          0.48409375,
+          0.6048749999999999,
+          0.5670937500000001,
+          0.6671874999999999
+        ],
+        "kept": 7,
+        "decided": 10,
+        "kept_and_decided": 7,
+        "median_margin": 0.05232812500000006,
+        "circular_triads": 3.9375
+      },
+      {
+        "edge_winrates": [
+          0.642375,
+          0.327375,
+          0.2874375,
+          0.29859375,
+          0.3305,
+          0.5833125,
+          0.39637500000000003,
+          0.61184375,
+          0.26059374999999996,
+          0.54196875
+        ],
+        "kept": 4,
+        "decided": 10,
+        "kept_and_decided": 4,
+        "median_margin": 0.1559375,
+        "circular_triads": 5.0
+      },
+      {
+        "edge_winrates": [
+          0.57296875,
+          0.54003125,
+          0.6704687500000001,
+          0.3159375,
+          0.47659375,
+          0.45509374999999996,
+          0.48221875000000003,
+          0.5198437499999999,
+          0.33084375,
+          0.68415625
+        ],
+        "kept": 5,
+        "decided": 10,
+        "kept_and_decided": 5,
+        "median_margin": 0.05893750000000003,
+        "circular_triads": 3.046875
+      },
+      {
+        "edge_winrates": [
+          0.621625,
+          0.3763125,
+          0.44678125,
+          0.32484375,
+          0.30525,
+          0.46509375,
+          0.54084375,
+          0.39890625,
+          0.20512499999999997,
+          0.47265625
+        ],
+        "kept": 2,
+        "decided": 10,
+        "kept_and_decided": 2,
+        "median_margin": 0.11135937499999998,
+        "circular_triads": 3.9375
+      },
+      {
+        "edge_winrates": [
+          0.60625,
+          0.37509375,
+          0.55025,
+          0.34071875,
+          0.48134375,
+          0.5173125,
+          0.51525,
+          0.57146875,
+          0.41796875,
+          0.60315625
+        ],
+        "kept": 6,
+        "decided": 10,
+        "kept_and_decided": 6,
+        "median_margin": 0.07674999999999998,
+        "circular_triads": 4.0625
+      },
+      {
+        "edge_winrates": [
+          0.6426875,
+          0.5734375,
+          0.5908125,
+          0.42878125,
+          0.30059375,
+          0.59834375,
+          0.614125,
+          0.317125,
+          0.32821875,
+          0.48421875000000003
+        ],
+        "kept": 5,
+        "decided": 10,
+        "kept_and_decided": 5,
+        "median_margin": 0.10623437499999999,
+        "circular_triads": 4.125
+      },
+      {
+        "edge_winrates": [
+          0.51209375,
+          0.35521875,
+          0.45846875,
+          0.65596875,
+          0.48178125,
+          0.48603125,
+          0.56875,
+          0.58775,
+          0.6023125,
+          0.39834375
+        ],
+        "kept": 5,
+        "decided": 10,
+        "kept_and_decided": 5,
+        "median_margin": 0.07824999999999999,
+        "circular_triads": 3.15625
+      },
+      {
+        "edge_winrates": [
+          0.531,
+          0.5543750000000001,
+          0.45753125,
+          0.47484375,
+          0.46621875,
+          0.67465625,
+          0.4035,
+          0.62925,
+          0.6839062499999999,
+          0.421625
+        ],
+        "kept": 5,
+        "decided": 10,
+        "kept_and_decided": 5,
+        "median_margin": 0.06637500000000002,
+        "circular_triads": 3.046875
+      },
+      {
+        "edge_winrates": [
+          0.6292187499999999,
+          0.43546875,
+          0.61328125,
+          0.3084375,
+          0.44734375,
+          0.3893125,
+          0.45303125,
+          0.522375,
+          0.41153125,
+          0.49790625
+        ],
+        "kept": 3,
+        "decided": 9,
+        "kept_and_decided": 3,
+        "median_margin": 0.07649999999999998,
+        "circular_triads": 3.9375
+      },
+      {
+        "edge_winrates": [
+          0.63925,
+          0.38434375,
+          0.55609375,
+          0.30375,
+          0.365,
+          0.39578125,
+          0.43275,
+          0.47853124999999996,
+          0.321,
+          0.4138125
+        ],
+        "kept": 2,
+        "decided": 10,
+        "kept_and_decided": 2,
+        "median_margin": 0.10993750000000002,
+        "circular_triads": 4.0
+      }
+    ],
+    "espelhos": [
+      {
+        "edge_winrates": [
+          0.4994375,
+          0.503,
+          0.50375,
+          0.50178125,
+          0.50003125,
+          0.50315625,
+          0.50165625,
+          0.506625,
+          0.49462500000000004,
+          0.49893750000000003
+        ],
+        "kept": 7,
+        "decided": 0,
+        "kept_and_decided": 0,
+        "median_margin": 0.0023906249999999796,
+        "circular_triads": 2.359375
+      },
+      {
+        "edge_winrates": [
+          0.49646874999999996,
+          0.50259375,
+          0.50684375,
+          0.50903125,
+          0.5101249999999999,
+          0.4975625,
+          0.5025000000000001,
+          0.5011875,
+          0.50975,
+          0.5005625
+        ],
+        "kept": 8,
+        "decided": 3,
+        "kept_and_decided": 3,
+        "median_margin": 0.0030624999999999958,
+        "circular_triads": 2.75
+      },
+      {
+        "edge_winrates": [
+          0.49724999999999997,
+          0.4998125,
+          0.49865625,
+          0.5000625,
+          0.499875,
+          0.50046875,
+          0.49603125000000003,
+          0.49446875,
+          0.49671875,
+          0.5025000000000001
+        ],
+        "kept": 3,
+        "decided": 0,
+        "kept_and_decided": 0,
+        "median_margin": 0.0019218750000000173,
+        "circular_triads": 2.640625
+      },
+      {
+        "edge_winrates": [
+          0.49828124999999995,
+          0.5076875,
+          0.5065625,
+          0.506375,
+          0.49921875,
+          0.49425,
+          0.49271875000000004,
+          0.49165625,
+          0.5,
+          0.49959375
+        ],
+        "kept": 3,
+        "decided": 1,
+        "kept_and_decided": 0,
+        "median_margin": 0.0060624999999999984,
+        "circular_triads": 2.75
+      },
+      {
+        "edge_winrates": [
+          0.5016875,
+          0.49374999999999997,
+          0.49700000000000005,
+          0.5035,
+          0.50190625,
+          0.50565625,
+          0.50365625,
+          0.49724999999999997,
+          0.5005000000000001,
+          0.4915
+        ],
+        "kept": 6,
+        "decided": 1,
+        "kept_and_decided": 0,
+        "median_margin": 0.0032499999999999474,
+        "circular_triads": 2.453125
+      }
+    ],
+    "aleatórios": [
+      {
+        "edge_winrates": [
+          0.96965625,
+          0.0,
+          1.0,
+          0.8233125,
+          0.91509375,
+          0.349125,
+          0.019156250000000007,
+          0.0,
+          1.0,
+          1.0
+        ],
+        "kept": 6,
+        "decided": 10,
+        "kept_and_decided": 6,
+        "median_margin": 0.490421875,
+        "circular_triads": 0.0
+      },
+      {
+        "edge_winrates": [
+          0.0,
+          6.25e-05,
+          0.203375,
+          1.0,
+          0.0,
+          0.0,
+          1.0,
+          0.0,
+          0.369625,
+          1.0
+        ],
+        "kept": 3,
+        "decided": 10,
+        "kept_and_decided": 3,
+        "median_margin": 0.5,
+        "circular_triads": 2.0
+      },
+      {
+        "edge_winrates": [
+          0.2515,
+          0.99721875,
+          1.0,
+          1.0,
+          0.39353125,
+          0.98909375,
+          0.0,
+          1.0,
+          0.0,
+          0.017937500000000002
+        ],
+        "kept": 5,
+        "decided": 10,
+        "kept_and_decided": 5,
+        "median_margin": 0.498609375,
+        "circular_triads": 0.0
+      },
+      {
+        "edge_winrates": [
+          1.0,
+          1.0,
+          0.4490625,
+          1.0,
+          0.99928125,
+          0.0,
+          0.03756250000000002,
+          1.0,
+          0.0,
+          0.0
+        ],
+        "kept": 5,
+        "decided": 10,
+        "kept_and_decided": 5,
+        "median_margin": 0.5,
+        "circular_triads": 0.0
+      },
+      {
+        "edge_winrates": [
+          0.0,
+          0.0,
+          0.0,
+          0.984125,
+          0.0078125,
+          0.0,
+          1.0,
+          0.9999375,
+          0.99975,
+          0.1196875
+        ],
+        "kept": 4,
+        "decided": 10,
+        "kept_and_decided": 4,
+        "median_margin": 0.49996875,
+        "circular_triads": 2.0
+      },
+      {
+        "edge_winrates": [
+          0.9999375,
+          0.0665625,
+          0.15815625,
+          0.00078125,
+          0.9640625,
+          0.94596875,
+          0.8135625,
+          0.02275,
+          0.26434375,
+          0.005499999999999998
+        ],
+        "kept": 4,
+        "decided": 10,
+        "kept_and_decided": 4,
+        "median_margin": 0.45501562500000003,
+        "circular_triads": 2.0
+      },
+      {
+        "edge_winrates": [
+          0.0,
+          0.00059375,
+          1.0,
+          1.0,
+          0.0,
+          0.0,
+          0.98815625,
+          1.0,
+          0.0,
+          1.0
+        ],
+        "kept": 5,
+        "decided": 10,
+        "kept_and_decided": 5,
+        "median_margin": 0.5,
+        "circular_triads": 0.0
+      },
+      {
+        "edge_winrates": [
+          1.0,
+          0.999875,
+          0.04862500000000004,
+          1.0,
+          1.0,
+          0.0001250000000000001,
+          0.99703125,
+          0.001,
+          0.0009687499999999974,
+          0.1725625
+        ],
+        "kept": 5,
+        "decided": 10,
+        "kept_and_decided": 5,
+        "median_margin": 0.49945312499999994,
+        "circular_triads": 2.0
+      },
+      {
+        "edge_winrates": [
+          0.9993125,
+          1.0,
+          0.0,
+          0.0024375,
+          0.0081875,
+          0.64209375,
+          0.7367812499999999,
+          1.0,
+          0.0,
+          0.26728125
+        ],
+        "kept": 5,
+        "decided": 10,
+        "kept_and_decided": 5,
+        "median_margin": 0.49843750000000003,
+        "circular_triads": 1.0
+      },
+      {
+        "edge_winrates": [
+          0.9994375,
+          0.37271875,
+          0.003374999999999989,
+          0.0,
+          1.0,
+          0.0,
+          1.0,
+          0.0,
+          0.9996875,
+          1.0
+        ],
+        "kept": 5,
+        "decided": 10,
+        "kept_and_decided": 5,
+        "median_margin": 0.5,
+        "circular_triads": 0.0
+      },
+      {
+        "edge_winrates": [
+          0.99815625,
+          1.0,
+          0.99878125,
+          0.99040625,
+          0.999875,
+          0.13618749999999996,
+          0.0,
+          0.9021875,
+          0.0,
+          0.0
+        ],
+        "kept": 6,
+        "decided": 10,
+        "kept_and_decided": 6,
+        "median_margin": 0.49932812499999996,
+        "circular_triads": 0.0
+      },
+      {
+        "edge_winrates": [
+          0.3546875,
+          0.0,
+          1.0,
+          0.9999375,
+          0.99975,
+          0.0,
+          0.14065624999999998,
+          0.0049375,
+          0.41009375,
+          1.0
+        ],
+        "kept": 4,
+        "decided": 10,
+        "kept_and_decided": 4,
+        "median_margin": 0.49984375000000003,
+        "circular_triads": 1.0
+      },
+      {
+        "edge_winrates": [
+          0.00025,
+          0.99775,
+          0.004937500000000004,
+          0.0,
+          0.43821875,
+          0.9998125,
+          1.0,
+          1.0,
+          0.13268749999999999,
+          0.0
+        ],
+        "kept": 4,
+        "decided": 10,
+        "kept_and_decided": 4,
+        "median_margin": 0.49978125,
+        "circular_triads": 0.0
+      },
+      {
+        "edge_winrates": [
+          6.25e-05,
+          0.0,
+          1.0,
+          1.0,
+          0.00075,
+          0.89071875,
+          0.004312499999999997,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "kept": 4,
+        "decided": 10,
+        "kept_and_decided": 4,
+        "median_margin": 0.5,
+        "circular_triads": 0.0
+      },
+      {
+        "edge_winrates": [
+          0.9999375,
+          0.80334375,
+          0.9999375,
+          0.011375,
+          1.0,
+          1.0,
+          0.0,
+          0.00196875,
+          0.11196875000000002,
+          0.0
+        ],
+        "kept": 5,
+        "decided": 10,
+        "kept_and_decided": 5,
+        "median_margin": 0.49993750000000003,
+        "circular_triads": 0.0
+      },
+      {
+        "edge_winrates": [
+          0.2461875,
+          1.0,
+          0.06824999999999999,
+          0.09509375,
+          0.19609375,
+          0.48540625000000004,
+          0.9718125,
+          1.0,
+          0.0,
+          0.0
+        ],
+        "kept": 3,
+        "decided": 10,
+        "kept_and_decided": 3,
+        "median_margin": 0.45178125,
+        "circular_triads": 0.0
+      },
+      {
+        "edge_winrates": [
+          0.16515625,
+          0.99778125,
+          1.0,
+          1.0,
+          0.0038125,
+          0.40284375,
+          0.0,
+          1.0,
+          0.0,
+          0.0
+        ],
+        "kept": 4,
+        "decided": 10,
+        "kept_and_decided": 4,
+        "median_margin": 0.5,
+        "circular_triads": 0.0
+      },
+      {
+        "edge_winrates": [
+          0.999625,
+          0.9998125,
+          0.9194687500000001,
+          1.0,
+          0.08990625,
+          0.0,
+          0.0,
+          0.9000625,
+          0.0,
+          0.97878125
+        ],
+        "kept": 6,
+        "decided": 10,
+        "kept_and_decided": 6,
+        "median_margin": 0.49971875,
+        "circular_triads": 0.0
+      },
+      {
+        "edge_winrates": [
+          0.0,
+          0.9956875000000001,
+          0.0,
+          0.0,
+          0.035124999999999997,
+          0.5231875,
+          1.0,
+          1.0,
+          1.0,
+          0.11384375000000002
+        ],
+        "kept": 5,
+        "decided": 10,
+        "kept_and_decided": 5,
+        "median_margin": 0.5,
+        "circular_triads": 0.0
+      },
+      {
+        "edge_winrates": [
+          1.0,
+          0.998875,
+          0.05303125000000001,
+          0.785125,
+          0.716375,
+          0.0,
+          6.250000000000006e-05,
+          0.22603125000000002,
+          0.38140625,
+          0.987875
+        ],
+        "kept": 5,
+        "decided": 10,
+        "kept_and_decided": 5,
+        "median_margin": 0.467421875,
+        "circular_triads": 0.0
+      },
+      {
+        "edge_winrates": [
+          0.0044687500000000005,
+          0.8436875,
+          0.1068125,
+          0.8340624999999999,
+          0.0,
+          0.1135,
+          1.0,
+          1.0,
+          0.5986875,
+          0.65465625
+        ],
+        "kept": 6,
+        "decided": 10,
+        "kept_and_decided": 6,
+        "median_margin": 0.38984375000000004,
+        "circular_triads": 0.0
+      },
+      {
+        "edge_winrates": [
+          0.0,
+          0.0,
+          1.0,
+          0.999125,
+          0.0,
+          0.9996875,
+          0.5267499999999999,
+          0.00225,
+          0.98446875,
+          1.0
+        ],
+        "kept": 6,
+        "decided": 10,
+        "kept_and_decided": 6,
+        "median_margin": 0.49984375,
+        "circular_triads": 0.0
+      },
+      {
+        "edge_winrates": [
+          1.0,
+          0.5148437499999999,
+          0.0,
+          0.58540625,
+          0.014718750000000001,
+          0.0003749999999999934,
+          0.9588125,
+          0.01625,
+          1.0,
+          1.0
+        ],
+        "kept": 6,
+        "decided": 10,
+        "kept_and_decided": 6,
+        "median_margin": 0.492453125,
+        "circular_triads": 0.0
+      },
+      {
+        "edge_winrates": [
+          0.0,
+          0.00025,
+          0.9939375,
+          1.0,
+          0.0,
+          0.0,
+          1.0,
+          1.0,
+          0.7316875,
+          1.0
+        ],
+        "kept": 6,
+        "decided": 10,
+        "kept_and_decided": 6,
+        "median_margin": 0.5,
+        "circular_triads": 0.0
+      },
+      {
+        "edge_winrates": [
+          1.0,
+          1.0,
+          0.61928125,
+          0.9999375,
+          0.99321875,
+          0.0008437499999999903,
+          0.00018750000000000017,
+          1.0,
+          0.0,
+          0.0
+        ],
+        "kept": 6,
+        "decided": 10,
+        "kept_and_decided": 6,
+        "median_margin": 0.49996875,
+        "circular_triads": 0.0
+      },
+      {
+        "edge_winrates": [
+          0.68453125,
+          0.2855,
+          0.93265625,
+          1.0,
+          0.0,
+          0.0,
+          0.0012500000000000011,
+          0.10296875,
+          0.0,
+          1.0
+        ],
+        "kept": 4,
+        "decided": 10,
+        "kept_and_decided": 4,
+        "median_margin": 0.499375,
+        "circular_triads": 0.0
+      },
+      {
+        "edge_winrates": [
+          0.0,
+          0.0,
+          1.0,
+          0.0,
+          0.7604375,
+          1.0,
+          1.0,
+          0.7159375,
+          0.9834375,
+          0.5464375
+        ],
+        "kept": 7,
+        "decided": 10,
+        "kept_and_decided": 7,
+        "median_margin": 0.5,
+        "circular_triads": 1.0
+      },
+      {
+        "edge_winrates": [
+          0.2720625,
+          6.25e-05,
+          0.66034375,
+          0.98578125,
+          0.0,
+          0.250875,
+          0.202375,
+          0.0,
+          1.0,
+          1.0
+        ],
+        "kept": 4,
+        "decided": 10,
+        "kept_and_decided": 4,
+        "median_margin": 0.492859375,
+        "circular_triads": 0.0
+      },
+      {
+        "edge_winrates": [
+          1.0,
+          0.7725625,
+          0.0003749999999999934,
+          0.6235,
+          0.9988125,
+          0.0008437499999999903,
+          0.0,
+          0.0,
+          0.99553125,
+          0.1431875
+        ],
+        "kept": 5,
+        "decided": 10,
+        "kept_and_decided": 5,
+        "median_margin": 0.49898437500000004,
+        "circular_triads": 1.0
+      },
+      {
+        "edge_winrates": [
+          1.0,
+          0.987625,
+          0.31871875,
+          1.0,
+          0.01753125,
+          0.0,
+          0.99734375,
+          0.0,
+          0.70990625,
+          0.72571875
+        ],
+        "kept": 6,
+        "decided": 10,
+        "kept_and_decided": 6,
+        "median_margin": 0.492484375,
+        "circular_triads": 0.0
+      }
+    ]
+  },
+  "falsification_test": {
+    "kept_and_decided": 105,
+    "decided": 186,
+    "kept_rate": 0.5645161290322581,
+    "binomial_p": 0.09144224552258924,
+    "null_kept_rate": 0.49666666666666665,
+    "vs_nulls_p": 0.12808506863659722,
+    "vs_nulls_a12": 0.6266666666666667
+  }
+}
