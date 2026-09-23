@@ -70,8 +70,12 @@ os tornariam quase gratuitos. A medição que decidiu normalização e peso est�
 É **declaração de premissa** (o que o arquétipo é), não de resposta (quem vence quem)
 — ver a linha premissa/resposta no `CLAUDE.md`. Consequência: as Layers 1-2 do
 validador medem o mesmo eixo que o fitness otimiza e por isso são **parcialmente
-endógenas**; quem sustenta a leitura post-hoc de identidade é a **Layer 3**
-(comportamental) somada ao ciclo de vantagens, que nada no fitness toca.
+endógenas**; quem sustenta a leitura post-hoc de identidade são as duas réguas
+**funcionais** — a **Layer 3** do validador e a **concordância de ranking τ** —, medidas
+fora do fitness. **O ciclo de vantagens não entra aí**: ele é premissa autoral, não régua
+de identidade, porque o próprio canônico realiza só 6 das 10 arestas no motor — não se
+preserva o que a premissa não tinha. Ver
+[`../thesis/02-canonical-cycle.md`](../thesis/02-canonical-cycle.md).
 
 ### `dominance_penalty` — balanço global primário + teto de hard-counter + decisividade (formulação C2)
 

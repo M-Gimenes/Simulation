@@ -15,7 +15,10 @@
   canônicos também servem de semente da população inicial do AG escalar.
 - **Resposta** é quem vence quem e se equilíbrio e identidade são compatíveis. O **ciclo
   canônico de vantagens** **não é codificado em nenhuma penalidade** — é medido
-  *post-hoc*, junto da identidade **funcional** (como o personagem joga).
+  *post-hoc*, e **separado** da identidade funcional: quem mede identidade é a Layer 3 do
+  validador e a concordância de ranking τ; o ciclo é premissa autoral, falsificada em
+  2026-09-23 (o próprio canônico realiza só 6/10 dele). Ver
+  [02-canonical-cycle.md](02-canonical-cycle.md).
 
 ### O argumento de não-circularidade (central, deve aparecer explícito)
 
