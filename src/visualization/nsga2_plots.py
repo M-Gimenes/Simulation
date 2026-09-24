@@ -19,6 +19,7 @@ from typing import Dict, List, Sequence, Tuple
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 
 from src.engine.config import HYPERVOLUME_REFERENCE
 from src.engine.nsga2 import NSGAResult
@@ -37,6 +38,9 @@ _REP_STYLE = {
     "scalar_optimum": {"marker": "D", "color": "tab:green",  "label": "Ótimo escalar"},
 }
 _NESTED_SIZES = (260, 150, 90, 55, 35)
+# A legenda usa proxies de tamanho fixo: o tamanho do marcador na figura codifica o
+# aninhamento, não a identidade, e herdado dele o ícone da legenda ficaria enorme.
+_LEGEND_MARKER_SIZE = 7
 
 
 def save_plots(result: NSGAResult, outdir: Path) -> Path:
@@ -70,7 +74,7 @@ def _render(objs: Sequence[Tuple[float, float]],
     sp = spacing(list(objs))
 
     ax.scatter([o[0] for o in objs], [o[1] for o in objs],
-               alpha=0.4, s=30, color="tab:blue", label="Fronteira de Pareto")
+               alpha=0.4, s=30, color="tab:blue")
 
     # Agrupa por posição: quem divide um ponto é desenhado aninhado, do maior ao menor.
     at_point: Dict[Tuple[float, float], List[str]] = {}
@@ -85,8 +89,7 @@ def _render(objs: Sequence[Tuple[float, float]],
                 point[0], point[1],
                 marker=style["marker"], color=style["color"],
                 s=_NESTED_SIZES[min(depth, len(_NESTED_SIZES) - 1)],
-                edgecolors="black", linewidths=1.2,
-                label=style["label"], zorder=10 + depth,
+                edgecolors="black", linewidths=1.2, zorder=10 + depth,
             )
 
     note = f"hipervolume = {hv:.4f}\nspacing = {sp:.4f}\nref = {HYPERVOLUME_REFERENCE}"
@@ -102,7 +105,15 @@ def _render(objs: Sequence[Tuple[float, float]],
     ax.set_xlabel(_AXIS_LABEL[0])
     ax.set_ylabel(_AXIS_LABEL[1])
     ax.set_title("Fronteira de Pareto — dominância vs drift de arquétipo")
-    ax.legend(loc="best", fontsize=8)
+    handles = [Line2D([], [], linestyle="none", marker="o", color="tab:blue", alpha=0.4,
+                      markersize=_LEGEND_MARKER_SIZE - 1, label="Fronteira de Pareto")]
+    handles += [
+        Line2D([], [], linestyle="none", marker=style["marker"],
+               markerfacecolor=style["color"], markeredgecolor="black",
+               markersize=_LEGEND_MARKER_SIZE, label=style["label"])
+        for name, style in _REP_STYLE.items() if name in representatives
+    ]
+    ax.legend(handles=handles, loc="best", fontsize=8)
     ax.grid(alpha=0.3)
     fig.tight_layout()
     out = outdir / "pareto_front.png"
