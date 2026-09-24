@@ -111,10 +111,10 @@ fighting-game archetypes without destroying their functional identities. Identit
 and the advantage cycle is reported \emph{post hoc}, which avoids a circular
 research question. Both are optimized as objectives, by a scalar GA and by
 NSGA-II. Preliminary results show the canonical roster is severely
-unbalanced (\eqCan{} of 10 balanced matchups); optimizing balance directly reaches
-all \eqAg{} but homogenizes the roster (\valAg{} of \valTotal{} identity assertions
-preserved), whereas Pareto-front solutions retain up to \valKnee{} of \valTotal{}.
-The front makes the trade-off explicit and measurable.
+unbalanced, with \eqCan{} of 10 balanced matchups. Optimizing balance directly
+reaches all \eqAg{} of them, but it homogenizes the roster, preserving \valAg{} of
+\valTotal{} identity assertions. Pareto-front solutions retain up to \valKnee{} of
+\valTotal{}. The front makes the trade-off explicit and measurable.
 \end{abstract}
 
 \renewcommand{\IEEEkeywordsname}{Keywords}
@@ -132,11 +132,11 @@ funcionais}. A identidade é \emph{medida}, não imposta: o desvio em relação 
 perfil canônico é penalizado de forma suave e o ciclo de vantagens é reportado
 \emph{post hoc}, o que evita uma pergunta de pesquisa circular. Ambos são otimizados
 como objetivos, por um AG escalar e pelo NSGA-II. Os resultados preliminares mostram
-que o \emph{roster} canônico é fortemente desequilibrado
-(\eqCan{} de 10 confrontos equilibrados); otimizar o equilíbrio diretamente alcança
-os \eqAg{}, mas homogeneíza o elenco (\valAg{} de \valTotal{} asserções
-preservadas), ao passo que soluções da fronteira de Pareto mantêm até \valKnee{} de
-\valTotal{}. A fronteira torna o \emph{trade-off} explícito e mensurável.
+que o \emph{roster} canônico é fortemente desequilibrado, com \eqCan{} de 10
+confrontos equilibrados. Otimizar o equilíbrio diretamente alcança os \eqAg{}, mas
+homogeneíza o elenco, que preserva \valAg{} de \valTotal{} asserções. As soluções da
+fronteira de Pareto mantêm até \valKnee{} de \valTotal{}. A fronteira torna o
+\emph{trade-off} explícito e mensurável.
 \end{abstract}
 
 \renewcommand\IEEEkeywordsname{Palavras-chave}
@@ -150,20 +150,20 @@ arquétipos de personagens.
 
 \section{Introdução}
 
-Em jogos competitivos --- um mercado de entretenimento em crescimento sustentado
-\cite{newzoo2025} ---, a qualidade da experiência depende
-criticamente do \emph{equilíbrio}: o grau em que as opções do jogador oferecem
-chances comparáveis de vitória \cite{adams2014fundamentals}. Um jogo desequilibrado
+Os jogos competitivos são um mercado de entretenimento em crescimento sustentado
+\cite{newzoo2025}, e neles a qualidade da experiência depende criticamente do
+\emph{equilíbrio}: o grau em que as opções do jogador oferecem chances comparáveis
+de vitória \cite{adams2014fundamentals}. Um jogo desequilibrado
 degenera em um \emph{metagame} estreito, no qual poucas opções são viáveis
 \cite{sirlin2006playing}.
 
 O balanceamento, contudo, não se reduz a igualar taxas de vitória. Jogos
-competitivos de qualidade são construídos sobre \emph{arquétipos} --- identidades
+competitivos de qualidade são construídos sobre \emph{arquétipos}, identidades
 funcionais fortes cuja distinção sustenta a estrutura não transitiva, do tipo
 pedra-papel-tesoura, entre estilos \cite{gingold2006rps, elias2012characteristics}.
-Decorre daí uma tensão central, tratada com frequência de forma artesanal pelos
-projetistas: ao ajustar números para igualar as taxas de vitória, corre-se o risco
-de \emph{homogeneizar} os personagens, dissolvendo as identidades que distinguem o
+Decorre daí uma tensão central, que os projetistas tratam com frequência de forma
+artesanal. Ao ajustar números para igualar as taxas de vitória, corre-se o risco de
+\emph{homogeneizar} os personagens, dissolvendo as identidades que distinguem o
 jogo. Equilibrar é trivial quando todas as opções são iguais; o desafio é
 equilibrar \emph{preservando a diferença}. A pergunta de pesquisa é, portanto:
 
@@ -176,28 +176,28 @@ A decisão metodológica que sustenta a investigação é \textbf{não forçar a
 identidade}. Os valores canônicos servem como semente da população e
 \emph{baseline} de medição, nunca como restrição rígida; o algoritmo evolui
 livremente. O desvio ao perfil canônico é penalizado de forma suave, e o
-\emph{ciclo de vantagens} --- quem vence quem --- não é codificado em penalidade
-alguma: é medido \emph{post hoc}. Isso evita uma armadilha de circularidade: se a
-identidade fosse imposta pela função de avaliação, o algoritmo a ``preservaria''
+\emph{ciclo de vantagens}, isto é, quem vence quem, não é codificado em penalidade
+alguma: ele é medido \emph{post hoc}. Isso evita uma armadilha de circularidade. Se
+a identidade fosse imposta pela função de avaliação, o algoritmo a ``preservaria''
 apenas por ter sido recompensado para tal, e o resultado não responderia à
-pergunta. \emph{Medida}, e não imposta, sua preservação --- ou a ausência dela ---
-torna-se um
-achado genuíno, no espírito de \cite{lehman2011novelty}: não codificar diretamente
-o objetivo pode revelar mais sobre o espaço de busca do que otimizá-lo.
+pergunta. Como a identidade é medida, e não imposta, tanto sua preservação quanto
+sua ausência tornam-se achados genuínos. Isso segue o espírito de
+\cite{lehman2011novelty}: não codificar diretamente o objetivo pode revelar mais
+sobre o espaço de busca do que otimizá-lo.
 
 Cabe delimitar o estatuto dos arquétipos: a literatura fundamenta a estrutura não
 transitiva de forma geral, mas não define um conjunto específico nem um ciclo
-fechado. O \emph{roster} de cinco personagens --- \emph{rushdown}, \emph{zoner},
-\emph{grappler}, \emph{combo master} e \emph{turtle} ---, seus valores canônicos e o
-ciclo correspondente são uma \textbf{operacionalização construída pelos autores},
-tratada como \emph{hipótese} de estrutura preservável, não como lei empírica a ser
-reproduzida.
+fechado. O \emph{roster} de cinco personagens (\emph{rushdown}, \emph{zoner},
+\emph{grappler}, \emph{combo master} e \emph{turtle}), seus valores canônicos e o
+ciclo correspondente são uma \textbf{operacionalização construída pelos autores}.
+Ela é tratada como \emph{hipótese} de estrutura preservável, e não como lei
+empírica a ser reproduzida.
 
 O balanceamento de jogos por busca é campo consolidado
 \cite{togelius2011searchbased, hom2007automatic, chen2014mmorpg}, mas a maior parte
 dos trabalhos otimiza o equilíbrio diretamente. As contribuições deste são: (i) uma
-formulação do balanceamento como problema \emph{bi-objetivo} explícito ---
-equilíbrio \emph{versus} identidade ---, otimizado por um AG escalar e pelo NSGA-II
+formulação do balanceamento como problema \emph{bi-objetivo} explícito, equilíbrio
+\emph{versus} identidade, otimizado por um AG escalar e pelo NSGA-II
 \cite{deb2002nsga}; e (ii) instrumentos de medição \emph{post hoc} que quantificam
 a identidade sem contaminar a função objetivo. Os resultados são preliminares: a
 calibração dos limites dos genes e das bandas de equilíbrio segue em refinamento.
@@ -241,7 +241,7 @@ pois a taxa de vitória de qualquer um depende simultaneamente dos outros quatro
   {Fronteira de Pareto\\[-1.5pt]
    \emph{best\_dominance} $\cdot$ \emph{knee\_point} $\cdot$ \emph{best\_drift}};
 \node[bloco, below=2mm of sai, dashed, fill=black!4] (med)
-  {medição \emph{post hoc} --- não realimenta a busca:\\[-1.5pt]
+  {medição \emph{post hoc} (não realimenta a busca):\\[-1.5pt]
    validador $\cdot$ diferenciação $\cdot$ perfil $\cdot$ ciclo};
 
 % faixas e rótulos
@@ -265,9 +265,9 @@ pois a taxa de vitória de qualquer um depende simultaneamente dos outros quatro
 \draw[tracejada] (sai) -- (med);
 
 \end{tikzpicture}
-\caption{Arquitetura do sistema. Os arquétipos canônicos entram em dois papéis ---
-semente e \emph{baseline}. As métricas \emph{post hoc} (tracejado) incidem sobre a
-saída e não retornam ao laço, o que sustenta a não circularidade.}
+\caption{Arquitetura do sistema. Os arquétipos canônicos entram em dois papéis, o de
+semente e o de \emph{baseline}. As métricas \emph{post hoc} (tracejado) incidem
+sobre a saída e não retornam ao laço, o que sustenta a não circularidade.}
 \label{fig:arq}
 \end{figure}
 
@@ -287,13 +287,13 @@ em alcance, ele \emph{amostra} uma intenção em $\{$FRENTE, RECUAR, GUARDA$\}$ 
 probabilidade proporcional aos pesos
 $(w_{aggressiveness}, w_{retreat}, w_{defend})$ e a sustenta pelos dez sub-ticks
 seguintes, simulando comprometimento estratégico. A intenção é então traduzida na
-ação concreta do sub-tick --- ATTACK, ADVANCE, RETREAT ou DEFEND ---, conforme o
+ação concreta do sub-tick (ATTACK, ADVANCE, RETREAT ou DEFEND), conforme o
 \emph{cooldown} esteja pronto e haja espaço para recuar. A amostragem da intenção é
 a \emph{única} fonte de estocasticidade do laço e faz os pesos agirem de forma
 contínua, o que dá ao algoritmo um gradiente sobre esses genes.
 
-O dano é determinístico e \emph{flat} --- o próprio atributo do atacante, reduzido
-em 40\% se o alvo defende ---, e o \emph{stun} aplicado é uma fração
+O dano é determinístico e \emph{flat}: é o próprio atributo do atacante, reduzido
+em 40\% se o alvo defende. O \emph{stun} aplicado é uma fração
 $\in[0;\,0{,}6]$ do \emph{cooldown} do atacante, o que garante sempre uma janela
 livre entre golpes. A luta termina por nocaute ou, no limite de duração, pela maior
 fração de HP.
@@ -303,42 +303,41 @@ fração de HP.
 Do \emph{round-robin} derivam os dois objetivos, ambos com ótimo em 0 e limitados a
 $1{,}0$ (desvio) e $2{,}0$ (desbalanço).
 
-O \textbf{desvio} (\emph{drift}) operacionaliza a preservação de identidade como a
-distância euclidiana normalizada de cada personagem ao seu perfil canônico, sobre
-os 10 genes, agregada pela média entre os cinco:
+O \textbf{desvio} (\emph{drift}), definido na Eq.~\eqref{eq:drift}, operacionaliza a
+preservação de identidade como a distância euclidiana normalizada de cada personagem
+ao seu perfil canônico, sobre os 10 genes, agregada pela média entre os cinco:
 \begin{equation}
 \label{eq:drift}
 \textit{drift} = \frac{1}{5}\sum_{i=1}^{5}
 \sqrt{\frac{1}{10}\left(\sum_{a}\delta_{a}^{2} + \sum_{w}\delta_{w}^{2}\right)},
 \end{equation}
-em que $g$ e $c$ são o valor evoluído e o canônico,
+Na Eq.~\eqref{eq:drift}, $g$ e $c$ são o valor evoluído e o canônico,
 $\delta_{a} = (g_{a}-c_{a})/g_{a}^{\max}$ para os sete atributos (normalizados pelo
 limite superior do gene) e $\delta_{w} = g_{w}-c_{w}$ para os três pesos, já em
-$[0,1]$. É também o mecanismo anti-homogeneização da otimização, pois atrai cada
-personagem para um perfil distinto.
+$[0,1]$. Esse termo é também o mecanismo anti-homogeneização da otimização, pois
+atrai cada personagem para um perfil distinto.
 
 O \textbf{desbalanço} (\emph{dominance}) combina três sinais cegos à direção. O
 termo \emph{primário} $g$ é o desbalanço global por personagem,
 $|\textit{WR}_{\textit{glob}}-0{,}5|/0{,}5$, sobre a taxa de vitória agregada nos
-quatro oponentes. Seu ótimo é ``nenhum arquétipo domina o
-\emph{roster}'' e, crucialmente, ele \emph{não} força cada par a 50\%: um personagem
-a 50\% global pode vencer dois confrontos e perder dois --- exatamente o espaço em
-que o ciclo de vantagens pode existir. Dois termos secundários, por par, cobrem o
-que o global não enxerga: um \emph{teto de hard-counter} $c$, que penaliza o excesso
-de $|\textit{WR}_{\textit{par}}-0{,}5|$ acima de $0{,}15$ e barra \emph{counters}
-esmagadores (100\%$\times$0\%); e a \emph{decisividade} $d$, que penaliza lutas fora
-da banda em que o vencedor fecha a partida com 20\% a 40\% de HP, barrando o
+quatro oponentes. Seu ótimo é ``nenhum arquétipo domina o \emph{roster}'', e ele
+\emph{não} força cada par a 50\%. Essa distinção é crucial: um personagem a 50\%
+global pode vencer dois confrontos e perder dois, que é exatamente o espaço em que o
+ciclo de vantagens pode existir. Dois termos secundários, por par, cobrem o que o
+global não enxerga. O \emph{teto de hard-counter} $c$ penaliza o excesso de
+$|\textit{WR}_{\textit{par}}-0{,}5|$ acima de $0{,}15$ e barra \emph{counters}
+esmagadores (100\%$\times$0\%). A \emph{decisividade} $d$ penaliza lutas fora da
+banda em que o vencedor fecha a partida com 20\% a 40\% de HP, o que barra o
 \emph{blowout-coinflip} (massacres alternados, com WR perto de 50\%). Os três
-compõem
-$\textit{dominance} = 1{,}0\,g + 0{,}5\,c + 0{,}5\,d$ e usam $|\textit{WR}-0{,}5|$
-e $|s-0{,}5|$, sendo \emph{cegos à direção}: não codificam \emph{qual} arquétipo
-deveria vencer, o que preserva a não circularidade.
+compõem $\textit{dominance} = 1{,}0\,g + 0{,}5\,c + 0{,}5\,d$ e usam
+$|\textit{WR}-0{,}5|$ e $|s-0{,}5|$, sendo \emph{cegos à direção}: não codificam
+\emph{qual} arquétipo deveria vencer, o que preserva a não circularidade.
 
 Os instrumentos que medem a identidade \emph{fora} da função objetivo
 (Fig.~\ref{fig:arq}) são três: um \textbf{validador} de \valTotal{} asserções de
 ranqueamento, que verifica se cada personagem ocupa no \emph{roster} a posição que
-define seu arquétipo (17 sobre os genes --- o \emph{rushdown} com a maior
-velocidade, o \emph{turtle} com o maior HP --- e 4 sobre o jogo efetivo); a
+define seu arquétipo (17 sobre os genes, como o \emph{rushdown} com a maior
+velocidade e o \emph{turtle} com o maior HP, e 4 sobre o jogo efetivo); a
 \textbf{diferenciação}, razão entre a distância média par a par do elenco evoluído e
 a do canônico ($<1$ indica homogeneização); e o \textbf{perfil comportamental}, a
 distribuição de ações de cada personagem em combate.
@@ -347,7 +346,7 @@ distribuição de ações de cada personagem em combate.
 
 O \textbf{AG escalar} otimiza a soma ponderada
 $\textit{fitness} = -(\lambda_{d}\,\textit{drift} + \lambda_{D}\,\textit{dominance})$,
-com $\lambda_{d}=\lambda_{D}=1{,}0$; entrega \emph{um} ponto do \emph{trade-off}. O
+com $\lambda_{d}=\lambda_{D}=1{,}0$, e entrega \emph{um} ponto do \emph{trade-off}. O
 \textbf{NSGA-II} \cite{deb2002nsga} dispensa os pesos e otimiza o par
 $(\textit{dominance}, \textit{drift})$ diretamente, mapeando \emph{toda} a
 fronteira \cite{deb2001multiobjective}. Ambos partilham os operadores da
@@ -372,15 +371,15 @@ Antes da evolução, o \emph{roster} canônico tem desvio nulo e satisfaz as \va
 de \valTotal{} asserções do validador. As 17 estruturais são verdadeiras por
 construção; as 4 comportamentais não são, e também se sustentam: o \emph{rushdown}
 avança em \fpRushAdv{}\% de suas ações, o \emph{turtle} defende em
-\fpTurtleDef{}\% e o \emph{zoner} recua em \fpZonerRet{}\% --- os pesos produzem
+\fpTurtleDef{}\% e o \emph{zoner} recua em \fpZonerRet{}\%. Os pesos produzem
 identidade comportamental visível, e não ruído arbitrário.
 
 Apesar dessa integridade, o \emph{roster} é marcadamente desequilibrado:
 \textbf{nenhum} dos dez confrontos é equilibrado, o \emph{rushdown} vence
 \emph{todas} as suas lutas e o \emph{turtle} não vence \emph{nenhuma}, com
 \blowCan{} deles sendo \emph{blowouts}. O ciclo de vantagens canônico tampouco é
-trivialmente preservado em um modelo determinístico --- apenas \cycleCan{} dos dez
-pares se sustentam ---, o que sugere que a estrutura não transitiva dos jogos reais
+trivialmente preservado em um modelo determinístico, pois apenas \cycleCan{} dos dez
+pares se sustentam. Isso sugere que a estrutura não transitiva dos jogos reais
 depende de mecânicas deliberadamente ausentes do modelo.
 
 \subsection{O custo de otimizar só o equilíbrio}
@@ -391,9 +390,9 @@ $[40\%,60\%]$. Esse equilíbrio tem, porém, um custo de identidade
 mensurável pelos instrumentos \emph{post hoc}: o desvio sobe para $\driftAg{}$, a
 diferenciação par a par cai para uma razão de $\diffAg{}$ em relação ao canônico e
 o validador registra apenas \valAg{} das \valTotal{} asserções. Igualar as taxas de
-vitória, por si só, tende a dissolver a distinção entre arquétipos --- a tensão que
-a pergunta de pesquisa identifica --- e motiva tratar identidade e equilíbrio como
-objetivos separados.
+vitória, por si só, tende a dissolver a distinção entre arquétipos. Essa é a tensão
+que a pergunta de pesquisa identifica, e ela motiva tratar identidade e equilíbrio
+como objetivos separados.
 
 \subsection{A fronteira de Pareto}
 
@@ -414,18 +413,18 @@ point} e o \emph{ideal point}.}
 
 A Tabela~\ref{tab:tradeoff} resume quatro pontos do \emph{trade-off}. No canônico
 (que coincide com \emph{best\_drift}) o equilíbrio é nulo; no AG escalar é total,
-mas a identidade se erode. O
-\emph{knee\_point} ocupa a posição intermediária: reduz o desbalanço de $\domCan{}$
-para $\domKnee{}$ --- três quartos do caminho --- preservando \valKnee{} das
-\valTotal{} asserções, ainda que apenas \eqKnee{} dos dez pares caiam na banda
-estrita de $[40\%,60\%]$; seu ganho é sobretudo de equilíbrio \emph{global}, não par
-a par. Já o \emph{best\_dominance} leva o equilíbrio quase ao limite: pagando um
-desvio de $\driftBd{}$, atinge \eqBd{} dos dez confrontos equilibrados, com um único
-\emph{hard-counter}, mas o validador cai para \valBd{} de \valTotal{} --- ainda que a
-diferenciação par a par permaneça em $\diffBd{}$, acima do $\diffAg{}$ do AG escalar,
-indicando homogeneização modesta. Quanto ao ciclo canônico, não codificado na função
-objetivo: ele se mantém em \cycleCan{} a \cycleBd{} dos dez pares em \emph{todos} os
-pontos da tabela --- a evolução não o destrói, mas tampouco o recupera.
+mas a identidade se erode. O \emph{knee\_point} ocupa a posição intermediária. Ele
+reduz o desbalanço de $\domCan{}$ para $\domKnee{}$, três quartos do caminho, e
+preserva \valKnee{} das \valTotal{} asserções. Apenas \eqKnee{} dos dez pares caem
+na banda estrita de $[40\%,60\%]$, pois seu ganho é sobretudo de equilíbrio
+\emph{global}, e não par a par. Já o \emph{best\_dominance} leva o equilíbrio quase
+ao limite: pagando um desvio de $\driftBd{}$, atinge \eqBd{} dos dez confrontos
+equilibrados, com um único \emph{hard-counter}. Em troca, o validador cai para
+\valBd{} de \valTotal{}, ainda que a diferenciação par a par permaneça em
+$\diffBd{}$, acima do $\diffAg{}$ do AG escalar, o que indica homogeneização
+modesta. Quanto ao ciclo canônico, não codificado na função objetivo, ele se mantém
+em \cycleCan{} a \cycleBd{} dos dez pares em \emph{todos} os pontos da tabela: a
+evolução não o destrói, mas tampouco o recupera.
 
 \begin{table}[!tb]
 \renewcommand{\arraystretch}{1.0}
@@ -457,9 +456,9 @@ com \emph{best\_drift}.\par}
 
 Sobre \nSeeds{} execuções independentes, o NSGA-II aterrissa em
 $\textit{dominance}=\aggDomMean{}\pm\aggDomStd{}$ e
-$\textit{drift}=\aggDriftMean{}\pm\aggDriftStd{}$; o equilíbrio \emph{global} é a
-parte estrutural (cada personagem equilibrado em 90--100\% das execuções), enquanto
-zerar todos os \emph{hard-counters} de par é sensível à semente
+$\textit{drift}=\aggDriftMean{}\pm\aggDriftStd{}$. O equilíbrio \emph{global} é a
+parte estrutural, com cada personagem equilibrado em 90--100\% das execuções,
+enquanto zerar todos os \emph{hard-counters} de par é sensível à semente
 ($\hcPerSeed{}\pm\hcPerSeedStd{}$ pares residuais por execução). Sob \extNSeeds{}
 sementes novas, fora do laço, \robBd{} dos \robTotal{} confrontos seguem
 equilibrados: o equilíbrio reportado \textbf{não é} artefato de sobreajuste.
@@ -468,20 +467,20 @@ equilibrados: o equilíbrio reportado \textbf{não é} artefato de sobreajuste.
 
 Os resultados preliminares sustentam uma resposta afirmativa, ainda que matizada: o
 equilíbrio competitivo \emph{pode} ser alcançado sem destruir as identidades
-funcionais, mas sob um \emph{trade-off} mensurável --- o grau de equilíbrio buscado
-determina quanto de identidade se preserva. O equilíbrio substancial (\eqBd{}
-confrontos) preserva a diferenciação par a par ($\diffBd{}$), embora o validador
-estrutural caia para \valBd{} de \valTotal{}: a identidade se erode nos
-ranqueamentos antes de se dissolver na geometria do elenco --- e o equilíbrio total
+funcionais, mas sob um \emph{trade-off} mensurável, em que o grau de equilíbrio
+buscado determina quanto de identidade se preserva. O equilíbrio substancial
+(\eqBd{} confrontos) preserva a diferenciação par a par ($\diffBd{}$), embora o
+validador estrutural caia para \valBd{} de \valTotal{}: a identidade se erode nos
+ranqueamentos antes de se dissolver na geometria do elenco. O equilíbrio total
 (\eqAg{}) custa mais, com o validador em \valAg{}. A separação entre objetivos
 otimizados e métricas \emph{post hoc} é o que sustenta a não circularidade dessa
 resposta.
 
-Três delimitações: o modelo simplifica os jogos reais --- não representa
-\emph{frames} de inicialização e recuperação, \emph{mix-ups} nem oclusão ---, e o
+Três delimitações. O modelo simplifica os jogos reais, pois não representa
+\emph{frames} de inicialização e recuperação, \emph{mix-ups} nem oclusão, e o
 achado de que o ciclo canônico não sobrevive a ele indica que essas mecânicas têm
-papel estrutural; o estudo emprega cinco arquétipos, ante os dez ou mais dos jogos
-reais; e o \emph{round-robin} pressupõe todos jogados em igual proporção, sem
+papel estrutural. O estudo emprega cinco arquétipos, ante os dez ou mais dos jogos
+reais. Por fim, o \emph{round-robin} pressupõe todos jogados em igual proporção, sem
 modelar o \emph{matchmaking}.
 
 Como trabalho em andamento, três frentes seguem abertas: a calibração final dos
