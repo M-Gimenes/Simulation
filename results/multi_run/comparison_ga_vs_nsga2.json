@@ -1,0 +1,515 @@
+{
+  "provenance": {
+    "generated_at": "2026-09-23T03:59:03-03:00",
+    "fingerprint": "92b3ca4aefae",
+    "engine_digest": "cbb81a8a540d",
+    "archetypes_digest": "e37725dd4b7c",
+    "config": {
+      "ACTION_PERSISTENCE_SUBTICKS": 5,
+      "ATTRIBUTE_BOUNDS": [
+        [
+          250.0,
+          450.0
+        ],
+        [
+          15.0,
+          30.0
+        ],
+        [
+          1.0,
+          5.0
+        ],
+        [
+          5.0,
+          20.0
+        ],
+        [
+          1.0,
+          5.0
+        ],
+        [
+          0.0,
+          0.6
+        ],
+        [
+          0.0,
+          3.0
+        ],
+        [
+          0.0,
+          1.0
+        ]
+      ],
+      "ATTRIBUTE_MUTATION_SIGMA": 0.1,
+      "ATTRIBUTE_NAMES": [
+        "hp",
+        "damage",
+        "attack_cooldown",
+        "range",
+        "speed",
+        "stun",
+        "knockback",
+        "grab_power"
+      ],
+      "CONVERGENCE_SEED_OFFSET": 100000,
+      "DEFEND_DAMAGE_REDUCTION": 0.6,
+      "DOMINANCE_CAP_WEIGHT": 0.5,
+      "DOMINANCE_DECIS_WEIGHT": 0.5,
+      "DOMINANCE_GLOBAL_WEIGHT": 1.0,
+      "DRIFT_DEFINING_WEIGHT": 3.0,
+      "ELITE_RATE": 0.1,
+      "EXTERNAL_VALIDATION_N_SEEDS": 10,
+      "EXTERNAL_VALIDATION_RULE_PERTURBATIONS": [
+        [
+          "INITIAL_DISTANCE",
+          40.0
+        ],
+        [
+          "INITIAL_DISTANCE",
+          60.0
+        ],
+        [
+          "FIELD_SIZE",
+          80.0
+        ],
+        [
+          "FIELD_SIZE",
+          120.0
+        ],
+        [
+          "ACTION_PERSISTENCE_SUBTICKS",
+          4
+        ],
+        [
+          "ACTION_PERSISTENCE_SUBTICKS",
+          6
+        ],
+        [
+          "DEFEND_DAMAGE_REDUCTION",
+          0.55
+        ],
+        [
+          "DEFEND_DAMAGE_REDUCTION",
+          0.65
+        ]
+      ],
+      "EXTERNAL_VALIDATION_SEED_START": 10000,
+      "EXTERNAL_VALIDATION_SIMS": 500,
+      "FIELD_SIZE": 100,
+      "GA_CANONICAL_SEED": true,
+      "GENERATION_SEED_STRIDE": 1000,
+      "GENE_BOUNDS": [
+        [
+          250.0,
+          450.0
+        ],
+        [
+          15.0,
+          30.0
+        ],
+        [
+          1.0,
+          5.0
+        ],
+        [
+          5.0,
+          20.0
+        ],
+        [
+          1.0,
+          5.0
+        ],
+        [
+          0.0,
+          0.6
+        ],
+        [
+          0.0,
+          3.0
+        ],
+        [
+          0.0,
+          1.0
+        ],
+        [
+          0.0,
+          1.0
+        ],
+        [
+          0.0,
+          1.0
+        ],
+        [
+          0.0,
+          1.0
+        ]
+      ],
+      "GENE_NAMES": [
+        "hp",
+        "damage",
+        "attack_cooldown",
+        "range",
+        "speed",
+        "stun",
+        "knockback",
+        "grab_power",
+        "w_retreat",
+        "w_defend",
+        "w_aggressiveness"
+      ],
+      "GLOBAL_CONVERGENCE_THRESHOLD": 0.1,
+      "HYPERVOLUME_REFERENCE": [
+        1.3,
+        0.4
+      ],
+      "IDENTITY_BEHAVIORAL_SIMS": 200,
+      "INITIAL_DISTANCE": 50,
+      "LAMBDA_DOMINANCE": 1.0,
+      "LAMBDA_DRIFT": 1.0,
+      "MATCHUP_FLOOR": 0.02,
+      "MATCHUP_THRESHOLD": 0.2,
+      "MATCHUP_WR_CAP": 0.15,
+      "MAX_GENERATIONS": 150,
+      "MAX_TICKS": 2500,
+      "MULTI_RUN_SEED_START": 42,
+      "MULTI_RUN_SIMS": 1000,
+      "MULTI_RUN_VALIDATION_SEED": 9999,
+      "MUTATION_RATE": 0.05,
+      "NSGA2_GENERATIONS": 150,
+      "NSGA2_OBJECTIVES": [
+        "dominance_penalty",
+        "drift_penalty"
+      ],
+      "NSGA2_POP_SIZE": 300,
+      "POPULATION_SIZE": 300,
+      "SIMS_CONVERGENCE_CHECK": 200,
+      "SIMS_PER_MATCHUP": 150,
+      "TICK_SCALE": 5,
+      "TOURNAMENT_SIZE": 3,
+      "WEIGHT_BOUNDS": [
+        [
+          0.0,
+          1.0
+        ],
+        [
+          0.0,
+          1.0
+        ],
+        [
+          0.0,
+          1.0
+        ]
+      ],
+      "WEIGHT_MUTATION_SIGMA": 0.025,
+      "WEIGHT_NAMES": [
+        "w_retreat",
+        "w_defend",
+        "w_aggressiveness"
+      ]
+    },
+    "measurement": {
+      "tool": "src.experiments.compare_algorithms",
+      "modules": [
+        "src.experiments.compare_algorithms"
+      ],
+      "digest": "c3514eb436ea"
+    }
+  },
+  "a": "AG",
+  "b": "NSGA-II (scalar_optimum)",
+  "test": "Wilcoxon signed-rank pareado (bicaudal)",
+  "test_secondary": "Mann-Whitney U (bicaudal, não-pareado) — reportado como robustez",
+  "effect_size": "Vargha-Delaney A12 (a vs b)",
+  "correction": "Holm-Bonferroni",
+  "alpha": 0.05,
+  "n_seeds": 20,
+  "seeds": [
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50,
+    51,
+    52,
+    53,
+    54,
+    55,
+    56,
+    57,
+    58,
+    59,
+    60,
+    61
+  ],
+  "validation_seed": 9999,
+  "sims_per_matchup": 1000,
+  "family_size": 6,
+  "excluded_from_family": [
+    "n_chars_balanced"
+  ],
+  "metrics": [
+    {
+      "metric": "dominance_penalty",
+      "label": "dominance_penalty",
+      "better_is": "lower",
+      "median_a": 0.035511644738571865,
+      "median_b": 0.07592753261456647,
+      "w_statistic": 5.0,
+      "p_value": 1.9073486328125e-05,
+      "p_value_unpaired": 2.68976868945904e-06,
+      "a12_a_vs_b": 0.065,
+      "better": "a",
+      "degenerate": false,
+      "p_holm": 9.5367431640625e-05,
+      "significant": true,
+      "effect_magnitude": "grande"
+    },
+    {
+      "metric": "n_hard_counters",
+      "label": "hard-counters por execução",
+      "better_is": "lower",
+      "median_a": 0.0,
+      "median_b": 3.0,
+      "w_statistic": 0.0,
+      "p_value": 0.00012178612713498508,
+      "p_value_unpaired": 1.1698756426370048e-07,
+      "a12_a_vs_b": 0.03,
+      "better": "a",
+      "degenerate": false,
+      "p_holm": 0.00033674970218948517,
+      "significant": true,
+      "effect_magnitude": "grande"
+    },
+    {
+      "metric": "n_chars_balanced",
+      "label": "bonecos em banda por execução",
+      "better_is": "higher",
+      "median_a": 5.0,
+      "median_b": 5.0,
+      "w_statistic": null,
+      "p_value": null,
+      "p_value_unpaired": null,
+      "a12_a_vs_b": 0.5,
+      "better": "empate",
+      "degenerate": true,
+      "effect_magnitude": "desprezível",
+      "p_holm": null,
+      "significant": false
+    },
+    {
+      "metric": "drift_penalty",
+      "label": "drift_penalty",
+      "better_is": "lower",
+      "median_a": 0.24730661719761463,
+      "median_b": 0.14451990053088332,
+      "w_statistic": 0.0,
+      "p_value": 1.9073486328125e-06,
+      "p_value_unpaired": 6.795615128173358e-08,
+      "a12_a_vs_b": 1.0,
+      "better": "b",
+      "degenerate": false,
+      "p_holm": 1.1444091796875e-05,
+      "significant": true,
+      "effect_magnitude": "grande"
+    },
+    {
+      "metric": "validator_structural",
+      "label": "validador estrutural (L1+L2)",
+      "better_is": "higher",
+      "median_a": 11.0,
+      "median_b": 15.0,
+      "w_statistic": 2.0,
+      "p_value": 0.00011224990072982839,
+      "p_value_unpaired": 1.0269524884043124e-06,
+      "a12_a_vs_b": 0.05125,
+      "better": "b",
+      "degenerate": false,
+      "p_holm": 0.00033674970218948517,
+      "significant": true,
+      "effect_magnitude": "grande"
+    },
+    {
+      "metric": "validator_behavioral",
+      "label": "validador comportamental (L3)",
+      "better_is": "higher",
+      "median_a": 3.0,
+      "median_b": 4.0,
+      "w_statistic": 18.0,
+      "p_value": 0.0026736110478182097,
+      "p_value_unpaired": 0.0037359536379940484,
+      "a12_a_vs_b": 0.23875,
+      "better": "b",
+      "degenerate": false,
+      "p_holm": 0.0026736110478182097,
+      "significant": true,
+      "effect_magnitude": "grande"
+    },
+    {
+      "metric": "rank_agreement",
+      "label": "concordância de ranking (τ)",
+      "better_is": "higher",
+      "median_a": 0.28110177634953865,
+      "median_b": 0.5429940788348712,
+      "w_statistic": 6.0,
+      "p_value": 2.6702880859375e-05,
+      "p_value_unpaired": 8.55575338654273e-06,
+      "a12_a_vs_b": 0.0875,
+      "better": "b",
+      "degenerate": false,
+      "p_holm": 0.0001068115234375,
+      "significant": true,
+      "effect_magnitude": "grande"
+    }
+  ],
+  "dominance_decomposition": {
+    "global_term": {
+      "median_a": 0.03181736228201491,
+      "median_b": 0.038451733581515504,
+      "weight": 1.0
+    },
+    "cap_term": {
+      "median_a": 0.0,
+      "median_b": 0.053413792653262196,
+      "weight": 0.5
+    },
+    "decis_term": {
+      "median_a": 0.0,
+      "median_b": 0.0,
+      "weight": 0.5
+    }
+  },
+  "nsga2_representative": "scalar_optimum",
+  "pareto_relation": {
+    "per_seed": [
+      {
+        "seed": 42,
+        "relation": "não-dominado",
+        "front_points_dominated": 0,
+        "front_size": 48
+      },
+      {
+        "seed": 43,
+        "relation": "não-dominado",
+        "front_points_dominated": 0,
+        "front_size": 43
+      },
+      {
+        "seed": 44,
+        "relation": "não-dominado",
+        "front_points_dominated": 0,
+        "front_size": 66
+      },
+      {
+        "seed": 45,
+        "relation": "não-dominado",
+        "front_points_dominated": 0,
+        "front_size": 60
+      },
+      {
+        "seed": 46,
+        "relation": "não-dominado",
+        "front_points_dominated": 0,
+        "front_size": 65
+      },
+      {
+        "seed": 47,
+        "relation": "não-dominado",
+        "front_points_dominated": 0,
+        "front_size": 56
+      },
+      {
+        "seed": 48,
+        "relation": "domina",
+        "front_points_dominated": 1,
+        "front_size": 50
+      },
+      {
+        "seed": 49,
+        "relation": "não-dominado",
+        "front_points_dominated": 0,
+        "front_size": 71
+      },
+      {
+        "seed": 50,
+        "relation": "não-dominado",
+        "front_points_dominated": 0,
+        "front_size": 46
+      },
+      {
+        "seed": 51,
+        "relation": "não-dominado",
+        "front_points_dominated": 0,
+        "front_size": 45
+      },
+      {
+        "seed": 52,
+        "relation": "não-dominado",
+        "front_points_dominated": 0,
+        "front_size": 48
+      },
+      {
+        "seed": 53,
+        "relation": "não-dominado",
+        "front_points_dominated": 0,
+        "front_size": 57
+      },
+      {
+        "seed": 54,
+        "relation": "não-dominado",
+        "front_points_dominated": 0,
+        "front_size": 37
+      },
+      {
+        "seed": 55,
+        "relation": "não-dominado",
+        "front_points_dominated": 0,
+        "front_size": 42
+      },
+      {
+        "seed": 56,
+        "relation": "não-dominado",
+        "front_points_dominated": 0,
+        "front_size": 57
+      },
+      {
+        "seed": 57,
+        "relation": "não-dominado",
+        "front_points_dominated": 0,
+        "front_size": 44
+      },
+      {
+        "seed": 58,
+        "relation": "não-dominado",
+        "front_points_dominated": 0,
+        "front_size": 62
+      },
+      {
+        "seed": 59,
+        "relation": "não-dominado",
+        "front_points_dominated": 0,
+        "front_size": 58
+      },
+      {
+        "seed": 60,
+        "relation": "dominado",
+        "front_points_dominated": 0,
+        "front_size": 48
+      },
+      {
+        "seed": 61,
+        "relation": "não-dominado",
+        "front_points_dominated": 0,
+        "front_size": 66
+      }
+    ],
+    "counts": {
+      "domina": 1,
+      "não-dominado": 18,
+      "dominado": 1
+    }
+  }
+}

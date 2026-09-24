@@ -216,7 +216,7 @@ def test_representatives_identifies_extremes():
     assert reps["best_drift"]     is front[1]
 
 
-def test_representatives_ideal_closest_to_origin():
+def test_representatives_ideal_closest_to_utopia():
     front = [
         _ind_with_obj([0.05, 0.90]),
         _ind_with_obj([0.20, 0.20]),
@@ -224,6 +224,18 @@ def test_representatives_ideal_closest_to_origin():
     ]
     reps = select_representatives(front)
     assert reps["ideal_point"] is front[1]
+
+
+def test_representatives_geometry_ignores_units():
+    """Joelho e ideal são geométricos: mudar a UNIDADE de um objetivo não pode mudar o
+    ponto escolhido. Em unidades cruas mudava — `dominance` vai até 2,0 e `drift` fica em
+    décimos, então a escala de um eixo decidia o \"joelho\"."""
+    base = [[0.10, 0.40], [0.30, 0.12], [0.60, 0.08], [1.20, 0.02]]
+    for scale in (1.0, 10.0, 0.1):
+        front = [_ind_with_obj([dom * scale, drift]) for dom, drift in base]
+        reps = select_representatives(front)
+        assert reps["knee_point"] is front[1], scale
+        assert reps["ideal_point"] is front[1], scale
 
 
 def test_representatives_knee_is_interior():
@@ -236,10 +248,29 @@ def test_representatives_knee_is_interior():
     assert reps["knee_point"] is front[1]
 
 
-def test_representatives_all_four_keys():
+def test_representatives_all_keys():
     front = [_ind_with_obj([0.1 * i, 0.9 - 0.1 * i]) for i in range(5)]
     reps = select_representatives(front)
-    assert set(reps.keys()) == {"best_dominance", "best_drift", "knee_point", "ideal_point"}
+    assert set(reps.keys()) == {
+        "best_dominance", "best_drift", "knee_point", "ideal_point", "scalar_optimum",
+    }
+
+
+def test_representatives_scalar_optimum_minimizes_weighted_sum():
+    """`scalar_optimum` é o comparável do AG escalar: minimiza a MESMA soma ponderada
+    que o escalar otimiza. Com LAMBDA iguais isso é o mínimo L1 em unidades CRUAS — que
+    não coincide com o `ideal_point` (geométrico, em unidades normalizadas), e é essa
+    distinção que o representante existe para tornar mensurável."""
+    front = [
+        _ind_with_obj([0.05, 0.60]),   # L1 = 0.65                       ← melhor dominance
+        _ind_with_obj([0.30, 0.30]),   # L1 = 0.60   normalizado (0.20, 0.33) ← ideal
+        _ind_with_obj([1.30, 0.00]),   # L1 = 1.30                       ← melhor drift
+        _ind_with_obj([0.10, 0.45]),   # L1 = 0.55   normalizado (0.04, 0.75) ← scalar
+    ]
+    reps = select_representatives(front)
+    assert reps["scalar_optimum"] is front[3], "scalar_optimum deve minimizar a soma ponderada"
+    assert reps["ideal_point"]    is front[1], "ideal_point é o mais perto do ponto utópico"
+    assert reps["scalar_optimum"] is not reps["ideal_point"]
 
 
 from src.engine.nsga2 import run
@@ -250,7 +281,9 @@ def test_run_smoke_small_config():
     assert len(result.pareto_front) > 0
     assert all(ind.rank == 0 for ind in result.pareto_front)
     assert all(ind.objectives is not None for ind in result.pareto_front)
-    assert set(result.representatives.keys()) == {"best_dominance", "best_drift", "knee_point", "ideal_point"}
+    assert set(result.representatives.keys()) == {
+        "best_dominance", "best_drift", "knee_point", "ideal_point", "scalar_optimum",
+    }
     assert len(result.history) == 3
 
 
@@ -274,7 +307,7 @@ def test_save_results_produces_valid_json():
     assert "genes" in first and "objectives" in first
     assert len(first["genes"]) == 5
     assert len(first["objectives"]) == 2
-    for key in ("best_dominance", "best_drift", "knee_point", "ideal_point"):
+    for key in ("best_dominance", "best_drift", "knee_point", "ideal_point", "scalar_optimum"):
         assert key in data["representatives"]
     os.unlink(path)
 
@@ -292,7 +325,7 @@ def test_save_results_roundtrip_genes():
     os.unlink(path)
 
 
-from src.tools.nsga2_plots import save_plots
+from src.visualization.nsga2_plots import save_plots
 
 
 def test_save_plots_creates_pareto_png():
@@ -323,9 +356,11 @@ if __name__ == "__main__":
     test_tournament_breaks_tie_by_crowding()
     test_tournament_stochastic_on_full_tie()
     test_representatives_identifies_extremes()
-    test_representatives_ideal_closest_to_origin()
+    test_representatives_ideal_closest_to_utopia()
+    test_representatives_geometry_ignores_units()
     test_representatives_knee_is_interior()
-    test_representatives_all_four_keys()
+    test_representatives_all_keys()
+    test_representatives_scalar_optimum_minimizes_weighted_sum()
     test_run_smoke_small_config()
     test_save_results_produces_valid_json()
     test_save_results_roundtrip_genes()

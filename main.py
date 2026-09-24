@@ -1,54 +1,74 @@
 """
 Ponto de entrada do experimento.
-Rode com: py main.py [--algorithm ga|nsga2] [--seed N] [--quiet] [--log-every N] [--plot-3d]
+Rode com: py main.py [--algorithm ga|nsga2] [--seed N] [--quiet] [--log-every N]
 """
 
 import argparse
 import datetime
-import json
 
-from src.engine.ga import run as run_ga
-from src.engine.paths import GA_RESULTS_PATH, NSGA2_PLOTS_DIR, NSGA2_RESULTS_PATH, PROJECT_ROOT, RESULTS_DIR
+from src.engine.config import MAX_GENERATIONS, MULTI_RUN_SEED_START, POPULATION_SIZE
+from src.engine.ga import run as run_ga, save_results as save_ga_results
+from src.engine.paths import GA_RESULTS_PATH, NSGA2_PLOTS_DIR, NSGA2_RESULTS_PATH, PROJECT_ROOT
+from src.engine.provenance import override_budget
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description="AG para balanceamento de personagens")
     parser.add_argument("--algorithm", choices=["ga", "nsga2"], default="ga",
                         help="Algoritmo evolutivo (default: ga)")
-    parser.add_argument("--seed",      type=int, default=None, help="Semente aleatória")
+    # SEMPRE semeado por default, e de propósito. Uma execução sem semente grava um
+    # artefato que ninguém consegue reproduzir — o oposto do que o carimbo de
+    # proveniência existe para garantir. E o laço só reavalia a população inteira a cada
+    # geração quando há semente: sem ela os elites carregam o fitness da geração em que
+    # foram medidos, e um elite que tirou uma avaliação de sorte nunca regride à média.
+    # O default é a primeira semente do protocolo, então `py main.py` reproduz o passo 9
+    # da bateria.
+    parser.add_argument("--seed",      type=int, default=MULTI_RUN_SEED_START,
+                        help=f"Semente (default: {MULTI_RUN_SEED_START}, a do protocolo)")
     parser.add_argument("--quiet",     action="store_true",    help="Suprime log por geração")
     parser.add_argument("--log-every", type=int, default=1,    help="Loga a cada N gerações (só AG)")
+    parser.add_argument("--pop", type=int, default=POPULATION_SIZE,
+                        help=f"Tamanho da população (default: {POPULATION_SIZE})")
+    parser.add_argument("--generations", type=int, default=MAX_GENERATIONS,
+                        help=f"Gerações (default: {MAX_GENERATIONS})")
     return parser.parse_args()
 
 
 def _main_ga(args):
+    from src.visualization.ga_plots import save_plots_from_results as save_ga_plots_from_results
+
+    override_budget(args.pop, args.generations, "ga")
     result = run_ga(
         seed=args.seed,
         verbose=not args.quiet,
         log_every=args.log_every,
+        pop_size=args.pop,
+        n_generations=args.generations,
     )
 
-    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-    out = {"best_individual": [c.genes() for c in result.best.characters]}
-    with open(GA_RESULTS_PATH, "w") as fh:
-        json.dump(out, fh)
+    GA_RESULTS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    save_ga_results(result, GA_RESULTS_PATH)
+    plot = save_ga_plots_from_results(GA_RESULTS_PATH)
 
     d = result.best_detail
     print(f"\nParada: {result.stop_reason} (geração {result.generation})")
     print(f"fitness={result.best.fitness:+.4f}  dom={d.dominance_penalty:.4f}  drift={d.drift_penalty:.4f}")
     print(f"Salvo em {GA_RESULTS_PATH.relative_to(PROJECT_ROOT)}")
-    print("→ py -m src.tools.report --evolved")
+    print(f"Curvas de convergência em {plot.relative_to(PROJECT_ROOT)}")
+    print("→ py -m src.analysis.report --evolved")
 
 
 def _main_nsga2(args):
     from src.engine.config import HYPERVOLUME_REFERENCE
     from src.engine.nsga2 import run as run_nsga2, save_results
     from src.engine.pareto_metrics import hypervolume_2d, spacing
-    from src.tools.nsga2_plots import save_plots
+    from src.visualization.nsga2_plots import save_plots
 
-    result = run_nsga2(seed=args.seed, verbose=not args.quiet)
+    override_budget(args.pop, args.generations, "nsga2")
+    result = run_nsga2(seed=args.seed, verbose=not args.quiet,
+                       pop_size=args.pop, n_generations=args.generations)
 
-    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    NSGA2_RESULTS_PATH.parent.mkdir(parents=True, exist_ok=True)
     save_results(result, NSGA2_RESULTS_PATH)
     print(f"\nFronteira salva em {NSGA2_RESULTS_PATH.relative_to(PROJECT_ROOT)}  ({len(result.pareto_front)} indivíduos)")
 
@@ -66,7 +86,7 @@ def _main_nsga2(args):
     for name, ind in result.representatives.items():
         dom, drift = ind.objectives
         print(f"  {name:15s}  dom={dom:.4f}  drift={drift:.4f}")
-    print("\n→ py -m src.tools.report --nsga2 [knee_point|best_dominance|best_drift|ideal_point]")
+    print("\n→ py -m src.analysis.report --nsga2 [knee_point|best_dominance|best_drift|ideal_point]")
 
 
 def main():

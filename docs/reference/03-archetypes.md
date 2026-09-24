@@ -1,8 +1,10 @@
 # 03 — Arquétipos
 
 Definidos em `src/engine/archetypes.py` como `ArchetypeDefinition` congeladas.
-Os valores canônicos **não são hardcoded no motor** — servem como semente da
-população inicial e baseline de medição de drift. O AG diverge livremente.
+Os valores canônicos **não são hardcoded no motor** — servem como baseline de medição
+de drift e como semente da população inicial do AG escalar (o NSGA-II parte de uma
+população inteiramente aleatória; ver [06-nsga2.md](06-nsga2.md)). O AG é livre para se
+afastar deles: o desvio é penalizado, nunca restringido.
 
 ## Os 5 arquétipos
 
@@ -16,21 +18,52 @@ população inicial e baseline de medição de drift. O AG diverge livremente.
 
 ## Valores canônicos (semente inicial)
 
-São **7 atributos** por personagem (`defense` e `recovery` foram removidos do
+São **8 atributos** por personagem (`defense` e `recovery` foram removidos do
 modelo — ver [04-combat-model.md](04-combat-model.md)). `stun` é uma **fração do
-cooldown do atacante** (∈ [0, 0.6]), não mais um valor absoluto.
+cooldown do atacante** (∈ [0, 0.6]) e `grab_power` é a **fração da guarda quebrada**
+(∈ [0, 1]), ambos relativos, não absolutos.
 
-> **Fonte única:** `src/engine/archetypes.py` → `ARCHETYPES` (hoje ~L70). A tabela
+> **Fonte única:** `src/engine/archetypes.py` → `ARCHETYPES`. A tabela
 > espelha o código; **em divergência, o código vence** — ao mudar um canônico,
 > atualize lá e só reflita aqui.
 
-| Classe | HP | Dmg | Cooldown | Range | Speed | Stun | Knockback |
-|---|---|---|---|---|---|---|---|
-| Zoner | 300 | 20 | 4 | 18 | 2.5 | 0.10 | 2.0 |
-| Rushdown | 320 | 16 | 1 | 10 | 5.0 | 0.10 | 1.0 |
-| Combo Master | 350 | 18 | 3 | 10 | 3.0 | 0.55 | 0.5 |
-| Grappler | 400 | 27 | 4 | 8 | 2.0 | 0.30 | 0.5 |
-| Turtle | 450 | 15 | 5 | 13 | 1.5 | 0.20 | 1.0 |
+| Classe | HP | Dmg | Cooldown | Range | Speed | Stun | Knockback | Grab |
+|---|---|---|---|---|---|---|---|---|
+| Zoner | 300 | 20 | 4 | 18 | 2.5 | 0.10 | 2.0 | 0.05 |
+| Rushdown | 320 | 16 | 1 | 10 | 5.0 | 0.10 | 1.0 | 0.20 |
+| Combo Master | 350 | 18 | 3 | 10 | 3.0 | 0.55 | 0.5 | 0.30 |
+| Grappler | 400 | 27 | 4 | 8 | 2.0 | 0.30 | 0.5 | **0.90** |
+| Turtle | 450 | 15 | 5 | 13 | 1.5 | 0.20 | 1.0 | 0.15 |
+
+O `grab_power` do Grappler é o valor que realiza, no motor, a justificativa FGC da
+aresta "Grappler vence Turtle" da tabela do ciclo: *"grab é o counter canônico ao
+bloqueio"*.
+
+### Genes definidores
+
+Além dos valores, cada arquétipo declara em `ArchetypeDefinition.defining_genes` os
+genes nos quais ele ocupa um **extremo por design** — o que o torna reconhecível.
+Espelham as asserções inter-personagem da Layer 1 do validador (fonte única da
+premissa) e pesam `DRIFT_DEFINING_WEIGHT` no `drift_penalty`.
+
+| Classe | genes definidores |
+|---|---|
+| Zoner | `range`, `knockback`, `w_retreat` |
+| Rushdown | `speed`, `attack_cooldown`, `w_aggressiveness` |
+| Combo Master | `stun` |
+| Grappler | `damage`, `grab_power` |
+| Turtle | `hp`, `attack_cooldown`, `speed`, `w_defend` |
+
+A assimetria é informativa e não acidental: o **Combo Master** tem um gene definidor só
+(`stun`), e o Turtle tem quatro.
+
+É declaração de **premissa** (o que o arquétipo é), nunca de resposta (quem vence
+quem — `beats`, que o fitness jamais referencia). Consequência: as Layers 1-2 do
+validador passam a medir o mesmo eixo que o fitness otimiza, e são **parcialmente
+endógenas**; a leitura post-hoc de identidade fica com a **Layer 3** e a concordância de
+ranking τ. **O ciclo não é régua de identidade**: o próprio canônico realiza só 6/10 dele
+no motor — não se preserva o que a premissa não tinha (ver
+[`../thesis/02-canonical-cycle.md`](../thesis/02-canonical-cycle.md)).
 
 ### Pesos comportamentais canônicos
 
@@ -42,10 +75,11 @@ cooldown do atacante** (∈ [0, 0.6]), não mais um valor absoluto.
 | Grappler | 0.10 | 0.40 | 0.70 |
 | Turtle | 0.40 | 0.70 | 0.20 |
 
-Os pesos ponderam o sorteio de **intenção** quando o personagem está em range
-(ver [04-combat-model.md](04-combat-model.md)): `w_aggressiveness` → FRENTE
-(ATTACK ou, se em cooldown, ADVANCE), `w_retreat` → RECUAR (RETREAT ou, sem
-espaço, DEFEND), `w_defend` → GUARDA (DEFEND). Semântica esperada:
+Os pesos ponderam o sorteio de **intenção**, que governa só a **postura** (ver
+[04-combat-model.md](04-combat-model.md)): `w_aggressiveness` → FRENTE (ADVANCE),
+`w_retreat` → RECUAR (RETREAT ou, sem espaço, DEFEND), `w_defend` → GUARDA (DEFEND).
+O ataque não é sorteado: é regra de resolução, e sai em qualquer postura exceto a
+guarda. Só a **razão** entre os três pesos afeta o combate. Semântica esperada:
 `w_aggressiveness` alto = empurra através de ameaças (Rushdown, Grappler, Combo
 Master); `w_retreat > w_defend` = pipoca/kita (Zoner); `w_defend ≥ w_retreat` =
 absorve segurando posição (Turtle).
@@ -66,9 +100,18 @@ no campo `beats` de cada `ArchetypeDefinition`.
 | Combo Master | Grappler, Zoner | Grappler lento morre pra combo; burst converte um acerto |
 | Turtle | Rushdown, Combo Master | bloqueio absorve pressão e quebra setup de combo |
 
-> **O ciclo não está codificado em nenhuma penalidade do fitness.** É medido
-> *post-hoc* como métrica de avaliação (ver `analyze_matchups` em
-> [08-tools.md](08-tools.md)). Forçá-lo tornaria a pergunta de pesquisa circular.
+> **O ciclo não está codificado em nenhuma penalidade do fitness.** O campo `beats` existe,
+> congelado, e nenhuma função de fitness o lê — é a parte verificável do argumento de
+> não-circularidade. Forçá-lo tornaria a pergunta de pesquisa circular.
+>
+> **E ele foi falsificado.** Medido a 16.000 lutas por par
+> (`src.experiments.cycle_structure`, [08-tools.md](08-tools.md)): o canônico realiza 6/10,
+> com as 4 arestas que quebra invertidas por completo (0,000–0,006) — o Rushdown ganha de
+> todos e a Turtle perde para todos, o que é **hierarquia, não ciclo** (1,00 de 5 tríades
+> circulares). Depois do equilíbrio, o AG mantém 105 de 186 arestas decididas (56,5%,
+> p = 0,091) contra 49,7% dos nulos: indistinguível do acaso. A tabela acima é **premissa
+> autoral**, não comportamento do modelo — status em
+> [`../thesis/02-canonical-cycle.md`](../thesis/02-canonical-cycle.md).
 
 ### Justificativa por arquétipo
 
@@ -79,12 +122,12 @@ no campo `beats` de cada `ArchetypeDefinition`.
 - **Combo Master:** encadeia combos via stun — Grappler lento não escapa, Zoner
   morre para um acerto convertido. Perde para pressão constante (Rushdown) e
   para quem bloqueia o setup (Turtle).
-- **Grappler:** se encosta, acabou — burst máximo. Grab é o counter canônico ao
-  bloqueio (Turtle). Sofre contra rápidos (Rushdown) e contra o stun do Combo
-  Master.
+- **Grappler:** se encosta, acabou — burst máximo, que pune a fuga e os combos
+  rápidos do Rushdown. Grab é o counter canônico ao bloqueio (Turtle). Sofre contra
+  quem controla o espaço (Zoner) e contra o stun do Combo Master.
 - **Turtle:** vive do erro do outro — destrói agressivos por atrito de HP%.
   Bloqueia o setup do Combo Master. Perde para controle de distância (Zoner) e
   para o grab do Grappler.
 
 O status epistemológico do ciclo (construção do autor, operacionalização entre
-várias defensáveis) está em [tcc/02-ciclo-canonico.md](../tcc/02-ciclo-canonico.md).
+várias defensáveis) está em [thesis/02-canonical-cycle.md](../thesis/02-canonical-cycle.md).

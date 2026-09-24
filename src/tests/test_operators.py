@@ -8,7 +8,16 @@ random.seed(42)
 
 from src.engine.individual import Individual
 from src.engine.operators import tournament_selection, crossover, mutate, next_generation
-from src.engine.config import ATTRIBUTE_BOUNDS, ELITE_SIZE, POPULATION_SIZE, WEIGHT_BOUNDS
+from src.engine.config import (
+    ATTRIBUTE_BOUNDS,
+    ELITE_RATE,
+    POPULATION_SIZE,
+    TOURNAMENT_SIZE,
+    WEIGHT_BOUNDS,
+)
+
+# Elites no orçamento default: a taxa aplicada ao tamanho da população.
+ELITES = round(POPULATION_SIZE * ELITE_RATE)
 
 
 def separator(title: str) -> None:
@@ -122,17 +131,89 @@ assert len(new_gen) == POPULATION_SIZE, f"Tamanho incorreto: {len(new_gen)}"
 
 # Elites devem ter fitness preservado
 sorted_pop = sorted(pop, key=lambda x: x.fitness, reverse=True)
-elite_fitnesses = {ind.fitness for ind in sorted_pop[:ELITE_SIZE]}
+elite_fitnesses = {ind.fitness for ind in sorted_pop[:ELITES]}
 new_evaluated = [ind for ind in new_gen if ind.is_evaluated]
-assert len(new_evaluated) == ELITE_SIZE, f"Esperado {ELITE_SIZE} elites, got {len(new_evaluated)}"
+assert len(new_evaluated) == ELITES, f"Esperado {ELITES} elites, got {len(new_evaluated)}"
 
 # Filhos não devem ter fitness
 children = [ind for ind in new_gen if not ind.is_evaluated]
-assert len(children) == POPULATION_SIZE - ELITE_SIZE
+assert len(children) == POPULATION_SIZE - ELITES
 
 print(f"  Tamanho da nova geração: {len(new_gen)} ✓")
-print(f"  Elites preservados:      {len(new_evaluated)}/{ELITE_SIZE} ✓")
+print(f"  Elites preservados:      {len(new_evaluated)}/{ELITES} ✓")
 print(f"  Filhos sem fitness:      {len(children)} ✓")
+
+
+# ── Elitismo é FRAÇÃO, não contagem ──────────────────────────────────────────
+
+separator("elite_count: elitismo é 10% do tamanho REAL da população")
+
+from src.engine.operators import elite_count
+
+assert elite_count(POPULATION_SIZE) == ELITES, (
+    f"elite_count({POPULATION_SIZE})={elite_count(POPULATION_SIZE)}, esperado {ELITES} "
+    f"({ELITE_RATE:.0%} de {POPULATION_SIZE})"
+)
+print(f"  pop={POPULATION_SIZE} (default): {elite_count(POPULATION_SIZE)} elites "
+      f"= {ELITE_RATE:.0%} ✓")
+
+# O bug que isto conserta: com a contagem ABSOLUTA (30), uma população reduzida
+# ficava com elitismo de 25% (pop 120) ou 100% (pop 30) — aí a geração seguinte é só
+# clones e o AG para de buscar, em silêncio e produzindo números plausíveis.
+for n in (120, 40, 12):
+    e = elite_count(n)
+    taxa_busca = (n - e) / n
+    assert e < n, f"pop={n}: elitismo tomou a população inteira ({e}/{n})"
+    assert abs(e / n - ELITE_RATE) < 0.05, f"pop={n}: elitismo {e/n:.0%}, esperado ~{ELITE_RATE:.0%}"
+    print(f"  pop={n:>3}: {e:>2} elites -> {n - e:>3} filhos ({taxa_busca:.0%} de busca real) ✓")
+
+# A geração seguinte de uma população reduzida precisa ter filhos DE VERDADE.
+pequena = [Individual.random() for _ in range(12)]
+for i, ind in enumerate(pequena):
+    ind.fitness = -float(i)
+nova = next_generation(pequena)
+filhos = [ind for ind in nova if not ind.is_evaluated]
+assert len(nova) == 12, f"tamanho não preservado: {len(nova)}"
+assert len(filhos) == 12 - elite_count(12), "a população reduzida não gerou filhos"
+print(f"  pop=12 real: {len(filhos)} filhos gerados (com a contagem absoluta seriam 0) ✓")
+
+
+# ── Seleção como estado de processo (braços do sweep) ────────────────────────
+
+separator("set_selection: elitismo e torneio variam sem editar o config")
+
+from src.engine.operators import get_selection, set_selection
+
+assert get_selection() == (ELITE_RATE, TOURNAMENT_SIZE), (
+    f"estado inicial {get_selection()} não veio do config "
+    f"({ELITE_RATE}, {TOURNAMENT_SIZE})"
+)
+print(f"  estado inicial == config ({ELITE_RATE:g}, {TOURNAMENT_SIZE}) ✓")
+
+# O modo de falha que isto cobre: `from .config import ELITE_RATE` congela o valor no
+# import, então um braço do sweep rodaria no valor do arquivo sem sintoma nenhum.
+set_selection(0.30, 7)
+assert get_selection() == (0.30, 7), f"set_selection não pegou: {get_selection()}"
+assert elite_count(100) == 30, f"elite_count ignorou a taxa do braço: {elite_count(100)}"
+grande = [Individual.random() for _ in range(40)]
+for i, ind in enumerate(grande):
+    ind.fitness = -float(i)
+vencedor = tournament_selection(grande)
+assert vencedor.fitness is not None
+print(f"  taxa 0,30 -> elite_count(100) = {elite_count(100)}; torneio 7 aceito ✓")
+
+# O braço "sem elitismo" precisa ser MESMO sem elitismo: arredondar para 1 o
+# descaracterizaria, e ele existe justamente para mostrar o que o elitismo segura.
+set_selection(0.0, TOURNAMENT_SIZE)
+assert elite_count(300) == 0, f"taxa 0 preservou {elite_count(300)} elites"
+sem_elite = next_generation(pequena)
+assert all(not ind.is_evaluated for ind in sem_elite), "taxa 0 ainda clonou alguém"
+assert len(sem_elite) == 12
+print("  taxa 0,0: nenhum elite preservado, geração 100% de filhos ✓")
+
+set_selection(ELITE_RATE, TOURNAMENT_SIZE)
+assert elite_count(POPULATION_SIZE) == ELITES, "o default não voltou"
+print(f"  restaurado para o default ({ELITE_RATE:g}, {TOURNAMENT_SIZE}) ✓")
 
 
 separator("Todos os testes de operadores passaram ✓")

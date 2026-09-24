@@ -3,9 +3,27 @@ Smoke test da função de fitness.
 Rode com: py -m src.tests.test_fitness
 """
 
+import random
+
 from src.engine.individual import Individual
-from src.engine.fitness import evaluate, evaluate_detail, evaluate_population
+from src.engine.fitness import (
+    N_WEIGHT_GENES,
+    _archetype_deviation,
+    drift_genes,
+    canonical_genes,
+    drift_weights,
+    evaluate,
+    evaluate_detail,
+    evaluate_population,
+    set_seed_base,
+)
 from src.engine.archetypes import ARCHETYPE_ORDER, ARCHETYPES
+from src.engine.config import (
+    ATTRIBUTE_NAMES,
+    DRIFT_DEFINING_WEIGHT,
+    GENE_BOUNDS,
+    GENE_NAMES,
+)
 
 
 def separator(title: str) -> None:
@@ -54,7 +72,68 @@ assert len(detail.matchup_winrates) == 10, "Devem existir C(5,2)=10 matchups"
 print("  ✓ matchup_winrates contém os 10 pares esperados")
 
 
-# ── 2. Cache de fitness ──────────────────────────────────────────────────────
+# ── 2. Drift: identidade estrutural ponderada ────────────────────────────────
+
+separator("Drift — canônico zera, gene definidor pesa mais")
+
+assert detail.drift_penalty == 0.0, (
+    f"Canônico deve ter drift exatamente 0, deu {detail.drift_penalty}"
+)
+print("  ✓ drift_penalty do canônico = 0")
+
+# Todo nome em defining_genes tem de ser um gene real (pega typo na declaração).
+for aid in ARCHETYPE_ORDER:
+    for gene in ARCHETYPES[aid].defining_genes:
+        assert gene in GENE_NAMES, f"{ARCHETYPES[aid].name}: gene inexistente {gene!r}"
+print("  ✓ defining_genes de todos os arquétipos são genes válidos")
+
+# Mesmo deslocamento normalizado: gene definidor tem de custar mais que os outros.
+# Zoner: `range` é definidor, `speed` não.
+zoner   = ARCHETYPES[ARCHETYPE_ORDER[0]]
+i_def   = GENE_NAMES.index(zoner.defining_genes[0])
+i_plain = next(i for i, n in enumerate(GENE_NAMES) if n not in zoner.defining_genes)
+FRACTION = 0.2   # fração do range do bound deslocada em cada caso
+
+def _deviation_moving(gene_index: int) -> float:
+    char  = Individual.from_canonical().get(zoner.id)
+    lo, hi = GENE_BOUNDS[gene_index]
+    genes = char.genes()
+    genes[gene_index] = canonical_genes(zoner)[gene_index] - FRACTION * (hi - lo)
+    char.load_genes(genes)
+    char.clip()
+    return _archetype_deviation(char)
+
+dev_def, dev_plain = _deviation_moving(i_def), _deviation_moving(i_plain)
+ratio = (dev_def / dev_plain) ** 2   # desvios entram ao quadrado na RMS
+print(f"  mover {GENE_NAMES[i_def]:<10} ({FRACTION:.0%} do range) → desvio {dev_def:.4f}")
+print(f"  mover {GENE_NAMES[i_plain]:<10} ({FRACTION:.0%} do range) → desvio {dev_plain:.4f}")
+assert abs(ratio - DRIFT_DEFINING_WEIGHT) < 1e-9, (
+    f"Gene definidor deve pesar {DRIFT_DEFINING_WEIGHT}× ao quadrado, deu {ratio:.4f}"
+)
+print(f"  ✓ gene definidor pesa exatamente {DRIFT_DEFINING_WEIGHT}× (razão dos quadrados)")
+
+# Clip mantém todo gene dentro do bound → |desvio normalizado| ≤ 1 → drift ≤ 1.
+import random as _random
+_random.seed(1)
+for _ in range(20):
+    rand = Individual.random()
+    for char in rand.characters:
+        dev = _archetype_deviation(char)
+        assert 0.0 <= dev <= 1.0, f"desvio fora de [0,1]: {dev}"
+print("  ✓ desvio permanece em [0, 1] para 100 personagens aleatórios")
+
+# Pesos: um por gene, e só os definidores acima de 1.0.
+for aid in ARCHETYPE_ORDER:
+    arch = ARCHETYPES[aid]
+    w    = drift_weights(arch)
+    assert len(w) == len(GENE_NAMES)
+    for name, wi in zip(GENE_NAMES, w):
+        expected = DRIFT_DEFINING_WEIGHT if name in arch.defining_genes else 1.0
+        assert wi == expected, f"{arch.name}/{name}: peso {wi}, esperado {expected}"
+print("  ✓ vetor de pesos consistente com defining_genes nos 5 arquétipos")
+
+
+# ── 3. Cache de fitness ──────────────────────────────────────────────────────
 
 separator("Cache: não reavalia indivíduo já avaliado")
 ind2 = Individual.from_canonical()
@@ -66,7 +145,7 @@ assert f1 == f2
 print(f"  ✓ Cache funcionando (fitness={f1:.4f})")
 
 
-# ── 3. Invalidação de fitness ────────────────────────────────────────────────
+# ── 4. Invalidação de fitness ────────────────────────────────────────────────
 
 separator("Invalidação após mutação simulada")
 ind2.invalidate_fitness()
@@ -74,7 +153,7 @@ assert not ind2.is_evaluated
 print("  ✓ Fitness invalidado corretamente")
 
 
-# ── 4. Indivíduo aleatório ───────────────────────────────────────────────────
+# ── 5. Indivíduo aleatório ───────────────────────────────────────────────────
 
 separator("Fitness de indivíduo aleatório")
 import random
@@ -86,7 +165,7 @@ assert rand_ind.is_evaluated
 print("  ✓ Indivíduo aleatório avaliado sem crash")
 
 
-# ── 5. evaluate_population ──────────────────────────────────────────────────
+# ── 6. evaluate_population ──────────────────────────────────────────────────
 
 if __name__ == '__main__':
     separator("evaluate_population (5 indivíduos)")
@@ -100,3 +179,69 @@ if __name__ == '__main__':
     separator("Todos os testes de fitness passaram ✓")
 else:
     separator("Todos os testes de fitness passaram ✓")
+
+
+# ── Drift: invariância de escala dos pesos comportamentais ──────────────────
+
+separator("drift_genes: escalar os 3 pesos não muda o drift")
+
+_ind = Individual.from_canonical()
+_char = _ind.get(ARCHETYPE_ORDER[1])          # Rushdown: o pior caso medido (15,1%)
+_char.weights = [w * 1.7 + 0.05 for w in _char.weights]   # muda razão E escala
+_base = _archetype_deviation(_char)
+
+for factor in (0.4, 2.5, 9.0):
+    _scaled = _ind.clone().get(ARCHETYPE_ORDER[1])
+    _scaled.weights = [w * factor for w in _char.weights]
+    assert abs(_archetype_deviation(_scaled) - _base) < 1e-9, (
+        f"escalar os pesos por {factor} mudou o drift — a métrica não é invariante"
+    )
+print("  ✓ multiplicar os 3 pesos por 0.4, 2.5 ou 9.0 deixa o drift idêntico")
+
+# A invariância não pode ter vindo de ignorar os pesos: mudar a RAZÃO tem de doer.
+_ratio = _ind.clone().get(ARCHETYPE_ORDER[1])
+_w = list(_char.weights)
+_ratio.weights = [_w[1], _w[0], _w[2]]        # troca dois pesos: mesma soma, outra razão
+assert abs(_archetype_deviation(_ratio) - _base) > 1e-6, (
+    "trocar a razão entre pesos não mexeu no drift — a métrica ficou cega a eles"
+)
+print("  ✓ trocar a RAZÃO entre os pesos muda o drift (não ficou cega a eles)")
+
+# E os atributos passam intactos por `drift_genes` — só os 3 pesos são reescalados.
+_probe = _ind.clone().get(ARCHETYPE_ORDER[1])
+assert drift_genes(_probe)[:-N_WEIGHT_GENES] == list(_probe.attributes)
+print("  ✓ os 8 atributos passam intactos; só os 3 pesos são reescalados")
+
+
+# ── CRN: uma semente por luta ────────────────────────────────────────────────
+
+separator("CRN: par sem personagem alterado dá resultado idêntico")
+
+# Sob o mesmo seed-base, a luta k do par m recebe os mesmos sorteios em qualquer roster.
+# Então mudar um gene do Zoner só pode mexer nos pares em que o Zoner luta: os outros seis
+# têm de sair bit a bit iguais. Com um stream único por avaliação isso falhava — a primeira
+# luta que durasse diferente deslocava a leitura de todas as seguintes.
+random.seed(3)
+_x = Individual.random()
+_x_mod = _x.clone()
+_zoner = _x_mod.characters[0]
+_range = ATTRIBUTE_NAMES.index("range")
+_zoner.attributes[_range] += 1.5
+_zoner.clip()
+_x_mod.invalidate_fitness()
+
+set_seed_base(1234)
+_d, _d_mod = evaluate_detail(_x), evaluate_detail(_x_mod)
+set_seed_base(None)
+
+_sem_zoner = [par for par in _d.matchup_scores if 0 not in par]
+_com_zoner = [par for par in _d.matchup_scores if 0 in par]
+for par in _sem_zoner:
+    assert _d.matchup_scores[par] == _d_mod.matchup_scores[par], par
+    assert _d.matchup_winrates[par] == _d_mod.matchup_winrates[par], par
+assert any(_d.matchup_scores[p] != _d_mod.matchup_scores[p] for p in _com_zoner), (
+    "mudar o range do Zoner não mexeu em nenhum par dele — o teste não testaria nada"
+)
+print(f"  ✓ os {len(_sem_zoner)} pares sem o Zoner saem idênticos; os dele mudam")
+
+separator("Todos os testes de fitness passaram ✓")

@@ -1,0 +1,394 @@
+{
+  "provenance": {
+    "generated_at": "2026-09-23T00:23:42-03:00",
+    "fingerprint": "92b3ca4aefae",
+    "engine_digest": "cbb81a8a540d",
+    "archetypes_digest": "e37725dd4b7c",
+    "config": {
+      "ACTION_PERSISTENCE_SUBTICKS": 5,
+      "ATTRIBUTE_BOUNDS": [
+        [
+          250.0,
+          450.0
+        ],
+        [
+          15.0,
+          30.0
+        ],
+        [
+          1.0,
+          5.0
+        ],
+        [
+          5.0,
+          20.0
+        ],
+        [
+          1.0,
+          5.0
+        ],
+        [
+          0.0,
+          0.6
+        ],
+        [
+          0.0,
+          3.0
+        ],
+        [
+          0.0,
+          1.0
+        ]
+      ],
+      "ATTRIBUTE_MUTATION_SIGMA": 0.1,
+      "ATTRIBUTE_NAMES": [
+        "hp",
+        "damage",
+        "attack_cooldown",
+        "range",
+        "speed",
+        "stun",
+        "knockback",
+        "grab_power"
+      ],
+      "CONVERGENCE_SEED_OFFSET": 100000,
+      "DEFEND_DAMAGE_REDUCTION": 0.6,
+      "DOMINANCE_CAP_WEIGHT": 0.5,
+      "DOMINANCE_DECIS_WEIGHT": 0.5,
+      "DOMINANCE_GLOBAL_WEIGHT": 1.0,
+      "DRIFT_DEFINING_WEIGHT": 3.0,
+      "ELITE_RATE": 0.1,
+      "EXTERNAL_VALIDATION_N_SEEDS": 10,
+      "EXTERNAL_VALIDATION_RULE_PERTURBATIONS": [
+        [
+          "INITIAL_DISTANCE",
+          40.0
+        ],
+        [
+          "INITIAL_DISTANCE",
+          60.0
+        ],
+        [
+          "FIELD_SIZE",
+          80.0
+        ],
+        [
+          "FIELD_SIZE",
+          120.0
+        ],
+        [
+          "ACTION_PERSISTENCE_SUBTICKS",
+          4
+        ],
+        [
+          "ACTION_PERSISTENCE_SUBTICKS",
+          6
+        ],
+        [
+          "DEFEND_DAMAGE_REDUCTION",
+          0.55
+        ],
+        [
+          "DEFEND_DAMAGE_REDUCTION",
+          0.65
+        ]
+      ],
+      "EXTERNAL_VALIDATION_SEED_START": 10000,
+      "EXTERNAL_VALIDATION_SIMS": 500,
+      "FIELD_SIZE": 100,
+      "GA_CANONICAL_SEED": true,
+      "GENERATION_SEED_STRIDE": 1000,
+      "GENE_BOUNDS": [
+        [
+          250.0,
+          450.0
+        ],
+        [
+          15.0,
+          30.0
+        ],
+        [
+          1.0,
+          5.0
+        ],
+        [
+          5.0,
+          20.0
+        ],
+        [
+          1.0,
+          5.0
+        ],
+        [
+          0.0,
+          0.6
+        ],
+        [
+          0.0,
+          3.0
+        ],
+        [
+          0.0,
+          1.0
+        ],
+        [
+          0.0,
+          1.0
+        ],
+        [
+          0.0,
+          1.0
+        ],
+        [
+          0.0,
+          1.0
+        ]
+      ],
+      "GENE_NAMES": [
+        "hp",
+        "damage",
+        "attack_cooldown",
+        "range",
+        "speed",
+        "stun",
+        "knockback",
+        "grab_power",
+        "w_retreat",
+        "w_defend",
+        "w_aggressiveness"
+      ],
+      "GLOBAL_CONVERGENCE_THRESHOLD": 0.1,
+      "HYPERVOLUME_REFERENCE": [
+        1.3,
+        0.4
+      ],
+      "IDENTITY_BEHAVIORAL_SIMS": 200,
+      "INITIAL_DISTANCE": 50,
+      "LAMBDA_DOMINANCE": 1.0,
+      "LAMBDA_DRIFT": 1.0,
+      "MATCHUP_FLOOR": 0.02,
+      "MATCHUP_THRESHOLD": 0.2,
+      "MATCHUP_WR_CAP": 0.15,
+      "MAX_GENERATIONS": 150,
+      "MAX_TICKS": 2500,
+      "MULTI_RUN_SEED_START": 42,
+      "MULTI_RUN_SIMS": 1000,
+      "MULTI_RUN_VALIDATION_SEED": 9999,
+      "MUTATION_RATE": 0.05,
+      "NSGA2_GENERATIONS": 150,
+      "NSGA2_OBJECTIVES": [
+        "dominance_penalty",
+        "drift_penalty"
+      ],
+      "NSGA2_POP_SIZE": 300,
+      "POPULATION_SIZE": 300,
+      "SIMS_CONVERGENCE_CHECK": 200,
+      "SIMS_PER_MATCHUP": 150,
+      "TICK_SCALE": 5,
+      "TOURNAMENT_SIZE": 3,
+      "WEIGHT_BOUNDS": [
+        [
+          0.0,
+          1.0
+        ],
+        [
+          0.0,
+          1.0
+        ],
+        [
+          0.0,
+          1.0
+        ]
+      ],
+      "WEIGHT_MUTATION_SIGMA": 0.025,
+      "WEIGHT_NAMES": [
+        "w_retreat",
+        "w_defend",
+        "w_aggressiveness"
+      ]
+    },
+    "measurement": {
+      "tool": "src.experiments.hybrid_choice",
+      "modules": [
+        "src.experiments.hybrid_choice"
+      ],
+      "digest": "dbc3384f6bd7"
+    }
+  },
+  "anchor": {
+    "seeds": [
+      1000,
+      1001,
+      1002,
+      1003,
+      1004
+    ],
+    "pop_size": 120,
+    "n_generations": 60,
+    "sims_per_matchup": 1000,
+    "dominance_median": 0.04179503559036646,
+    "counters_mean": 0.4,
+    "drift_median": 0.23412220949752754,
+    "validator_structural_median": 9,
+    "validator_behavioral_median": 3,
+    "rank_agreement_median": 0.4628571428571429
+  },
+  "arms": [
+    {
+      "split": 0.25,
+      "carry": "front",
+      "label": "split 0.25 / front",
+      "dominance_median": 0.05088169912822247,
+      "dominance_paired_wins": 2,
+      "counters_mean": 0.8,
+      "balanced_rate": 0.4,
+      "drift_median": 0.2992329032279497,
+      "validator_structural_median": 8,
+      "validator_behavioral_median": 2,
+      "rank_agreement_median": 0.16804771390665607,
+      "identity_beaten": [],
+      "n_identity_beaten": 0,
+      "eliminated": true,
+      "elimination_reasons": [
+        "pior na mediana do dominance E na média de counters"
+      ]
+    },
+    {
+      "split": 0.25,
+      "carry": "scalar_optimum",
+      "label": "split 0.25 / scalar_optimum",
+      "dominance_median": 0.06801503131259122,
+      "dominance_paired_wins": 1,
+      "counters_mean": 0.8,
+      "balanced_rate": 0.2,
+      "drift_median": 0.27479966863217686,
+      "validator_structural_median": 10,
+      "validator_behavioral_median": 3,
+      "rank_agreement_median": 0.3155928946018455,
+      "identity_beaten": [
+        "L1+L2"
+      ],
+      "n_identity_beaten": 1,
+      "eliminated": true,
+      "elimination_reasons": [
+        "perde dominance em 4/5 sementes",
+        "pior na mediana do dominance E na média de counters"
+      ]
+    },
+    {
+      "split": 0.5,
+      "carry": "front",
+      "label": "split 0.5 / front",
+      "dominance_median": 0.04615706879774753,
+      "dominance_paired_wins": 1,
+      "counters_mean": 1.4,
+      "balanced_rate": 0.6,
+      "drift_median": 0.2554638448204992,
+      "validator_structural_median": 10,
+      "validator_behavioral_median": 3,
+      "rank_agreement_median": 0.3158568582800318,
+      "identity_beaten": [
+        "L1+L2"
+      ],
+      "n_identity_beaten": 1,
+      "eliminated": true,
+      "elimination_reasons": [
+        "perde dominance em 4/5 sementes",
+        "pior na mediana do dominance E na média de counters"
+      ]
+    },
+    {
+      "split": 0.5,
+      "carry": "scalar_optimum",
+      "label": "split 0.5 / scalar_optimum",
+      "dominance_median": 0.0498258410035815,
+      "dominance_paired_wins": 2,
+      "counters_mean": 2,
+      "balanced_rate": 0.4,
+      "drift_median": 0.27574992659344094,
+      "validator_structural_median": 7,
+      "validator_behavioral_median": 3,
+      "rank_agreement_median": 0.3142857142857143,
+      "identity_beaten": [],
+      "n_identity_beaten": 0,
+      "eliminated": true,
+      "elimination_reasons": [
+        "pior na mediana do dominance E na média de counters"
+      ]
+    },
+    {
+      "split": 0.75,
+      "carry": "front",
+      "label": "split 0.75 / front",
+      "dominance_median": 0.1108641017054188,
+      "dominance_paired_wins": 0,
+      "counters_mean": 3,
+      "balanced_rate": 0.2,
+      "drift_median": 0.26116567257148476,
+      "validator_structural_median": 11,
+      "validator_behavioral_median": 3,
+      "rank_agreement_median": 0.33259881576697425,
+      "identity_beaten": [
+        "L1+L2"
+      ],
+      "n_identity_beaten": 1,
+      "eliminated": true,
+      "elimination_reasons": [
+        "perde dominance em 5/5 sementes",
+        "pior na mediana do dominance E na média de counters"
+      ]
+    },
+    {
+      "split": 0.75,
+      "carry": "scalar_optimum",
+      "label": "split 0.75 / scalar_optimum",
+      "dominance_median": 0.06458007868817414,
+      "dominance_paired_wins": 0,
+      "counters_mean": 2.2,
+      "balanced_rate": 0.4,
+      "drift_median": 0.2180709340281583,
+      "validator_structural_median": 11,
+      "validator_behavioral_median": 2,
+      "rank_agreement_median": 0.29779644730092275,
+      "identity_beaten": [
+        "drift",
+        "L1+L2"
+      ],
+      "n_identity_beaten": 2,
+      "eliminated": true,
+      "elimination_reasons": [
+        "perde dominance em 5/5 sementes",
+        "pior na mediana do dominance E na média de counters"
+      ]
+    }
+  ],
+  "decision_trail": [
+    "passo 1: 0 de 6 braços sobrevivem ao filtro de equilíbrio",
+    "nenhum sobrevivente no orçamento reduzido — a ADOÇÃO fica para a bateria (n = 20, orçamento inteiro), que é quem pode decidi-la",
+    "configuração a medir na bateria: a mais simples (split 0.5 / front)"
+  ],
+  "chosen": {
+    "split": 0.5,
+    "carry": "front",
+    "label": "split 0.5 / front",
+    "dominance_median": 0.04615706879774753,
+    "dominance_paired_wins": 1,
+    "counters_mean": 1.4,
+    "balanced_rate": 0.6,
+    "drift_median": 0.2554638448204992,
+    "validator_structural_median": 10,
+    "validator_behavioral_median": 3,
+    "rank_agreement_median": 0.3158568582800318,
+    "identity_beaten": [
+      "L1+L2"
+    ],
+    "n_identity_beaten": 1,
+    "eliminated": true,
+    "elimination_reasons": [
+      "perde dominance em 4/5 sementes",
+      "pior na mediana do dominance E na média de counters"
+    ],
+    "adoption_deferred": true
+  },
+  "caveat": "Ordenação medida em orçamento reduzido (pop 120 × 60). O mecanismo do híbrido depende de a fase de Pareto ter gerações para a fronteira se abrir — a 60 gerações um split 0,25 dá 15 gerações de NSGA-II contra 75 no orçamento da bateria —, então a ordenação ENTRE SPLITS pode não transferir. O desempate pela configuração mais simples é a proteção contra isso. Quem avalia a configuração escolhida é a bateria."
+}

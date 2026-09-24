@@ -2,134 +2,221 @@
 
 Simulação tick a tick 1v1, em `src/engine/combat.py`. O loop vive em duas funções
 `@njit` (`_simulate_combat_jit` para o fitness, `_simulate_combat_traced_jit` para
-instrumentação) que **compartilham a decisão de ação** via o helper `@njit`
-`_decide_action` — fonte única, chamada para A e B nas duas variantes, garantindo
-que ambas simulem exatamente o mesmo combate (mesmo consumo de RNG; coberto por um
-teste de paridade em `test_combat`). API pública: `simulate_combat`,
-`simulate_combat_traced`, `simulate_combat_detailed`.
+instrumentação) que **compartilham quatro helpers `@njit`** — `_decide_action` (postura),
+`_apply_movement` (deslocamento com colisão), `_carry_round` (arredondamento dos timers
+com resto acumulado) e `_decide_winner` (desfecho) —, fonte única chamada para A e B nas
+duas variantes, garantindo que ambas simulem exatamente o mesmo combate (mesmo consumo de
+RNG; coberto por um teste de paridade em `test_combat`).
+API pública:
+`simulate_combat`, `simulate_combat_traced`, `simulate_combat_detailed`.
 
-## Campo
+**As regras são estado de processo.** Campo, distância inicial, duração, `TICK_SCALE`,
+redução da guarda e persistência chegam ao JIT como argumentos, a partir de um
+`CombatRules` (`combat.get_rules` / `set_rules`). O default é `TRAINING_RULES` — as
+constantes do `config.py`. Só a validação externa troca as regras, para testar o
+equilíbrio sob condições que o AG nunca viu, e o `fitness.RuntimeState` as leva aos
+workers como leva os pesos ([09-reproducibility.md](09-reproducibility.md)).
+
+## Os dois canais de ação
+
+O modelo separa **o que o lutador decide** de **o que a situação permite**:
+
+| Canal | Quem decide | Valores |
+|---|---|---|
+| **Postura** (movimento) | a intenção sorteada dos pesos `w_*` | `ADVANCE` · `RETREAT` · `DEFEND` |
+| **Ataque** | regra de resolução, não escolha | dispara quando cooldown pronto **e** oponente ao alcance **e** postura ≠ `DEFEND` |
+
+Avançar e recuar **batem**; só a `GUARDA` abre mão do golpe. É isso que torna o
+controle de espaço uma estratégia — zonear é atacar enquanto se segura a distância — e
+que dá ao `knockback` derivada positiva. Por que o ataque deixou de ser uma postura, com
+as medições: [11-combat-review.md](11-combat-review.md).
+
+## Campo e colisão
 
 - Tamanho: `FIELD_SIZE = 100` unidades; posições clamped a `[0, 100]`.
 - Distância inicial: `INITIAL_DISTANCE = 50` (lutadores em 25 e 75).
 - Todos os `range` ≤ 20 < 50 — nenhum personagem ataca no tick 1.
+- **Os corpos não se atravessam.** `_apply_movement` desloca os dois a partir das
+  posições do início do sub-tick (movimento simultâneo, nenhum lado chega "primeiro")
+  e, se os dois avanços se cruzariam, ambos param no ponto de encontro. A é sempre o
+  lado esquerdo (`pos_a ≤ pos_b`) — invariante que elimina os casos de borda de
+  direção quando a distância chega a zero.
 
-Não há conceito de "encurralamento" (cornering): RETREAT simplesmente recua até a
-borda (0 ou `FIELD_SIZE`) e, quando não há mais espaço para recuar, o personagem
-cai para DEFEND (ver execução abaixo). Esse DEFEND **forçado** (RECUAR sem espaço)
-é distinguido do DEFEND **escolhido** (GUARDA) no `CombatTrace.forced_defend` — a
-geometria não deve contaminar a métrica de identidade defensiva (ver `08-tools.md`,
-fingerprint e Layer 3 do validador).
+**Encurralamento** existe como consequência: `RETREAT` recua até a borda e, sem
+espaço, cai para `DEFEND`. Esse DEFEND **forçado** é distinguido do **escolhido**
+(GUARDA) no `CombatTrace.forced_defend` — a geometria não deve contaminar a métrica
+de identidade defensiva (ver `08-tools.md`). O canto não é armadilha automática:
+medido no roster canônico, quem é encurralado perde entre 55% e 100% das lutas
+conforme o par, e o knockback de quem está preso empurra o agressor para longe.
 
 ## Resolução sub-tick (`TICK_SCALE = 5`)
 
-Multiplicador que aumenta a resolução temporal de timers e movimento. Sem ele,
-`attack_cooldown ∈ [1, 5]` teria só 5 valores discretos, criando platôs no
-espaço de fitness. Internamente os timers operam de 5 a 25 sub-ticks.
+Multiplicador que aumenta a resolução temporal de timers e movimento. O cooldown opera
+de 5 a 25 sub-ticks.
 
 - Movimento por sub-tick: `speed / TICK_SCALE`
-- Cooldown no hit: `round(attack_cooldown × TICK_SCALE)`
-- Stun no hit: `round(stun × round(attack_cooldown × TICK_SCALE))` — ver
-  [stun](#stun) abaixo.
+- Período entre golpes: `attack_cooldown × TICK_SCALE` sub-ticks **em média** — ver
+  [timers](#timers) abaixo.
+- Stun por golpe: `stun × attack_cooldown × TICK_SCALE` sub-ticks **em média**.
 
-## As 4 ações
+## Sistema de decisão: intenção → postura
 
-`ATTACK` · `ADVANCE` · `RETREAT` · `DEFEND`
+A cada sub-tick a postura de cada personagem é decidida em **duas fases**. Um
+personagem stunado perde o sub-tick (`stun_rem > 0` → postura = −1, antes de
+qualquer fase) e não ataca.
 
-## Sistema de decisão: intenção → execução
+### Fase 1 — Intenção
 
-A cada sub-tick, a ação de cada personagem é decidida em **duas fases**. Um
-personagem stunado perde a ação (`stun_rem > 0` → ação = −1, antes de qualquer
-fase).
+Se não há intenção vigente (`persist == 0`), **sorteia** uma entre
+`{FRENTE, RECUAR, GUARDA}` com probabilidade proporcional a
+`(w_aggressiveness, w_retreat, w_defend)` e a **mantém por
+`ACTION_PERSISTENCE_SUBTICKS` sub-ticks** (commitment/momentum). Se a soma dos pesos
+for 0, a intenção é `GUARDA` (fallback).
 
-### Fase 1 — Intenção (só quando em range)
+**A intenção sorteada vale sempre — com uma exceção: o impasse.** Quando
+`distance > range_próprio` **e** `distance > range_do_oponente`, ninguém alcança
+ninguém e o `ADVANCE` é imposto (o contador de persistência é zerado). Sem isso, dois
+personagens passivos recuam cada um para a sua parede e a luta termina por timeout sem
+um golpe — medido antes da regra: 100% de timeout em Zoner×Turtle. Quem está **sob
+ameaça** (o oponente alcança) segue livre para recuar, então o kite não é afetado e a
+regra não é explorável.
 
-- **Fora do próprio range** (`distance > range`): a intenção é ignorada — o
-  personagem faz `ADVANCE` incondicional (neutral game, aproxima) e zera o
-  contador de persistência.
-- **Dentro do próprio range** (`distance ≤ range`): se não há intenção vigente
-  (`persist == 0`), **sorteia uma intenção** entre `{FRENTE, RECUAR, GUARDA}` com
-  probabilidade proporcional a `(w_aggressiveness, w_retreat, w_defend)` e a
-  **mantém por `ACTION_PERSISTENCE_SUBTICKS` sub-ticks** (commitment/momentum).
-  Se a soma dos pesos for 0, a intenção é `GUARDA` (fallback).
+### Fase 2 — Postura
 
-### Fase 2 — Execução
-
-A intenção vigente determina a ação concreta do sub-tick:
-
-| Intenção | Ação concreta |
+| Intenção | Postura |
 |---|---|
-| **FRENTE** | `ATTACK` se o cooldown está pronto (`cd_rem == 0`), senão `ADVANCE` (pressão sem desperdiçar cooldown) |
-| **RECUAR** | `RETREAT` se ainda há espaço para recuar, senão `DEFEND` (sem mais recuo possível) |
+| **FRENTE** | `ADVANCE` |
+| **RECUAR** | `RETREAT` se ainda há espaço para recuar, senão `DEFEND` (encurralado) |
 | **GUARDA** | `DEFEND` |
 
 > **A intenção é a única fonte estocástica do loop.** O sorteio é
 > `r = np.random.random() × (wagg + wret + wdef)`; `r < wagg` → FRENTE,
 > `r < wagg + wret` → RECUAR, senão GUARDA. Uma vez sorteada, a intenção **não é
-> interrompida** até o contador de persistência zerar (não há flip-flop por
-> sub-tick) — exceto por sair do range, que força ADVANCE e reseta o contador, e
-> por ser stunado.
+> interrompida** até o contador zerar — exceto pelo impasse, que força ADVANCE e
+> reseta o contador, e por ser stunado.
 
 Os pesos agem de forma **contínua**: um Δ em qualquer peso produz Δ proporcional
-na probabilidade da intenção, dando ao AG gradiente contínuo nesses genes. A
-versão antiga (comparação dura `w_aggressiveness > w_retreat AND ...`) tornava os
-pesos *categóricos* — só a ordem importava, magnitudes eram invisíveis à seleção.
+na probabilidade da intenção, dando ao AG gradiente contínuo nesses genes.
 
-### Persistência de intenção (`ACTION_PERSISTENCE_SUBTICKS = 10`)
+> **Só a razão entre os pesos importa.** O sorteio é proporcional, então multiplicar os
+> três por uma constante não muda nada no combate. Por isso o `drift_penalty` compara
+> `fitness.drift_genes`, que reescala os 3 pesos para a soma canônica antes de medir o
+> desvio — ver [05-genetic-algorithm.md](05-genetic-algorithm.md).
 
-Uma vez sorteada, a intenção é reusada pelos próximos 10 sub-ticks (≈ 2 ticks
-lógicos) antes de re-sortear. Simula commitment/momentum e evita flip-flopping
-patológico (sem isso, o personagem re-sortearia a intenção 5× por tick lógico). O
-contador é **zerado** ao sair do range (que força ADVANCE) e quando o personagem
-é stunado.
+### Persistência de intenção (`ACTION_PERSISTENCE_SUBTICKS = 5`)
+
+Uma vez sorteada, a intenção é reusada pelos próximos 5 sub-ticks — **exatamente 1
+tick lógico** (`TICK_SCALE`) e exatamente o **período do atacante mais rápido**
+(`attack_cooldown = 1`) — antes de re-sortear.
+Simula commitment/momentum e evita flip-flopping patológico (sem isso, o personagem
+re-sortearia a intenção 5× por tick lógico). O contador é **zerado** no impasse (que
+força ADVANCE) e quando o personagem é stunado. Casar a persistência com o cooldown
+mínimo faz quem tem `attack_cooldown = 1` e sorteia GUARDA abrir mão de exatamente
+**uma** janela de ataque; por que 5 e não 10, com as medições:
+[thesis/04](../thesis/04-design-decisions.md).
 
 ## Fluxo por sub-tick
 
-1. **Escolha de ação** (intenção → execução) para A e B.
-2. **Movimento** (ADVANCE/RETREAT) — passo `speed / TICK_SCALE`, clamped ao campo.
+1. **Postura** (intenção → postura) para A e B.
+2. **Movimento simultâneo** com colisão (`_apply_movement`).
 3. **Snapshot dos timers** pré-ataque (para o decremento "decrement-stale").
-4. **Resolução simultânea** de ataques A→B e B→A.
+4. **Resolução simultânea** de ataques A→B e B→A, pela regra do canal de ataque.
 5. **Decremento de timers stale** — só decrementa timers **não** setados neste tick.
+
+### <a name="timers"></a>Timers com resto acumulado
+
+Os timers contam sub-ticks inteiros, mas cooldown e stun vêm de genes contínuos. Cada
+golpe converte a quantidade contínua em inteiro por **difusão de erro**
+(`_carry_round`): soma o resto que sobrou do golpe anterior, fica com a parte inteira e
+guarda o novo resto — o resto começa em 0,5, então o primeiro golpe é o arredondamento
+comum. Um cooldown de 1,3 dá períodos 7, 6, 7, 6, 6, … com média **exata** de 6,5
+sub-ticks; um stun de 1,25 sub-tick dá 1, 1, 2, 1, … com média exata de 1,25. O gene age
+de forma contínua em média e o combate segue determinístico — o sorteio de intenção
+continua a única fonte de acaso.
+
+- **Cooldown:** o sub-tick do próprio golpe é o primeiro do período, então o timer é
+  setado em `período − 1` e o próximo golpe sai exatamente `período` sub-ticks depois.
+- **Stun:** o alvo fica parado exatamente o número inteiro de sub-ticks aplicado,
+  a partir do sub-tick seguinte ao golpe.
+
+Arredondar cada golpe sozinho deixaria os dois genes em degraus: o stun de um atacante de
+`cooldown = 1` teria só 4 efeitos em todo o intervalo [0, 0,6], e o período sairia
+deslocado de um sub-tick — ver [thesis/04](../thesis/04-design-decisions.md), "Os timers
+passaram a carregar o resto".
 
 ## Regras de combate
 
+- **Ataque:** dispara quando `postura ≥ 0 and postura ≠ DEFEND and cd_rem == 0 and
+  distance ≤ range`, com a `distance` **pós-movimento**. Não existe "whiff": um ataque
+  fora de alcance simplesmente não acontece, e o cooldown segue intacto.
 - **Dano flat:** `damage`, sem variância por hit e sem redução passiva. O único
-  modificador é a ação `DEFEND` do alvo. (Não existe gene `defense`.)
+  modificador é a postura `DEFEND` do alvo. (Não existe gene `defense`.)
 - **DEFEND:** multiplica o dano recebido por `DEFEND_DAMAGE_REDUCTION = 0.6`
   (`= 1 − 0.4` em `config.py`) — o defensor recebe 60% do dano, i.e. **40% de
-  redução**.
-- <a name="stun"></a>**Stun:** `stun_t = round(stun × round(attack_cooldown × TICK_SCALE))`.
-  O gene `stun ∈ [0.0, 0.6]` é uma **fração do próprio cooldown do atacante** (em
-  sub-ticks), não um valor absoluto.
-  - Como `stun < 1.0` por bound, o stun aplicado é **estritamente menor que o
-    cooldown do atacante** — o defensor sempre ganha uma janela livre antes do
-    próximo hit. A invariante é garantida matematicamente pelo bound do gene (não
-    há mais `STUN_CAP_MULTIPLIER` explícito). A garantia depende do acoplamento
-    `stun_bound × TICK_SCALE`: com `cd_min = 1` e `TICK_SCALE = 5`, o cooldown em
-    sub-ticks é ≥ 5, e `round(0.6 × 5) = 3 < 5`. Ver
-    [07-configuration.md](07-configuration.md).
-  - O stun só é aplicado se o novo valor exceder o stun residual atual
-    (`stun_t > stun_rem`); não se acumula.
-- **Cooldown só em acerto:** o cooldown do atacante só é setado dentro do bloco de
-  resolução, que só executa quando o ATTACK está **em range no momento da
-  resolução** (`cd_rem == 0 and distance ≤ range`). Um ATTACK escolhido mas que
-  sai de range após o movimento daquele tick não entra no bloco — não desperdiça
-  cooldown.
+  redução** —, **menos o que o agarrão do atacante quebrar**.
+- <a name="grab"></a>**Agarrão (`grab_power`):** contra alvo em `DEFEND`, o
+  multiplicador do dano vira **`defend_red + grab_power`**. O gene `grab_power ∈ [0, 1]`
+  é o quanto o agarrão **soma** a esse multiplicador:
+
+  | `grab_power` | multiplicador | leitura |
+  |---|---|---|
+  | 0,00 | 0,60× | guarda dá a redução cheia |
+  | **0,40** | **1,00×** | **ponto neutro** — guarda exatamente anulada |
+  | 0,90 (Grappler) | 1,50× | guarda vira desvantagem |
+  | 1,00 | 1,60× | teto |
+
+  O ponto neutro é `1 − defend_red`. Abaixo dele defender ainda compensa; acima,
+  **defender é pior que não defender**. Nos canônicos **só o Grappler passa do neutro** —
+  é essa a mecânica que o diferencia dos outros quatro e que realiza, no motor, a
+  justificativa da aresta "Grappler vence Turtle" do ciclo.
+
+  Duas propriedades completam o desenho como **counter à guarda**:
+  1. **Só existe contra quem está defendendo.** Contra um alvo em `ADVANCE` ou
+     `RETREAT`, `grab_power` não faz absolutamente nada. É uma leitura condicional —
+     vale contra quem bloqueia, é peso morto contra quem pressiona.
+  2. **Não é uma ação escolhida.** É uma condicional na resolução do ataque, então o
+     modelo de dois canais fica intacto — não há um `w_grab` nem uma quarta postura,
+     e o espaço de política não muda.
+
+  Com isso o eixo de **recurso** ganhou contrapartida. Medido em `test_combat`, alvo
+  sempre em guarda: dano por golpe **16,2** com `grab_power = 0` contra **43,2** com
+  `1.0`, exatamente o golpe limpo no neutro 0,40, e diferença **exatamente zero** contra
+  alvo que não defende. O `CombatTrace` expõe o canal `guard_broken` (dano extra
+  arrancado pela guarda), que é a assinatura comportamental do Grappler na Layer 3.
+- <a name="stun"></a>**Stun:** `stun × attack_cooldown × TICK_SCALE` sub-ticks por
+  golpe, em média (inteiro por golpe, com resto acumulado — ver [timers](#timers)). O gene
+  `stun ∈ [0.0, 0.6]` é uma **fração do próprio cooldown do atacante**, não um valor
+  absoluto.
+  - Como `stun ≤ 0.6` por bound, o stun aplicado é **estritamente menor que o
+    período do atacante** — o defensor sempre ganha uma janela livre antes do
+    próximo hit. A invariante é garantida pelo bound do gene (não há
+    `STUN_CAP_MULTIPLIER`) e coberta por teste em `test_combat`.
+  - O stun só é aplicado se o novo valor exceder o residual atual; não se acumula.
 - **Knockback:** empurra o defensor `knockback` unidades para longe do atacante
-  após cada hit, clamped ao campo.
+  após cada hit, clamped ao campo. No contexto zoner×rusher, varrer o bound leva a WR
+  do zoner de 27,4% a 71,6%.
 
 ### Decremento pós-ataque (decrement-stale)
 
 Decrementos acontecem no **fim** do tick, comparando o valor atual com o
 pré-ataque. Se um ataque setou o timer neste tick (`current > pre`), ele é
-preservado até o próximo. Garante que `stun = 1` e `cooldown = 1` (em sub-ticks)
-sejam mínimos com efeito real.
+preservado até o próximo. Por isso o cooldown é setado em `período − 1` (ver
+[timers](#timers)): o sub-tick do golpe já conta.
 
 ## Condição de vitória
 
+`_decide_winner` devolve `0` (A), `1` (B) ou **`-1` (empate)**:
+
 - **KO:** HP de um lado chega a zero.
 - **Timeout** (`MAX_TICKS = 500 × TICK_SCALE = 2500` sub-ticks): vence quem tem
-  maior HP **percentual** (`hp_atual / hp_max`). Empate de percentual → vence A.
+  maior HP **percentual** (`hp_atual / hp_max`).
+- **Empate:** os dois terminam com a **mesma** fração de HP — KO duplo (ambos a zero
+  no mesmo sub-tick) ou timeout sem diferença. No round-robin vale **meia vitória para
+  cada lado**, e o score por-luta é `0.5` (margem nula).
+
+> O empate existe porque, sem ele, o desempate cairia sempre para o lado A — que em
+> `_run_round_robin` é sempre o arquétipo de índice menor: um viés sistemático na métrica
+> que o fitness otimiza (medido em espelho, o Rushdown canônico dava 54,90% ao lado A).
 
 O fitness distingue KO de timeout via *score por-luta contínuo* — ver
 [05-genetic-algorithm.md](05-genetic-algorithm.md).

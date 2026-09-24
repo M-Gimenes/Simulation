@@ -3,14 +3,14 @@
 Comparar fronteiras "no olho" não escala — a literatura usa indicadores numéricos:
 
   • **hipervolume** — área dominada pela fronteira em relação a um ponto de
-    referência (os piores valores possíveis). Captura convergência *e* espalhamento
-    num único número; MAIOR é melhor.
+    referência fixo (`config.HYPERVOLUME_REFERENCE`, ancorado nos modelos nulos).
+    Captura convergência *e* espalhamento num único número; MAIOR é melhor.
   • **spacing** (Schott) — desvio-padrão da distância de cada ponto ao vizinho mais
     próximo. Mede a uniformidade da distribuição ao longo da fronteira; MENOR é melhor.
 
 Ambos os objetivos `(dominance_penalty, drift_penalty)` são minimizados, então o
-ponto de referência fica no canto superior-direito (piores valores) e a fronteira é
-uma escada descendente em x.
+ponto de referência fica no canto superior-direito e a fronteira é uma escada
+descendente em x; pontos além da referência não contam.
 """
 
 from __future__ import annotations

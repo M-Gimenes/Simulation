@@ -1,190 +1,275 @@
-# 10 — Auditoria, pontos em aberto e backlog
+# 10 — Pontos em aberto
 
-Relatório da auditoria de **2026-06-23** (revisão completa do código após período
-afastado). Severidade decrescente. Itens marcados ✅ já foram corrigidos nesta
-rodada; os demais ficam registrados para decisão.
+O que **ainda está aberto** no sistema: as pendências e os limites conhecidos, para que
+nenhum deles seja descoberto por acidente na hora de escrever. Não é histórico — a
+trajetória das decisões (que problema cada mudança resolveu) vive em
+[`../thesis/04-design-decisions.md`](../thesis/04-design-decisions.md), e o estado atual
+do sistema nos docs 01–09.
 
-## 🔄 2026-06-27 — Reformulação C2 + simplificação do combate (no código; pendências abaixo)
+---
 
-Duas mudanças grandes já **aplicadas ao código** (motor + testes passam):
+## 1. Pendências acionáveis
 
-**(1) Equilíbrio C2 — global em vez de por-matchup.** O termo primário do
-`dominance_penalty` deixou de ser a WR **por-matchup** (ótimo = todo par a 50% =
-equilíbrio plano, incompatível com o ciclo por construção) e passou a ser a WR
-**global por personagem** (`|WR_global − 0.5|`, RMS sobre os 5), mais um **teto de
-hard-counter** (`MATCHUP_WR_CAP`) e a decisividade (inalterada). Equilíbrio agora =
-"ninguém domina o roster", não "cada par a 50%" — o ciclo passa a ser
-**expressável**, e sua emergência vira o achado. Detalhe em
-[05-genetic-algorithm.md](05-genetic-algorithm.md); enquadramento em
-[tcc/02-ciclo-canonico.md](../tcc/02-ciclo-canonico.md). Convergência do AG: WR
-global por boneco dentro de `GLOBAL_CONVERGENCE_THRESHOLD` + nenhum counter duro.
+**Nenhuma aberta.** A última — «o AG escalar não é ótimo na própria função», aberta em
+2026-09-22 — foi **fechada em 2026-09-23** pela adoção do braço híbrido.
 
-**(2) Simplificação do combate.** O loop JIT virou **intenção → execução** (sem
-hesitação; única fonte estocástica = o sorteio de intenção). Removidos: `defense`
-(dano agora é flat), `recovery` (stun bruto aplicado direto), `HESITATION_RATE`,
-`WALL_CORNER_THRESHOLD` (cornering), `STUN_CAP_MULTIPLIER`, `INTEGER_ATTRIBUTES`.
-`stun` virou **fração** do cooldown do atacante (∈ [0, 0.6]). Genes: **10** por
-personagem (7 atributos + 3 pesos), 50 por indivíduo. Detalhe em
-[04-combat-model.md](04-combat-model.md).
+Em resumo: `dominance` é amostrado e `drift` não, e depois da geração ~31 a seleção
+escalar gasta a pressão em ruído; a linhagem de drift mínimo morre na geração 7. Repartir
+o **mesmo** orçamento entre uma fase de Pareto e uma escalar recupera a identidade sem
+custo em equilíbrio — drift 0,1663 contra 0,2473 e τ +0,5215 contra +0,2811 (efeito
+grande), com `dominance` e hard-counters imóveis (Â₁₂ 0,51 e 0,49). Achado e números em
+[`../thesis/07-findings-and-limitations.md`](../thesis/07-findings-and-limitations.md),
+decisão em [`../thesis/04-design-decisions.md`](../thesis/04-design-decisions.md).
 
-### ✅ Realinhamento do reporting ao headline C2 — FEITO (2026-06-28)
+Sobrou uma **pergunta declarada, não uma pendência**: qual o melhor split. O 0,5 veio do
+desempate de simplicidade do critério de escolha, porque no sweep em orçamento reduzido
+nenhum braço passou no filtro de equilíbrio e a ordenação entre splits não transferiu.
+Afirmar que 0,5 é o melhor exigiria um sweep no orçamento inteiro — o que está medido é
+que **este** split não cobra equilíbrio pela identidade que entrega.
 
-Os dois predicados de equilíbrio C2 foram extraídos para **fonte única** em
-`fitness.py` — `character_balanced(wr)` (WR global em [0.40, 0.60]) e
-`is_hard_counter(wr)` (par fora de [0.35, 0.65]) — e consumidos por `ga.py` e pelas
-tools (sem banda hardcoded espalhada):
+**Fechada em 2026-09-22: o ciclo autoral era medido numa resolução em que não funcionava.**
+`cycle_edges_kept` e `circular_triads` saíram do `baselines` (200 lutas por par, onde a
+direção de cada aresta de um roster equilibrado é sorteio) para
+`src.experiments.cycle_structure`, que roda 16 × 1000 lutas por par, conta só arestas
+**decididas** e compara grupos pela taxa. É o passo 17 da bateria. Achado e números em
+[`../thesis/07-findings-and-limitations.md`](../thesis/07-findings-and-limitations.md);
+decisão em [`../thesis/04-design-decisions.md`](../thesis/04-design-decisions.md), «O ciclo
+saiu do `baselines`».
 
-- `analyze_matchups`: headline = WR **global** por personagem (`character_balanced`);
-  veredito por-par = counter duro (`is_hard_counter`), leitura secundária.
-- `multi_run`: headline = fração de sementes com cada boneco equilibrado +
-  hard-counters por execução + fração que equilibra o **roster** (5 bonecos em banda
-  e 0 counters). WR por-matchup vira leitura secundária.
-- `external_validation`: "robusto" = WR global por boneco em banda em todas as
-  condições **e** nenhum par vira counter duro.
+O resto da instrumentação está fechado: a bateria de 2026-09-23 rodou sobre o motor atual (CRN por luta,
+timers com resto acumulado) e o protocolo completo (os dois controles, manchete no
+`scalar_optimum` com relação de Pareto, concordância de ranking, validação externa com
+regras perturbadas, sensibilidade nos 11 genes, validador com empate contra a asserção,
+digest de medição). `py -m src.tests.test_provenance` sai com tudo *atual* ou *braço de
+experimento*, os artefatos órfãos foram tirados do git, e os números de
+[`../status/HANDOFF.md`](../status/HANDOFF.md) §2, do `docs/thesis/` e do `CLAUDE.md` são
+os dela.
 
-Também corrigidos: docstring do `archetype_validator` (era "20 asserções"; real
-**17** = 12 inter + 5 intra) e o flavor text de `archetypes.py` (Rushdown/Grappler/
-Turtle não citam mais defense/recovery).
+Fora essa, não há pendência de instrumentação. O que resta é **redação**
+([`../status/HANDOFF.md`](../status/HANDOFF.md) §4).
 
-### ⚠️ Todas as rodadas anteriores estão invalidadas
+**Os cinco consertos adiados foram feitos em 2026-09-22/23**, junto da re-execução que o
+braço híbrido exigiu — era exatamente a condição que eles esperavam ("a próxima mudança
+que já exija re-rodar"). Ficam registrados aqui porque a razão de terem esperado é a
+lição, não o conserto em si: **editar `src/engine/` troca o `engine_digest` e marca todo o
+`results/` como obsoleto**, e nenhum deles mudava um número de execução com semente.
 
-O motor de combate e o objetivo mudaram. Todos os `results/` existentes foram
-gerados com o modelo antigo e **não devem ser citados**. Re-rodar (`report`,
-`multi_run`, `external_validation`, fronteira/HV) **após calibrar**:
-- valores canônicos (semântica de `w_agg` mudou; Turtle virou tanky-ativo);
-- bound superior do `stun` (fração) e os stuns canônicos;
-- `MATCHUP_WR_CAP` (quão duras as arestas do ciclo podem ser);
-- `ACTION_PERSISTENCE_SUBTICKS`; `TICK_SCALE` (subir só se aparecer platô).
+> **Isso deixou de ser argumento e virou medição (2026-09-23).** Comparados gene a gene
+> contra a bateria anterior, **40 de 40 execuções com semente** — 20 do AG escalar e 20 do
+> NSGA-II — produziram indivíduos **bit a bit idênticos**. Nenhum número de identidade
+> mudou na re-execução; o que mudou foi só o que `MULTI_RUN_SIMS` mede. Ver
+> [`../thesis/04-design-decisions.md`](../thesis/04-design-decisions.md), «A política de
+> adiar conserto inerte foi verificada».
 
-## 🔴 Metodologia — em aberto (peso de decisão)
+1. **`ga.run(seed=None)` e `nsga2.run(seed=None)` não reavaliavam os elites** — a
+   invalidação estava dentro do `if seed is not None`, então um elite com avaliação de
+   sorte nunca regredia à média. Corrigido: a invalidação vale com e sem semente.
+2. **`archetypes.NUM_ARCHETYPES` era constante morta** — removida.
+3. **O docstring de `_confirm_convergence`** dizia `seed + CONVERGENCE_SEED_OFFSET` quando
+   o código usa o stream da geração corrente + o offset — mais forte do que o texto dizia.
+4. **`src/analysis/analyze_matchups.py` misturava medição e impressão** dentro do digest
+   de medição da bateria, e trocar o texto de uma legenda obsoletava `multi_run`,
+   `baselines` e a validação externa de uma vez. *(Pendente: a extração ainda não foi
+   feita — ver abaixo.)*
+5. **`MULTI_RUN_SIMS` 200 → 1000** — a 200 o desvio do `dominance` de um mesmo roster é
+   0,015–0,028, da ordem do próprio valor evoluído. Feito.
 
-### V1 — `LAMBDA_DRIFT=6.0` prende o AG escalar no canônico (achado da validação)
-Rodando o AG escalar com o novo objetivo (seed 42, 150 gen), o melhor indivíduo
-ficou **colado no canônico**: `drift_penalty = 0.013` (Combo Master = exatamente
-canônico), e 8/10 matchups ainda blowout. Causa: com `LAMBDA_DRIFT=6.0` vs
-`LAMBDA_DOMINANCE=1.0`, mover-se para aproximar as lutas custa ~6× mais do que
-ganha em dominância — o AG prefere ficar canônico e desbalanceado. **A
-reformulação do objetivo (A) está correta, mas o peso do drift impede o AG
-escalar de usá-la.**
+**Ainda aberto (item 4):** separar medição de impressão no `analyze_matchups`. As funções
+que medem identidade (`behavioral_profile`, `BEHAVIORAL_KEYS`, `expected_winner`,
+`wilson_ci`) continuam no mesmo módulo das que imprimem as tabelas do CLI, então **nenhuma
+edição cosmética nesse arquivo é segura** — ela obsoleta a bateria. O conserto é extrair as
+funções de medição para um módulo sem impressão. Junto dele vai a coluna `WR` do resumo
+por matchup, que mostra a WR do favorito canônico do par e não a do lado esquerdo, e cujo
+rótulo ainda engana.
 
-**Encaminhado e demonstrado (2026-06-24):** `LAMBDA_DRIFT` baixado para **1.0**
-(igual ao dominance) — soltou o AG escalar. A demonstração, porém, **revelou que o
-objetivo só-decisividade não balanceava** (ver D1 abaixo): produzia lutas apertadas
-mas WR desequilibrada. Resolvido reintroduzindo a WR como termo primário do
-`dominance_penalty`. Após isso, AG escalar e `best_dominance` ficam ~8/10 matchups
-em 40-60% de WR. Opcional remanescente: sweep de `LAMBDA_DRIFT` para mapear o
-trade-off no escalar.
+Se o motor ou o `config.py` mudarem de novo, a sequência é a de sempre: rodar
+`.\scripts\run_overnight.ps1` (os 16 braços de sweep nas sementes 1000–1004, depois a
+bateria de 17 passos), conferir com `py -m src.tests.test_provenance` e reler cada número
+contra a bateria nova — §3 detalha.
 
-### Calibração de `HESITATION_RATE` — OBSOLETA (hesitação removida em 2026-06-27)
-A hesitação foi **removida** do modelo de combate (ver seção 2026-06-27 acima). A
-única fonte estocástica é o sorteio de intenção (ponderado pelos pesos), mantido
-por `ACTION_PERSISTENCE_SUBTICKS`. Não há mais ε a calibrar; o item de calibração
-que sobra dessa frente é o `ACTION_PERSISTENCE_SUBTICKS`.
+## 2. Limites estruturais do método (decisões, não bugs)
 
-## ✅ Corrigido em 2026-06-24
+Nenhum destes é defeito de implementação — são fronteiras do que o sistema mede.
+Precisam aparecer explicitamente na Discussão, não só em Trabalhos Futuros.
 
-### D1 — `dominance_penalty` só-decisividade era cego à WR
-A versão que media apenas **decisividade por-luta numa banda** [0.05, 0.10] tinha um
-furo: é **cega à frequência de vitória**. Um matchup 100%×0% fechando sempre com
-~15% HP dá `D ≈ 0.075` (dentro da banda) → penalidade **zero**. Empírico:
-`best_dominance` dava `dominance_penalty = 0.0000`, 10/10 lutas "sadias", mas **0/10
-matchups equilibrados** (Grappler 92%, Turtle 8%). A hipótese "luta apertada ⟹ WR
-~50%" foi **falsificada** — ver [11-combat-review.md](11-combat-review.md).
-**Corrigido:** WR voltou como termo **primário** (`|WR−0.5|/0.5` contínuo,
-`DOMINANCE_WR_WEIGHT=1.0`); decisividade rebaixada a regularizador secundário
-(`DOMINANCE_DECIS_WEIGHT=0.5`, guarda contra blowout-coinflip). `best_dominance`
-passou a 8/10 matchups em 40-60% WR. Ver [05](05-genetic-algorithm.md).
+- **O equilíbrio é condicionado a uma política fixa.** Os pesos `w_*` *são* a
+  política: os personagens não aprendem, e ninguém procura exploits contra o roster
+  evoluído. Se existir uma estratégia dominante que a política sorteada não visita, o
+  equilíbrio medido não a enxerga. É o item 2.1 (coevolução) de
+  [`../thesis/08-literature-methods.md`](../thesis/08-literature-methods.md),
+  decidido como trabalho futuro — decisão legítima, mas **é a objeção mais forte ao
+  resultado**.
+- **A política é cega ao estado.** A intenção não depende de HP, distância, cooldown
+  do oponente nem de o oponente estar stunado: "estratégia" no modelo é uma mistura fixa
+  de três posturas, mantida por `ACTION_PERSISTENCE_SUBTICKS`. É o commitment pretendido,
+  mas nenhum arquétipo tem plano.
+- **Crossover só por bloco de personagem.** Recombinação de genes *dentro* de um
+  personagem depende 100% da mutação; o crossover só troca personagens inteiros entre
+  indivíduos. Limita a exploração fina do espaço.
+- **Round-robin uniforme.** Todos os 10 pares pesam igual. Não modela matchmaking
+  real (jogadores escolhendo matchups favoráveis), então "equilíbrio" aqui é
+  equilíbrio sob confronto uniforme.
+- **Genes de recurso são hipersensíveis.** Com o ataque como regra de resolução, a luta
+  é uma corrida de DPS quase determinística e a resposta é íngreme. Na sensibilidade de
+  2026-09-23, uma janela de 2σ de mutação move a WR média em `range` **30,8%**, `damage`
+  26,2%, `attack_cooldown` 25,7% e `hp` 23,9%, contra um piso de ruído de 3,5% — sinal
+  sobre ruído de 7× a 9×, uma ordem de grandeza acima dos genes de política. E
+  **30 dos 30 rosters aleatórios** dos modelos nulos têm ao menos um par saturado (WR fora
+  de [5%, 95%]). O AG lida bem com a inclinação, mas gradiente forte com solução
+  potencialmente frágil é a descrição correta do regime; amortecer (variância no dano,
+  mais sims) é trabalho futuro.
+- **A política é o que o AG menos enxerga pelo equilíbrio.** Na sensibilidade da bateria
+  de 2026-09-23 (11 genes, janela 2σ, piso medido em 3,5%), **os três pesos ocupam o fundo
+  do ranking**: `w_defend` 2,9% e `w_aggressiveness` 3,0% abaixo do piso, `w_retreat` 4,8%
+  no limiar — ao lado de `knockback` 4,3% e `speed` 3,5% —, contra `range` 30,8% no topo.
+  O único gradiente que puxa a política de volta ao canônico é o do drift, e o controle
+  `λ_drift = 0` mostra o que acontece sem ele: τ = +0,007, o acaso. A análise é local, e
+  muda com o indivíduo.
+- **O drift pesa as cinco identidades com exigência diferente.** `defining_genes` tem 1
+  gene no Combo Master e 4 na Turtle; com peso 3,0 nos definidores e a RMS normalizada
+  pela soma, isso é 23% do peso num caso e 63% no outro. O `drift_penalty` de dois
+  personagens não é, a rigor, a mesma régua — comparar drift **entre** arquétipos exige
+  essa ressalva.
+- **O piso da sensibilidade é o máximo das nulas, e depende de quantas.** Com
+  `--null-reps 3` são 33 nulas e o piso (3,5%) fica perto do percentil 97; com mais
+  réplicas ele subiria, e genes no limiar (`speed`, `knockback`, `w_retreat`) poderiam
+  mudar de classe. A escolha do máximo é deliberada (conservadora), mas o número só é
+  citável com o `reps` ao lado.
+- **As réguas funcionais não são independentes do fitness.** A Layer 3 e a concordância de
+  ranking são *held-out* — o fitness não referencia comportamento —, mas cada asserção da
+  Layer 3 é consequência quase direta de um gene definidor. E a Layer 3 são 5 bits; a
+  concordância existe para dar resolução, não independência.
+- **O pareamento CRN acaba dentro da luta.** Com uma semente por luta, dois indivíduos
+  recebem os mesmos sorteios em cada luta; mas quando um gene muda o que acontece numa
+  luta, o resto dela se desenrola diferente e os sorteios seguintes caem em estados
+  diferentes. É o ruído que sobra na comparação, e é por isso que semear por luta melhorou
+  o sinal só 1,0–1,3×. Sincronizar os sorteios por instante (sub-tick × lado) atacaria
+  isso, com ganho não medido; fica como trabalho futuro.
+- **Os sweeps rodam em orçamento reduzido** (pop 120 × 60 gerações, ~16% do custo, 5
+  sementes por braço). O que se pede deles é **ordenar configurações do mesmo algoritmo**,
+  e essa ordenação transfere de orçamento; número citável e comparação **entre
+  algoritmos** não transferem — o projeto tem um contraexemplo medido, em que a ordem AG ×
+  NSGA-II inverte entre pop 120 e pop 300. E a n = 5, diferenças pequenas entre braços não
+  se separam do ruído: os sweeps estabelecem o que é indispensável e o que nada supera,
+  não ótimos.
 
-### D2 — semeadura hash-por-genes anulava o CRN
-A semeadura `crc32(genes) XOR base` era reprodutível mas dava a cada indivíduo um
-stream de RNG diferente — congelava o ruído MC numa função descontínua dos genes,
-anulando a redução de variância dos Common Random Numbers. **Corrigido:** toda
-avaliação reseta ao mesmo `_SEED_BASE` (CRN) — mesma reprodutibilidade, paisagem
-mais lisa. Caveat de alinhamento documentado em
-[09-reproducibility.md](09-reproducibility.md).
+## 3. Estado dos artefatos em `results/`
 
-## ✅ Corrigido nesta rodada
+> ✅ **`results/` está COMPLETO e ATUAL** — os números são os da bateria de 2026-09-23
+> com **n = 20**, sobre o motor e o protocolo atuais.
 
-- **A1 — reprodutibilidade do seed.** `combat.seed_combat` (`@njit`) + semeadura
-  determinística por-indivíduo (`fitness.set_seed_base`, `crc32(genes) XOR base`,
-  propagada aos workers via `initializer`). `--seed` agora reproduz; o pareamento
-  do `sensitivity_analysis` funciona. Verificado empiricamente. Ver
-  [09-reproducibility.md](09-reproducibility.md).
-- **C5 — ruído nos critérios de parada.** Resolvido de quebra pelo A1: a
-  reavaliação do melhor indivíduo agora é determinística (mesma fitness), sem
-  ruído de re-amostragem no `best_fitness`/estagnação.
-- **Objetivo reformulado (A) + hesitação (B).** O `dominance_penalty` passou a ser
-  **decisividade por-luta numa banda** [0.05, 0.10] (vencedor fecha 10-20% HP),
-  cego à direção — dá gradiente em combate determinístico e penaliza tanto blowout
-  quanto quase-empate. A hesitação ponderada (`HESITATION_RATE`) reintroduz
-  variância de player. Ver [05](05-genetic-algorithm.md), [04](04-combat-model.md)
-  e [11-combat-review.md](11-combat-review.md). *(Calibração do ε pendente — acima.)*
-- **B1 — divergência de `stun_applied` entre as duas variantes JIT.**
-  `_simulate_combat_jit` somava `stun_t` incondicionalmente; o traced só somava
-  quando o stun era efetivamente imposto. Alinhado: agora ambos somam só quando
-  aplicado.
-- **B2 — flag `--plot-3d` morto.** Removido de `main.py` e o parâmetro
-  `plot_3d` de `nsga2_plots.save_plots` (sobra de quando havia 3 objetivos).
-- **C1 — imports mortos:** `copy`/`field`/`Tuple` em `character.py`,
-  `copy`/`random` em `individual.py`.
-- **C2 — type hint:** `objectives: Tuple[float, float, float]` → `Tuple[float, float]`.
-- **C4 — naming:** `main.py` chamava o drift de `cost` no print → `drift`.
-- **C3 — duas convenções de normalização.** Unificado: `archetype_validator._norm`
-  passou a usar `x/hi` (fração do máximo), a mesma convenção do `fitness`. Neutro
-  para o AG (validator é diagnóstico); canônico segue 20/20.
-- **A2 — `specialization_penalty` removido.** Não media diferenciação entre
-  arquétipos (era spread intra-personagem), era redundante com o `drift_penalty` e
-  quebrava a simetria com o NSGA-II. Decisão (c): removido do fitness — o AG escalar
-  agora otimiza `drift + dominance`, **os mesmos dois eixos do NSGA-II**. A ideia de
-  "os 5 ainda são distintos?" fica para uma métrica **post-hoc** (diferenciação
-  par-a-par, candidata a entrar na `drift_table`), não como termo de otimização.
+**Regra:** ao mexer em `config.py`, nos canônicos ou no motor, todo `results/` fica
+obsoleto **de uma vez**; ao mexer no código de uma ferramenta de medição, ficam obsoletos
+os artefatos que dependem dela. O carimbo de proveniência
+([09-reproducibility.md](09-reproducibility.md)) *detecta* um artefato fora de data, não
+o regenera, e a bateria inteira precisa rodar de novo antes de qualquer número voltar a
+ser citável:
 
-## Direção — reflexões (não são erros)
+```bash
+py -m src.experiments.multi_run --algorithm both            # multi_run_{ga,nsga2}.json
+py -m src.experiments.compare_algorithms                      # comparison_ga_vs_nsga2.json (scalar_optimum)
+py -m src.experiments.compare_algorithms --nsga2-representative best_dominance
+py -m src.experiments.multi_run --algorithm ga --lambda-drift 0      # controls/
+py -m src.experiments.multi_run --algorithm ga --no-canonical-seed   # controls/
+py -m src.experiments.compare_algorithms --control results/controls/multi_run_ga_drift0_dom1.json
+py -m src.experiments.compare_algorithms --control results/controls/multi_run_ga_unseeded.json
+py main.py --seed 42                                    # single_run/ga.json
+py main.py --algorithm nsga2 --seed 42                  # single_run/nsga2.json + plots
+py -m src.experiments.external_validation                     # canônico
+py -m src.experiments.external_validation --evolved           # AG escalar
+py -m src.experiments.external_validation --nsga2 scalar_optimum
+py -m src.experiments.external_validation --nsga2 knee_point
+py -m src.experiments.sensitivity_analysis --evolved          # sensitivity_analysis.json
+py -m src.experiments.baselines --evolved                     # baselines.json
+```
 
-- O ciclo canônico fora do fitness é **intencional e correto** para a pergunta de
-  pesquisa (evita circularidade).
-- **Crossover só por bloco de personagem:** recombinação fina de genes dentro de
-  um personagem depende 100% da mutação. Legítimo, mas limita exploração — vale
-  citar como decisão na metodologia.
+`run_battery.ps1` é essa bateria, em passos retomáveis (`-From N`) — cada passo salva seu
+artefato, porque o `multi_run` não tem resume. `-WhatIf` lista os passos e o custo. Os
+sweeps (`run_sweeps.ps1`) vêm **antes** dela: implementar um braço mexe no motor, e os 16
+braços compartilham o braço default para sair do mesmo digest.
 
-## Protocolo metodológico da literatura — incorporado ✅ (2026-06-24)
+**Verificação pós-bateria:** `py -m src.tests.test_provenance` lista o estado de cada
+artefato. Os braços do sweep e os controles devem sair como *braço de experimento*, o resto
+como *atual*; qualquer *obsoleto* significa que algo mudou no meio da bateria.
 
-Os itens de **Tier 1** do backlog metodológico (ver
-[`../tcc/08-metodologias-da-literatura.md`](../tcc/08-metodologias-da-literatura.md))
-saíram do backlog e são parte do sistema:
+Três armadilhas que já morderam:
 
-- **1.1 — N execuções + estatística agregada** (`src/tools/multi_run.py`): AG + NSGA-II
-  sobre N seeds, agrega dominance/drift média±σ, WR global por boneco e fração que
-  equilibra o roster (headline C2). Config `MULTI_RUN_*`.
-- **1.2 — Hipervolume + spacing** (`src/engine/pareto_metrics.py`): qualidade da
-  fronteira; impresso no run, anotado no plot, agregado no `multi_run`. Config
-  `HYPERVOLUME_REFERENCE`.
-- **3.2 — Validação externa ao fitness** (`src/tools/external_validation.py`):
-  robustez de um indivíduo fixo sob K seeds de avaliação novas. Config
-  `EXTERNAL_VALIDATION_*`.
+- **A `external_validation` regenera só o rótulo que recebe.** Rodar os quatro rótulos,
+  sempre — um deles já atravessou uma troca de motor inteira e acabou numa tabela
+  comparando o AG de uma bateria com o NSGA-II de outra. Desde 2026-09-18 ela recusa um
+  `single_run/*.json` obsoleto, então esse caminho específico fecha com erro.
+- **Carimbo retroativo por inferência.** Só vale reproduzindo o próprio artefato; um
+  artefato já levou o carimbo de atual sem ter sido regerado.
+- **Default de ferramenta mais barato que o protocolo.** O carimbo registra a config, não
+  os argumentos de linha de comando. Os defaults de `baselines` (30 nulos) e `multi_run`
+  (20 sementes) são o protocolo por isso, e o `multi_run` grava fora do caminho da bateria
+  qualquer execução com amostra ou sims fora do protocolo.
 
-Decisão de escopo (não implementar 2.1/2.2/3.1/4.1 — citar/futuro) registrada em
-tcc/08. **Pendente de execução, não de código:** rodar o `multi_run` real (10+ seeds).
+## 4. Encerrado (para não reabrir por engano)
 
-## Dossiê de resultado por indivíduo — FEITO ✅
+Resolvido e verificado; o raciocínio e os números estão em
+[`../thesis/04-design-decisions.md`](../thesis/04-design-decisions.md).
 
-Três ângulos de identidade, todos implementados (além das matrizes de matchup que
-cobrem o eixo *equilíbrio*):
+**Fitness e critérios:**
 
-1. ✅ **Tabela de drift por gene** (`src/tools/drift_table.py`): canônico vs
-   evoluído por gene + desvio por personagem (= `drift_penalty`) + **diferenciação**
-   par-a-par (homogeneização). Identidade de *genes* + eixo homogeneização.
-2. ✅ **Fingerprint comportamental** (`src/tools/fingerprint.py`): mix de ações e
-   espaçamento por personagem, canônico vs evoluído + Δ. Identidade *comportamental*.
-3. ✅ **Validador estrutural** (`src/tools/archetype_validator.py`): invariantes de
-   ranking. Identidade *estrutural*.
+- `specialization_penalty` removido — escalar e NSGA-II otimizam os mesmos 2 eixos.
+- Objetivo só-decisividade era cego à WR — a WR voltou como termo primário.
+- WR por-matchup forçava equilíbrio plano, incompatível com o ciclo — substituída pela WR
+  **global** por personagem (formulação C2).
+- `LAMBDA_DRIFT` 6,0 → 1,0, e o sweep de λ confirmou 1,0 como o joelho da curva.
+- Drift normalizado pelo range do bound e ponderado pelos `defining_genes`; invariante à
+  escala dos pesos comportamentais (`fitness.drift_genes`).
+- `MATCHUP_FLOOR` 0,10 → 0,02: o piso de decisividade virou guarda de degenerescência.
+- Pesos 1,0 / 0,5 / 0,5 do dominance mantidos: os secundários são carga estrutural.
+- `MATCHUP_WR_CAP = 0,15` mantido, ancorado na grade de matchup da FGC.
+- Gate de convergência = o próprio predicado `roster_balanced`, com confirmação num stream
+  que o AG nunca viu.
+- Orçamento fixo nos dois algoritmos; convergência é evento registrado. O evento de
+  estagnação foi removido (media a catraca do ruído sob a rotação do stream).
+- Família de Holm montada pela variância da amostra conjunta; `_holm` recusa `nan`.
+- Piso da sensibilidade medido sob hipótese nula, com `--evolved` / `--nsga2`.
+- Modelos nulos (`baselines.py`) dão piso, teto, posição e p-valor a toda métrica post-hoc.
+- Validação externa: replicação e robustez a regras perturbadas, cada uma com 5000 lutas
+  por par e veredito pelo IC contra a banda.
+- Validador: empate conta contra a asserção; pesos comparados como probabilidade de
+  intenção. Concordância de ranking comportamental (τ) como régua funcional contínua.
+- Sensibilidade nos 11 genes, janela de 2σ que desliza para dentro do bound, piso na
+  mesma estatística do ranking.
+- Representantes geométricos do NSGA-II (joelho, ideal) com objetivos normalizados; o
+  ideal mede a distância ao ponto utópico.
+- Hipervolume com referência ancorada nos modelos nulos, (1,3; 0,4).
+- Controles na bateria: AG com `λ_drift = 0` e AG sem semente canônica.
+- Manchete da comparação: `scalar_optimum`, com a relação de Pareto por semente; família
+  de Holm fixa, de 7 métricas, a mesma em toda comparação.
+- `MATCHUP_FLOOR = 0,02` mantido, com a justificativa corrigida (a defesa contra a solução
+  trivial é o drift).
 
-(A calibração da hesitação saiu do backlog — a hesitação foi **removida** em
-2026-06-27; ver a seção do topo. As pendências atuais são calibração dos
-provisórios C2/combate e realinhamento das tools de reporting.)
+**Motor de combate:**
 
-## Notas de manutenção
+- Reforma de 2026-09-10 (avanço incondicional, ataque exclusivo, atravessamento, stun
+  arredondado), empate como terceiro desfecho e regra de impasse — números em
+  [11-combat-review.md](11-combat-review.md).
+- Simplificação: fora `defense`, `recovery` e hesitação; `stun` é fração do cooldown.
+- `grab_power`: o eixo Recurso ganhou counter, o Grappler ganhou assinatura na Layer 3.
+  *Segue como pergunta para a bateria:* se o AG realiza a aresta "Grappler vence Turtle"
+  **por mérito** — no canônico ela vale, mas o Turtle canônico perde para todos.
+- `ACTION_PERSISTENCE_SUBTICKS` 10 → 5 (1 tick = o período do atacante mais rápido).
+- Timers com resto acumulado: período do cooldown exato em média (era um sub-tick acima do
+  nominal) e stun contínuo em média (era `ceil`, com 4 níveis em cooldown 1).
+- Regras do combate como estado de processo (`CombatRules`), levadas aos workers.
+- Canônicos declarados finais.
 
-- A memória `project_archetype_validator` ("retomar Task 5 `_collect_stats`") está
-  **desatualizada**: o validator está completo; a camada comportamental virou o tool
-  `fingerprint` (feito).
+**Protocolo e infraestrutura:**
+
+- Stream de avaliação rotacionado por geração (`generation_seed`), nos dois laços.
+- CRN com uma semente por luta (`fight_seed`).
+- n = 20 sementes, default do `multi_run`, fora do carimbo.
+- Elitismo 10% / torneio 3 testados e mantidos.
+- Carimbo de proveniência em todo artefato, com aviso de obsoleto ao carregar, recusa de
+  entrada obsoleta em quem grava um artefato a partir de outro, e digest do código de
+  medição por artefato.
+- `multi_run` roteia por todo desvio do protocolo: bateria, `controls/` ou `exploratory/`.
+- Sementes dos sweeps (1000+) disjuntas das da bateria (42+).
+- Marcos de convergência (`converged_at`, contadores do gate) por semente no `multi_run`.
+- Pool de processos persistente, com o estado do pai viajando em cada tarefa.
+- `compare_algorithms`: Mann-Whitney U + Â₁₂ + Holm-Bonferroni.
