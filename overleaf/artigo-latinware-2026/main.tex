@@ -318,29 +318,29 @@ $[0,1]$. Esse termo é também o mecanismo anti-homogeneização da otimização
 atrai cada personagem para um perfil distinto.
 
 O \textbf{desbalanço} (\emph{dominance}) combina três sinais cegos à direção. O
-termo \emph{primário} $t_{\mathrm{glob}}$ é o desbalanço global por personagem,
+termo \emph{primário} $t_g$ é o desbalanço global por personagem,
 $|\textit{WR}_{\textit{glob}}-0{,}5|/0{,}5$, sobre a taxa de vitória agregada nos
 quatro oponentes. Seu ótimo é ``nenhum arquétipo domina o \emph{roster}'', e ele
 \emph{não} força cada par a 50\%. Essa distinção é crucial: um personagem a 50\%
 global pode vencer dois confrontos e perder dois, que é exatamente o espaço em que o
 ciclo de vantagens pode existir. Dois termos secundários, por par, cobrem o que o
-global não enxerga. O \emph{teto de hard-counter} $t_{\mathrm{cap}}$ penaliza o excesso de
+global não enxerga. O \emph{teto de hard-counter} $t_c$ penaliza o excesso de
 $|\textit{WR}_{\textit{par}}-0{,}5|$ acima de $0{,}15$ e barra \emph{counters}
-esmagadores (100\%$\times$0\%). A \emph{decisividade} $t_{\mathrm{dec}}$ penaliza lutas fora da
+esmagadores (100\%$\times$0\%). A \emph{decisividade} $t_d$ penaliza lutas fora da
 banda em que o vencedor fecha a partida com 20\% a 40\% de HP, o que barra o
 \emph{blowout-coinflip} (massacres alternados, com WR perto de 50\%). Os três
-compõem $\textit{dominance} = 1{,}0\,t_{\mathrm{glob}} + 0{,}5\,t_{\mathrm{cap}}
-+ 0{,}5\,t_{\mathrm{dec}}$. Todos usam $|\textit{WR}-0{,}5|$ ou $|s-0{,}5|$, em que
-$s\in[0,1]$ é o escore de cada luta, e por isso são \emph{cegos à direção}: não
-codificam \emph{qual} arquétipo deveria vencer, o que preserva a não circularidade.
+compõem $\textit{dominance} = 1{,}0\,t_g + 0{,}5\,t_c + 0{,}5\,t_d$ e usam
+$|\textit{WR}-0{,}5|$ e $|s-0{,}5|$ ($s$: escore da luta), sendo \emph{cegos à
+direção}: não codificam \emph{qual} arquétipo deveria vencer, o que preserva a não
+circularidade.
 
-Três instrumentos medem a identidade \emph{fora} da função objetivo
-(Fig.~\ref{fig:arq}). O \textbf{validador} tem \valTotal{} asserções de
-ranqueamento e verifica se cada personagem ocupa no \emph{roster} a posição que
-define seu arquétipo: 17 asserções sobre os genes, como o \emph{rushdown} com a maior
-velocidade e o \emph{turtle} com o maior HP, e 4 sobre o jogo efetivo. A
-\textbf{diferenciação} é a razão entre a distância média par a par do elenco evoluído
-e a do canônico ($<1$ indica homogeneização). O \textbf{perfil comportamental} é a
+Os instrumentos que medem a identidade \emph{fora} da função objetivo
+(Fig.~\ref{fig:arq}) são três: um \textbf{validador} de \valTotal{} asserções de
+ranqueamento, que verifica se cada personagem ocupa no \emph{roster} a posição que
+define seu arquétipo (17 sobre os genes, como o \emph{rushdown} com a maior
+velocidade e o \emph{turtle} com o maior HP, e 4 sobre o jogo efetivo); a
+\textbf{diferenciação}, razão entre a distância média par a par do elenco evoluído e
+a do canônico ($<1$ indica homogeneização); e o \textbf{perfil comportamental}, a
 distribuição de ações de cada personagem em combate.
 
 \subsection{AG escalar e NSGA-II}
@@ -449,10 +449,8 @@ Ciclo (de \cycleTotal)          & \cycleCan & \cycleAg & \cycleKnee & \cycleBd \
 
 \vspace{2pt}
 {\footnotesize\raggedright
-\emph{Confrontos eq.}: pares com WR em $[40\%,60\%]$. \emph{Diferenciação}: razão da
-distância média par a par vs.\ o canônico ($<1$ = homogeneização). \emph{Joelho} e
-\emph{Equilíb.}: \emph{knee\_point} e \emph{best\_dominance}; o canônico coincide
-com \emph{best\_drift}.\par}
+\emph{Joelho} e \emph{Equilíb.}: \emph{knee\_point} e \emph{best\_dominance}; o
+canônico coincide com \emph{best\_drift}.\par}
 \end{table}
 
 Sobre \nSeeds{} execuções independentes, o NSGA-II aterrissa em
