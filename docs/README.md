@@ -16,11 +16,10 @@ Organizada em três frentes:
 Para instruções de trabalho com o repositório, ver `CLAUDE.md` (raiz); para
 instalação e execução rápida, ver o `README.md` da raiz.
 
-> A pasta `overleaf/` (raiz) tem os textos redigidos — a monografia (`TCC/`) e os
-> artigos derivados dela (`artigo-SBC/`, `artigo-latinware-2026/`) — e **não** é
-> tocada por esta documentação. Os artigos compartilham `values.tex` como fonte
-> única dos números experimentais: ao refazer as rodadas, atualizar esse arquivo
-> em cada um.
+> A pasta `overleaf/` (raiz) tem os textos redigidos — a monografia (`TCC/`) e o
+> artigo derivado dela (`artigo-latinware-2026/`) — e **não** é tocada por esta
+> documentação. O artigo tem `values.tex` como fonte única dos números
+> experimentais: ao refazer as rodadas, atualizar esse arquivo.
 
 > **Convenção de idioma**: nomes de arquivos e pastas em inglês; o texto dos `.md`
 > pode ser em português.

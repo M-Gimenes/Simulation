@@ -34,7 +34,7 @@ Daí a assimetria do projeto: **identidade é termo do fitness, o ciclo de vanta
    bem mais fraca e quase óbvia.
 2. **Penalidade não é restrição.** O AG é livre para destruir a identidade se o
    equilíbrio pagar mais, e é o que acontece: com `LAMBDA_DRIFT = 1.0` ligado o run
-   inteiro, o melhor do AG escalar da bateria de 2026-09-21 ficou em **17/23** no
+   inteiro, o melhor do AG escalar da bateria de 2026-09-23 ficou em **17/23** no
    validador, longe dos 23/23 do canônico — e a parte funcional dele, a Layer 3, em
    **3/5**, empatada com o melhor dos 35 modelos nulos. O termo existe e pode perder; ter
    o termo não pré-determina a resposta. (No diagnóstico de 2026-09-16, sob o validador de
@@ -42,8 +42,9 @@ Daí a assimetria do projeto: **identidade é termo do fitness, o ciclo de vanta
 
    E o que ele **compra** só se mede contra o braço sem ele: o controle `λ_drift = 0`, na
    mesma amostra e no mesmo orçamento, cai para 6/18 no validador estrutural, 1/5 na
-   Layer 3 e τ = −0,03 — sem equilibrar melhor (p_Holm 0,063 em `dominance`, a favor do
-   braço *com* o termo). A penalidade não pré-determina a resposta, e ainda assim é o que
+   Layer 3 e τ = −0,03 — sem equilibrar melhor (p_Holm 0,059 em `dominance`, efeito médio
+   na direção do braço *com* o termo, sem significância; e 19/20 elencos equilibrados no
+   controle contra 16/20). A penalidade não pré-determina a resposta, e ainda assim é o que
    segura a identidade inteira.
 3. O conteúdo não-trivial da tese nunca foi "a identidade sobreviveu" — é **o preço**:
    quanto de equilíbrio se compra por unidade de drift. Esse é o formato da fronteira
@@ -92,12 +93,12 @@ identidade estrutural"**
 mecanismo anti-homogeneização** (puxa cada personagem para um canônico distinto). Com
 `LAMBDA_DRIFT = LAMBDA_DOMINANCE`, identidade e equilíbrio pesam na mesma escala.
 
-**E essa igualdade é o joelho medido da curva, não uma escolha por simetria.** O sweep de
-2026-09-17 (5 braços × 5 sementes, orçamento reduzido) mostra que `dominance` fica **plano
-em ~0,048** de λ_drift 0,25 a 1,0 e só então explode — 0,19 em λ=2, 0,34 em λ=4, com os
-counters duros indo de 0,6 para 7,8 de 10 pares. λ = 1,0 é o **último ponto onde a
-identidade sai de graça**: contra λ = 0,25 ele entrega drift 0,070 melhor custando dominance
-0,006 pior. Antes, a justificativa era só negativa ("6,0 prendia ao canônico"). Detalhe e a
+**E essa igualdade é o joelho medido da curva, não uma escolha por simetria.** O sweep de λ
+(5 braços × 5 sementes, orçamento reduzido, reavaliado a 1000 lutas por par) mostra que
+`dominance` fica **plano em 0,041–0,044** de λ_drift 0,25 a 1,0 e só então explode — 0,183 em
+λ=2, 0,356 em λ=4, com os counters duros indo de 0,4 para 7,8 de 10 pares. λ = 1,0 é o
+**último ponto onde a identidade sai de graça**: contra λ = 0,25 ele entrega drift 0,13 melhor
+(0,2448 contra 0,3773) e τ 0,42 contra 0,02, com o mesmo `dominance`. Antes, a justificativa era só negativa ("6,0 prendia ao canônico"). Detalhe e a
 tabela completa em [04-design-decisions.md](04-design-decisions.md).
 
 Vale dizer no texto que **só a razão entre os dois λ importa**: a seleção é por torneio, que

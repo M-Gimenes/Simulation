@@ -93,7 +93,9 @@ regra não é explorável.
 > `r = np.random.random() × (wagg + wret + wdef)`; `r < wagg` → FRENTE,
 > `r < wagg + wret` → RECUAR, senão GUARDA. Uma vez sorteada, a intenção **não é
 > interrompida** até o contador zerar — exceto pelo impasse, que força ADVANCE e
-> reseta o contador, e por ser stunado.
+> reseta o contador. Stunado, o lutador não age e o contador fica **congelado**, não
+> zerado: `_decide_action` devolve `persist` intacto, e a mesma intenção retoma quando o
+> stun acaba.
 
 Os pesos agem de forma **contínua**: um Δ em qualquer peso produz Δ proporcional
 na probabilidade da intenção, dando ao AG gradiente contínuo nesses genes.
@@ -110,7 +112,7 @@ tick lógico** (`TICK_SCALE`) e exatamente o **período do atacante mais rápido
 (`attack_cooldown = 1`) — antes de re-sortear.
 Simula commitment/momentum e evita flip-flopping patológico (sem isso, o personagem
 re-sortearia a intenção 5× por tick lógico). O contador é **zerado** no impasse (que
-força ADVANCE) e quando o personagem é stunado. Casar a persistência com o cooldown
+força ADVANCE) e **congelado** enquanto o personagem está stunado. Casar a persistência com o cooldown
 mínimo faz quem tem `attack_cooldown = 1` e sorteia GUARDA abrir mão de exatamente
 **uma** janela de ataque; por que 5 e não 10, com as medições:
 [thesis/04](../thesis/04-design-decisions.md).
@@ -129,8 +131,8 @@ Os timers contam sub-ticks inteiros, mas cooldown e stun vêm de genes contínuo
 golpe converte a quantidade contínua em inteiro por **difusão de erro**
 (`_carry_round`): soma o resto que sobrou do golpe anterior, fica com a parte inteira e
 guarda o novo resto — o resto começa em 0,5, então o primeiro golpe é o arredondamento
-comum. Um cooldown de 1,3 dá períodos 7, 6, 7, 6, 6, … com média **exata** de 6,5
-sub-ticks; um stun de 1,25 sub-tick dá 1, 1, 2, 1, … com média exata de 1,25. O gene age
+comum. Um cooldown de 1,3 dá períodos 7, 6, 7, 6, … com média **exata** de 6,5
+sub-ticks; um stun de 1,25 sub-tick dá 1, 2, 1, 1, … com média exata de 1,25. O gene age
 de forma contínua em média e o combate segue determinístico — o sorteio de intenção
 continua a única fonte de acaso.
 

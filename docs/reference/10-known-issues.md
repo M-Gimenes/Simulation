@@ -82,6 +82,24 @@ funções de medição para um módulo sem impressão. Junto dele vai a coluna `
 por matchup, que mostra a WR do favorito canônico do par e não a do lado esquerdo, e cujo
 rótulo ainda engana.
 
+**Ainda aberto: texto desatualizado dentro do código (achado na redação, 2026-09-29).**
+Quatro trechos de docstring e descrição contradizem o que o código faz. Nenhum muda um
+número, mas todos estão em módulos cobertos por um digest — editar qualquer um obsoleta
+artefatos da bateria —, então esperam a próxima re-execução, como os consertos adiados:
+
+- `src/experiments/compare_algorithms.py`: o docstring do módulo e a descrição do
+  `argparse` apresentam o Mann-Whitney U como o teste da comparação. O teste é o
+  **Wilcoxon pareado**; o Mann-Whitney é reportado ao lado, sem correção. Obsoleta os cinco
+  `comparison_*.json` (regenerá-los leva segundos).
+- `src/analysis/analyze_matchups.py`, `classify_decisiveness`: diz que a banda saudável é
+  "vencedor fecha 20–40% HP". A banda `[MATCHUP_FLOOR, MATCHUP_THRESHOLD] = [0,02; 0,20]`
+  corresponde a 4–40%. Mesmo módulo do item 4 acima, com o mesmo raio de obsolescência.
+- `src/engine/archetypes.py`, `description` do Combo Master ("velocidade alta fecha
+  distância") e do Turtle ("perde para quem rompe o bloqueio com stun"): a velocidade
+  canônica do Combo Master é 3,0, no meio do intervalo, e o ciclo diz que o Turtle perde para
+  o Zoner e para o Grappler, cujo recurso contra a guarda é o agarrão. Está no motor:
+  obsoleta todo o `results/`.
+
 Se o motor ou o `config.py` mudarem de novo, a sequência é a de sempre: rodar
 `.\scripts\run_overnight.ps1` (os 16 braços de sweep nas sementes 1000–1004, depois a
 bateria de 17 passos), conferir com `py -m src.tests.test_provenance` e reler cada número
@@ -124,7 +142,13 @@ Precisam aparecer explicitamente na Discussão, não só em Trabalhos Futuros.
   no limiar — ao lado de `knockback` 4,3% e `speed` 3,5% —, contra `range` 30,8% no topo.
   O único gradiente que puxa a política de volta ao canônico é o do drift, e o controle
   `λ_drift = 0` mostra o que acontece sem ele: τ = +0,007, o acaso. A análise é local, e
-  muda com o indivíduo.
+  muda com o indivíduo. A consequência aparece nos genes (medido em 2026-09-29): as
+  probabilidades de intenção dos elencos evoluídos ficam perto da mistura uniforme da
+  população inicial sorteada, e a asserção "Rushdown com a maior P(FRENTE)" passa em só 4–5
+  de 20 execuções em todos os braços, inclusive no NSGA-II e no híbrido. O σ de mutação 4×
+  menor nos pesos, pensado como inércia, conserva a política aleatória. Mutação mais ampla
+  nos pesos ou população inicial em torno dos canônicos são os remédios diretos, e o
+  protocolo atual já mede o efeito de qualquer um deles.
 - **O drift pesa as cinco identidades com exigência diferente.** `defining_genes` tem 1
   gene no Combo Master e 4 na Turtle; com peso 3,0 nos definidores e a RMS normalizada
   pela soma, isso é 23% do peso num caso e 63% no outro. O `drift_penalty` de dois
@@ -272,4 +296,5 @@ Resolvido e verificado; o raciocínio e os números estão em
 - Sementes dos sweeps (1000+) disjuntas das da bateria (42+).
 - Marcos de convergência (`converged_at`, contadores do gate) por semente no `multi_run`.
 - Pool de processos persistente, com o estado do pai viajando em cada tarefa.
-- `compare_algorithms`: Mann-Whitney U + Â₁₂ + Holm-Bonferroni.
+- `compare_algorithms`: Wilcoxon pareado + Â₁₂ + Holm-Bonferroni, com o Mann-Whitney U não
+  pareado ao lado.

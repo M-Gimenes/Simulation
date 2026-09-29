@@ -606,3 +606,28 @@ estagnação (ver [05-genetic-algorithm.md](05-genetic-algorithm.md)).
 py -m src.visualization.ga_plots                      # do single_run/ga.json
 py -m src.visualization.ga_plots --results <path>     # de outro artefato de AG
 ```
+
+### `thesis_figures`
+
+As **figuras de dados da monografia**, lidas dos artefatos da bateria — nada é re-rodado.
+Grava cinco PDFs vetoriais em `overleaf/TCC/figuras/`, no tamanho em que entram no texto
+(16 cm, a largura útil da página com as margens da ABNT), em Arial (a fonte do documento)
+e com vírgula decimal:
+
+| arquivo | conteúdo | artefatos |
+|---|---|---|
+| `confrontos.pdf` | matriz de WR linha × coluna: canônico e média das 20 execuções do AG escalar, a 16 000 lutas por par | `cycle/cycle_structure.json` |
+| `convergencia.pdf` | `P_dom` (escala log.) e `P_drift` do melhor elenco por geração, mediana e IQR das 20 sementes: AG escalar, controle λ = 0 e a fase escalar do híbrido | `multi_run/multi_run_ga.json`, `controls/*` |
+| `fronteira.pdf` | as 20 fronteiras do NSGA-II e os pontos no laço do AG, do híbrido, do controle λ = 0 e do `scalar_optimum`, com a referência do hipervolume | `multi_run/*`, `controls/*`, `baselines/baselines.json` |
+| `metricas.pdf` | as seis métricas da família de Holm por braço (pontos por execução, mediana, linha do nulo) | `multi_run/*`, `controls/*`, `baselines/baselines.json` |
+| `sensibilidade.pdf` | Δ WR média por gene contra o piso medido e o dobro dele | `sensitivity/sensitivity_analysis.json` |
+
+As cores seguem o **braço**, não a figura: AG escalar azul, NSGA-II laranja, híbrido
+verde-água — as três primeiras posições da paleta categórica, validadas para daltonismo
+também em dispersão —, e os controles em cinza, porque são referência. O módulo fica fora
+de todo digest de medição (nenhuma ferramenta de `src/experiments/` o importa), então
+editá-lo não invalida artefato nenhum.
+
+```bash
+py -m src.visualization.thesis_figures
+```

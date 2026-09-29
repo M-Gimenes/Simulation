@@ -308,5 +308,5 @@ Detalhe técnico de cada um na referência: [`../reference/08-tools.md`](../refe
   tempo" para **feito, e com achado**: a população colapsa no eixo da identidade na
   geração 7. Entra em Resultados/Discussão, não em Trabalhos Futuros.
 - **4.3 — Multi-objetivização** (Knowles, Watson & Corne 2001; Jensen 2004; Fieldsend &
-  Everson 2015) é **referência nova**, ainda fora dos três `.bib`. Sustenta a explicação do
+  Everson 2015) é **referência nova**, ainda fora dos dois `.bib`. Sustenta a explicação do
   achado e, se o híbrido se sustentar nas sementes 1000–1004, a contribuição de método.

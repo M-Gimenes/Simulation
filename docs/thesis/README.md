@@ -15,14 +15,17 @@ isso, apenas se referencia.
 > tarefa (instrução permanente do `CLAUDE.md`). O **status do que está implementado vs
 > citar/futuro** vive em [08-literature-methods.md](08-literature-methods.md).
 
-> A pasta `overleaf/` (raiz) tem os textos redigidos — a monografia (`TCC/`) e os
-> artigos derivados dela (`artigo-SBC/`, `artigo-latinware-2026/`, este último um
-> short paper de 3–4 páginas comprimido do SBC) — e não é tocada por estes arquivos.
-> Os artigos compartilham `values.tex` como fonte única dos números experimentais.
+> A pasta `overleaf/` (raiz) tem os textos redigidos — a monografia (`TCC/`) e o
+> artigo derivado dela (`artigo-latinware-2026/`, um short paper de 3–4 páginas) — e
+> não é tocada por estes arquivos. A monografia foi reescrita em 2026-09-29 sobre a bateria
+> de 2026-09-23: os números citados no texto vêm de `TCC/valores.tex` (macros escritas à
+> mão, cada uma com o artefato de origem ao lado), as tabelas grandes trazem o artefato num
+> comentário, e as cinco figuras de dados saem de `py -m src.visualization.thesis_figures`.
+> O artigo tem o seu próprio `values.tex`, ainda do snapshot aceito.
 > Pendências e limites do sistema: [`../reference/10-known-issues.md`](../reference/10-known-issues.md).
 
-> ✅ **Números de resultado.** Os números citáveis são os da bateria de **2026-09-21**
-> (n = 20, motor atual, os dois controles), resumidos em
+> ✅ **Números de resultado.** Os números citáveis são os da bateria de **2026-09-23**
+> (n = 20, motor atual, os dois controles e o braço híbrido), resumidos em
 > [`../status/HANDOFF.md`](../status/HANDOFF.md) §2 e listados como achados em
 > [07](07-findings-and-limitations.md). Entradas de [04](04-design-decisions.md) datadas de
 > antes dela descrevem o **percurso** e carregam nota de revisão onde o número mudou —

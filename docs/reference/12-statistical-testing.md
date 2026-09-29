@@ -404,6 +404,7 @@ Ordem sugerida — do que explica o procedimento para o que justifica usá-lo aq
 | **Vargha, A. & Delaney, H. D. (2000).** *A Critique and Improvement of the CL Common Language Effect Size Statistics…* JEBS 25(2), 101–132. | De onde vem o Â₁₂ e os limiares de magnitude. |
 | **Mann, H. B. & Whitney, D. R. (1947).** Annals of Mathematical Statistics 18(1), 50–60. | O teste original. |
 
-> Holm, Derrac, Arcuri & Briand, Vargha & Delaney e Mann & Whitney estão nos três `.bib`
-> do projeto (`overleaf/TCC/bibliografia.bib` e os dois `referencias.bib`); Dunn não está.
+> Holm, Derrac, Arcuri & Briand, Vargha & Delaney e Mann & Whitney estão nos dois `.bib`
+> do projeto (`overleaf/TCC/bibliografia.bib` e `overleaf/artigo-latinware-2026/referencias.bib`);
+> Dunn não está.
 > Verificar cada entrada na fonte antes de citar.

@@ -215,6 +215,38 @@ Estes são os achados citáveis. Os números completos estão em
 - **O stun era um gene de platô para o atacante rápido.** Até a correção dos timers, variar
   o stun do Rushdown evoluído em 31 valores dava 5 WR distintas; agora, 27.
 
+### Achados da redação da monografia (2026-09-29)
+
+Medidos sobre os genes gravados na bateria de 2026-09-23, sem nenhuma execução nova do AG.
+Os números estão em `overleaf/TCC/valores.tex` e nas tabelas do capítulo de Resultados.
+
+- **A perda de identidade se concentra na política.** Reaplicado o validador aos genes das
+  80 execuções (reproduz os totais gravados em 80/80), a asserção "Rushdown com a maior
+  P(FRENTE)" passa em **4–5 de 20** execuções em **todos** os braços — AG 5, híbrido 4,
+  NSGA-II 5, λ = 0 4 —, inclusive nos que preservam o resto da identidade. As medianas das
+  probabilidades de intenção ficam perto da mistura uniforme da população sorteada: o
+  Rushdown avança em 0,39 (AG), 0,47 (híbrido), 0,48 (NSGA-II) e 0,35 (λ = 0), contra 0,86 no
+  canônico; o Zoner recua em 0,33 / 0,45 / 0,46 / 0,19 contra 0,55. No controle λ = 0 as
+  políticas dos cinco são indistinguíveis. A leitura: o equilíbrio quase não enxerga os pesos
+  (sensibilidade) e a mutação os move com σ 4× menor, então a política herdada da população
+  aleatória fica — a inércia pretendida conservou a política errada.
+- **O controle λ = 0 fica no acaso asserção por asserção**, não só no total: as asserções de
+  Camada 1 e 3 passam em 2–8 de 20, em torno das 4 que o acaso dá.
+- **A diferenciação não é régua de identidade.** Mediana 1,09 no AG escalar, **abaixo** da
+  média dos elencos sorteados (1,20); híbrido 1,20, NSGA-II 1,22, λ = 0 1,16, canônico 1,35.
+  Elencos sorteados são dispersos sem identidade nenhuma; o que a métrica mostra é que o
+  equilíbrio do AG escalar aproxima os personagens.
+- **O controle λ = 0 termina equilibrado em 19/20**, contra 16/20 do AG escalar (sem semente:
+  18/20), embora tenha `dominance` mediano pior (0,0432 contra 0,0355). Nenhuma métrica de
+  equilíbrio separa os dois no teste; a frase continua sendo "a identidade não custa
+  equilíbrio", nunca o contrário.
+- **O híbrido nunca é dominado pela fronteira do NSGA-II da mesma semente** (0/20, no stream
+  da última geração) e domina algum ponto dela em 5/20.
+- **A régua grossa é enviesada, não só ruidosa.** Os elencos finais das sementes 42–44
+  medidos em 30 streams: `dominance` médio 0,050 a 150 lutas por par contra 0,038 a 1000
+  (desvio 0,017 contra 0,006). Como `dominance` é função de `|WR − 0,5|`, o ruído o infla
+  em média — é o mecanismo por trás da correção da comparação com o controle λ = 0.
+
 ### O AG escalar não é ótimo na própria função (2026-09-22)
 
 Investigação sobre os artefatos da bateria de 2026-09-21, scripts e dados em

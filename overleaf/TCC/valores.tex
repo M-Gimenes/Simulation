@@ -1,0 +1,142 @@
+% ============================================================================
+% valores.tex — números experimentais citados na monografia
+%
+% Fonte única dos números que saem de um artefato em `results/`. Cada macro
+% indica o artefato de origem; ao regenerar a bateria, confira e atualize aqui,
+% nunca no corpo do texto.
+%
+% Bateria citável: 2026-09-23 (n = 20 sementes, 42..61; reavaliação a 1000
+% lutas por par sob a semente 9999). Números anteriores não são citáveis.
+% Decimais com vírgula, prontos para o texto corrido.
+% ============================================================================
+
+% --- Custo computacional (derivado de config.py) -------------------------------
+\newcommand{\lutasExecAG}{68~milhões}      % (300 + 150×300) avaliações × 10 pares × 150 lutas
+\newcommand{\lutasExecNSGA}{135~milhões}   % (300 + 150×600) avaliações × 10 pares × 150 lutas
+
+% --- Convergência do AG escalar (results/multi_run/multi_run_ga.json) ----------
+\newcommand{\convTaxaAG}{20/20}
+\newcommand{\convGerMinAG}{13}
+\newcommand{\convGerMaxAG}{56}
+\newcommand{\convGerMediaAG}{31{,}3}
+\newcommand{\convGerDpAG}{13{,}2}
+\newcommand{\gateDisparosAG}{70}
+\newcommand{\gateRecusasAG}{50}
+\newcommand{\equilibradosFimAG}{16/20}
+
+% --- Bateria: medianas por braço (results/multi_run/*.json e results/controls/*.json;
+%     elencos finais reavaliados a 1000 lutas por par sob a semente 9999)
+\newcommand{\domAG}{0{,}0355}
+\newcommand{\domNSGA}{0{,}0759}
+\newcommand{\domNSGAbd}{0{,}0551}
+\newcommand{\domHib}{0{,}0287}
+\newcommand{\domLzero}{0{,}0432}
+\newcommand{\domSemSem}{0{,}0264}
+\newcommand{\driftAG}{0{,}2473}
+\newcommand{\driftNSGA}{0{,}1445}
+\newcommand{\driftHib}{0{,}1663}
+\newcommand{\driftLzero}{0{,}4055}
+\newcommand{\driftSemSem}{0{,}2703}
+\newcommand{\tauAG}{0{,}28}
+\newcommand{\tauNSGA}{0{,}54}
+\newcommand{\tauHib}{0{,}52}
+\newcommand{\tauLzero}{$-0{,}03$}
+\newcommand{\tauLzeroMedia}{$+0{,}007$}
+\newcommand{\LtresAG}{3}
+\newcommand{\LtresNSGA}{4}
+\newcommand{\LtresHib}{4}
+\newcommand{\LtresLzero}{1}
+\newcommand{\LumdoisAG}{11}
+\newcommand{\LumdoisNSGA}{15}
+\newcommand{\LumdoisHib}{15}
+\newcommand{\LumdoisLzero}{6}
+\newcommand{\hcNSGAmedia}{2{,}8}
+\newcommand{\hcAGmedia}{0{,}2}
+\newcommand{\equilAG}{16}          % elencos equilibrados ao fim, de 20
+\newcommand{\equilNSGA}{0}
+\newcommand{\equilHib}{16}
+\newcommand{\equilLzero}{19}
+\newcommand{\equilSemSem}{18}
+\newcommand{\convGerMediaHib}{98{,}3}
+\newcommand{\convGerDpHib}{20{,}2}
+
+% --- Comparações (results/multi_run/comparison_*.json, results/controls/comparison_*.json)
+\newcommand{\pHolmLzeroDom}{0{,}059}      % AG x lambda = 0, P_dom (p bruto 0,030)
+\newcommand{\pBrutoLzeroDom}{0{,}030}
+\newcommand{\aLzeroDom}{0{,}30}
+\newcommand{\pHolmLzeroIdentMax}{0{,}0044} % maior p_Holm das 4 métricas de identidade
+\newcommand{\pHolmNSGAmax}{0{,}0027}       % maior p_Holm das 6 métricas, AG x NSGA-II
+\newcommand{\pHolmHibIdentMax}{0{,}0058}
+\newcommand{\pHolmSemSemDrift}{0{,}0073}
+
+% --- Seleção sob ruído: P_dom no laço -> reavaliado (mediana das razões por semente)
+\newcommand{\sobreAG}{1{,}80}
+\newcommand{\sobreLzero}{2{,}33}
+\newcommand{\sobreHib}{1{,}67}
+\newcommand{\sobreNSGA}{1{,}25}
+\newcommand{\domLacoAG}{0{,}017}           % mediana de P_dom no laço, AG
+\newcommand{\domLacoFronteiraMin}{0{,}048}  % mediana do menor P_dom da fronteira, NSGA-II
+\newcommand{\somaAG}{0{,}266}               % mediana de P_dom + P_drift no laço, AG
+\newcommand{\somaFronteira}{0{,}205}        % mediana do melhor P_dom + P_drift da fronteira
+
+% --- Fronteira (results/multi_run/multi_run_nsga2.json)
+\newcommand{\hvMedia}{0{,}395}
+\newcommand{\hvDp}{0{,}011}
+\newcommand{\espacMedia}{0{,}012}
+\newcommand{\espacDp}{0{,}003}
+\newcommand{\fronteiraTamMedio}{53}
+
+% --- Ciclo (results/cycle/cycle_structure.json)
+\newcommand{\cicloMantidasAG}{105}
+\newcommand{\cicloDecididasAG}{186}
+\newcommand{\cicloTaxaAG}{56{,}5\%}
+\newcommand{\cicloBinomAG}{0{,}091}
+\newcommand{\cicloTaxaNulos}{49{,}7\%}
+\newcommand{\cicloPNulos}{0{,}128}
+\newcommand{\cicloANulos}{0{,}63}
+\newcommand{\triadesAG}{3{,}71}
+\newcommand{\triadesNSGA}{4{,}17}
+\newcommand{\triadesCanon}{1{,}00}
+\newcommand{\triadesAleat}{0{,}40}
+\newcommand{\triadesEspelho}{2{,}59}
+
+% --- Validação externa (results/external_validation/*.json; semente 42)
+\newcommand{\extDomLacoAG}{0{,}025}
+\newcommand{\extDomReplAG}{0{,}037}
+
+% --- Sensibilidade (results/sensitivity/sensitivity_analysis.json)
+\newcommand{\sensPiso}{3{,}5}              % pontos percentuais
+
+% --- Duração das lutas (medido na preparação do texto, 200 lutas por par, semente 9999,
+%     sobre o canônico, 3 elencos do AG escalar e 3 aleatórios)
+\newcommand{\koTaxa}{100\%}
+\newcommand{\duracaoMediaSubticks}{340}
+
+% --- Modelos nulos (results/baselines/baselines.json; 5 espelhos + 30 aleatórios,
+%     1000 lutas por par, semente 9999)
+\newcommand{\nuloValMedio}{6}               % validador completo, média dos 35 nulos (de 23)
+\newcommand{\nuloValMelhor}{10}             % melhor nulo no validador completo
+\newcommand{\nuloLTresMelhor}{3}            % melhor nulo na Camada 3 (de 5)
+\newcommand{\nuloTauMedio}{$-0{,}039$}      % concordância tau, média dos 35 nulos
+\newcommand{\nuloTauMelhor}{0{,}316}        % melhor nulo em tau
+\newcommand{\nuloDriftEspelho}{0{,}377}     % P_drift médio dos 5 espelhos
+\newcommand{\nuloDriftAleatorio}{0{,}415}   % P_drift médio dos 30 aleatórios
+\newcommand{\nuloDomEspelho}{0{,}033}       % P_dom médio dos 5 espelhos (teto de equilíbrio)
+\newcommand{\nuloDomAleatorio}{1{,}33}      % P_dom médio dos 30 aleatórios
+\newcommand{\canonDom}{1{,}28}              % P_dom do canônico
+
+% --- Poder do teste (simulação registrada em config.py: 4000 réplicas, efeito A12 = 0,80)
+\newcommand{\poderNVinte}{85{,}9\%}
+\newcommand{\poderNDez}{44{,}4\%}
+
+% --- Reteste da concordância tau (config.py, IDENTITY_BEHAVIORAL_SIMS)
+\newcommand{\tauRetesteCentoVinte}{0{,}19 a 0{,}28}
+\newcommand{\tauRetesteDuzentas}{0{,}23 a 0{,}24}
+
+% --- Ruído de medição do P_dom de um mesmo elenco (medido na preparação do texto:
+%     elencos finais das sementes 42–44 do AG escalar, 30 streams a 150 lutas por par e
+%     10 streams a 1000, bases 500000+)
+\newcommand{\ruidoDomDpTreino}{0{,}017}   % desvio-padrão entre streams a 150 lutas/par
+\newcommand{\ruidoDomDpMil}{0{,}006}      % idem a 1000 lutas/par
+\newcommand{\ruidoDomMediaTreino}{0{,}050} % média a 150 lutas/par (viés para cima)
+\newcommand{\ruidoDomMediaMil}{0{,}038}    % média a 1000 lutas/par

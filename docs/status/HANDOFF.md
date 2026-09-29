@@ -437,15 +437,22 @@ reforçou:
 
 ## 4. Aberto — redação
 
-A monografia (`overleaf/TCC/`) está várias gerações de modelo atrás — `metodologia.tex`
-descreve 9 atributos, `defense`/`recovery`, indivíduo de 60 genes, decisão por
-prioridade, `specialization_penalty` e a formulação pré-C2 do `dominance_penalty`.
-`main.tex` promete seis capítulos e existem quatro arquivos, com `conclusao.tex` em
-branco. Decisão anterior: recomeçar do zero a partir de `overleaf/artigo-SBC/main.tex`,
-que descreve o modelo melhor — **mas mesmo ele descreve um motor que não existe mais**
-(ação única em vez de dois canais, sem colisão, sem empate).
+**A monografia (`overleaf/TCC/`) foi reescrita em 2026-09-29 sobre a bateria de
+2026-09-23** e compila sem referência indefinida (109 páginas). Sete capítulos: Introdução
+(pergunta + QP1–QP3), Referencial Teórico (revisado; ganhou a seção de avaliação de
+algoritmos estocásticos e perdeu o parágrafo de Preuss et al. 2012, fonte nunca localizada),
+Metodologia (reescrita do zero sobre o motor atual), Protocolo experimental (novo, no lugar
+de "Implementação"), Resultados, Discussão e Conclusão. Números do texto em `valores.tex`,
+figuras de dados por `py -m src.visualization.thesis_figures`, diagramas e algoritmos em
+TikZ/algpseudocode. O artigo SBC, removido em 2026-09-29, continua recuperável pelo git
+(`git checkout b1f05bb -- overleaf/artigo-SBC`).
 
-O `values.tex` (idêntico nos dois artigos) está inteiramente obsoleto, e agora há números
+Pendências da monografia, todas do autor: dedicatória, agradecimentos e epígrafe (hoje
+imprimem o texto padrão do template); orientador, coorientador, banca e data de aprovação em
+`macros.tex`; os dados da ficha catalográfica, feitos pela biblioteca; e a revisão de
+leitura do texto inteiro.
+
+O `values.tex` do artigo do Latinware está inteiramente obsoleto, e agora há números
 definitivos para refazê-lo. Ao fazê-lo, a macro do `dominance` do AG deve usar o número
 medido **fora** do laço (0,0373), como as outras células da mesma linha — a versão atual
 usa o de dentro, a única célula com vantagem de proveniência.
@@ -456,4 +463,4 @@ enquanto o `drift_penalty` do mesmo indivíduo era lido como "identidade preserv
 contradição some — mas o texto precisa ser reescrito com essa distinção explícita.
 
 Bibliografia: as referências estatísticas (Holm, Mann & Whitney, Derrac et al., Arcuri &
-Briand, Vargha & Delaney) estão nos três `.bib`, junto de Laumanns, Kendall e Deb.
+Briand, Vargha & Delaney) estão nos dois `.bib`, junto de Laumanns, Kendall e Deb.

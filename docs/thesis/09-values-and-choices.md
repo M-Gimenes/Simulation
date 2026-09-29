@@ -147,18 +147,23 @@ defensável que um que separa os que foram medidos dos que são escolha.
 ## 4. Algoritmo genético
 
 - **Orçamento: população 300, 150 gerações** — **[projeto]**, com uma verificação: nas 20
-  sementes da bateria a convergência sai entre as gerações 18 e 75, então 150 deixa o dobro
-  de folga sobre a mais tardia. A população não foi variada. O orçamento importa para a
+  sementes da bateria de 2026-09-23 a convergência sai entre as gerações 13 e 56, então 150
+  deixa mais que o dobro de folga sobre a mais tardia. A população não foi variada. O orçamento importa para a
   comparação entre algoritmos — a ordem AG × NSGA-II inverte a pop 120 —, e por isso toda
   comparação de qualidade usa o de produção. → [`10-known-issues`](../reference/10-known-issues.md) §2.
 - **Mutação: 5% por gene, σ de 10% do range (atributos) e 2,5% (pesos)** — **[projeto]**. Na
   média, ~2,75 dos 55 genes mudam por filho. O σ dos pesos é 4× menor por inércia deliberada
   (atributos = capacidade, pesos = estratégia). Nenhum dos três foi varrido; o σ de cada gene
   é também o passo usado na análise de sensibilidade, que mede se **um passo típico de
-  mutação** move a WR. Custo medido dessa inércia (bateria de 2026-09-21): a esse passo os
+  mutação** move a WR. Custo medido dessa inércia (bateria de 2026-09-23): a esse passo os
   três pesos ocupam o fundo do ranking — `w_defend` 2,9% e `w_aggressiveness` 3,0% abaixo
   do piso de 3,5%, `w_retreat` 4,8% no limiar —, ou seja, o equilíbrio quase não dá
-  gradiente à política. →
+  gradiente à política. E o custo aparece no resultado (medido em 2026-09-29 sobre os genes
+  da bateria): as probabilidades de intenção dos elencos evoluídos ficam perto da mistura
+  uniforme da população inicial sorteada — o Rushdown do AG escalar avança em 39% das
+  intenções, contra 86% no canônico —, e a asserção "Rushdown com a maior P(FRENTE)" passa
+  em só 4–5 de 20 execuções em **todos** os braços. A inércia pretendida preservou a
+  política aleatória, não a canônica. →
   [04](04-design-decisions.md) "A sensibilidade passou a cobrir os pesos".
 - **Crossover por bloco de personagem** — **[coerência]**: preserva a coerência interna entre
   atributos e pesos de um arquétipo. Custo declarado: a recombinação dentro de um personagem
@@ -204,7 +209,7 @@ defensável que um que separa os que foram medidos dos que são escolha.
   modelos nulos — `dominance` do canônico (o equilíbrio de partida) e drift do espelho
   (identidade zero) —, fixo para que o HV seja comparável entre execuções. Com (2,0; 1,0) o
   HV saturava em 90% da área (CV 2,0%); com este, 76% (CV 2,9% — 0,3954 ± 0,0114 na bateria
-  de 2026-09-21). → [04](04-design-decisions.md)
+  de 2026-09-23). → [04](04-design-decisions.md)
   "O hipervolume ganhou uma referência com significado".
 
 ## 6. Protocolo experimental
@@ -256,12 +261,16 @@ defensável que um que separa os que foram medidos dos que são escolha.
   execuções são reavaliadas sob os mesmos sorteios, então a diferença entre elas reflete o
   indivíduo evoluído, não a avaliação.
 - **n = 20 sementes** — **[medido]**: o menor n com poder ≥ 80% para um efeito grande (44,4% a
-  n = 10). → [04](04-design-decisions.md) "As constantes provisórias".
-- **Mann-Whitney U + Â₁₂ + Holm, família de 7** — **[domínio]** (Derrac et al. 2011; Arcuri &
-  Briand 2011; Vargha & Delaney 2000; Holm 1979): não-paramétrico, tamanho de efeito ao lado do
-  p, e a família — equilíbrio e identidade, as duas metades da pergunta — é a mesma em toda
-  comparação, com as métricas degeneradas excluídas pela variância da amostra conjunta:
-  critério declarável antes do teste. → [`12-statistical-testing`](../reference/12-statistical-testing.md).
+  n = 10). Ressalva a declarar: a simulação de poder foi feita com o teste não pareado e a
+  correção para uma família de 3; o teste pareado adotado depois tende a ter mais poder, e a
+  família atual (até 7) corrige com mais severidade — ler o 85,9% como ordem de grandeza. →
+  [04](04-design-decisions.md) "As constantes provisórias".
+- **Wilcoxon pareado + Â₁₂ + Holm, família de 7** — **[domínio]** (Derrac et al. 2011; Arcuri &
+  Briand 2011; Vargha & Delaney 2000; Holm 1979): não-paramétrico, pareado porque os braços
+  rodam as mesmas sementes (Mann-Whitney não pareado reportado ao lado, sem correção),
+  tamanho de efeito ao lado do p, e a família — equilíbrio e identidade, as duas metades da
+  pergunta — é a mesma em toda comparação, com as métricas degeneradas excluídas pela
+  variância da amostra conjunta: critério declarável antes do teste. → [`12-statistical-testing`](../reference/12-statistical-testing.md).
 - **O NSGA-II entra no teste pelo `scalar_optimum`, com a relação de Pareto ao lado** —
   **[coerência]**: é o ponto que minimiza a função do próprio escalar, o único comparável a
   ele; o `best_dominance` é o extremo da fronteira e perde em drift por construção, e fica
@@ -288,7 +297,7 @@ defensável que um que separa os que foram medidos dos que são escolha.
   [04](04-design-decisions.md) "O validador parou de dar asserções por empate".
 - **Concordância de ranking comportamental (τ de Kendall)** — **[coerência] + [medido]**: a
   régua funcional contínua ao lado dos 5 bits da Layer 3; 0 = acaso (média dos 35 nulos
-  −0,039 na bateria de 2026-09-21, e +0,007 no braço de controle sem o termo de drift — o
+  −0,039 na bateria de 2026-09-23, e +0,007 no braço de controle sem o termo de drift — o
   acaso por duas vias independentes), 1 = a ordem do canônico. **`IDENTITY_BEHAVIORAL_SIMS = 200`** — **[medido]**: em
   re-teste, a 120 lutas o τ do evoluído variava 0,19–0,28; a 200, 0,23–0,24. →
   [04](04-design-decisions.md) "A identidade funcional ganhou uma régua contínua".

@@ -1,0 +1,102 @@
+\chapter[Discussão]{Discussão}
+\label{chap: discussao}
+
+Este capítulo interpreta os resultados do \autoref{chap: resultados}. A \autoref{sec: disc_resposta} responde à pergunta de pesquisa. As seções seguintes discutem os quatro achados que qualificam essa resposta: o termo de identidade como penalidade que pode perder (\autoref{sec: disc_penalidade}), a política como o componente de identidade menos preservado (\autoref{sec: disc_politica}), o efeito do ruído de avaliação sobre a seleção escalar (\autoref{sec: disc_ruido}) e o ciclo de vantagens que o modelo não realiza (\autoref{sec: disc_ciclo}). A \autoref{sec: disc_medicao} reúne as lições de método, a \autoref{sec: disc_robustez} discute a robustez do equilíbrio, e a \autoref{sec: limitacoes} delimita o alcance das conclusões.
+
+\section{Resposta à pergunta de pesquisa}
+\label{sec: disc_resposta}
+
+A pergunta era se um algoritmo genético consegue atingir equilíbrio competitivo entre cinco arquétipos sem destruir suas identidades funcionais. A resposta que os dados sustentam é afirmativa, com uma qualificação sobre \textit{quanto} da identidade sobrevive.
+
+O equilíbrio é alcançado sem ambiguidade (QP1). O algoritmo escalar converge em todas as execuções, os elencos finais são tão equilibrados quanto cinco cópias idênticas de um mesmo personagem, e o elenco examinado fora do laço replica o equilíbrio com amostra grande e sobrevive a metade das regras de combate que a busca nunca viu. Partindo de um elenco em que um personagem vencia todas as lutas e outro nenhuma, isso não é trivial.
+
+A identidade funcional não é destruída, mas é preservada apenas parcialmente (QP2). O critério decisivo é o contrafactual. Sem o termo de identidade, a mesma busca equilibra o elenco igualmente bem e produz personagens cuja identidade é indistinguível da de elencos sorteados: desvio igual ao do acaso, asserções na média do acaso e concordância comportamental nula. Com o termo, as quatro réguas de identidade se separam desse contrafactual com efeito grande. O que resta de identidade nos elencos do algoritmo escalar é, portanto, atribuível ao termo, e não a uma propriedade das mecânicas de combate. Ao mesmo tempo, essa identidade fica longe do canônico: \LtresAG{} das 5 asserções comportamentais e concordância de \tauAG{} numa escala em que o canônico vale 1.
+
+O compromisso entre os dois objetivos (QP3) é real, mas menor do que o algoritmo escalar sozinho sugere. O NSGA-II mostra que existe identidade muito maior disponível perto do equilíbrio, e o híbrido mostra que ela pode ser alcançada sem pagar equilíbrio: com o mesmo orçamento, a concordância quase dobra e a Camada 3 sobe de \LtresAG{} para \LtresHib{}, sem que nenhuma métrica de equilíbrio se mova. A resposta à pergunta de pesquisa fica, assim, mais afirmativa com o híbrido do que com o algoritmo escalar. A \autoref{sec: disc_ruido} discute por quê.
+
+Uma segunda leitura do contrafactual merece ser explicitada. Identidade e equilíbrio não se revelaram antagônicos na faixa medida: retirar o termo de identidade não melhorou o equilíbrio de forma significativa. A tensão que motivou o trabalho, de que equilibrar tenderia a homogeneizar, existe no sentido de que o equilíbrio \textit{sem} pressão de identidade produz elencos sem identidade. Mas a pressão de identidade não custou equilíbrio mensurável. O preço da identidade não está na função objetivo; está, como se verá, na dificuldade de buscá-la sob ruído.
+
+\section{Penalidade não é restrição}
+\label{sec: disc_penalidade}
+
+A decisão de incluir a identidade estrutural na aptidão levantava uma objeção previsível: se a identidade está na função objetivo, o algoritmo não estaria simplesmente sendo pago para preservá-la? A formulação respondeu à objeção pela separação entre premissa e resposta (\autoref{sub: premissa}), e os resultados a respondem empiricamente.
+
+Com o termo de desvio ativo durante toda a busca, o algoritmo escalar abre mão de parte substancial da identidade: satisfaz, na mediana, 11 das 18 asserções estruturais, contra 18 do canônico, e perde mais da metade da concordância comportamental. O termo existe e perde. A troca que ele arbitra, entre identidade e equilíbrio, é resolvida pela busca, e o seu resultado não estava decidido pela formulação. Além disso, as réguas que respondem à pergunta de pesquisa, a Camada 3 e a concordância $\tau$, medem comportamento, e nenhum termo da aptidão se refere a comportamento. O que elas registram é consequência, não objetivo.
+
+A mesma separação protege o ciclo de vantagens. A informação sobre quem deveria vencer quem estava disponível no sistema e foi deliberadamente mantida fora da aptidão. O ciclo não é realizado nos elencos evoluídos (\autoref{sec: res_ciclo}), e esse resultado só é informativo porque a busca não foi paga para produzi-lo nem para destruí-lo.
+
+\section{A política é o que menos se preserva}
+\label{sec: disc_politica}
+
+O achado mais nítido sobre a natureza da perda de identidade é que ela se concentra na política dos personagens. Três evidências independentes convergem. Na análise de sensibilidade, os três pesos comportamentais são os genes que menos movem a taxa de vitória, dois deles abaixo do piso de ruído. Nos elencos evoluídos, as probabilidades de intenção de todos os arquétipos se aproximam da mistura uniforme, que é a de um elenco sorteado. E a asserção sobre a política do \textit{Rushdown}, a de ser o personagem mais propenso a avançar, falha em três quartos das execuções de todos os braços, inclusive dos que melhor preservam os demais traços.
+
+A explicação combina três fatores. O primeiro é que, pela via do equilíbrio, a busca praticamente não enxerga os pesos: mudar a política num passo típico de mutação altera pouco o desfecho das lutas, porque o dano, o alcance e o ritmo decidem o combate com muito mais força. O segundo é que a mutação dos pesos foi deliberadamente lenta, com desvio quatro vezes menor que o dos atributos, para dar inércia à estratégia. O terceiro é que quase toda a população inicial é sorteada, e as políticas sorteadas estão, em média, próximas da mistura uniforme. Juntos, esses fatores fazem com que o único gradiente que puxa a política de volta ao perfil canônico seja o termo de desvio, e esse gradiente, dividido por onze genes, age devagar. A inércia pretendida acabou preservando a política aleatória da população inicial, e não a política canônica. O controle sem termo de identidade mostra o caso-limite: sem nenhuma força que as puxe de volta, as políticas dos cinco arquétipos ficam indistinguíveis entre si.
+
+O efeito aparece também na identidade funcional. A asserção comportamental do \textit{Rushdown}, ser o que mais golpeia, é satisfeita em apenas 3 das 20 execuções do algoritmo escalar. Um \textit{Rushdown} que avança em 39\% das intenções, em vez de 86\%, não pressiona como o arquétipo pressupõe, mesmo que conserve a velocidade e o ritmo de ataque que o definem estruturalmente. A identidade estrutural pode sobreviver enquanto a funcional se perde, e é por isso que a pergunta de pesquisa exige a régua funcional.
+
+O achado tem uma consequência prática para quem aplicar a técnica: no balanceamento automático, parâmetros de comportamento e parâmetros de capacidade não recebem o mesmo sinal da função de equilíbrio. Parâmetros que o equilíbrio não enxerga só são preservados por pressão explícita de identidade, e essa pressão precisa ser proporcional à inércia com que a busca os move.
+
+\section{Seleção sob ruído}
+\label{sec: disc_ruido}
+
+O algoritmo escalar termina num extremo do compromisso: em 19 das 20 sementes, o seu elenco é mais equilibrado que qualquer ponto da fronteira do NSGA-II e mais distante do canônico. Isso seria esperado se a sua função de aptidão preferisse esse extremo. Não prefere. Na própria soma $\Pdom + \Pdrift$ que o algoritmo escalar otimiza, a fronteira contém um ponto melhor que o dele em todas as 20 sementes. O algoritmo escalar não é ótimo na sua própria função, e o motivo é uma assimetria entre os dois termos da soma.
+
+O desvio é exato: é calculado a partir dos genes, sem simulação. O desequilíbrio é amostrado, com desvio-padrão de medição da mesma ordem do seu próprio valor nos elencos evoluídos (\autoref{sec: ruido}). Enquanto o elenco está longe do equilíbrio, as diferenças verdadeiras de $\Pdom$ entre indivíduos são grandes, e a seleção as enxerga. Depois da convergência, por volta da geração 30, essas diferenças se tornam menores que o ruído, mas a seleção continua comparando somas em que o ruído de $\Pdom$ domina a diferença de desvio. Nesse regime, um elenco com mais identidade pode perder o torneio para outro com menos identidade e uma avaliação de equilíbrio mais afortunada. A pressão seletiva passa a ser gasta, em grande parte, em sorte \cite{jin2005evolutionary}.
+
+Três observações sustentam essa explicação. A primeira é a degradação entre a avaliação no laço e a reavaliação, que ordena os braços exatamente pelo peso que cada um dá ao termo ruidoso: 2,33 no controle que só otimiza $\Pdom$, 1,80 no algoritmo escalar, 1,67 no híbrido e 1,25 no NSGA-II, em que o desvio é um objetivo separado. A segunda é a confirmação da convergência, que recusou 71\% dos elencos que pareciam equilibrados dentro do laço. A terceira, e a mais forte, é o híbrido, que funciona como teste da explicação. Se a perda de identidade fosse um custo intrínseco do equilíbrio, repartir o mesmo orçamento com uma fase de Pareto não a recuperaria. Se fosse uma falha de busca sob ruído, a fase de Pareto, em que o desvio não compete com o ruído de $\Pdom$ e o elenco de menor desvio fica protegido na primeira frente, deveria preservá-la. Foi o que ocorreu: o híbrido alcança a identidade do NSGA-II e o equilíbrio do algoritmo escalar. É o efeito descrito como multiobjetivização \cite{knowles2001reducing}, aqui agindo como proteção contra o ruído de avaliação.
+
+A consequência para a pergunta de pesquisa é que o compromisso medido pelo algoritmo escalar é um \textbf{limite superior} do custo da identidade, e não o custo em si. Parte do que se leria, olhando apenas para ele, como ``equilibrar exige sacrificar identidade'' é uma propriedade da busca sob avaliação ruidosa, e não do problema.
+
+Duas ressalvas limitam essa conclusão. A configuração do híbrido veio de um desempate por simplicidade, e não de uma comparação no orçamento completo: afirma-se que \textit{esta} repartição recupera a identidade sem custo de equilíbrio, não que ela seja a melhor. E o preço do híbrido é real, ainda que não medido na aptidão: ele converge três vezes mais tarde, porque metade do seu orçamento não persegue o equilíbrio.
+
+\section{O ciclo que o modelo não realiza}
+\label{sec: disc_ciclo}
+
+O ciclo autoral de vantagens foi formulado como hipótese de estrutura preservável. O resultado é que não havia estrutura a preservar: o roster canônico realiza 6 das 10 arestas no modelo, e as quatro que quebra são inversões completas que o transformam numa hierarquia, com o \textit{Rushdown} no topo e o \textit{Turtle} na base. A quebra do ciclo, portanto, não é efeito do equilíbrio. Ela está na premissa, antes de qualquer otimização.
+
+Duas explicações, não excludentes, dão conta disso. A primeira é a calibração: os perfis canônicos foram escritos a partir da descrição funcional dos arquétipos, e o critério que os aceitou exigia desequilíbrio, não um ciclo. A segunda é o nível de abstração do modelo. Em jogos de luta, várias vantagens clássicas dependem de mecânicas que o modelo deliberadamente não representa: o \textit{Turtle} vence o \textit{Rushdown} porque bloqueia e pune janelas de recuperação que só existem com quadros de animação; o \textit{Combo Master} vence o \textit{Grappler} porque converte um único acerto numa sequência longa, o que exige encadeamento de golpes. Num modelo em que o dano é fixo e o ataque é uma regra de resolução, a vantagem tende a ser uma questão de taxa de dano, e taxas de dano tendem a produzir hierarquias.
+
+Os elencos evoluídos, por sua vez, são fortemente não transitivos, com 3,7 a 4,2 tríades circulares num máximo de 5. Essa estrutura, contudo, é em boa parte consequência do objetivo: um elenco globalmente equilibrado cujos pares têm vencedor definido não pode ser uma ordem estrita. O que os resultados mostram é que o algoritmo produz estrutura cíclica, mas não \textit{a} estrutura cíclica autoral; a inclinação na direção autoral (56,5\% das arestas decididas) não se distingue do acaso. Como o objetivo é cego à direção por construção, esse é o resultado esperado se as mecânicas não favorecem as arestas autorais, e ele fornece uma verificação, e não uma falha, da não circularidade.
+
+\section{Lições de método}
+\label{sec: disc_medicao}
+
+Três achados deste trabalho são sobre medição, e não sobre balanceamento. Eles se aplicam a qualquer estudo que avalie algoritmos evolutivos por simulação estocástica.
+
+\textbf{Nenhuma métrica de identidade tem piso zero.} Elencos sorteados satisfazem, por acaso, cerca de um quarto das asserções do validador, e o melhor de 30 deles alcança concordância comportamental de 0,32. Sem modelos nulos, um elenco evoluído com 3 de 5 asserções comportamentais pareceria preservar mais da metade da identidade funcional; com eles, sabe-se que esse valor empata com o melhor nulo. Comparações de identidade precisam ser lidas contra um piso medido e, para isolar o efeito do método, contra um controle otimizado, como o braço sem termo de identidade.
+
+\textbf{Uma régua grosseira não erra simetricamente.} Na primeira execução completa do protocolo, a reavaliação usava 200 lutas por par, e o controle sem termo de identidade aparecia significativamente \textit{menos} equilibrado que o algoritmo escalar ($\Pdom$ de 0,0534 contra 0,0399, $p_{\mathrm{Holm}} = 0{,}038$). Reavaliados com 1000 lutas por par, os \textit{mesmos} elencos, idênticos gene a gene, deram 0,0432 contra 0,0355 e $p_{\mathrm{Holm}} = 0{,}059$: a diferença perdeu a significância, com o mesmo tamanho de efeito. A razão é o viés de medição discutido na \autoref{sub: reavaliacao}: como $\Pdom$ cresce com o ruído, a régua grosseira superestima o desequilíbrio, e o faz mais no braço cuja avaliação é mais ruidosa. O teste com mais poder estatístico converteu esse viés em significância. A mudança de resolução foi motivada por outro braço, aplicada uniformemente aos mesmos indivíduos, e o seu efeito foi \textit{enfraquecer} uma afirmação do trabalho, o que afasta a hipótese de ajuste dos resultados. A afirmação que sobreviveu é a mais estreita: a identidade não custa equilíbrio.
+
+\textbf{A resolução da medida precisa acompanhar a margem do fenômeno.} Medido a 200 lutas por par, o ciclo autoral parecia mantido em 5 de 10 arestas em elencos equilibrados, e os espelhos, que por construção não têm estrutura alguma, marcavam 5,4 arestas ``mantidas''. A margem mediana de uma aresta num elenco equilibrado é menor que o desvio-padrão da medida a essa resolução, e a contagem media ruído. Refeito com 16\,000 lutas por par e restrito às arestas decididas, o teste mudou de conclusão sobre o próprio canônico, que se revelou uma hierarquia.
+
+\section{Robustez do equilíbrio}
+\label{sec: disc_robustez}
+
+O equilíbrio do algoritmo escalar replica, mas é sensível a algumas regras. Das oito perturbações, as que o quebram são o campo menor e a persistência maior da intenção, e as duas perturbações da persistência produzem os maiores desequilíbrios. A leitura é que o equilíbrio foi ajustado à escala de tempo da política: a persistência define com que frequência cada personagem reconsidera a postura, e mudá-la altera o ritmo de todos os confrontos ao mesmo tempo. O campo menor, por sua vez, reduz o espaço disponível para recuar, e o par que sai da faixa é justamente um que envolve o \textit{Zoner}, o arquétipo cujo estilo mais depende desse espaço.
+
+A sensibilidade íngreme dos genes de recurso contribui para essa fragilidade. Um passo de mutação no alcance, no dano, no intervalo entre golpes ou nos pontos de vida desloca as taxas de vitória em 24 a 31 pontos percentuais, sete a nove vezes o piso de ruído. A busca tem gradiente forte, o que explica a convergência rápida, mas um equilíbrio fino sobre respostas íngremes tende a ser frágil a qualquer mudança que desloque essas respostas. Essa é a descrição correta do regime do modelo: soluções fáceis de encontrar e sensíveis às regras sob as quais foram encontradas.
+
+O representante \textit{scalar\_optimum} do NSGA-II não replica sequer sob as regras de treino. A razão é visível na \autoref{tab: equilibrio}: ele equilibra os personagens globalmente, mas mantém pares perto da tolerância, e com amostra grande o par \textit{Rushdown} contra \textit{Combo Master} cai do lado de fora. O equilíbrio global sem controle dos pares é o primeiro a falhar fora do laço.
+
+\section{Limitações}
+\label{sec: limitacoes}
+
+As conclusões deste trabalho valem dentro dos limites a seguir, que são escolhas de escopo, e não defeitos de implementação.
+
+\textbf{O equilíbrio é condicionado a uma política fixa.} Os pesos comportamentais \textit{são} a política: os personagens não aprendem, e nenhum agente procura estratégias que explorem o elenco evoluído. Se existir uma estratégia dominante que a política sorteada não visita, o equilíbrio medido não a enxerga. Essa é a objeção mais forte aos resultados de equilíbrio, e a coevolução de estratégias contra o elenco \cite{chen2014mmorpg} é o modo natural de testá-la.
+
+\textbf{A política é cega ao estado.} A intenção não depende dos pontos de vida, da distância, do estado de recarga do oponente nem de ele estar atordoado. A ``estratégia'' de um personagem é uma mistura fixa de três posturas. Arquétipos de jogos reais têm planos condicionais que o modelo não representa.
+
+\textbf{O modelo de combate é uma abstração.} Não há quadros de animação, janelas de punição, sequências de golpes nem ataques de tipos distintos. Os resultados sobre identidade dizem respeito a arquétipos definidos por atributos e políticas nesse nível de abstração, e a quebra do ciclo autoral sugere que parte da estrutura dos jogos reais depende justamente do que foi omitido.
+
+\textbf{O confronto é uniforme.} O \textit{round-robin} pesa igualmente os dez pares. Não há escolha de personagem pelos jogadores, e o equilíbrio medido é o equilíbrio sob confronto uniforme, não o de um \textit{metagame} em que confrontos favoráveis são procurados \cite{sirlin2006playing}.
+
+\textbf{Os perfis canônicos são uma operacionalização autoral.} Cinco arquétipos, os seus valores e os seus genes definidores são uma escolha entre várias defensáveis. O desvio, além disso, protege as identidades com rigor desigual: o \textit{Combo Master} tem um gene definidor e o \textit{Turtle}, quatro, de modo que os genes definidores concentram 23\% do peso do desvio num caso e 63\% no outro.
+
+\textbf{As réguas funcionais são \textit{held-out}, não independentes.} Cada asserção comportamental é consequência próxima de um gene definidor. A Camada 3 tem apenas cinco bits, e a concordância $\tau$ existe para dar resolução, não independência.
+
+\textbf{Vários parâmetros não foram calibrados.} O campo, a distância inicial, o multiplicador da guarda, a taxa e os desvios da mutação, o tamanho da população e o número de gerações são valores de projeto (\autoref{tab: parametros}). A validação externa mede a dependência do equilíbrio em relação aos parâmetros de combate, mas não em relação aos parâmetros da busca, e as varreduras de calibração, feitas em orçamento reduzido e com cinco sementes, ordenam configurações sem demonstrar que as adotadas sejam ótimas.
+
+\textbf{Algumas análises usam um único elenco.} A validação externa e a análise de sensibilidade foram feitas sobre os elencos da semente 42. A sensibilidade é, além disso, local: descreve o que a busca enxerga em torno de um elenco equilibrado, e poderia ser diferente em outro.
+
+\textbf{A comparação entre algoritmos é restrita.} O trabalho compara um algoritmo genético escalar, o NSGA-II e o seu híbrido, com um único orçamento. Outros algoritmos multiobjetivo e outras formulações do compromisso não foram avaliados, e a comparação do híbrido com o NSGA-II é descritiva.
