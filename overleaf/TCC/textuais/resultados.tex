@@ -1,27 +1,27 @@
 \chapter[Resultados]{Resultados}
 \label{chap: resultados}
 
-Este capítulo apresenta os resultados da bateria experimental descrita no \autoref{chap: protocolo}. A \autoref{sec: res_partida} estabelece os pontos de referência: o roster canônico, do qual a busca parte, e os modelos nulos, que dão escala às métricas. As três seções seguintes respondem, cada uma, a uma questão de pesquisa: o equilíbrio (\autoref{sec: res_equilibrio}), a identidade (\autoref{sec: res_identidade}) e o compromisso entre os dois (\autoref{sec: res_compromisso}). A \autoref{sec: res_ciclo} relata o teste do ciclo autoral de vantagens, e a \autoref{sec: res_sintese} reúne as respostas. A interpretação desses resultados é feita no \autoref{chap: discussao}.
+Este capítulo apresenta os resultados da bateria experimental descrita no \autoref{chap: protocolo}. A \autoref{sec: res_partida} estabelece os pontos de referência: o elenco canônico, do qual a busca parte, e os modelos nulos, que dão escala às métricas. As três seções seguintes respondem, cada uma, a uma questão de pesquisa: o equilíbrio (\autoref{sec: res_equilibrio}), a identidade (\autoref{sec: res_identidade}) e o compromisso entre os dois (\autoref{sec: res_compromisso}). A \autoref{sec: res_ciclo} relata o teste do ciclo autoral de vantagens, e a \autoref{sec: res_sintese} reúne as respostas. A interpretação desses resultados é feita no \autoref{chap: discussao}.
 
 Salvo indicação em contrário, os valores são medianas das 20 execuções de cada braço, que é a estatística dos testes, e as métricas de equilíbrio vêm da reavaliação independente, com 1000 lutas por par.
 
 \section{Pontos de partida}
 \label{sec: res_partida}
 
-O roster canônico é tão desequilibrado quanto o projeto pretendia. A \autoref{fig: confrontos}(a) mostra a sua matriz de confrontos. O \textit{Rushdown} vence praticamente todas as lutas contra os quatro adversários, e o \textit{Turtle} não vence nenhuma. Nove dos dez pares são \textit{hard counters}, todos decididos a favor de um dos lados em mais de 99\% das lutas, e $\Pdom = \canonDom$, no nível de um elenco sorteado ao acaso. A única aresta moderada é a do \textit{Zoner} contra o \textit{Grappler}, com 63\%. A identidade, por construção, é máxima: desvio nulo, 23 de 23 asserções do validador e concordância $\tau = 1$.
+O elenco canônico é tão desequilibrado quanto o projeto pretendia. A \autoref{fig: confrontos}(a) mostra a sua matriz de confrontos. O \textit{Rushdown} vence praticamente todas as lutas contra os quatro adversários, e o \textit{Turtle} não vence nenhuma. Nove dos dez pares são \textit{hard counters}, todos decididos a favor de um dos lados em mais de 99\% das lutas, e $\Pdom = \canonDom$, no nível de um elenco sorteado ao acaso. A única aresta moderada é a do \textit{Zoner} contra o \textit{Grappler}, com 63\%. A identidade, por construção, é máxima: desvio nulo, 23 de 23 asserções do validador e concordância $\tau = 1$.
 
 \begin{figure}[htb]
-    \caption{Matriz de confrontos: taxa de vitória, em porcentagem, do personagem da linha contra o da coluna, medida com 16\,000 lutas por par. Em (b), a média das 20 execuções do algoritmo escalar.}
+    \caption[Matriz de confrontos do elenco canônico e do algoritmo escalar]{Matriz de confrontos: taxa de vitória, em porcentagem, do personagem da linha contra o da coluna, medida com 16\,000 lutas por par. Em (b), a média das 20 execuções do algoritmo escalar.}
     \label{fig: confrontos}
     \centering
     \includegraphics[width=\textwidth]{confrontos.pdf}
     \source
 \end{figure}
 
-A \autoref{tab: referencias} traz os valores das métricas no roster canônico e nos modelos nulos. Três leituras dela orientam o restante do capítulo. A primeira é que o acaso já produz identidade aparente: um elenco sorteado satisfaz em média 5,4 das 18 asserções estruturais e 1,0 das 5 comportamentais, e o melhor dos 30 sorteados chega a 9 e a 3. A segunda é que o piso da concordância $\tau$ é de fato zero, mas com dispersão larga: o melhor nulo chega a \nuloTauMelhor{}. A terceira é que os espelhos, sem identidade alguma, atingem $\Pdom$ médio de \nuloDomEspelho{}. É esse o valor que um elenco perfeitamente simétrico alcança sob o ruído de medição, e é contra ele, e não contra zero, que o equilíbrio de um elenco evoluído deve ser lido.
+A \autoref{tab: referencias} traz os valores das métricas no elenco canônico e nos modelos nulos. Três leituras dela orientam o restante do capítulo. A primeira é que o acaso já produz identidade aparente: um elenco sorteado satisfaz em média 5,4 das 18 asserções estruturais e 1,0 das 5 comportamentais, e o melhor dos 30 sorteados em cada régua chega a 9 e a 3. A segunda é que o piso da concordância $\tau$ é de fato zero, mas com dispersão larga: o melhor nulo chega a \nuloTauMelhor{}. A terceira é que os espelhos, sem identidade alguma, atingem $\Pdom$ médio de \nuloDomEspelho{}. É esse o valor que um elenco perfeitamente simétrico alcança sob o ruído de medição, e é contra ele, e não contra zero, que o equilíbrio de um elenco evoluído deve ser lido.
 
 \begin{table}[htb]
-    \caption{Métricas do roster canônico e dos modelos nulos (1000 lutas por par para $\Pdom$; 200 para as métricas comportamentais).}
+    \caption[Métricas do elenco canônico e dos modelos nulos]{Métricas do elenco canônico e dos modelos nulos (1000 lutas por par para $\Pdom$; 200 para as métricas comportamentais). Na última linha, o melhor dos 30 elencos aleatórios em cada coluna, que não é necessariamente o mesmo elenco.}
     \label{tab: referencias}
     \centering
     \small
@@ -46,10 +46,10 @@ A \autoref{tab: referencias} traz os valores das métricas no roster canônico e
 \subsection{Convergência}
 \label{sub: res_convergencia}
 
-O algoritmo escalar convergiu em todas as 20 execuções, na geração \convGerMediaAG{} $\pm$ \convGerDpAG{} em média, e sempre entre as gerações \convGerMinAG{} e \convGerMaxAG{}. A \autoref{fig: convergencia} mostra a trajetória do melhor elenco de cada geração. O desequilíbrio cai duas ordens de grandeza nas primeiras 30 gerações e depois oscila em torno de um patamar, como esperado sob a rotação do \textit{stream}: cada geração é avaliada sob sorteios diferentes. O desvio do melhor elenco cai de cerca de 0,4, o valor de um elenco sorteado, para 0,28 nas primeiras 30 gerações, e depois declina devagar até 0,25.
+O algoritmo escalar convergiu em todas as 20 execuções, na geração \convGerMediaAG{} $\pm$ \convGerDpAG{} em média, e sempre entre as gerações \convGerMinAG{} e \convGerMaxAG{}. A \autoref{fig: convergencia} mostra a trajetória do melhor elenco de cada geração. O desequilíbrio cai mais de uma ordem de grandeza nas primeiras 30 gerações, de \trajDomIni{} para \trajDomTrinta{} na mediana, e depois oscila em torno de um patamar, como esperado sob a rotação do \textit{stream}: cada geração é avaliada sob sorteios diferentes. O desvio do melhor elenco cai de cerca de 0,4, o valor de um elenco sorteado, para 0,28 nas primeiras 30 gerações, e depois declina devagar até 0,25.
 
 \begin{figure}[htb]
-    \caption{Trajetória do melhor elenco de cada geração, avaliado dentro do laço. Linhas: mediana das 20 execuções; faixas: intervalo interquartil. O híbrido aparece a partir da geração 75, quando começa a sua fase escalar.}
+    \caption[Trajetória do melhor elenco de cada geração]{Trajetória do melhor elenco de cada geração, avaliado dentro do laço. Linhas: mediana das 20 execuções; faixas: intervalo interquartil. O híbrido aparece a partir da geração 75, quando começa a sua fase escalar.}
     \label{fig: convergencia}
     \centering
     \includegraphics[width=\textwidth]{convergencia.pdf}
@@ -58,7 +58,7 @@ O algoritmo escalar convergiu em todas as 20 execuções, na geração \convGerM
 
 A confirmação independente foi decisiva. Das \gateDisparosAG{} vezes em que o melhor elenco satisfez o predicado de equilíbrio dentro do laço, \gateRecusasAG{} não sobreviveram à reavaliação num \textit{stream} inédito. Convergir, portanto, marca o primeiro sucesso de um teste repetido a cada geração, e não um estado estável. Ao fim do orçamento, \equilAG{} das 20 execuções terminaram com o elenco equilibrado na reavaliação.
 
-O mesmo fenômeno aparece como degradação entre a avaliação no laço e a reavaliação. O $\Pdom$ do elenco final de cada execução do algoritmo escalar tem mediana \domLacoAG{} no laço e \domAG{} na reavaliação, e a mediana da razão entre os dois é \sobreAG{}. A razão ordena os braços conforme o peso que cada um dá ao termo ruidoso: \sobreLzero{} no controle $\lambda_{\mathrm{drift}} = 0$, que só otimiza $\Pdom$; \sobreAG{} no algoritmo escalar; \sobreHib{} no híbrido; e \sobreNSGA{} no representante \textit{scalar\_optimum} do NSGA-II.
+O mesmo fenômeno aparece como degradação entre a avaliação no laço e a reavaliação. O $\Pdom$ do elenco final de cada execução do algoritmo escalar tem mediana \domLacoAG{} no laço e \domAG{} na reavaliação, e a mediana da razão entre os dois é \sobreAG{}. A razão acompanha o peso que a seleção dá ao termo ruidoso. Ela vai de \sobreLzero{} no controle $\lambda_{\mathrm{drift}} = 0$, que só otimiza $\Pdom$, a \sobreNSGA{} no representante \textit{scalar\_optimum} do NSGA-II, em que o desvio é um objetivo separado. Entre os braços que otimizam a mesma soma, ela também varia: \sobreAG{} no algoritmo escalar, \sobreSemSem{} no controle sem semente e \sobreHib{} no híbrido, cuja fase final é escalar. A relação com o peso do termo ruidoso é, portanto, uma tendência, e não uma ordenação exata.
 
 \subsection{Equilíbrio reavaliado}
 \label{sub: res_equilibrio_reavaliado}
@@ -66,10 +66,11 @@ O mesmo fenômeno aparece como degradação entre a avaliação no laço e a rea
 A \autoref{tab: equilibrio} resume o equilíbrio dos elencos finais de cada braço. Todos os personagens de todas as execuções, em todos os braços, terminaram com taxa de vitória global entre 40\% e 60\%. Equilibrar os personagens globalmente, portanto, não discrimina os métodos. O que discrimina são os pares.
 
 \begin{table}[htb]
-    \caption{Equilíbrio dos elencos finais, reavaliados com 1000 lutas por par. $\Pdom$ e $\tglob$: mediana e, entre colchetes, primeiro e terceiro quartis; $\tcap$ e \textit{hard counters}: média por execução.}
+    \caption[Equilíbrio dos elencos finais]{Equilíbrio dos elencos finais, reavaliados com 1000 lutas por par. $\Pdom$ e $\tglob$: mediana e, entre colchetes, primeiro e terceiro quartis; $\tcap$ e \textit{hard counters}: média por execução.}
     \label{tab: equilibrio}
     \centering
-    \small
+    \footnotesize
+    \setlength{\tabcolsep}{4pt}
     % Fonte: results/multi_run/multi_run_{ga,nsga2}.json e results/controls/multi_run_*.json
     \begin{tabular}{l c c c c c}
         \toprule
@@ -77,8 +78,8 @@ A \autoref{tab: equilibrio} resume o equilíbrio dos elencos finais de cada bra�
         \midrule
         AG escalar                      & 0,0355 [0,0252; 0,0418] & 0,0318 & 0,0032 & 0,20 & 16/20 \\
         Híbrido                         & 0,0287 [0,0229; 0,0437] & 0,0287 & 0,0042 & 0,25 & 16/20 \\
-        NSGA-II, \textit{scalar\_optimum} & 0,0759 [0,0492; 0,1031] & 0,0385 & 0,0736 & 2,80 & 0/20 \\
-        NSGA-II, \textit{best\_dominance} & 0,0551 [0,0402; 0,0708] & 0,0378 & 0,0467 & 2,05 & 4/20 \\
+        NSGA-II (\textit{scalar\_opt.}) & 0,0759 [0,0492; 0,1031] & 0,0385 & 0,0736 & 2,80 & 0/20 \\
+        NSGA-II (\textit{best\_dom.}) & 0,0551 [0,0402; 0,0708] & 0,0378 & 0,0467 & 2,05 & 4/20 \\
         Controle $\lambda_{\mathrm{drift}} = 0$ & 0,0432 [0,0303; 0,0524] & 0,0432 & 0,0000 & 0,05 & 19/20 \\
         Controle sem semente            & 0,0264 [0,0183; 0,0481] & 0,0264 & 0,0016 & 0,10 & 18/20 \\
         \bottomrule
@@ -96,25 +97,26 @@ O desequilíbrio que resta no NSGA-II é de natureza diferente. O seu termo glob
 A \autoref{tab: validacao_externa} traz a validação externa dos quatro elencos de semente 42. O elenco do algoritmo escalar é o único que replica: sob sorteios inéditos e 5000 lutas por par, todas as 15 taxas de vitória ficam dentro das faixas de equilíbrio, com $\Pdom = \extDomReplAG{}$, contra \extDomLacoAG{} dentro do laço. O representante \textit{scalar\_optimum} do NSGA-II não replica: o par \textit{Rushdown} contra \textit{Combo Master} fica em 32,7\%, com o intervalo de confiança inteiro fora da faixa. O \textit{knee\_point} e o canônico falham com larga margem.
 
 \begin{table}[htb]
-    \caption{Validação externa dos elencos de semente 42: veredito (R: robusto; I: inconclusivo; F: frágil) e $\Pdom$ sob cada condição, com 5000 lutas por par.}
+    \caption[Validação externa dos elencos de semente 42]{Validação externa dos elencos de semente 42: veredito (R: robusto; I: inconclusivo; F: frágil) e $\Pdom$ sob cada condição, ambos calculados sobre 5000 lutas por par (10 sementes de 500 lutas, somadas).}
     \label{tab: validacao_externa}
     \centering
-    \small
+    \footnotesize
+    \setlength{\tabcolsep}{4pt}
     % Fonte: results/external_validation/external_validation_{evolved,nsga2_scalar_optimum,nsga2_knee_point,canonical}.json
     \begin{tabular}{l c c c c}
         \toprule
         \textbf{Condição} & \textbf{AG escalar} & \textbf{NSGA-II, \textit{scalar\_opt.}} & \textbf{NSGA-II, \textit{knee}} & \textbf{Canônico} \\
         \midrule
-        Replicação (regras do treino) & R \; 0,037 & F \; 0,059 & F \; 0,404 & F \; 1,277 \\
+        Replicação (regras do treino) & R \; 0,033 & F \; 0,051 & F \; 0,400 & F \; 1,277 \\
         \midrule
-        Distância inicial 40        & R \; 0,031 & F \; 0,079 & F \; 0,398 & F \; 1,277 \\
-        Distância inicial 60        & R \; 0,044 & F \; 0,056 & F \; 0,399 & F \; 1,278 \\
-        Campo 80                    & F \; 0,089 & F \; 0,146 & F \; 0,472 & F \; 1,297 \\
-        Campo 120                   & R \; 0,038 & F \; 0,163 & F \; 0,411 & F \; 1,272 \\
-        Persistência 4              & I \; 0,117 & F \; 0,275 & F \; 0,443 & F \; 1,283 \\
-        Persistência 6              & F \; 0,154 & F \; 0,231 & F \; 0,443 & F \; 1,271 \\
-        Multiplicador da guarda 0,55 & I \; 0,079 & F \; 0,114 & F \; 0,401 & F \; 1,277 \\
-        Multiplicador da guarda 0,65 & R \; 0,063 & F \; 0,069 & F \; 0,446 & F \; 1,278 \\
+        Distância inicial 40        & R \; 0,025 & F \; 0,068 & F \; 0,394 & F \; 1,277 \\
+        Distância inicial 60        & R \; 0,040 & F \; 0,045 & F \; 0,396 & F \; 1,278 \\
+        Campo 80                    & F \; 0,087 & F \; 0,143 & F \; 0,470 & F \; 1,297 \\
+        Campo 120                   & R \; 0,033 & F \; 0,160 & F \; 0,407 & F \; 1,272 \\
+        Persistência 4              & I \; 0,110 & F \; 0,273 & F \; 0,440 & F \; 1,283 \\
+        Persistência 6              & F \; 0,153 & F \; 0,230 & F \; 0,441 & F \; 1,271 \\
+        Multiplicador da guarda 0,55 & I \; 0,075 & F \; 0,108 & F \; 0,397 & F \; 1,277 \\
+        Multiplicador da guarda 0,65 & R \; 0,061 & F \; 0,063 & F \; 0,444 & F \; 1,278 \\
         \bottomrule
     \end{tabular}
     \source
@@ -125,17 +127,17 @@ Sob regras que a busca nunca viu, o elenco do algoritmo escalar é robusto em qu
 \subsection{O que a busca enxerga}
 \label{sub: res_sensibilidade}
 
-A \autoref{fig: sensibilidade} mostra a análise de sensibilidade sobre o elenco do algoritmo escalar de semente 42. Os atributos de recurso e de ritmo movem a taxa de vitória com força: um passo de mutação no alcance desloca a taxa global dos personagens em 30,8 pontos percentuais em média, contra um piso de ruído medido de \sensPiso{} pontos. O atordoamento e o agarrão também são claramente visíveis. A velocidade e a repulsão ficam no limiar, e os três pesos comportamentais ocupam o fundo da ordenação: o peso de RECUAR é limítrofe, e os pesos de FRENTE e de GUARDA não se distinguem do ruído.
+A \autoref{fig: sensibilidade} mostra a análise de sensibilidade sobre o elenco do algoritmo escalar de semente 42. O alcance, o dano, o intervalo entre golpes e os pontos de vida movem a taxa de vitória com força: deslocar o alcance numa janela de um desvio de mutação para cada lado muda a taxa global dos personagens em 30,8 pontos percentuais em média, contra um piso de ruído medido de \sensPiso{} pontos. O agarrão e o atordoamento também são claramente visíveis. O peso de RECUAR, a repulsão e a velocidade ficam na faixa limítrofe, e os pesos de FRENTE e de GUARDA, no fundo da ordenação, não se distinguem do ruído. A janela dos pesos comportamentais, porém, é quatro vezes mais estreita que a dos atributos, porque o desvio da mutação deles é menor (\autoref{sec: ag_escalar}).
 
 \begin{figure}[htb]
-    \caption{Sensibilidade de cada gene no elenco do algoritmo escalar de semente 42: variação média absoluta da taxa de vitória global dos cinco personagens numa janela de dois desvios-padrão de mutação.}
+    \caption[Sensibilidade de cada gene no elenco do algoritmo escalar]{Sensibilidade de cada gene no elenco do algoritmo escalar de semente 42: variação média absoluta da taxa de vitória global dos cinco personagens numa janela de dois desvios-padrão de mutação.}
     \label{fig: sensibilidade}
     \centering
     \includegraphics[width=\textwidth]{sensibilidade.pdf}
     \source
 \end{figure}
 
-Pela via do equilíbrio, portanto, a busca praticamente não enxerga a política dos personagens. O único termo da aptidão que exerce pressão sobre os pesos é o de identidade. Essa assimetria reaparece na \autoref{sub: res_perdas}.
+A diferença de janela separa duas explicações para o fundo da ordenação: a política pesar pouco no combate, ou a mutação mexer pouco nela. Numa medição feita para este texto, os pesos foram deslocados com a mesma janela relativa dos atributos, de 10\% da amplitude para cada lado. Nessa condição, os três pesos movem a taxa global em \sensPesosIguais{} pontos percentuais (\sensWRIgual{} no de RECUAR, \sensWFIgual{} no de FRENTE e \sensWGIgual{} no de GUARDA), acima do atordoamento (\sensStun{}), da repulsão (\sensKb{}) e da velocidade (\sensSpd{}). A política pesa no combate tanto quanto os atributos intermediários. O que a esconde da busca é o passo com que a mutação a altera: nesse passo, o efeito de cada mutação sobre o equilíbrio fica no nível do ruído, e o único termo da aptidão que ainda distingue uma mutação de outra é o de identidade. Essa assimetria reaparece na \autoref{sub: res_perdas}.
 
 \section{Identidade}
 \label{sec: res_identidade}
@@ -146,7 +148,7 @@ Pela via do equilíbrio, portanto, a busca praticamente não enxerga a política
 A \autoref{fig: metricas} mostra a distribuição, nas 20 execuções de cada braço, das seis métricas da família de testes. Tomado isoladamente, o algoritmo escalar preserva a identidade estrutural com folga sobre o acaso: desvio mediano de \driftAG{}, contra 0,415 dos elencos sorteados, e \LumdoisAG{} das 18 asserções das Camadas 1 e 2, contra 5,4 em média e 9 no melhor nulo. Essa régua, contudo, é parcialmente endógena, e superar os nulos nela é esperado de qualquer busca com o termo de desvio.
 
 \begin{figure}[htbp]
-    \caption{As seis métricas da família de testes nas 20 execuções de cada braço. Pontos: execuções; barra preta: mediana. Linha tracejada: média dos espelhos em (a) e dos elencos aleatórios nos demais painéis. O NSGA-II aparece pelo representante \textit{scalar\_optimum}.}
+    \caption[As seis métricas da família de testes por braço]{As seis métricas da família de testes nas 20 execuções de cada braço. Pontos: execuções; barra preta: mediana. Linha tracejada: média dos espelhos em (a) e dos elencos aleatórios de (c) a (f). O NSGA-II aparece pelo representante \textit{scalar\_optimum}.}
     \label{fig: metricas}
     \centering
     \includegraphics[width=\textwidth]{metricas.pdf}
@@ -161,7 +163,7 @@ A identidade funcional é mais modesta. A mediana é de \LtresAG{} das 5 asserç
 A \autoref{tab: controles} compara o algoritmo escalar com os dois braços de controle. Sem o termo de identidade, o mesmo algoritmo, com a mesma amostra e o mesmo orçamento, perde a identidade nas quatro réguas, todas com efeito grande e $p_{\mathrm{Holm}} \le \pHolmLzeroIdentMax{}$. O desvio mediano sobe de \driftAG{} para \driftLzero{}; as asserções estruturais caem de \LumdoisAG{} para \LumdoisLzero{}; as comportamentais, de \LtresAG{} para \LtresLzero{}; e a concordância cai de \tauAG{} para \tauLzero{}, com média de \tauLzeroMedia{} nas 20 execuções.
 
 \begin{table}[htb]
-    \caption{Algoritmo escalar contra os dois controles: medianas, $p$ corrigido por Holm (Wilcoxon pareado) e $\hat{A}_{12}$ (probabilidade de o AG escalar dar valor maior).}
+    \caption[Algoritmo escalar contra os dois controles]{Algoritmo escalar contra os dois controles: medianas, $p$ corrigido por Holm (Wilcoxon pareado) e $\hat{A}_{12}$ (probabilidade de o AG escalar dar valor maior).}
     \label{tab: controles}
     \centering
     \small
@@ -195,7 +197,7 @@ O controle sem a semente canônica separa do algoritmo escalar apenas no desvio 
 A \autoref{tab: assercoes} desagrega o validador: em quantas das 20 execuções de cada braço cada asserção foi satisfeita. Três padrões aparecem.
 
 \begin{table}[htbp]
-    \caption{Número de execuções, em 20, em que cada asserção do validador foi satisfeita. Para as asserções das Camadas 1 e 3, o acaso dá em torno de 4 em 20.}
+    \caption[Asserções do validador satisfeitas por braço]{Número de execuções, em 20, em que cada asserção do validador foi satisfeita. Para as asserções das Camadas 1 e 3, o acaso dá em torno de 4 em 20. O NSGA-II aparece pelo representante \textit{scalar\_optimum}.}
     \label{tab: assercoes}
     \centering
     \footnotesize
@@ -238,12 +240,12 @@ A \autoref{tab: assercoes} desagrega o validador: em quantas das 20 execuções 
     \source
 \end{table}
 
-O primeiro padrão é que o controle $\lambda_{\mathrm{drift}} = 0$ fica no nível do acaso asserção por asserção, e não apenas no total. O segundo é que o algoritmo escalar preserva melhor os traços de ritmo do \textit{Rushdown} (velocidade e intervalo entre golpes), o atordoamento do \textit{Combo Master} e o agarrão do \textit{Grappler}, todos em 16 de 20 execuções, e perde mais os traços do \textit{Zoner} e do \textit{Turtle}, que ficam entre 9 e 12. O terceiro, e o mais nítido, é que a asserção da política do \textit{Rushdown}, ser o personagem de maior probabilidade de avançar, é satisfeita em apenas 4 a 5 de 20 execuções em \textit{todos} os braços, inclusive nos que melhor preservam a identidade. A asserção comportamental correspondente, ser o que mais golpeia, cai para 3 em 20 no algoritmo escalar.
+O primeiro padrão é que o controle $\lambda_{\mathrm{drift}} = 0$ fica no nível do acaso asserção por asserção, e não apenas no total. O segundo é que o algoritmo escalar preserva melhor os traços de ritmo do \textit{Rushdown} (velocidade e intervalo entre golpes), o atordoamento do \textit{Combo Master} e o agarrão do \textit{Grappler}, todos em 16 de 20 execuções, e perde mais os traços do \textit{Zoner} e do \textit{Turtle}, que ficam entre 9 e 12. O terceiro, e o mais nítido, é que a asserção da política do \textit{Rushdown}, ser o personagem de maior probabilidade de avançar, é satisfeita em apenas 4 a 5 de 20 execuções em \textit{todos} os braços, inclusive nos que melhor preservam a identidade. Em boa parte dessas falhas, o \textit{Combo Master}, cuja probabilidade canônica de FRENTE (0,74) já é próxima da do \textit{Rushdown}, passa a avançar mais que ele. Isso ocorre em \cmAvancaMaisAG{} das 20 execuções do algoritmo escalar, em \cmAvancaMaisNSGA{} das do NSGA-II e em \cmAvancaMaisHib{} das do híbrido. A asserção comportamental correspondente, ser o que mais golpeia, cai para 3 em 20 no algoritmo escalar.
 
-A \autoref{tab: politica} mostra a origem desse padrão. Ela compara, para cada arquétipo, a probabilidade da intenção que o define no roster canônico com a mediana dessa probabilidade nas execuções de cada braço. Nos elencos evoluídos, a política de todos os personagens se afasta do perfil canônico em direção a uma mistura próxima da uniforme, em que cada intenção tem probabilidade 1/3. O \textit{Rushdown} canônico avança em 86\% das intenções; o do algoritmo escalar, em 39\%, e o do NSGA-II, em 48\%. No controle sem termo de identidade, as políticas dos cinco arquétipos são praticamente indistinguíveis entre si.
+A \autoref{tab: politica} mostra a origem desse padrão. Ela compara, para cada arquétipo, a probabilidade da intenção que o define no elenco canônico com a mediana dessa probabilidade nas execuções de cada braço. Nos elencos evoluídos, a política de todos os personagens se afasta do perfil canônico em direção a uma mistura próxima da uniforme, em que cada intenção tem probabilidade 1/3. O \textit{Rushdown} canônico avança em 86\% das intenções; o do algoritmo escalar, em 39\%, e o do NSGA-II, em 48\%. No controle sem termo de identidade, as políticas dos cinco arquétipos são praticamente indistinguíveis entre si: na mediana, todos avançam em \polLzeroF{} das intenções, recuam em \polLzeroR{} e guardam em \polLzeroG{}. O valor baixo do \textit{Zoner} na \autoref{tab: politica} não o distingue: é a propensão a recuar comum aos cinco.
 
 \begin{table}[htb]
-    \caption{Probabilidade da intenção que define cada arquétipo: valor canônico e mediana das 20 execuções de cada braço. Uma política sorteada ao acaso dá, em média, 1/3 a cada intenção.}
+    \caption[Probabilidade da intenção que define cada arquétipo]{Probabilidade da intenção que define cada arquétipo: valor canônico e mediana das 20 execuções de cada braço. Uma política sorteada ao acaso dá, em média, 1/3 a cada intenção. O NSGA-II aparece pelo representante \textit{scalar\_optimum}.}
     \label{tab: politica}
     \centering
     \small
@@ -262,7 +264,7 @@ A \autoref{tab: politica} mostra a origem desse padrão. Ela compara, para cada 
     \source
 \end{table}
 
-A diferenciação conta a mesma história por outro ângulo. Ela cai de 1,35 no canônico para 1,09 na mediana do algoritmo escalar, abaixo inclusive da média dos elencos sorteados (1,20); o híbrido (1,20) e o NSGA-II (1,22) ficam no nível dos sorteados. Como elencos sorteados são dispersos sem ter identidade alguma, a diferenciação não é uma régua de identidade. O que ela mostra é que o equilíbrio do algoritmo escalar aproxima os personagens uns dos outros.
+A diferenciação, calculada para este texto a partir dos genes gravados, não acrescenta evidência. Ela cai de \difCanon{} no canônico para \difAG{} na mediana do algoritmo escalar, abaixo da média dos elencos sorteados (\difAleat{}), enquanto o híbrido (\difHib{}) e o NSGA-II (\difNSGA{}) ficam no nível dos sorteados. O controle sem termo de identidade, porém, fica em \difLzero{}, acima do algoritmo escalar. Se o equilíbrio fosse o que aproxima os personagens, o braço que só otimiza equilíbrio teria o menor valor. Como elencos sorteados são dispersos sem ter identidade alguma, a métrica não separa identidade de dispersão, e não serve como evidência de homogeneização pelo equilíbrio.
 
 \section{O compromisso entre equilíbrio e identidade}
 \label{sec: res_compromisso}
@@ -273,7 +275,7 @@ A diferenciação conta a mesma história por outro ângulo. Ela cai de 1,35 no 
 A \autoref{fig: fronteira} sobrepõe as 20 fronteiras finais do NSGA-II e os elencos finais dos braços escalares, todos avaliados dentro do laço, sob o \textit{stream} da última geração de cada semente. As fronteiras têm em média \fronteiraTamMedio{} pontos e são notavelmente estáveis entre execuções: o hipervolume é \hvMedia{} $\pm$ \hvDp{} e o espaçamento, \espacMedia{} $\pm$ \espacDp{}. O formato é o de um compromisso íngreme. Na ponta de identidade, os elencos mantêm desvio próximo de 0,06, mas com $\Pdom$ acima de 1, tão desequilibrados quanto o canônico. Para reduzir $\Pdom$ a um décimo desse valor, a fronteira paga de 0,08 a 0,1 em desvio.
 
 \begin{figure}[htb]
-    \caption{Fronteiras finais do NSGA-II (20 execuções) e elencos finais dos demais braços, todos avaliados dentro do laço, sob o \textit{stream} da última geração. O roster canônico aparece pela sua reavaliação com 1000 lutas por par.}
+    \caption[Fronteiras finais do NSGA-II e elencos finais dos demais braços]{Fronteiras finais do NSGA-II (20 execuções) e elencos finais dos demais braços, todos avaliados dentro do laço, sob o \textit{stream} da última geração. O elenco canônico aparece pela sua reavaliação com 1000 lutas por par.}
     \label{fig: fronteira}
     \centering
     \includegraphics[width=\textwidth]{fronteira.pdf}
@@ -283,7 +285,7 @@ A \autoref{fig: fronteira} sobrepõe as 20 fronteiras finais do NSGA-II e os ele
 A \autoref{tab: representantes} resume os cinco representantes extraídos de cada fronteira. Os três pontos geométricos, o extremo de identidade, o joelho e o ideal, preservam quase toda a identidade (Camada 3 em 5 de 5, $\tau$ de 0,70 a 0,80), mas nenhum deles termina equilibrado em nenhuma execução. Os pontos de interesse para a pergunta de pesquisa estão na ponta de equilíbrio da fronteira.
 
 \begin{table}[htb]
-    \caption{Representantes das fronteiras do NSGA-II, reavaliados: medianas das 20 execuções; \textit{hard counters} em média por execução.}
+    \caption[Representantes das fronteiras do NSGA-II]{Representantes das fronteiras do NSGA-II, reavaliados: medianas das 20 execuções; \textit{hard counters} em média por execução.}
     \label{tab: representantes}
     \centering
     \small
@@ -308,7 +310,7 @@ A \autoref{tab: representantes} resume os cinco representantes extraídos de cad
 A \autoref{tab: comparacoes} traz a comparação estatística do algoritmo escalar com o NSGA-II e com o híbrido. Contra o \textit{scalar\_optimum}, as seis métricas da família são significativas, todas com efeito grande ($p_{\mathrm{Holm}} \le \pHolmNSGAmax{}$), e a divisão é limpa. O algoritmo escalar vence as duas métricas de equilíbrio: $\Pdom$ de \domAG{} contra \domNSGA{} e nenhum \textit{hard counter} na mediana, contra 3. O NSGA-II vence as quatro de identidade: desvio de \driftNSGA{} contra \driftAG{}, com separação completa ($\hat{A}_{12} = 1{,}00$), \LumdoisNSGA{} asserções estruturais contra \LumdoisAG{}, \LtresNSGA{} comportamentais contra \LtresAG{} e concordância de \tauNSGA{} contra \tauAG{}. Contra o extremo \textit{best\_dominance}, as seis diferenças mantêm a direção e a significância, com efeitos um pouco menores em equilíbrio. Em todas as comparações, o número de personagens em banda foi constante (5 em todas as execuções) e ficou fora da família de testes, que teve seis métricas.
 
 \begin{table}[htb]
-    \caption{Algoritmo escalar contra o NSGA-II e o híbrido: medianas, $p$ corrigido por Holm (Wilcoxon pareado) e $\hat{A}_{12}$ (probabilidade de o AG escalar dar valor maior). Todos os efeitos com $p_{\mathrm{Holm}} < 0{,}05$ são grandes.}
+    \caption[Algoritmo escalar contra o NSGA-II e o híbrido]{Algoritmo escalar contra o NSGA-II e o híbrido: medianas, $p$ corrigido por Holm (Wilcoxon pareado) e $\hat{A}_{12}$ (probabilidade de o AG escalar dar valor maior). Todos os efeitos com $p_{\mathrm{Holm}} < 0{,}05$ são grandes.}
     \label{tab: comparacoes}
     \centering
     \footnotesize
@@ -345,7 +347,7 @@ Ser não dominado, contudo, não é ser ótimo na própria função. Na soma $\P
 
 A última coluna da \autoref{tab: comparacoes} compara o híbrido com o algoritmo escalar. As duas métricas de equilíbrio não se movem: $\hat{A}_{12}$ de 0,51 e 0,49, $p_{\mathrm{Holm}} = 1{,}00$, e \equilHib{} elencos equilibrados em 20, como no escalar. As quatro métricas de identidade melhoram, todas com efeito grande e $p_{\mathrm{Holm}} \le \pHolmHibIdentMax{}$: o desvio cai de \driftAG{} para \driftHib{}; as asserções estruturais sobem de \LumdoisAG{} para \LumdoisHib{} e as comportamentais, de \LtresAG{} para \LtresHib{}; a concordância quase dobra, de \tauAG{} para \tauHib{}.
 
-Descritivamente, o híbrido reúne a metade favorável de cada algoritmo. A sua identidade fica próxima da do NSGA-II (desvio \driftHib{} contra \driftNSGA{}, concordância \tauHib{} contra \tauNSGA{}, Camada 3 igual), com o equilíbrio do algoritmo escalar: 0,25 \textit{hard counters} por elenco contra \hcNSGAmedia{}, e \equilHib{} elencos equilibrados contra \equilNSGA{}. Na \autoref{fig: fronteira}, os pontos do híbrido ficam à esquerda e abaixo das fronteiras. Em nenhuma semente o ponto do híbrido é dominado pela fronteira do NSGA-II da mesma semente, e em 5 das 20 ele domina algum ponto dela. Essa comparação com o NSGA-II é descritiva: a família de testes pré-definida opõe o algoritmo escalar a cada braço, e não os braços entre si.
+Descritivamente, o híbrido reúne a metade favorável de cada algoritmo. A sua identidade fica próxima da do NSGA-II (desvio \driftHib{} contra \driftNSGA{}, concordância \tauHib{} contra \tauNSGA{}, Camada 3 igual), com o equilíbrio do algoritmo escalar: 0,25 \textit{hard counters} por elenco contra \hcNSGAmedia{}, e \equilHib{} elencos equilibrados contra \equilNSGA{}. Na \autoref{fig: fronteira}, os pontos do híbrido ficam, como os do algoritmo escalar, à esquerda da ponta de equilíbrio das fronteiras (em \hibAlemPonta{} das 20 sementes), mas com desvio menor que o deles. Em nenhuma semente o ponto do híbrido é dominado pela fronteira do NSGA-II da mesma semente, e em \hibDominaFronteira{} das 20 ele domina algum ponto dela. Ao contrário do algoritmo escalar, o híbrido termina perto do ótimo da própria função. A fronteira contém um ponto de soma $\Pdom + \Pdrift$ menor que a dele em apenas \hibFronteiraMelhor{} das 20 sementes, contra 20 de 20 no escalar, e a mediana da sua soma no laço, \somaHib{}, fica abaixo da do melhor ponto da fronteira, \somaFronteira{}. Essa comparação com o NSGA-II é descritiva: a família de testes pré-definida opõe o algoritmo escalar a cada braço, e não os braços entre si.
 
 O preço do híbrido é a velocidade. Ele converge, em média, na geração \convGerMediaHib{} $\pm$ \convGerDpHib{}, contra \convGerMediaAG{} $\pm$ \convGerDpAG{} do escalar, porque as suas primeiras 75 gerações são de Pareto e não perseguem o predicado de equilíbrio. A \autoref{fig: convergencia} mostra a consequência: ao receber a fronteira, a fase escalar parte de um $\Pdom$ mais alto que o do escalar na mesma geração, aproxima-se dele nas gerações seguintes e mantém o desvio no nível do NSGA-II até o fim.
 
@@ -355,7 +357,7 @@ O preço do híbrido é a velocidade. Ele converge, em média, na geração \con
 A \autoref{tab: ciclo} resume o teste do ciclo autoral, com 16\,000 lutas por par.
 
 \begin{table}[htb]
-    \caption{Teste do ciclo autoral de vantagens (16\,000 lutas por par): arestas decididas por elenco, arestas mantidas entre as decididas, tríades circulares e margem mediana das arestas.}
+    \caption[Teste do ciclo autoral de vantagens]{Teste do ciclo autoral de vantagens (16\,000 lutas por par): arestas decididas por elenco, arestas mantidas entre as decididas, tríades circulares e margem mediana das arestas. O NSGA-II aparece pelo representante \textit{scalar\_optimum}.}
     \label{tab: ciclo}
     \centering
     \small
@@ -395,11 +397,11 @@ O \autoref{quad: sintese} reúne as respostas às três questões de pesquisa, n
         \toprule
         \textbf{Questão} & \textbf{Resposta} \\
         \midrule
-        QP1: equilíbrio & Sim. O algoritmo escalar converge em todas as execuções e termina, na mediana, tão equilibrado quanto a simetria perfeita, com o elenco equilibrado em 16 de 20. O elenco replica fora do laço e é robusto a 4 de 8 regras não vistas, frágil em 2. \\
+        QP1: equilíbrio & Sim. O algoritmo escalar converge em todas as execuções e termina, na mediana, tão equilibrado quanto a simetria perfeita, com o elenco equilibrado em 16 de 20. O elenco da semente 42, único submetido à validação externa, replica fora do laço e é robusto a 4 de 8 regras não vistas, frágil em 2. \\
         \midrule
         QP2: identidade & Parcialmente, e a parte preservada é atribuível ao termo de identidade. Sem ele, a identidade cai ao nível do acaso nas quatro réguas, sem ganho de equilíbrio significativo. Com ele, a identidade funcional fica acima do acaso, mas longe do canônico, e a política dos personagens é o componente menos preservado. \\
         \midrule
-        QP3: compromisso & O algoritmo escalar ocupa a ponta de equilíbrio do compromisso, além da fronteira do NSGA-II; o NSGA-II preserva mais identidade e deixa pares desequilibrados. Nenhum domina o outro. O híbrido, com o mesmo orçamento, alcança a identidade do NSGA-II com o equilíbrio do escalar. \\
+        QP3: compromisso & O algoritmo escalar ocupa a ponta de equilíbrio do compromisso, além da fronteira do NSGA-II; o NSGA-II preserva mais identidade e deixa pares desequilibrados. Nenhum domina o outro. O híbrido, com o mesmo orçamento, aproxima-se da identidade do NSGA-II mantendo o equilíbrio do escalar. \\
         \bottomrule
     \end{tabularx}
     \source

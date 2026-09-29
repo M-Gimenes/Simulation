@@ -70,7 +70,7 @@ Os cinco arquétipos articulam-se numa estrutura cíclica em que cada um vence d
     \source
 \end{quadro}
 
-O ciclo tem, neste trabalho, o estatuto de \textbf{hipótese autoral}. Ele não é codificado em nenhum termo da função de aptidão, nem como restrição, nem como recompensa: a informação sobre quem deveria vencer quem é deliberadamente mantida fora da busca. A sua realização é testada \textit{post hoc}, uma única vez, sobre o roster canônico e sobre os elencos evoluídos (\autoref{sec: protocolo_ciclo}). Codificar o ciclo na função de aptidão tornaria a investigação circular: o sistema exibiria a estrutura porque foi pago para exibi-la, e não porque ela decorre das mecânicas de combate sob pressão por equilíbrio. O que entra na busca são os perfis canônicos dos arquétipos, como referência de identidade e, num dos algoritmos, como semente da população inicial.
+O ciclo tem, neste trabalho, o estatuto de \textbf{hipótese autoral}. Ele não é codificado em nenhum termo da função de aptidão, nem como restrição, nem como recompensa: a informação sobre quem deveria vencer quem é deliberadamente mantida fora da busca. A sua realização é testada \textit{post hoc}, uma única vez, sobre o elenco canônico e sobre os elencos evoluídos (\autoref{sec: protocolo_ciclo}). Codificar o ciclo na função de aptidão tornaria a investigação circular: o sistema exibiria a estrutura porque foi pago para exibi-la, e não porque ela decorre das mecânicas de combate sob pressão por equilíbrio. O que entra na busca são os perfis canônicos dos arquétipos, como referência de identidade e, num dos algoritmos, como semente da população inicial.
 
 \section{Algoritmos genéticos}
 \label{sec: ag}
@@ -108,7 +108,7 @@ Problemas de otimização com um único critério são chamados de \textbf{mono-
 
 \subsection{Escalarização e suas limitações}
 
-Uma abordagem comum para problemas multiobjetivo é reduzi-los a problemas mono-objetivo por \textbf{escalarização}: as componentes são combinadas numa única função, em geral por soma ponderada, e o problema resultante é resolvido por técnicas mono-objetivo. A escalarização é simples e permite usar algoritmos consolidados, mas tem limitações conhecidas. Exige que o projetista escolha previamente os pesos, o que determina \textit{a priori} o ponto do compromisso que o algoritmo buscará. Pode deixar de encontrar regiões da curva de compromisso que apresentam concavidades. E condensa num único número uma informação que é intrinsecamente multidimensional, ocultando a natureza do compromisso \cite{deb2001multiobjective}.
+Uma abordagem comum para problemas multiobjetivo é reduzi-los a problemas mono-objetivo por \textbf{escalarização}: as componentes são combinadas numa única função, em geral por soma ponderada, e o problema resultante é resolvido por técnicas mono-objetivo. A escalarização é simples e permite usar algoritmos consolidados, mas tem limitações conhecidas. Exige que o projetista escolha previamente os pesos, o que determina \textit{a priori} o ponto do compromisso que o algoritmo buscará. Não alcança os pontos das regiões não convexas da fronteira de compromisso, qualquer que seja a escolha dos pesos. E condensa num único número uma informação que é intrinsecamente multidimensional, ocultando a natureza do compromisso \cite{deb2001multiobjective}.
 
 \subsection{Dominância e fronteira de Pareto}
 
@@ -116,7 +116,7 @@ A formulação multiobjetivo opera diretamente sobre o vetor de objetivos. Uma s
 
 \subsection{NSGA-II}
 
-O \textit{Non-dominated Sorting Genetic Algorithm II} (NSGA-II), proposto por \citeonline{deb2002nsga}, é um dos algoritmos evolutivos multiobjetivo mais adotados na literatura. Ele combina três mecanismos: a ordenação não dominada rápida, que classifica a população em frentes sucessivas de não dominância; a distância de aglomeração, que estima a densidade local de soluções em cada frente e favorece as regiões esparsas; e a seleção elitista por torneio binário com base nos dois critérios anteriores. O resultado é uma aproximação progressiva da fronteira de Pareto, com diversidade preservada ao longo dela.
+O \textit{Non-dominated Sorting Genetic Algorithm II} (NSGA-II), proposto por \citeonline{deb2002nsga}, é um dos algoritmos evolutivos multiobjetivo mais adotados na literatura. Ele combina três mecanismos: a ordenação não dominada rápida, que classifica a população em frentes sucessivas de não dominância; a distância de aglomeração, que estima a densidade local de soluções em cada frente e favorece as regiões esparsas; e a sobrevivência elitista, que reúne pais e filhos e retém as melhores frentes. Os pais de cada geração são escolhidos por torneio binário com base nos dois primeiros critérios. O resultado é uma aproximação progressiva da fronteira de Pareto, com diversidade preservada ao longo dela.
 
 A vantagem do NSGA-II para problemas com tensão entre critérios é expor a fronteira de forma explícita, em vez de condensá-la numa única solução. Da fronteira podem ser extraídos representantes segundo critérios distintos, como os extremos, o ponto de maior curvatura ou o ponto mais próximo do ideal, sem compromisso prévio com uma ponderação.
 

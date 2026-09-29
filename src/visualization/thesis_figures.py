@@ -138,7 +138,7 @@ def figure_matchups(cycle: dict) -> None:
                 for j in range(5)] for i in range(5)]
 
     fig, axes = plt.subplots(1, 2, figsize=(TEXT_WIDTH_IN, 3.1), sharey=True)
-    for ax, matrix, title in ((axes[0], canonical, "(a) Roster canônico"),
+    for ax, matrix, title in ((axes[0], canonical, "(a) Elenco canônico"),
                               (axes[1], evolved, "(b) AG escalar, média de 20 execuções")):
         image = ax.imshow(matrix, cmap=DIVERGING, vmin=0.0, vmax=1.0)
         ax.grid(False)
@@ -245,7 +245,7 @@ def figure_front(ga: dict, nsga2: dict, hybrid: dict, control: dict, baselines: 
 
     canonical = next(r for r in baselines["references"] if r["label"] == "canônico")
     ax.scatter([canonical["dominance_penalty"]], [canonical["drift_penalty"]], marker="*", s=90,
-               color=INK, zorder=4, label="Roster canônico")
+               color=INK, zorder=4, label="Elenco canônico")
     ref_dom, ref_drift = 1.3, 0.4
     ax.plot([ref_dom, ref_dom], [0, ref_drift], color=INK_MUTED, lw=0.8, ls="--")
     ax.plot([0.008, ref_dom], [ref_drift, ref_drift], color=INK_MUTED, lw=0.8, ls="--")

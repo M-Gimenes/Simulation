@@ -24,6 +24,24 @@
 \newcommand{\gateRecusasAG}{50}
 \newcommand{\equilibradosFimAG}{16/20}
 
+% --- Trajetória do melhor elenco do AG escalar (history em multi_run_ga.json; mediana das 20)
+\newcommand{\trajDomIni}{0{,}68}           % P_dom do melhor elenco na geração 0
+\newcommand{\trajDomTrinta}{0{,}030}       % idem na geração 30
+
+% --- Semente canônica na geração 0 do AG escalar (medido na preparação do texto: geração 0
+%     reproduzida para as sementes 42..61; a melhor aptidão confere com o history de
+%     multi_run_ga.json em 20/20). Posição do canônico por aptidão F, entre 300.
+\newcommand{\canonRankMax}{11}            % pior posição nas 20 execuções
+\newcommand{\canonRankMed}{5}             % posição mediana
+\newcommand{\canonMelhorN}{uma}           % execuções em que o canônico é o melhor (semente 55)
+% Geração em que o canônico deixa a população, semente 42 (docs/thesis/07, réplica
+% instrumentada: desvio mínimo da população igual a zero só nas gerações 0 a 2)
+\newcommand{\canonSaiGer}{3}
+
+% --- CRN com uma semente por luta (docs/thesis/04, "O CRN passou a semear cada luta":
+%     elenco evoluído com um gene deslocado de +sigma, 40 seed-bases; DP da diferença pareada)
+\newcommand{\crnDpDiferenca}{0{,}013 a 0{,}028}
+
 % --- Bateria: medianas por braço (results/multi_run/*.json e results/controls/*.json;
 %     elencos finais reavaliados a 1000 lutas por par sob a semente 9999)
 \newcommand{\domAG}{0{,}0355}
@@ -74,10 +92,35 @@
 \newcommand{\sobreLzero}{2{,}33}
 \newcommand{\sobreHib}{1{,}67}
 \newcommand{\sobreNSGA}{1{,}25}
+\newcommand{\sobreSemSem}{1{,}95}          % controle sem semente: mesma aptidão do AG escalar
 \newcommand{\domLacoAG}{0{,}017}           % mediana de P_dom no laço, AG
 \newcommand{\domLacoFronteiraMin}{0{,}048}  % mediana do menor P_dom da fronteira, NSGA-II
 \newcommand{\somaAG}{0{,}266}               % mediana de P_dom + P_drift no laço, AG
 \newcommand{\somaFronteira}{0{,}205}        % mediana do melhor P_dom + P_drift da fronteira
+
+% --- Híbrido contra a fronteira do NSGA-II da mesma semente, ambos no laço, sob o stream
+%     da última geração (in_loop_objectives de multi_run_hybrid_split0.5_front.json contra
+%     front_objectives de multi_run_nsga2.json)
+\newcommand{\somaHib}{0{,}185}              % mediana de P_dom + P_drift no laço, híbrido
+\newcommand{\hibFronteiraMelhor}{3}         % sementes em que a fronteira tem soma menor
+\newcommand{\hibDominaFronteira}{5}         % sementes em que o híbrido domina algum ponto
+\newcommand{\hibAlemPonta}{19}              % sementes com P_dom abaixo de toda a fronteira
+
+% --- Política dos elencos evoluídos (probabilidades de intenção da Eq. de intenção,
+%     calculadas dos genes gravados em results/multi_run e results/controls)
+% Controle lambda = 0: faixa das medianas dos cinco arquétipos em cada intenção
+\newcommand{\polLzeroF}{0{,}35 a 0{,}40}
+\newcommand{\polLzeroR}{0{,}19 a 0{,}28}
+\newcommand{\polLzeroG}{0{,}36 a 0{,}43}
+% Execuções em que o Combo Master tem probabilidade de FRENTE maior que a do Rushdown
+\newcommand{\cmAvancaMaisAG}{10}
+\newcommand{\cmAvancaMaisHib}{14}
+\newcommand{\cmAvancaMaisNSGA}{13}
+
+% --- Escolha do híbrido em orçamento reduzido (results/exploratory/hybrid_choice.json;
+%     pop 120, 60 gerações, sementes 1000..1004; medianas)
+\newcommand{\hibReduzidoDrift}{0{,}255}     % split 0,5 / fronteira
+\newcommand{\agReduzidoDrift}{0{,}234}      % âncora: AG escalar no mesmo orçamento
 
 % --- Fronteira (results/multi_run/multi_run_nsga2.json)
 \newcommand{\hvMedia}{0{,}395}
@@ -100,12 +143,47 @@
 \newcommand{\triadesAleat}{0{,}40}
 \newcommand{\triadesEspelho}{2{,}59}
 
-% --- Validação externa (results/external_validation/*.json; semente 42)
-\newcommand{\extDomLacoAG}{0{,}025}
-\newcommand{\extDomReplAG}{0{,}037}
+% --- Validação externa (results/external_validation/*.json; semente 42; P_dom calculado
+%     sobre as 5000 lutas somadas de cada condição, regerado em 2026-09-29)
+\newcommand{\extDomLacoAG}{0{,}025}         % in_loop_objectives de multi_run_ga.json, semente 42
+\newcommand{\extDomReplAG}{0{,}033}
 
 % --- Sensibilidade (results/sensitivity/sensitivity_analysis.json)
 \newcommand{\sensPiso}{3{,}5}              % pontos percentuais
+\newcommand{\sensStun}{10{,}4}
+\newcommand{\sensKb}{4{,}3}
+\newcommand{\sensSpd}{3{,}5}
+% Pesos com a mesma janela relativa dos atributos (medição avulsa feita na preparação do
+% texto: sensitivity_analysis --evolved --sigma-mult 4, isto é, sigma dos pesos = 10% da
+% amplitude; 200 lutas por par, semente 42, piso medido de 3,5 pontos; o artefato citável
+% acima, com sigma-mult 1, não foi alterado)
+\newcommand{\sensPesosIguais}{12 a 17}     % faixa dos três pesos, pontos percentuais
+\newcommand{\sensWRIgual}{16{,}5}
+\newcommand{\sensWFIgual}{14{,}3}
+\newcommand{\sensWGIgual}{12{,}4}
+
+% --- Perda de identidade no AG escalar ao longo da busca
+% Réplica instrumentada da execução de semente 42 (diagnostics/data/base42.json; reproduz o
+% artefato bit a bit): desvio mínimo da população e largura do aglomerado em desvio
+\newcommand{\linhagemDriftSete}{0{,}17}     % desvio mínimo da população na geração 7
+\newcommand{\linhagemDriftVinte}{0{,}24}    % idem na geração 20
+\newcommand{\linhagemLargura}{0{,}045}      % mediana menos mínimo do desvio, geração 20
+% Ruído de P_dom (desvio-padrão a 150 lutas) sobre o ganho de desvio por geração depois da
+% convergência (docs/thesis/07, "A causa é uma assimetria de ruído")
+\newcommand{\ruidoSobreGanho}{60}
+% Trajetória mediana do desvio do melhor elenco (history em multi_run_ga.json)
+\newcommand{\trajDriftTrinta}{0{,}29}      % geração 30
+\newcommand{\trajDriftFim}{0{,}25}         % geração 149
+
+% --- Diferenciação (distância média entre os cinco personagens; canônico e aleatórios em
+%     results/baselines/baselines.json; braços calculados dos genes gravados em
+%     results/multi_run e results/controls com drift_table.mean_pairwise_distance, medianas)
+\newcommand{\difCanon}{1{,}35}
+\newcommand{\difAleat}{1{,}20}
+\newcommand{\difAG}{1{,}09}
+\newcommand{\difHib}{1{,}20}
+\newcommand{\difNSGA}{1{,}22}
+\newcommand{\difLzero}{1{,}16}
 
 % --- Duração das lutas (medido na preparação do texto, 200 lutas por par, semente 9999,
 %     sobre o canônico, 3 elencos do AG escalar e 3 aleatórios)

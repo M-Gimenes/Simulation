@@ -1,7 +1,7 @@
 \chapter[Protocolo experimental]{Protocolo experimental}
 \label{chap: protocolo}
 
-O \autoref{chap: metodologia} descreveu o que a busca faz. Este capítulo descreve como o seu resultado é medido e comparado: as réguas que traduzem a pergunta de pesquisa em números, os pontos de referência contra os quais essas réguas são lidas, os braços experimentais, a análise estatística e as validações auxiliares. Nada do que é descrito aqui participa da busca. Todas as medições incidem sobre elencos já evoluídos e são feitas sob sorteios que a busca nunca viu.
+O \autoref{chap: metodologia} descreveu o que a busca faz. Este capítulo descreve como o seu resultado é medido e comparado: as réguas que traduzem a pergunta de pesquisa em números, os pontos de referência contra os quais essas réguas são lidas, os braços experimentais, a análise estatística e as validações auxiliares. Com exceção das varreduras de calibração, feitas antes da bateria (\autoref{sec: calibracao}), nada do que é descrito aqui altera a busca. As medições incidem sobre os elencos que ela devolve e sobre elencos de referência, sempre sob sorteios que a busca nunca viu.
 
 \section{Das questões às réguas}
 \label{sec: reguas}
@@ -36,7 +36,7 @@ A identidade é medida por duas réguas, uma de cada lado da linha que separa pr
 
 Elas não são, contudo, independentes dos genes. Cada asserção comportamental é consequência quase direta de um gene definidor: o atordoamento infligido decorre do gene de atordoamento, o dano arrancado através da guarda decorre do agarrão, a distância média de luta decorre do alcance e do recuo. Um elenco pode preservar esses genes e perder o comportamento, porque o comportamento depende também do oponente, mas o contrário é pouco provável. A régua funcional é uma medida que a busca não vê, e não uma medida sem relação com o que a busca otimiza.
 
-O ciclo de vantagens do \autoref{quad: ciclo_canonico} \textbf{não} é uma régua de identidade. Ele é uma hipótese autoral sobre quem deveria vencer quem, e o próprio roster canônico a realiza apenas parcialmente no modelo (\autoref{chap: resultados}). O ciclo é tratado como premissa a ser testada, uma única vez e na resolução que o teste exige (\autoref{sec: protocolo_ciclo}).
+O ciclo de vantagens do \autoref{quad: ciclo_canonico} \textbf{não} é uma régua de identidade. Ele é uma hipótese autoral sobre quem deveria vencer quem, e o próprio elenco canônico a realiza apenas parcialmente no modelo (\autoref{chap: resultados}). O ciclo é tratado como hipótese a ser testada, uma única vez e na resolução que o teste exige (\autoref{sec: protocolo_ciclo}).
 
 \section{Instrumentos de medição de identidade}
 \label{sec: instrumentos}
@@ -114,7 +114,7 @@ O validador é uma régua binária e grosseira. Cada asserção é um bit, e fic
 \subsection{Concordância de ranking comportamental}
 \label{sub: tau}
 
-A concordância de ranking pergunta se a \textit{ordem} dos cinco personagens em cada métrica comportamental continua sendo a do roster canônico, e não apenas quem lidera cada uma. Para cada métrica $m$ da \autoref{tab: perfil}, calcula-se o $\tau_b$ de Kendall \cite{kendall1938new, kendall1945treatment}, a versão do coeficiente corrigida para empates, entre o vetor dos cinco valores no roster canônico e o vetor dos cinco valores no elenco medido. A concordância é a média sobre as dez métricas:
+A concordância de ranking pergunta se a \textit{ordem} dos cinco personagens em cada métrica comportamental continua sendo a do elenco canônico, e não apenas quem lidera cada uma. Para cada métrica $m$ da \autoref{tab: perfil}, calcula-se o $\tau_b$ de Kendall \cite{kendall1938new, kendall1945treatment}, a versão do coeficiente corrigida para empates, entre o vetor dos cinco valores no elenco canônico e o vetor dos cinco valores no elenco medido. A concordância é a média sobre as dez métricas:
 \begin{equation}
     \label{eq: tau}
     \tau(\mathbf{x}) = \frac{1}{10} \sum_{m=1}^{10} \tau_b\!\left( \mathbf{v}_m(\mathbf{c}),\, \mathbf{v}_m(\mathbf{x}) \right),
@@ -126,7 +126,7 @@ A concordância é uma estimativa ruidosa, e o número de lutas foi escolhido po
 \subsection{Diferenciação}
 \label{sub: diferenciacao}
 
-A diferenciação mede a homogeneização do elenco. Cada personagem é representado por um vetor com os oito atributos normalizados pela amplitude dos limites e as três probabilidades de intenção. A diferenciação do elenco é a distância euclidiana média entre os $\binom{5}{2} = 10$ pares de personagens. Ela vale zero num elenco de cinco cópias idênticas, e sua comparação com o valor do roster canônico indica se os personagens convergiram uns para os outros.
+A diferenciação mede quão distintos os cinco personagens de um elenco são entre si. Cada personagem é representado por um vetor com os oito atributos normalizados pela amplitude dos limites e as três probabilidades de intenção. A diferenciação do elenco é a distância euclidiana média entre os $\binom{5}{2} = 10$ pares de personagens. Ela vale zero num elenco de cinco cópias idênticas. É uma leitura descritiva, fora da família de testes: um elenco sorteado também é bem diferenciado sem ter identidade alguma, e a métrica não distingue as duas coisas.
 
 \section{Modelos nulos}
 \label{sec: nulos}
@@ -143,7 +143,7 @@ Cada métrica de um elenco é reportada com duas leituras. A \textbf{posição} 
     \label{eq: posicao}
     \text{posição} = \frac{\text{valor} - \text{piso}}{\text{teto} - \text{piso}},
 \end{equation}
-em que o piso é a média dos 35 nulos e o teto é o roster canônico, para as métricas de identidade, ou a média dos espelhos, para $\Pdom$. O \textbf{$p$-valor empírico} é a fração dos 35 nulos que igualam ou superam o valor observado. Com 35 nulos, sua resolução é $1/35 \approx 0{,}03$.
+em que o piso é a média dos 35 nulos e o teto é o elenco canônico, para as métricas de identidade, ou a média dos espelhos, para $\Pdom$. O \textbf{$p$-valor empírico} é a fração dos 35 nulos que igualam ou superam o valor observado. Com 35 nulos, sua resolução é $1/35 \approx 0{,}03$.
 
 Os modelos nulos não controlam o \textit{método}. Eles não são otimizados, e superá-los em $\Pdrift$ é garantido por construção a qualquer busca que tenha esse termo na aptidão. O controle que isola o efeito do termo de identidade é outro, descrito na \autoref{sec: desenho}. Os nulos servem para dar escala às métricas: dizer o que é acaso em cada uma.
 
@@ -156,7 +156,7 @@ Os modelos nulos não controlam o \textit{método}. Eles não são otimizados, e
 A bateria experimental compara cinco braços, listados na \autoref{tab: bracos}. Os dois primeiros são os algoritmos que a pergunta de pesquisa compara. Os dois seguintes são \textbf{controles}: repetem o algoritmo escalar com um único fator de desenho alterado, com a mesma amostra e o mesmo orçamento. O quinto é o híbrido, reportado como contribuição de método.
 
 \begin{table}[htb]
-    \caption{Braços da bateria experimental. Todos usam 20 execuções independentes (sementes 42 a 61), população de 300 e 150 gerações.}
+    \caption[Braços da bateria experimental]{Braços da bateria experimental. Todos usam 20 execuções independentes (sementes 42 a 61), população de 300 e 150 gerações.}
     \label{tab: bracos}
     \centering
     \small
@@ -188,7 +188,7 @@ Os braços usam as \textbf{mesmas} 20 sementes, e a semente controla tudo o que 
 
 O elenco que uma execução devolve foi selecionado \textit{porque} teve boa avaliação sob os sorteios da última geração. Parte dessa avaliação é sorte, e relatá-la seria relatar a sorte selecionada. Todo elenco devolvido é, por isso, reavaliado fora do laço, sob uma semente de avaliação comum a todas as execuções de todos os braços, com 1000 lutas por par. A semente comum faz com que diferenças entre execuções reflitam os elencos, e não os sorteios da medição. As métricas de identidade funcional são medidas sob a mesma semente, com 200 lutas por par (\autoref{sub: perfil}).
 
-O número de lutas da reavaliação foi escolhido pelo ruído de medição. A 1000 lutas por par, o desvio-padrão do $\Pdom$ de um mesmo elenco entre sorteios cai para \ruidoDomDpMil{}, contra \ruidoDomDpTreino{} a 150 (\autoref{sec: ruido}). Há também um viés. Como $\Pdom$ é função de $|p - 1/2|$, o ruído de medição o \textit{aumenta} em média: os mesmos elencos medidos a 150 lutas têm $\Pdom$ médio de \ruidoDomMediaTreino{}, e a 1000, de \ruidoDomMediaMil{}. Uma régua grosseira, portanto, subestima o equilíbrio, e o faz mais para os braços cuja avaliação é mais ruidosa.
+O número de lutas da reavaliação foi escolhido pelo ruído de medição. A 1000 lutas por par, o desvio-padrão do $\Pdom$ de um mesmo elenco entre sorteios cai para \ruidoDomDpMil{}, contra \ruidoDomDpTreino{} a 150 (\autoref{sec: ruido}). Há também um viés. Como $\Pdom$ é função de $|p - 1/2|$, o ruído de medição o \textit{aumenta} em média: os mesmos elencos medidos a 150 lutas têm $\Pdom$ médio de \ruidoDomMediaTreino{}, e a 1000, de \ruidoDomMediaMil{}. Uma régua grosseira, portanto, subestima o equilíbrio, e tanto mais quanto mais equilibrado é o elenco, porque o viés é máximo quando as taxas de vitória verdadeiras estão perto de 50\%.
 
 \subsection{Famílias de sementes}
 \label{sub: sementes}
@@ -207,8 +207,11 @@ Cada uso de números aleatórios no protocolo tem a sua família de sementes, e 
         42 a 61 & Execuções da bateria; geram os \textit{streams} de treino a partir de $42\,000$ \\
         1000 a 1004 & Execuções das varreduras de calibração; \textit{streams} de treino a partir de $1\,000\,000$ \\
         \textit{stream} da geração $+\ 100\,000$ & Confirmação da convergência, inédita a cada geração \\
-        9999 & Reavaliação independente e medição de identidade \\
+        9999 & Reavaliação independente, medição de identidade e sorteio dos 30 elencos aleatórios \\
         $10\,000$ a $10\,009$ & Validação externa \\
+        $950\,000 + 53\,k$, $k = 0, \ldots, 15$ & Teste do ciclo autoral (16 \textit{streams}) \\
+        $42 + 100\,i + j$ e deslocamentos de $10\,000$ & Análise de sensibilidade ($i$: personagem; $j$: gene) e o seu piso de ruído \\
+        $500\,000$ em diante & Medições avulsas do ruído de $\Pdom$, feitas na preparação do texto \\
         \bottomrule
     \end{tabularx}
     \source
@@ -235,32 +238,32 @@ O valor 0,5 indica ausência de efeito. As magnitudes seguem os limiares dos aut
 \section{Qualidade da fronteira}
 \label{sec: qualidade_fronteira}
 
-Cada fronteira do NSGA-II é resumida por dois indicadores \cite{deb2001multiobjective}. O \textbf{hipervolume} \cite{zitzler1999multiobjective} é a área do espaço de objetivos dominada pela fronteira e limitada por um ponto de referência. Mede ao mesmo tempo a proximidade do ótimo e a extensão da fronteira, e é maior quanto melhor. O ponto de referência $(1{,}3;\, 0{,}4)$ foi ancorado nos modelos nulos: $\Pdom$ próximo ao do roster canônico, que é o equilíbrio de partida, e $\Pdrift$ próximo ao dos espelhos, que é a identidade nula. Uma solução pior que isso em algum dos objetivos não contribui para o hipervolume, que é o que ela vale. A referência é fixa, para que o indicador seja comparável entre execuções. Com a referência nos máximos teóricos, $(2;\, 1)$, o hipervolume ocupava 90\% da área disponível em qualquer fronteira e mal distinguia uma da outra. O \textbf{espaçamento} \cite{schott1995fault} é o desvio-padrão das distâncias de cada ponto ao vizinho mais próximo e mede a uniformidade da distribuição dos pontos: é menor quanto mais uniforme.
+Cada fronteira do NSGA-II é resumida por dois indicadores \cite{deb2001multiobjective}. O \textbf{hipervolume} \cite{zitzler1999multiobjective} é a área do espaço de objetivos dominada pela fronteira e limitada por um ponto de referência. Mede ao mesmo tempo a proximidade do ótimo e a extensão da fronteira, e é maior quanto melhor. O ponto de referência $(1{,}3;\, 0{,}4)$ foi ancorado nos modelos nulos: $\Pdom$ próximo ao do elenco canônico, que é o equilíbrio de partida, e $\Pdrift$ próximo ao dos espelhos, que é a identidade nula. Uma solução pior que isso em algum dos objetivos não contribui para o hipervolume, que é o que ela vale. A referência é fixa, para que o indicador seja comparável entre execuções. Com a referência nos máximos teóricos, $(2;\, 1)$, o hipervolume ocupava 90\% da área disponível em qualquer fronteira e mal distinguia uma da outra. O \textbf{espaçamento} \cite{schott1995fault} é o desvio-padrão das distâncias de cada ponto ao vizinho mais próximo e mede a uniformidade da distribuição dos pontos: é menor quanto mais uniforme.
 
 \section{Estrutura de vantagens}
 \label{sec: protocolo_ciclo}
 
-O ciclo de vantagens do \autoref{quad: ciclo_canonico} é testado como premissa, numa medição única e de alta resolução. A resolução é o ponto central. Num elenco equilibrado as taxas de vitória dos pares ficam próximas de 50\%, e a margem mediana de uma aresta nos elencos do algoritmo escalar é de apenas 0,048. A 200 lutas por par, o desvio-padrão binomial é 0,035, e a direção de uma aresta seria, na prática, sorteada. O teste usa, por isso, 16 \textit{streams} de 1000 lutas por par, ou 16\,000 lutas por aresta, com desvio-padrão de 0,004.
+O ciclo de vantagens do \autoref{quad: ciclo_canonico} é testado como hipótese, numa medição única e de alta resolução. A resolução é o ponto central. Num elenco equilibrado as taxas de vitória dos pares ficam próximas de 50\%, e a margem mediana de uma aresta nos elencos do algoritmo escalar é de apenas 0,048. A 200 lutas por par, o desvio-padrão binomial é 0,035, e a direção de uma aresta seria, na prática, sorteada. O teste usa, por isso, 16 \textit{streams} de 1000 lutas por par, ou 16\,000 lutas por aresta, com desvio-padrão de 0,004.
 
-Uma aresta é considerada \textbf{decidida} quando a taxa de vitória do par se afasta de 50\% por mais de dois desvios-padrão, e \textbf{mantida} quando é decidida na direção autoral. Arestas indecisas são excluídas da contagem, porque contá-las misturaria ruído nos dois sentidos. A hipótese nula é que o elenco não tem relação com o ciclo, de modo que cada aresta decidida segue a direção autoral com probabilidade 1/2. Ela é testada de duas formas: por um teste binomial sobre o total de arestas mantidas entre as decididas, e pela comparação da taxa de manutenção de cada elenco com a dos 30 elencos aleatórios, por Mann-Whitney e $\hat{A}_{12}$. A comparação usa a taxa, e não a contagem, porque um elenco aleatório decide quase todas as arestas e um equilibrado decide menos, e a contagem crua puniria o equilibrado por ter uma aresta sobre o limiar.
+Uma aresta é considerada \textbf{decidida} quando a taxa de vitória do par se afasta de 50\% por mais de dois desvios-padrão, e \textbf{mantida} quando é decidida na direção autoral. Arestas indecisas são excluídas da contagem, porque contá-las misturaria ruído nos dois sentidos. A hipótese nula é que o elenco não tem relação com o ciclo, de modo que cada aresta decidida segue a direção autoral com probabilidade 1/2. Ela é testada de duas formas: por um teste binomial sobre o total de arestas mantidas entre as decididas, e pela comparação das taxas de manutenção dos elencos de cada braço com as dos 30 elencos aleatórios, por Mann-Whitney e $\hat{A}_{12}$. A comparação usa a taxa, e não a contagem, porque um elenco aleatório decide quase todas as arestas e um equilibrado decide menos, e a contagem crua puniria o equilibrado por ter uma aresta sobre o limiar.
 
-Ao lado do ciclo autoral, é medida a estrutura de vantagens sem referência a ele: o número de \textbf{tríades circulares} do torneio \cite{kendall1940method}, isto é, de trios em que A vence B, B vence C e C vence A. O valor é 0 numa ordem estrita, 2,5 em média num torneio aleatório e 5 no máximo, quando cada personagem vence dois e perde dois. A medida deve ser lida com cautela, porque um elenco globalmente equilibrado com pares decididos é forçado a ser intransitivo: uma ordem estrita entre cinco personagens teria taxas globais de 100\%, 75\%, 50\%, 25\% e 0\%.
+Ao lado do ciclo autoral, é medida a estrutura de vantagens sem referência a ele: o número de \textbf{tríades circulares} do torneio \cite{kendall1940method}, isto é, de trios em que A vence B, B vence C e C vence A. O valor é 0 numa ordem estrita, 2,5 em média num torneio em que cada confronto tem vencedor sorteado e 5 no máximo, quando cada personagem vence dois e perde dois. Um elenco sorteado dentro dos limites não se comporta como esse torneio: um personagem forte tende a vencer todos, e esses elencos costumam ser quase hierárquicos. A medida deve ser lida com cautela, porque um elenco globalmente equilibrado com pares decididos é forçado a ser intransitivo: uma ordem estrita entre cinco personagens teria taxas globais de 100\%, 75\%, 50\%, 25\% e 0\%.
 
 \section{Validação externa}
 \label{sec: validacao_externa}
 
 A validação externa, no espírito da avaliação independente da aptidão empregada por \citeonline{browne2010evolutionary}, faz duas perguntas distintas a um elenco já evoluído.
 
-A \textbf{replicação} pergunta se o equilíbrio medido durante a busca se confirma com uma amostra grande e sorteios inéditos, sob as mesmas regras de combate do treino. A \textbf{robustez} pergunta se o equilíbrio sobrevive a regras que a busca nunca viu. Trocar apenas a semente repetiria a primeira pergunta com mais amostra; mudar a regra testa se o equilíbrio depende das condições exatas em que foi otimizado. São perturbadas, uma de cada vez, as quatro regras de combate de projeto: a distância inicial (40 e 60, em vez de 50), o comprimento do campo (80 e 120, em vez de 100), a persistência da intenção (4 e 6, em vez de 5) e o multiplicador da guarda (0,55 e 0,65, em vez de 0,6). Cada perturbação permanece dentro do que o modelo sustenta: a distância inicial continua maior que qualquer alcance, e o multiplicador da guarda desloca o ponto neutro do agarrão em apenas 0,05.
+A \textbf{replicação} pergunta se o equilíbrio medido durante a busca se confirma com uma amostra grande e sorteios inéditos, sob as mesmas regras de combate do treino. A \textbf{robustez} pergunta se o equilíbrio sobrevive a regras que a busca nunca viu. Trocar apenas a semente repetiria a primeira pergunta com mais amostra; mudar a regra testa se o equilíbrio depende das condições exatas em que foi otimizado. São perturbadas, uma de cada vez, quatro regras de combate: a distância inicial (40 e 60, em vez de 50), o comprimento do campo (80 e 120, em vez de 100), a persistência da intenção (4 e 6, em vez de 5) e o multiplicador da guarda (0,55 e 0,65, em vez de 0,6). Cada perturbação permanece dentro do que o modelo sustenta: a distância inicial continua maior que qualquer alcance, e o multiplicador da guarda desloca o ponto neutro do agarrão em apenas 0,05.
 
 Em cada condição, 10 sementes de 500 lutas por par formam uma amostra de 5000 lutas por par. Cada taxa de vitória recebe um intervalo de confiança de Wilson a 95\% \cite{wilson1927probable} e é classificada contra a sua faixa de equilíbrio, $[0{,}40;\, 0{,}60]$ para a taxa global de cada personagem e $[0{,}35;\, 0{,}65]$ para cada par: \textbf{dentro}, se o intervalo inteiro está dentro da faixa; \textbf{fora}, se está inteiro fora; \textbf{inconclusiva}, se cruza a borda. A condição é \textbf{robusta} se todas as 15 taxas estão dentro, \textbf{frágil} se alguma está fora, e \textbf{inconclusiva} nos demais casos. O veredito não se torna mais severo com o número de sementes, como aconteceria com uma regra do tipo ``falhou em alguma das $K$ sementes''.
 
-A validação externa é aplicada a um elenco de cada tipo, todos da execução de semente 42: o roster canônico, o elenco do algoritmo escalar e os representantes \textit{scalar\_optimum} e \textit{knee\_point} do NSGA-II.
+A validação externa é aplicada ao elenco canônico e a três elencos da execução de semente 42: o do algoritmo escalar e os representantes \textit{scalar\_optimum} e \textit{knee\_point} do NSGA-II.
 
 \section{Análise de sensibilidade}
 \label{sec: sensibilidade}
 
-A análise de sensibilidade pergunta se a busca \textit{enxerga} cada gene, isto é, se um passo típico de mutação nesse gene move o desfecho das lutas. Ela é feita sobre um elenco equilibrado, o do algoritmo escalar de semente 42. Medi-la no roster canônico seria inútil: com taxas de vitória presas em 0\% e 100\%, nenhuma perturbação muda o desfecho, e todo gene pareceria neutro por efeito de teto.
+A análise de sensibilidade pergunta se a busca \textit{enxerga} cada gene, isto é, se um passo típico de mutação nesse gene move o desfecho das lutas. Ela é feita sobre um elenco equilibrado, o do algoritmo escalar de semente 42. Medi-la no elenco canônico seria inútil: com taxas de vitória presas em 0\% e 100\%, nenhuma perturbação muda o desfecho, e todo gene pareceria neutro por efeito de teto.
 
 Para cada gene de cada personagem, o gene é deslocado numa janela de largura $2\sigma$, em que $\sigma$ é o desvio-padrão da mutação daquele gene (\autoref{sec: ag_escalar}), e mede-se a variação da taxa de vitória global do personagem entre os dois extremos da janela. Se a janela ultrapassa um limite do gene, ela é deslizada para dentro do intervalo, mantendo a largura, para que genes próximos a um limite não pareçam menos sensíveis apenas por isso. Os dois extremos são avaliados sob os mesmos sorteios, com 200 lutas por par. A estatística de cada gene é a média, sobre os cinco personagens, da variação absoluta.
 
@@ -269,52 +272,52 @@ O piso de ruído é medido na mesma estatística, sob a hipótese nula: uma jane
 \section{Calibração}
 \label{sec: calibracao}
 
-Os parâmetros marcados como medidos na \autoref{tab: parametros} foram escolhidos por varreduras realizadas antes da bateria, em orçamento reduzido: população de 120, 60 gerações e 5 sementes (1000 a 1004), disjuntas das da bateria. Cada braço de varredura altera um único parâmetro do algoritmo escalar, e os elencos resultantes são reavaliados como na bateria, com 1000 lutas por par. A \autoref{tab: calibracao} resume os braços. A coluna de equilíbrio global usa o termo $\tglob$, e não $\Pdom$, porque os pesos de $\Pdom$ são eles próprios um dos fatores variados.
+Quatro dos parâmetros marcados como medidos na \autoref{tab: parametros} foram escolhidos por varreduras realizadas antes da bateria: a razão $\lambda_{\mathrm{drift}}/\lambda_{\mathrm{dom}}$, os pesos dos termos de $\Pdom$, a taxa de elitismo e o tamanho do torneio. Os demais foram medidos nas condições descritas junto de cada um, no \autoref{chap: metodologia}. As varreduras usaram orçamento reduzido: população de 120, 60 gerações e 5 sementes (1000 a 1004), disjuntas das da bateria. Cada braço de varredura altera um único parâmetro do algoritmo escalar, e os elencos resultantes são reavaliados como na bateria, com 1000 lutas por par. A \autoref{tab: calibracao} resume os braços. Ela traz o termo global $\tglob$ em todos eles e $\Pdom$ apenas onde os seus pesos não variam, pois nos braços que os variam o valor de $\Pdom$ não é comparável.
 
 \begin{table}[htbp]
-    \caption{Varreduras de calibração do algoritmo escalar (5 sementes, população 120, 60 gerações). Médias sobre as sementes; na primeira linha, a configuração adotada.}
+    \caption[Varreduras de calibração do algoritmo escalar]{Varreduras de calibração do algoritmo escalar (5 sementes, população 120, 60 gerações). Médias sobre as sementes; na primeira linha, a configuração adotada.}
     \label{tab: calibracao}
     \centering
     \footnotesize
     % Fonte: results/exploratory/multi_run_ga_pop120_gen60_n5_seed1000*.json
-    \begin{tabularx}{\textwidth}{X c c c c c}
+    \begin{tabularx}{\textwidth}{X c c c c c c}
         \toprule
-        \textbf{Braço} & $\tglob$ & \textbf{\textit{Hard counters}} & \textbf{Equilibrados} & $\Pdrift$ & $\tau$ \\
+        \textbf{Braço} & $\Pdom$ & $\tglob$ & \textbf{\textit{Hard counters}} & \textbf{Equilibrados} & $\Pdrift$ & $\tau$ \\
         \midrule
-        \textbf{Adotada}: $\lambda_{\mathrm{drift}} = 1$; $\beta = 1/0{,}5/0{,}5$; elitismo 10\%; torneio 3 & 0,040 & 0,4 & 3/5 & 0,245 & 0,42 \\
+        \textbf{Adotada}: $\lambda_{\mathrm{drift}} = 1$; $\beta = 1/0{,}5/0{,}5$; elitismo 10\%; torneio 3 & 0,042 & 0,040 & 0,4 & 3/5 & 0,245 & 0,42 \\
         \midrule
-        $\lambda_{\mathrm{drift}} = 0{,}25$ & 0,032 & 1,2 & 2/5 & 0,377 & 0,02 \\
-        $\lambda_{\mathrm{drift}} = 0{,}5$  & 0,039 & 0,4 & 3/5 & 0,346 & $-$0,05 \\
-        $\lambda_{\mathrm{drift}} = 2$      & 0,042 & 4,2 & 1/5 & 0,140 & 0,60 \\
-        $\lambda_{\mathrm{drift}} = 4$      & 0,069 & 7,8 & 0/5 & 0,090 & 0,72 \\
+        $\lambda_{\mathrm{drift}} = 0{,}25$ & 0,041 & 0,032 & 1,2 & 2/5 & 0,377 & 0,02 \\
+        $\lambda_{\mathrm{drift}} = 0{,}5$  & 0,044 & 0,039 & 0,4 & 3/5 & 0,346 & $-$0,05 \\
+        $\lambda_{\mathrm{drift}} = 2$      & 0,183 & 0,042 & 4,2 & 1/5 & 0,139 & 0,60 \\
+        $\lambda_{\mathrm{drift}} = 4$      & 0,356 & 0,069 & 7,8 & 0/5 & 0,090 & 0,72 \\
         \midrule
-        $\beta = 1/0/0$       & 0,023 & 8,6 & 0/5 & 0,156 & 0,53 \\
-        $\beta = 1/0{,}5/0$   & 0,031 & 2,6 & 1/5 & 0,248 & 0,30 \\
-        $\beta = 1/1/1$       & 0,030 & 0,0 & 5/5 & 0,301 & 0,11 \\
-        $\beta = 1/2/0{,}5$   & 0,041 & 0,0 & 5/5 & 0,348 & 0,16 \\
+        $\beta = 1/0/0$       & -- & 0,023 & 8,6 & 0/5 & 0,156 & 0,53 \\
+        $\beta = 1/0{,}5/0$   & -- & 0,031 & 2,6 & 1/5 & 0,248 & 0,30 \\
+        $\beta = 1/1/1$       & -- & 0,030 & 0,0 & 5/5 & 0,301 & 0,11 \\
+        $\beta = 1/2/0{,}5$   & -- & 0,041 & 0,0 & 5/5 & 0,348 & 0,16 \\
         \midrule
-        Elitismo 0\%   & 0,064 & 0,8 & 3/5 & 0,269 & 0,30 \\
-        Elitismo 5\%   & 0,038 & 0,6 & 2/5 & 0,289 & 0,24 \\
-        Elitismo 20\%  & 0,040 & 0,6 & 3/5 & 0,281 & 0,19 \\
-        Elitismo 30\%  & 0,032 & 1,6 & 2/5 & 0,285 & 0,20 \\
+        Elitismo 0\%   & 0,068 & 0,064 & 0,8 & 3/5 & 0,269 & 0,30 \\
+        Elitismo 5\%   & 0,042 & 0,038 & 0,6 & 2/5 & 0,289 & 0,24 \\
+        Elitismo 20\%  & 0,044 & 0,040 & 0,6 & 3/5 & 0,281 & 0,19 \\
+        Elitismo 30\%  & 0,073 & 0,032 & 1,6 & 2/5 & 0,285 & 0,20 \\
         \midrule
-        Torneio 2 & 0,040 & 0,2 & 4/5 & 0,264 & 0,36 \\
-        Torneio 5 & 0,031 & 0,6 & 3/5 & 0,291 & 0,17 \\
-        Torneio 7 & 0,032 & 0,6 & 3/5 & 0,340 & 0,05 \\
+        Torneio 2 & 0,040 & 0,040 & 0,2 & 4/5 & 0,264 & 0,36 \\
+        Torneio 5 & 0,039 & 0,031 & 0,6 & 3/5 & 0,291 & 0,17 \\
+        Torneio 7 & 0,038 & 0,032 & 0,6 & 3/5 & 0,340 & 0,05 \\
         \bottomrule
     \end{tabularx}
     \source
 \end{table}
 
-A varredura da razão $\lambda_{\mathrm{drift}}/\lambda_{\mathrm{dom}}$ mostra o joelho descrito na \autoref{sub: formulacoes}. Abaixo de 1, o equilíbrio não melhora e a identidade se perde: com $\lambda_{\mathrm{drift}} = 0{,}25$ e $0{,}5$, a concordância $\tau$ cai ao nível do acaso, e $\Pdom$ fica entre 0,041 e 0,044 nos três braços. Acima de 1, a identidade melhora, mas os \textit{hard counters} disparam, de 0,4 para 4,2 e 7,8 por elenco. A razão unitária é o maior peso de identidade que ainda não custa equilíbrio.
+A varredura da razão $\lambda_{\mathrm{drift}}/\lambda_{\mathrm{dom}}$ mostra o joelho descrito na \autoref{sub: formulacoes}. Abaixo de 1, o equilíbrio não melhora e a identidade se perde: com $\lambda_{\mathrm{drift}} = 0{,}25$ e $0{,}5$, a concordância $\tau$ cai ao nível do acaso, e $\Pdom$ fica entre 0,041 e 0,044 nos três braços. Acima de 1, a identidade melhora, mas o equilíbrio se degrada: $\Pdom$ sobe para 0,183 e 0,356, e os \textit{hard counters}, de 0,4 para 4,2 e 7,8 por elenco. Entre os valores testados, a razão unitária é o maior peso de identidade que ainda não custa equilíbrio.
 
 A varredura dos pesos de $\Pdom$ sustenta a presença dos termos secundários e expõe o compromisso da sua repartição, discutidos na \autoref{sub: dominancia}. As varreduras de elitismo e torneio mostram que nenhuma alternativa domina a configuração adotada. O torneio de tamanho 2 obtém menos \textit{hard counters} e mais elencos equilibrados, mas paga em $\Pdrift$ e em $\tau$; as demais alternativas pioram a identidade sem melhorar o equilíbrio de forma consistente. A leitura correta é ``testados, e nenhuma alternativa os supera em todas as réguas'', e não ``ótimos''.
 
-Duas ressalvas limitam o uso dessas varreduras. Com 5 sementes, diferenças pequenas não se separam do ruído, e a tabela serve para ordenar configurações, não para declarar vencedores. Além disso, o orçamento reduzido não transfere necessariamente para o da bateria: a ordem entre o algoritmo escalar e o NSGA-II, por exemplo, se inverte com população de 120, razão pela qual nenhuma comparação entre algoritmos é feita em orçamento reduzido. A escolha do híbrido seguiu um critério escrito antes da varredura (\autoref{sec: hibrido}): eliminar as configurações consistentemente piores em equilíbrio e, entre as restantes, preferir a que melhor preserva identidade. Nenhuma das seis configurações sobreviveu à eliminação no orçamento reduzido; a configuração levada à bateria foi a mais simples, e a decisão de adotá-la ficou para a bateria.
+Duas ressalvas limitam o uso dessas varreduras. Com 5 sementes, diferenças pequenas não se separam do ruído, e a tabela serve para ordenar configurações, não para declarar vencedores. Além disso, o orçamento reduzido não transfere necessariamente para o da bateria: a ordem entre o algoritmo escalar e o NSGA-II, por exemplo, se inverte com população de 120, razão pela qual nenhuma comparação entre algoritmos é feita em orçamento reduzido. A escolha do híbrido seguiu um critério escrito antes da varredura (\autoref{sec: hibrido}): eliminar as configurações consistentemente piores em equilíbrio e, entre as restantes, preferir a que melhor preserva identidade. Nenhuma das seis configurações sobreviveu à eliminação no orçamento reduzido, e a configuração levada à bateria foi a mais simples. Nesse orçamento, ela preservou menos identidade que o próprio algoritmo escalar (desvio mediano de \hibReduzidoDrift{} contra \agReduzidoDrift{}), de modo que o seu efeito só pôde ser avaliado na bateria.
 
 \section{Reprodutibilidade e rastreabilidade}
 \label{sec: reprodutibilidade}
 
 Toda execução é reprodutível a partir da sua semente. A semente fixa a população inicial, os sorteios dos operadores e os \textit{streams} de avaliação, e cada luta é semeada pela sua posição na avaliação, de modo que o resultado não depende da ordem nem do número de processos que a executam.
 
-Cada artefato gravado pelo sistema, dos resultados de uma execução às comparações estatísticas, abre com um registro de proveniência: o valor de cada parâmetro de configuração, um resumo criptográfico dos perfis canônicos, um resumo do código-fonte do motor e, nos artefatos de medição, um resumo do código de medição que os produziu. Ao carregar um artefato, o sistema compara esse registro com o estado atual e avisa o que mudou. Uma ferramenta que \textit{grava} um artefato novo a partir de outro recusa entrada desatualizada, pois o artefato novo seria carimbado com a configuração atual e passaria a atestar um número produzido por outra. Os números citados nos capítulos seguintes saem todos de artefatos gerados pela bateria de 23 de setembro de 2026, sobre a configuração descrita no \autoref{chap: metodologia}.
+Cada artefato gravado pelo sistema, dos resultados de uma execução às comparações estatísticas, abre com um registro de proveniência: o valor de cada parâmetro de configuração, um resumo criptográfico dos perfis canônicos, um resumo do código-fonte do motor e, nos artefatos de medição, um resumo do código de medição que os produziu. Ao carregar um artefato, o sistema compara esse registro com o estado atual e avisa o que mudou. Uma ferramenta que \textit{grava} um artefato novo a partir de outro recusa entrada desatualizada, pois o artefato novo seria carimbado com a configuração atual e passaria a atestar um número produzido por outra. Os números da bateria citados nos capítulos seguintes saem de artefatos gerados em 23 de setembro de 2026, sobre a configuração descrita no \autoref{chap: metodologia}. As poucas medições avulsas feitas na preparação do texto, como a duração das lutas e o ruído de medição de $\Pdom$, não têm artefato próprio e são identificadas como tais onde aparecem.
