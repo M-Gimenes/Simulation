@@ -26,6 +26,10 @@ INCONCLUSIVA no resto. O veredito não depende de quantas sementes se usa: um qu
 "falhou em alguma das K" ficaria mais severo a cada semente acrescentada, mesmo com o
 roster intacto.
 
+O `dominance_penalty` de cada condição também sai da amostra somada, e não da média das
+sementes: ele é função de |WR − 0.5|, e a média de dez medições de 500 lutas o inflaria
+pelo ruído de cada uma.
+
 A bateria de identidade post-hoc (ciclo, drift_table, fingerprint, archetype_validator)
 já é coberta pelo `report`; esta validação foca no eixo do **equilíbrio**, que é onde o
 ajuste ao fitness se esconde.
@@ -52,11 +56,11 @@ from src.engine.config import (
     GLOBAL_CONVERGENCE_THRESHOLD,
     MATCHUP_WR_CAP,
 )
-from src.engine.fitness import evaluate_detail_n, set_seed_base
+from src.engine.fitness import _dominance_penalty, evaluate_detail_n, set_seed_base
 from src.engine.individual import Individual
 from src.engine.paths import EXTERNAL_VALIDATION_DIR, PROJECT_ROOT
 from src.engine.provenance import stamp
-from src.experiments.multi_run import CHAR_NAMES, matchup_label, mean_std
+from src.experiments.multi_run import CHAR_NAMES, matchup_label
 from src.analysis.analyze_matchups import wilson_ci
 
 REPLICATION = "replicação (regras do treino)"
@@ -122,15 +126,21 @@ def _evaluate_condition(individual: Individual, rules: CombatRules,
     fights_per_pair = sims * len(seeds)
     fights_per_char = fights_per_pair * (len(CHAR_NAMES) - 1)
 
+    pooled_winrates = [sum(d.winrates[i] for d in details) / len(details)
+                       for i in range(len(CHAR_NAMES))]
+    pooled_matchups = {key: sum(d.matchup_winrates[key] for d in details) / len(details)
+                       for key in details[0].matchup_winrates}
+    pooled_decisiveness = {key: sum(d.matchup_decisiveness[key] for d in details) / len(details)
+                           for key in details[0].matchup_decisiveness}
+    dominance = _dominance_penalty(pooled_winrates, pooled_matchups, pooled_decisiveness)
+
     characters: Dict[str, dict] = {}
-    for i, name in enumerate(CHAR_NAMES):
-        wr = sum(d.winrates[i] for d in details) / len(details)
+    for name, wr in zip(CHAR_NAMES, pooled_winrates):
         ci = wilson_ci(wr * fights_per_char, fights_per_char)
         characters[name] = {"wr": wr, "ci": list(ci), "status": band_status(ci, CHARACTER_BAND)}
 
     matchups: Dict[str, dict] = {}
-    for (i, j) in details[0].matchup_winrates:
-        wr = sum(d.matchup_winrates[(i, j)] for d in details) / len(details)
+    for (i, j), wr in pooled_matchups.items():
         ci = wilson_ci(wr * fights_per_pair, fights_per_pair)
         matchups[matchup_label(i, j)] = {"wr": wr, "ci": list(ci),
                                          "status": band_status(ci, PAIR_BAND)}
@@ -140,7 +150,8 @@ def _evaluate_condition(individual: Individual, rules: CombatRules,
     return {
         "rules": rules._asdict(),
         "fights_per_pair": fights_per_pair,
-        "dominance_penalty": mean_std([d.dominance_penalty for d in details]),
+        "dominance_penalty": dominance.total,
+        "dominance_terms": dominance.as_dict(),
         "drift_penalty": details[0].drift_penalty,
         "characters": characters,
         "matchups": matchups,
@@ -182,7 +193,7 @@ _MARK = {"dentro": "✓", "inconclusivo": "~", "fora": "✗"}
 
 def _print_condition(label: str, cond: dict) -> None:
     print(f"\n  ── {label} — {cond['verdict']}  "
-          f"(dominance {cond['dominance_penalty']['mean']:.4f}, "
+          f"(dominance {cond['dominance_penalty']:.4f}, "
           f"{cond['fights_per_pair']} lutas por par)")
     for name, c in cond["characters"].items():
         lo, hi = c["ci"]

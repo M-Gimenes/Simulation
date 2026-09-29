@@ -1,6 +1,6 @@
 {
   "provenance": {
-    "generated_at": "2026-09-23T06:23:36-03:00",
+    "generated_at": "2026-09-29T17:31:02-03:00",
     "fingerprint": "92b3ca4aefae",
     "engine_digest": "cbb81a8a540d",
     "archetypes_digest": "e37725dd4b7c",
@@ -215,7 +215,7 @@
         "src.experiments.external_validation",
         "src.experiments.multi_run"
       ],
-      "digest": "8004941f7bba"
+      "digest": "68b8fbcbbcdc"
     }
   },
   "individual": "canonical",
@@ -251,9 +251,11 @@
         "action_persistence_subticks": 5
       },
       "fights_per_pair": 5000,
-      "dominance_penalty": {
-        "mean": 1.2770972207467381,
-        "std": 0.0018569890846638682
+      "dominance_penalty": 1.2770504514628067,
+      "dominance_terms": {
+        "global_term": 0.6418593249303153,
+        "cap_term": 0.9444020632881195,
+        "decis_term": 0.32598018977686344
       },
       "drift_penalty": 0.0,
       "characters": {
@@ -392,9 +394,11 @@
         "action_persistence_subticks": 5
       },
       "fights_per_pair": 5000,
-      "dominance_penalty": {
-        "mean": 1.2766306477676734,
-        "std": 0.0008416408375664849
+      "dominance_penalty": 1.2766078806418073,
+      "dominance_terms": {
+        "global_term": 0.6421705342041163,
+        "cap_term": 0.9446716565958302,
+        "decis_term": 0.32420303627955166
       },
       "drift_penalty": 0.0,
       "characters": {
@@ -533,9 +537,11 @@
         "action_persistence_subticks": 5
       },
       "fights_per_pair": 5000,
-      "dominance_penalty": {
-        "mean": 1.2784192902886118,
-        "std": 0.00116391088206762
+      "dominance_penalty": 1.2783884384581032,
+      "dominance_terms": {
+        "global_term": 0.6418935231017681,
+        "cap_term": 0.9451752499199418,
+        "decis_term": 0.32781458079272874
       },
       "drift_penalty": 0.0,
       "characters": {
@@ -674,9 +680,11 @@
         "action_persistence_subticks": 5
       },
       "fights_per_pair": 5000,
-      "dominance_penalty": {
-        "mean": 1.2969418374442645,
-        "std": 0.0019869200338246307
+      "dominance_penalty": 1.2969131796044888,
+      "dominance_terms": {
+        "global_term": 0.6571030756281696,
+        "cap_term": 0.9461073848530458,
+        "decis_term": 0.33351282309959257
       },
       "drift_penalty": 0.0,
       "characters": {
@@ -815,9 +823,11 @@
         "action_persistence_subticks": 5
       },
       "fights_per_pair": 5000,
-      "dominance_penalty": {
-        "mean": 1.271766440055721,
-        "std": 0.0019620501157516577
+      "dominance_penalty": 1.271714833769418,
+      "dominance_terms": {
+        "global_term": 0.638193532558894,
+        "cap_term": 0.9438271244334561,
+        "decis_term": 0.3232154779875919
       },
       "drift_penalty": 0.0,
       "characters": {
@@ -956,9 +966,11 @@
         "action_persistence_subticks": 4
       },
       "fights_per_pair": 5000,
-      "dominance_penalty": {
-        "mean": 1.2831336943294798,
-        "std": 0.0009917071461305734
+      "dominance_penalty": 1.2829889312596157,
+      "dominance_terms": {
+        "global_term": 0.6378907845391718,
+        "cap_term": 0.949078990712704,
+        "decis_term": 0.3411173027281835
       },
       "drift_penalty": 0.0,
       "characters": {
@@ -1097,9 +1109,11 @@
         "action_persistence_subticks": 6
       },
       "fights_per_pair": 5000,
-      "dominance_penalty": {
-        "mean": 1.2714139311366148,
-        "std": 0.0011504314823682987
+      "dominance_penalty": 1.2713851672035499,
+      "dominance_terms": {
+        "global_term": 0.6465086983173545,
+        "cap_term": 0.944337526134224,
+        "decis_term": 0.3054154116381668
       },
       "drift_penalty": 0.0,
       "characters": {
@@ -1238,9 +1252,11 @@
         "action_persistence_subticks": 5
       },
       "fights_per_pair": 5000,
-      "dominance_penalty": {
-        "mean": 1.2768254168112985,
-        "std": 0.001931838404351818
+      "dominance_penalty": 1.276778829857547,
+      "dominance_terms": {
+        "global_term": 0.6428374499047174,
+        "cap_term": 0.9455968377653537,
+        "decis_term": 0.3222859221403057
       },
       "drift_penalty": 0.0,
       "characters": {
@@ -1379,9 +1395,11 @@
         "action_persistence_subticks": 5
       },
       "fights_per_pair": 5000,
-      "dominance_penalty": {
-        "mean": 1.278013646576956,
-        "std": 0.0015539047362816212
+      "dominance_penalty": 1.2779333652447575,
+      "dominance_terms": {
+        "global_term": 0.6406400018731269,
+        "cap_term": 0.94451139728001,
+        "decis_term": 0.33007532946325147
       },
       "drift_penalty": 0.0,
       "characters": {
