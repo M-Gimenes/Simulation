@@ -2266,3 +2266,27 @@ o 0,75 — 15 gerações escalares não limpam os counters que a fronteira traz.
 quiser afirmar que 0,5 é o **melhor** split, isso exige um sweep no orçamento inteiro, que
 não foi feito. O que está medido é que **este** split, contra o AG escalar, troca
 identidade grande por equilíbrio nenhum.
+
+## O `dominance` da validação externa passou a sair da amostra somada (2026-09-29)
+
+**Problema.** A revisão da monografia achou que a tabela da validação externa dizia
+"`dominance` sob cada condição, com 5000 lutas por par", mas o número gravado era a
+**média de dez `dominance`**, um por semente de 500 lutas. O veredito já usava a amostra
+somada (WRs somadas, IC de Wilson sobre 5000 lutas); só o `dominance` não. Como ele é função
+de |WR − 0,5|, cada medição pequena vem inflada pelo ruído, e a média de dez delas carrega
+esse viés inteiro — exatamente o viés que a própria tese usa para explicar por que
+`MULTI_RUN_SIMS` subiu para 1000. A replicação do AG escalar lia 0,0373 fora do laço contra
+0,0251 dentro, e parte dessa degradação era régua, não roster.
+
+**Mudança.** `external_validation._evaluate_condition` soma WRs e decisividade das
+sementes e passa a amostra somada a `fitness._dominance_penalty` (o mesmo padrão com que
+`baselines` e `drift_table` já importam `_archetype_deviation`), gravando o total e os três
+termos (`dominance_terms`). O motor não mudou, então nenhum outro artefato fica obsoleto; os
+quatro rótulos foram regerados.
+
+**Resultado.** Vereditos e WRs saíram **bit a bit iguais** nos 4 rótulos × 9 condições; só
+o `dominance` caiu, como o viés previa. Replicação do AG escalar: **0,033** (era 0,037) contra
+0,025 dentro do laço, degradação de 1,3×. `scalar_optimum`: 0,051 (era 0,059). A ordem
+entre condições não mudou: as duas perturbações da persistência seguem as piores do AG
+(0,110 e 0,153). O canônico, com pares decididos a ~100%, ficou idêntico — o viés só morde
+onde a WR está perto de 50%.

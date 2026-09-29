@@ -13,8 +13,9 @@ do sistema nos docs 01–09.
 **Nenhuma aberta.** A última — «o AG escalar não é ótimo na própria função», aberta em
 2026-09-22 — foi **fechada em 2026-09-23** pela adoção do braço híbrido.
 
-Em resumo: `dominance` é amostrado e `drift` não, e depois da geração ~31 a seleção
-escalar gasta a pressão em ruído; a linhagem de drift mínimo morre na geração 7. Repartir
+Em resumo: a soma escalar elimina cedo a linhagem de drift mínimo (geração 7, por pressão
+real de equilíbrio) e, depois da geração ~31, como `dominance` é amostrado e `drift` não,
+gasta a pressão em ruído sem recuperá-la. Repartir
 o **mesmo** orçamento entre uma fase de Pareto e uma escalar recupera a identidade sem
 custo em equilíbrio — drift 0,1663 contra 0,2473 e τ +0,5215 contra +0,2811 (efeito
 grande), com `dominance` e hard-counters imóveis (Â₁₂ 0,51 e 0,49). Achado e números em

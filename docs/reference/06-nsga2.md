@@ -158,12 +158,14 @@ Pareto e uma fase escalar: `split × n_generations` gerações de NSGA-II, o res
 `ga.run`. O total é o mesmo do AG escalar sozinho — é a única forma de a comparação ser
 honesta, e é o que separa este braço do diagnóstico `from_nsga`, que usava o dobro.
 
-**Por que isso deveria ajudar.** Os dois termos do fitness escalar têm ruído diferente:
-`drift` sai dos genes e é exato, `dominance` é amostrado (desvio 0,015–0,028 a 150 lutas
-por par). Passada a convergência, o gradiente verdadeiro do `dominance` está esgotado e o
-ruído não, e ele é ~60× maior que o ganho de drift por geração — a seleção escalar passa a
-gastar a pressão em sorte, a linhagem de drift mínimo morre na geração 7 e a diversidade
-de drift colapsa até a 20. No NSGA-II isso não ocorre: `drift` é objetivo separado e sem
+**Por que isso deveria ajudar.** A soma escalar perde identidade em dois estágios. **Cedo**,
+as diferenças verdadeiras de `dominance` são grandes e a soma elimina os rosters próximos
+do canônico junto com a diversidade de drift: a linhagem de drift mínimo morre na geração
+7 e a população vira um aglomerado de largura 0,045 na 20 — pressão de equilíbrio, não
+ruído. **Depois da convergência**, `drift` sai dos genes e é exato, `dominance` é amostrado
+(desvio 0,015–0,028 a 150 lutas por par): o gradiente verdadeiro do `dominance` está
+esgotado e o ruído não, ~60× maior que o ganho de drift por geração, e a seleção escalar
+gasta a pressão em sorte sem recuperar o que perdeu. No NSGA-II nenhum dos dois ocorre: `drift` é objetivo separado e sem
 ruído, e o extremo de drift baixo fica protegido no rank 0 pela crowding infinita
 (multi-objetivização — Knowles, Watson & Corne 2001 — agindo como robustez a ruído). O
 híbrido usa a fase de Pareto para preservar a linhagem fiel enquanto o equilíbrio é

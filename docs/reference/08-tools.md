@@ -377,6 +377,12 @@ dentro, FRÁGIL se algo está fora, INCONCLUSIVA no resto. Grava em
 `results/external_validation/external_validation_<label>.json` o veredito da replicação e
 a contagem de condições de robustez em cada veredito.
 
+O `dominance_penalty` de cada condição (e os três termos, em `dominance_terms`) sai da
+**mesma amostra somada** que decide o veredito: WRs e decisividade das 10 sementes somados
+e passados a `fitness._dominance_penalty`. Não é a média dos 10 valores por semente — o
+`dominance` é função de |WR − 0,5|, e a média de dez medições de 500 lutas o inflaria pelo
+ruído de cada uma (no roster evoluído, 0,037 pela média contra 0,033 na amostra somada).
+
 O veredito **não depende de quantas sementes se usa**: o anterior ("counter duro em
 alguma das K condições") ficava mais severo a cada semente acrescentada, mesmo com o
 roster intacto, e as K "condições" eram só sementes — replicação, não robustez.
@@ -408,6 +414,15 @@ visível.
 com a WR presa no teto deslocar um gene não muda nada — quase tudo sai "neutro" por
 efeito de teto. A medida citável é a de `--evolved` / `--nsga2`, num roster equilibrado.
 A análise é **local**: mede a paisagem em volta de um indivíduo, e muda com ele.
+
+**A janela é relativa ao passo de mutação, não à amplitude do gene.** Os pesos mutam com
+σ = 2,5% da amplitude e os atributos com 10%, então a janela dos pesos é 4× mais estreita,
+e o ranking mistura "o gene pesa pouco no combate" com "a mutação mexe pouco nele". Para
+separar os dois, `--sigma-mult 4` dá aos pesos a janela relativa dos atributos (e
+**sobrescreve** o artefato citável — guardar a saída e restaurar o arquivo). Medido no
+roster evoluído da semente 42: com a janela igual, os três pesos movem a WR global em
+12–17 pontos, acima de `stun` (10,4), `knockback` e `speed` — a política pesa no combate;
+o que a esconde é o passo.
 
 ```bash
 py -m src.experiments.sensitivity_analysis --evolved

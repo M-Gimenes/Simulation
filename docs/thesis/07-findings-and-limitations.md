@@ -161,8 +161,12 @@ Estes são os achados citáveis. Os números completos estão em
   > A 1000 lutas, com os **mesmos indivíduos**, dá 0,0432 contra 0,0355, **p_Holm =
   > 0,059**. Sobrevivem a direção, o tamanho de efeito (Â₁₂ = 0,30, médio, inalterado) e o
   > p bruto (0,030); o que cai é a sobrevivência à correção de Holm sobre a família de 6.
-  > O braço λ = 0 é o mais ruidoso dos dois, então a régua grossa o penalizava mais —
-  > parte do que parecia efeito era a medida errando contra o braço ruidoso. A frase
+  > *Revisto em 2026-09-29:* o viés para cima da régua grossa **não** explica a inversão.
+  > Ele é maior nos rosters mais equilibrados e, pelo modelo binomial, deveria ter
+  > *aproximado* os braços (inflação prevista 200 → 1000 lutas: +0,014 no AG, +0,011 no
+  > λ = 0; observada +0,008 e +0,010). A significância a 200 lutas foi erro de medição de um
+  > único stream, da ordem da diferença entre os braços, que o pareado converteu em
+  > p < 0,05 — não um viés sistemático contra o braço λ = 0. A frase
   > defensável é *"tirar a identidade está associado a pior equilíbrio, com efeito médio
   > que não alcança significância"*. Os hard-counters também não separam (p = 0,180).
 - **A identidade funcional está acima do acaso, e a régua que mostra isso é o controle —
@@ -187,8 +191,11 @@ Estes são os achados citáveis. Os números completos estão em
   **80 de 80 execuções** — os dois algoritmos e os dois controles, inclusive o braço sem
   termo de identidade. O que discrimina são os pares.
 - **Só o AG escalar replica fora do laço.** Único dos quatro rótulos ROBUSTO na replicação
-  (`dominance` 0,0373 fora contra 0,0251 dentro — degradação de 1,5×, contra 21× na
+  (`dominance` 0,033 fora contra 0,025 dentro — degradação de 1,3×, contra 21× na
   bateria pré-rotação), robusto a 4 das 8 regras perturbadas, 2 inconclusivas, 2 frágeis.
+  *(Desde 2026-09-29 o `dominance` de cada condição sai da amostra somada de 5000 lutas;
+  pela média das 10 sementes, como antes, lia 0,0373 — a média de medições pequenas o
+  inflava. Vereditos e WRs saíram bit a bit iguais.)*
   Canônico, NSGA-II `scalar_optimum` e `knee_point` falham a replicação e as 8 regras.
 - **O ciclo autoral não sobrevive ao equilíbrio** — e o objetivo é cego à direção por
   construção. O Grappler × Turtle, aresta canônica forte (100% no canônico), é achatado a
@@ -201,11 +208,17 @@ Estes são os achados citáveis. Os números completos estão em
   repetido a cada geração, não equilíbrio estável: das 20 convergidas, 16 terminaram com o
   roster equilibrado na reavaliação — eram 14 a 200 lutas por par, e duas delas eram ruído
   da régua.
-- **O AG quase não enxerga a política pelo equilíbrio.** Na sensibilidade (11 genes,
-  janela 2σ, piso medido em 3,5%) os três pesos ocupam o fundo do ranking: `w_defend` 2,9%
-  e `w_aggressiveness` 3,0% abaixo do piso, `w_retreat` 4,8% no limiar, contra `range`
-  30,8% no topo. O único gradiente que os puxa de volta ao canônico é o do drift — e o
-  controle λ = 0 mostra o que acontece sem ele.
+- **O AG quase não enxerga a política pelo equilíbrio — por causa do passo, não do peso
+  da política no combate.** Na sensibilidade citável (11 genes, janela 2σ do próprio σ de
+  mutação, piso medido em 3,5%), `w_defend` 2,9% e `w_aggressiveness` 3,0% são os únicos
+  genes abaixo do piso, e `w_retreat` 4,8% fica no limiar junto com `knockback` 4,3% e
+  `speed` 3,5%, contra `range` 30,8% no topo. Mas a janela dos pesos é 4× mais estreita
+  (σ 2,5% contra 10% da amplitude). Medido em 2026-09-29 com a janela relativa dos
+  atributos (`--sigma-mult 4`, medição avulsa; o artefato citável foi restaurado): os três
+  pesos movem a WR global 12,4–16,5%, acima de `stun` (10,4%). A política pesa como um
+  atributo intermediário; o σ de mutação é que põe cada passo dela no nível do ruído. O
+  gradiente do drift sobre os pesos é exato, mas pequeno por passo, e na soma escalar o
+  ruído do `dominance` o encobre — o controle λ = 0 mostra o que acontece sem ele.
 - **Os três sweeps testaram os valores vigentes e os três se mantiveram**, mas duas
   conclusões mudaram de forma: λ = 1,0 deixou de empatar com os λ menores e passou a
   **dominá-los** (mesmo `dominance`, drift 0,10–0,13 melhor, τ dez vezes maior), e o
@@ -227,9 +240,19 @@ Os números estão em `overleaf/TCC/valores.tex` e nas tabelas do capítulo de R
   probabilidades de intenção ficam perto da mistura uniforme da população sorteada: o
   Rushdown avança em 0,39 (AG), 0,47 (híbrido), 0,48 (NSGA-II) e 0,35 (λ = 0), contra 0,86 no
   canônico; o Zoner recua em 0,33 / 0,45 / 0,46 / 0,19 contra 0,55. No controle λ = 0 as
-  políticas dos cinco são indistinguíveis. A leitura: o equilíbrio quase não enxerga os pesos
-  (sensibilidade) e a mutação os move com σ 4× menor, então a política herdada da população
-  aleatória fica — a inércia pretendida conservou a política errada.
+  políticas dos cinco são indistinguíveis (todas ~0,37 FRENTE / ~0,2 RECUAR / ~0,4 GUARDA
+  na mediana; o 0,19 do Zoner é a propensão a recuar comum aos cinco). A leitura: a mutação
+  move os pesos com σ 4× menor, e nesse passo o equilíbrio não os enxerga (ver acima), então
+  a política herdada da população aleatória fica — a inércia pretendida conservou a
+  política errada. O Combo Master, cuja P(FRENTE) canônica (0,74) já é próxima da do
+  Rushdown, avança mais que ele em 10/20 execuções do AG, 13/20 do NSGA-II e 14/20 do
+  híbrido: é boa parte das falhas daquela asserção.
+- **A diferenciação não mede homogeneização pelo equilíbrio.** Mediana da distância média
+  entre os 5 (atributos normalizados + probabilidades de intenção): canônico 1,35,
+  aleatórios 1,20, AG escalar 1,09, **controle λ = 0 1,16**, híbrido 1,20, NSGA-II 1,22.
+  Se o equilíbrio aproximasse os personagens, o braço que só otimiza equilíbrio teria o
+  menor valor; ele fica acima do AG. E um roster sorteado é tão diferenciado quanto um
+  evoluído sem ter identidade. Leitura só descritiva.
 - **O controle λ = 0 fica no acaso asserção por asserção**, não só no total: as asserções de
   Camada 1 e 3 passam em 2–8 de 20, em torno das 4 que o acaso dá.
 - **A diferenciação não é régua de identidade.** Mediana 1,09 no AG escalar, **abaixo** da
@@ -262,16 +285,22 @@ configuração (ver «O que ainda falta»).
   seguem mutuamente não-dominados em 18/20, porque o ponto do AG fica *além* da ponta de
   menor dominance da fronteira em **19/20** (0,017 contra 0,05). Ele não está atrás da
   fronteira — está num extremo dela, e o extremo não é o ótimo de λ = 1/1.
-- **A causa é uma assimetria de ruído entre os dois termos do escalar.** `drift` é
-  determinístico; `dominance` é amostrado, com desvio 0,015–0,028 a 150 lutas (mesmo
-  roster, 30 streams). Depois da geração ~31 — exatamente a geração média de convergência
-  — o gradiente verdadeiro de `dominance` acabou e o que sobra é ruído ~60× maior que o
-  ganho de drift por geração (0,0003). A seleção escalar gasta a pressão em sorte.
+- **A causa age em dois estágios** *(leitura revista em 2026-09-29; antes o texto atribuía
+  tudo ao ruído depois da convergência, o que contradizia a morte da linhagem fiel na
+  geração 7, abaixo)*. **Cedo**, as diferenças verdadeiras de `dominance` são grandes e a
+  soma escalar elimina os rosters próximos do canônico junto com a diversidade de drift —
+  pressão real de equilíbrio, não ruído. **Depois da geração ~31** — exatamente a geração
+  média de convergência —, `drift` é determinístico e `dominance` é amostrado, com desvio
+  0,015–0,028 a 150 lutas (mesmo roster, 30 streams): o gradiente verdadeiro de
+  `dominance` acabou, e o que sobra é ruído ~60× maior que o ganho de drift por geração
+  (0,0003). A seleção escalar gasta a pressão em sorte e não recupera o que perdeu cedo.
 - **Sobreajuste ao stream, quantificado** (`dominance` no laço → reavaliado, medido a
   1000 lutas por par): AG escalar 0,0172 → 0,0355 (**1,80×**, pior em 17/20); controle
   λ = 0 0,0184 → 0,0432 (**2,33×**); NSGA-II 0,0559 → 0,0759 (1,25×). *(A 200 lutas as
-  mesmas razões liam 2,58× / 3,21× / 1,52× — a régua grossa inflava todas, e mais a de
-  quem tem mais ruído. A ordenação entre os três, que é o achado, não muda.)* **Quanto mais a seleção se concentra no termo ruidoso,
+  mesmas razões liam 2,58× / 3,21× / 1,52× — a régua grossa inflava todas. A ordenação
+  entre os três, que é o achado, não muda. O controle sem semente, com a mesma aptidão do
+  AG, dá 1,95×, e o híbrido 1,67×: a relação com o peso do termo ruidoso é tendência, não
+  ordenação exata.)* **Quanto mais a seleção se concentra no termo ruidoso,
   mais a execução compra sorte** — e o braço sem identidade, que só tem o termo ruidoso,
   é o pior dos três. Casa com os 71% de disparos do gate recusados pela confirmação.
 - **A linhagem fiel morre na geração 7.** Réplica instrumentada da seed 42
@@ -279,11 +308,16 @@ configuração (ver «O que ainda falta»).
   população sai de 0,0000 (g0–g2, a semente canônica) para 0,17 em **g7** e 0,24 em g20,
   quando `dominance` ainda tinha 1,13 dos seus 1,35 por entregar. Em g20 a população é um
   aglomerado de largura 0,045 (mínimo 0,2406, mediana 0,2861): não sobrou diversidade de
-  drift para recombinar, e as 130 gerações seguintes rendem 0,05. No NSGA-II isso não
-  ocorre — `drift` é objetivo separado e sem ruído, e o extremo de drift baixo fica
-  protegido no rank 0 pela crowding infinita. É **multi-objetivização** (Knowles, Watson
-  & Corne 2001) agindo como robustez a ruído, leitura que [08](08-literature-methods.md)
-  ainda não cobre.
+  drift para recombinar, e as 130 gerações seguintes rendem 0,05. É o primeiro estágio:
+  acontece antes da convergência, quando a diferença de `dominance` ainda é muito maior
+  que o ruído. O canônico em si sai na geração 3; na geração 0 ele está entre os 11
+  melhores dos 300 em todas as 20 sementes da bateria (mediana 5º, o melhor na semente
+  55), sempre na elite — com drift zero, a aptidão dele (−1,28) empata com a dos melhores
+  sorteados. No NSGA-II nenhum dos dois estágios ocorre — `drift` é objetivo separado e
+  sem ruído, e o extremo de drift baixo fica protegido no rank 0 pela crowding infinita. É
+  **multi-objetivização** (Knowles, Watson & Corne 2001) protegendo a diversidade de
+  drift contra a pressão inicial de equilíbrio e contra o ruído depois; o híbrido é
+  consistente com isso, mas não separa os dois estágios.
 - **Consequência para a pergunta de pesquisa: o trade-off medido é um teto do custo da
   identidade, não o custo.** Um híbrido NSGA-II 75 gerações → AG escalar 75 (**orçamento
   igual**, mesmas 300 × 150 no total) reavaliado a 1000 lutas em 4 sorteios novos:
@@ -420,9 +454,10 @@ Refeito em `src/experiments/cycle_structure.py` (16 × 1000 = 16.000 lutas por p
   são *held-out*, não causalmente isoladas: cada asserção da Layer 3 é consequência quase
   direta de um gene definidor, e comportamento é downstream dos genes que o fitness move.
   A Layer 3 tem ainda só 5 bits; a concordância de ranking existe para isso.
-- **A política é o que o AG menos enxerga.** Na escala da mutação, dois dos três pesos
-  ficam abaixo do piso de ruído da sensibilidade e o terceiro no limiar (medido na bateria
-  de 2026-09-21 — ver acima). A análise é local, e muda com o indivíduo. Ver
+- **A política é o que o AG menos enxerga — na escala da mutação.** Com o σ de mutação,
+  dois dos três pesos ficam abaixo do piso de ruído da sensibilidade e o terceiro no
+  limiar; com a janela relativa dos atributos, os três são visíveis (12–17%). A limitação
+  é do passo de mutação, que é valor de projeto (ver acima). A análise é local, e muda com o indivíduo. Ver
   [05](05-methodological-validation.md).
 - **Convergir não é ficar equilibrado.** `converged_at` é o primeiro disparo do gate que
   sobrevive à confirmação, num teste repetido a cada geração; a fração que termina
