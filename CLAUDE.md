@@ -110,7 +110,8 @@ pip install -r requirements.txt
 ├── docs/
 │   ├── reference/             # como o sistema funciona, um arquivo por tema
 │   ├── thesis/                # material de redação: o porquê, o que apresentar
-│   └── status/                # registros de trabalho: HANDOFF (estado + última bateria), REVIEW (auditoria)
+│   └── status/                # registros de trabalho: HANDOFF (o que está pronto e o que falta), REVIEW (revisão do texto da monografia)
+├── diagnostics/               # scripts fora do protocolo, sem carimbo: extração de números, holdout, réplica do laço (ver 08-tools)
 ├── results/                   # artefatos versionados, uma pasta por produtor — ver Output Files
 ├── results_previous/          # baterias superadas: não são citáveis, sustentam as notas de revisão
 └── overleaf/                  # os textos redigidos (monografia e artigos)

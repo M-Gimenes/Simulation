@@ -25,8 +25,8 @@ isso, apenas se referencia.
 > Pendências e limites do sistema: [`../reference/10-known-issues.md`](../reference/10-known-issues.md).
 
 > ✅ **Números de resultado.** Os números citáveis são os da bateria de **2026-09-23**
-> (n = 20, motor atual, os dois controles e o braço híbrido), resumidos em
-> [`../status/HANDOFF.md`](../status/HANDOFF.md) §2 e listados como achados em
+> (n = 20, motor atual, os dois controles e o braço híbrido), nos artefatos de `results/`
+> (na monografia, `overleaf/TCC/valores.tex`) e listados como achados em
 > [07](07-findings-and-limitations.md). Entradas de [04](04-design-decisions.md) datadas de
 > antes dela descrevem o **percurso** e carregam nota de revisão onde o número mudou —
 > não cite número de entrada antiga sem checar a nota.

@@ -646,3 +646,21 @@ editá-lo não invalida artefato nenhum.
 ```bash
 py -m src.visualization.thesis_figures
 ```
+
+## `diagnostics/` — fora do protocolo
+
+Três scripts fora de `src/`, sem carimbo de proveniência: não gravam artefato citável e
+não entram em nenhum digest.
+
+- **`battery_numbers.py`** — extrai dos artefatos todo número que os docs citam
+  (`py -m diagnostics.battery_numbers`). Usar sempre que uma bateria nova sair, em vez de
+  atualizar números de memória.
+- **`exp_holdout.py`** — reavalia os elencos de um braço a N lutas por par em streams
+  nunca vistos. Mede o ruído de uma régua antes de ela decidir uma comparação
+  ([12](12-statistical-testing.md)).
+- **`exp_diag.py`** — réplica instrumentada do laço do AG escalar. Com
+  `data/base42.json`, reproduz bit a bit a execução de semente 42; é dela que saem o desvio
+  mínimo da população nas gerações 7 e 20 e a largura do aglomerado.
+
+`data/noise.json` guarda o ruído do `dominance` por indivíduo (0,015 a 0,028 a 150 lutas
+por par), o número que motivou `MULTI_RUN_SIMS = 1000`.

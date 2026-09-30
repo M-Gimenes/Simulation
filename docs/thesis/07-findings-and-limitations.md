@@ -145,8 +145,8 @@ Consequências para a redação:
 > **duas leituras viraram de lado**, ambas marcadas ⚠. Ver [04](04-design-decisions.md),
 > «A política de adiar conserto inerte foi verificada».
 
-Estes são os achados citáveis. Os números completos estão em
-[`../status/HANDOFF.md`](../status/HANDOFF.md) §2 e o porquê de cada um em
+Estes são os achados citáveis. Os números completos estão nos artefatos de `results/`
+(extraídos por `py -m diagnostics.battery_numbers`) e o porquê de cada um em
 [04](04-design-decisions.md), a partir de «O controle `λ_drift = 0`».
 
 - **A identidade não custa equilíbrio, e o termo é o que a segura — este é o achado que
@@ -273,10 +273,10 @@ Os números estão em `overleaf/TCC/valores.tex` e nas tabelas do capítulo de R
 ### O AG escalar não é ótimo na própria função (2026-09-22)
 
 Investigação sobre os artefatos da bateria de 2026-09-21, scripts e dados em
-`diagnostics/` (fora de `src/`, sem carimbo de proveniência). **Registro de trabalho em
-`CONTINUE.md`**; o que está aqui é o achado. Ainda **não** rodou na bateria — os braços
-abaixo usam as sementes 42–46, que são as da bateria, e por isso ainda não escolhem
-configuração (ver «O que ainda falta»).
+`diagnostics/` (fora de `src/`, sem carimbo de proveniência; ver
+[`../reference/08-tools.md`](../reference/08-tools.md)). Os braços abaixo usam as sementes
+42–46, que são as da bateria, e por isso não escolheram configuração; o híbrido foi medido
+depois, na bateria de 2026-09-23 («O híbrido responde o achado do AG escalar»).
 
 - **O NSGA-II vence o AG escalar na soma que o escalar otimiza.** Em `dominance + drift`
   (λ = 1/1), a fronteira tem um ponto melhor em **20/20** sementes no stream do laço
@@ -481,8 +481,7 @@ escalar», acima, e [04](04-design-decisions.md) para a decisão. O que sobrou d
 dali é uma pergunta menor e declarada: **qual o melhor split**, que exigiria um sweep no
 orçamento inteiro. O 0,5 atual veio do desempate de simplicidade.
 
-Falta a **redação**: a monografia e os artigos descrevem gerações anteriores do modelo, e
-o `values.tex` está inteiramente obsoleto — agora com números definitivos para refazê-lo
-(ver [`../status/HANDOFF.md`](../status/HANDOFF.md) §4). Os números a citar saem de
-`results/` e do `docs/status/HANDOFF.md` §2 — nunca de rodadas anteriores ao motor atual,
-que foram geradas sob outro modelo.
+A monografia foi reescrita em 2026-09-29 sobre essa bateria; o que falta da redação está em
+[`../status/HANDOFF.md`](../status/HANDOFF.md). Os números a citar saem de `results/` e, na
+monografia, de `overleaf/TCC/valores.tex` — nunca de rodadas anteriores ao motor atual, que
+foram geradas sob outro modelo.

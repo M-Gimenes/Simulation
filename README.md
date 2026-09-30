@@ -116,8 +116,8 @@ overleaf/      monografia e artigos
 
 - [`docs/reference/`](docs/reference/README.md) — como o sistema funciona, um arquivo por tema.
 - [`docs/thesis/`](docs/thesis/README.md) — material de redação: o porquê de cada decisão, o que apresentar.
-- [`docs/status/HANDOFF.md`](docs/status/HANDOFF.md) — o estado atual e os resultados da última bateria.
-- [`docs/status/REVIEW.md`](docs/status/REVIEW.md) — a auditoria de coerência do sistema e o que dela segue aberto.
+- [`docs/status/HANDOFF.md`](docs/status/HANDOFF.md) — o que está pronto e o que falta.
+- [`docs/status/REVIEW.md`](docs/status/REVIEW.md) — a revisão do texto da monografia e as regras dela.
 - [`CLAUDE.md`](CLAUDE.md) — guia de trabalho no repositório e resumo das decisões de design.
 
 ## Tests

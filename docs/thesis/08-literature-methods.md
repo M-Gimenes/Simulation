@@ -258,7 +258,7 @@ régua de graduação; o risco a partir daqui não é falta de método, é o opo
 tese rica em maquinário e pobre em achados. **O valor seguinte estava em rodar os
 experimentos reais e interpretar os números, não em construir mais ferramentas** — e
 eles foram rodados: `multi_run` com 20 sementes, comparação estatística, validação
-externa e modelos nulos (resultados no `docs/status/HANDOFF.md` §2). Decisão tomada:
+externa e modelos nulos (achados em [07](07-findings-and-limitations.md)). Decisão tomada:
 
 ### ✅ Implementado — entra como Metodologia + Resultados
 - **1.1 — N execuções + estatística agregada** (`src/experiments/multi_run.py`): roda AG

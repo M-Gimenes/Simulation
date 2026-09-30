@@ -8,10 +8,10 @@ Organizada em três frentes:
 - **[`thesis/`](thesis/README.md)** — material de redação da monografia (o porquê, a
   trajetória de decisões, o que apresentar nos resultados).
 - **[`status/`](status/HANDOFF.md)** — registros de trabalho: o
-  [`HANDOFF.md`](status/HANDOFF.md) (estado atual e resultados da última bateria, por onde
-  começar) e o [`REVIEW.md`](status/REVIEW.md) (a auditoria de coerência e o que dela segue
-  aberto). Descrevem o momento, não o sistema — o que vale para a tese é migrado para
-  `reference/` e `thesis/`.
+  [`HANDOFF.md`](status/HANDOFF.md) (o que está pronto e o que falta, por onde começar) e o
+  [`REVIEW.md`](status/REVIEW.md) (a revisão do texto da monografia e as regras dela).
+  Descrevem o momento, não o sistema — o que vale para a tese é migrado para `reference/`
+  e `thesis/`.
 
 Para instruções de trabalho com o repositório, ver `CLAUDE.md` (raiz); para
 instalação e execução rápida, ver o `README.md` da raiz.

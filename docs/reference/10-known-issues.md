@@ -42,12 +42,11 @@ timers com resto acumulado) e o protocolo completo (os dois controles, manchete 
 `scalar_optimum` com relação de Pareto, concordância de ranking, validação externa com
 regras perturbadas, sensibilidade nos 11 genes, validador com empate contra a asserção,
 digest de medição). `py -m src.tests.test_provenance` sai com tudo *atual* ou *braço de
-experimento*, os artefatos órfãos foram tirados do git, e os números de
-[`../status/HANDOFF.md`](../status/HANDOFF.md) §2, do `docs/thesis/` e do `CLAUDE.md` são
-os dela.
+experimento*, os artefatos órfãos foram tirados do git, e os números do `docs/thesis/`,
+do `CLAUDE.md` e do `overleaf/TCC/valores.tex` são os dela.
 
 Fora essa, não há pendência de instrumentação. O que resta é **redação**
-([`../status/HANDOFF.md`](../status/HANDOFF.md) §4).
+([`../status/HANDOFF.md`](../status/HANDOFF.md)).
 
 **Os cinco consertos adiados foram feitos em 2026-09-22/23**, junto da re-execução que o
 braço híbrido exigiu — era exatamente a condição que eles esperavam ("a próxima mudança
@@ -177,6 +176,11 @@ Precisam aparecer explicitamente na Discussão, não só em Trabalhos Futuros.
   NSGA-II inverte entre pop 120 e pop 300. E a n = 5, diferenças pequenas entre braços não
   se separam do ruído: os sweeps estabelecem o que é indispensável e o que nada supera,
   não ótimos.
+- **Pergunta não decidida: o encurralamento contamina outras métricas de comportamento?**
+  RECUAR sem espaço vira defesa, e o `CombatTrace` separa a defesa forçada da escolhida (a
+  Layer 3 do Turtle já usa só a escolhida). Resta saber se o encurralamento, permanente
+  desde a colisão, afeta as outras métricas: a distância média do Zoner cai quando ele é
+  encurralado, e isso pode ser identidade falhando ou geometria.
 
 ## 3. Estado dos artefatos em `results/`
 
