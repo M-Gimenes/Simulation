@@ -73,10 +73,11 @@ pedra-papel-tesoura, é hierarquia — e as tríades circulares confirmam: o can
 
 Inverte a leitura antiga. A estrutura cíclica não foi destruída pelo equilíbrio: **ela
 nunca existiu no motor.** Quem produz não-transitividade é o AG (3,71 tríades com 9,3/10
-arestas decididas, contra 0,40 dos aleatórios) — com a ressalva de que equilíbrio global
-com pares decididos **força** intransitividade (um roster estritamente transitivo teria
-WRs 100/75/50/25/0, incompatível com todos perto de 50%), então isso é em boa parte
-consequência do objetivo e não evidência independente dele.
+arestas decididas, contra 0,40 dos aleatórios) — com a ressalva de que minimizar o termo
+global **favorece** a intransitividade (numa ordem estrita o primeiro personagem fica acima
+de 50% global e o último abaixo), então isso é em boa parte consequência do objetivo e não
+evidência independente dele. A banda sozinha não a exige: uma ordem estrita com margens de
+5 pp mantém toda WR global em [0,40; 0,60].
 
 ## Quebra do ciclo é achado, não falha
 

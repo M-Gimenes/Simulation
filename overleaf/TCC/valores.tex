@@ -105,6 +105,10 @@
 \newcommand{\hibFronteiraMelhor}{3}         % sementes em que a fronteira tem soma menor
 \newcommand{\hibDominaFronteira}{5}         % sementes em que o híbrido domina algum ponto
 \newcommand{\hibAlemPonta}{19}              % sementes com P_dom abaixo de toda a fronteira
+% A mesma soma com os elencos reavaliados a 1000 lutas por par (dominance_penalty +
+% drift_penalty de per_seed), contra o representante scalar_optimum da mesma semente
+\newcommand{\somaReavSOmelhorAG}{18}        % sementes em que o scalar_optimum tem soma menor que o AG
+\newcommand{\somaReavHibMelhorSO}{14}       % sementes em que o híbrido tem soma menor que o scalar_optimum
 
 % --- Política dos elencos evoluídos (probabilidades de intenção da Eq. de intenção,
 %     calculadas dos genes gravados em results/multi_run e results/controls)
@@ -112,6 +116,8 @@
 \newcommand{\polLzeroF}{0{,}35 a 0{,}40}
 \newcommand{\polLzeroR}{0{,}19 a 0{,}28}
 \newcommand{\polLzeroG}{0{,}36 a 0{,}43}
+% AG escalar: faixa das medianas de RECUAR dos quatro arquétipos além do Zoner
+\newcommand{\polAGRecuoOutros}{0{,}17 a 0{,}23}
 % Execuções em que o Combo Master tem probabilidade de FRENTE maior que a do Rushdown
 \newcommand{\cmAvancaMaisAG}{10}
 \newcommand{\cmAvancaMaisHib}{14}
@@ -142,6 +148,9 @@
 \newcommand{\triadesCanon}{1{,}00}
 \newcommand{\triadesAleat}{0{,}40}
 \newcommand{\triadesEspelho}{2{,}59}
+% Arestas dos elencos do AG com margem abaixo de 2 sigma a 1000 lutas por par (0,032),
+% tomando a taxa a 16 000 lutas como verdadeira: 73 de 200
+\newcommand{\cicloIndecisasMil}{37\%}
 
 % --- Validação externa (results/external_validation/*.json; semente 42; P_dom calculado
 %     sobre as 5000 lutas somadas de cada condição, regerado em 2026-09-29)
@@ -149,10 +158,10 @@
 \newcommand{\extDomReplAG}{0{,}033}
 
 % --- Sensibilidade (results/sensitivity/sensitivity_analysis.json)
-\newcommand{\sensPiso}{3{,}5}              % pontos percentuais
+\newcommand{\sensPiso}{3{,}46}             % pontos percentuais (noise_floor_measured)
 \newcommand{\sensStun}{10{,}4}
 \newcommand{\sensKb}{4{,}3}
-\newcommand{\sensSpd}{3{,}5}
+\newcommand{\sensSpd}{3{,}51}              % limítrofe: acima do piso por 0,05 ponto
 % Pesos com a mesma janela relativa dos atributos (medição avulsa feita na preparação do
 % texto: sensitivity_analysis --evolved --sigma-mult 4, isto é, sigma dos pesos = 10% da
 % amplitude; 200 lutas por par, semente 42, piso medido de 3,5 pontos; o artefato citável
@@ -193,6 +202,7 @@
 % --- Modelos nulos (results/baselines/baselines.json; 5 espelhos + 30 aleatórios,
 %     1000 lutas por par, semente 9999)
 \newcommand{\nuloValMedio}{6}               % validador completo, média dos 35 nulos (de 23)
+\newcommand{\nuloValMedioAleat}{6{,}5}      % validador completo, média dos 30 aleatórios (de 23)
 \newcommand{\nuloValMelhor}{10}             % melhor nulo no validador completo
 \newcommand{\nuloLTresMelhor}{3}            % melhor nulo na Camada 3 (de 5)
 \newcommand{\nuloTauMedio}{$-0{,}039$}      % concordância tau, média dos 35 nulos
@@ -200,6 +210,16 @@
 \newcommand{\nuloDriftEspelho}{0{,}377}     % P_drift médio dos 5 espelhos
 \newcommand{\nuloDriftAleatorio}{0{,}415}   % P_drift médio dos 30 aleatórios
 \newcommand{\nuloDomEspelho}{0{,}033}       % P_dom médio dos 5 espelhos (teto de equilíbrio)
+\newcommand{\nuloDomPiso}{1{,}14}           % piso da posição de P_dom: média dos 35 nulos
+% Espelhos um a um: o do Zoner é o único que o piso de decisividade atinge (D < 0,02)
+\newcommand{\nuloDomEspelhoZoner}{0{,}106}
+\newcommand{\nuloDomEspelhoZonerDecis}{0{,}085}  % 0,5 × decis_term (0,171) do espelho do Zoner
+\newcommand{\nuloDomEspelhosOutros}{0{,}011 a 0{,}025}  % os outros quatro espelhos
+\newcommand{\nuloGlobEspelho}{0{,}014}      % termo global médio dos 5 espelhos: puro ruído a 1000 lutas
+\newcommand{\globAG}{0{,}032}               % termo global mediano do AG escalar (multi_run_ga.json)
+% Afastamento da taxa global em relação a 50%, em pontos percentuais (termo global × 50)
+\newcommand{\desvGlobAGpp}{1{,}6}
+\newcommand{\desvGlobEspelhopp}{0{,}7}
 \newcommand{\nuloDomAleatorio}{1{,}33}      % P_dom médio dos 30 aleatórios
 \newcommand{\canonDom}{1{,}28}              % P_dom do canônico
 

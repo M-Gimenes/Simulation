@@ -159,11 +159,11 @@ defensável que um que separa os que foram medidos dos que são escolha.
   três pesos ocupam o fundo do ranking — `w_defend` 2,9% e `w_aggressiveness` 3,0% abaixo
   do piso de 3,5%, `w_retreat` 4,8% no limiar —, ou seja, o equilíbrio quase não dá
   gradiente à política. E o custo aparece no resultado (medido em 2026-09-29 sobre os genes
-  da bateria): as probabilidades de intenção dos elencos evoluídos ficam perto da mistura
-  uniforme da população inicial sorteada — o Rushdown do AG escalar avança em 39% das
+  da bateria): as probabilidades de intenção dos elencos evoluídos se afastam do canônico
+  rumo a um perfil comum que recua pouco — o Rushdown do AG escalar avança em 39% das
   intenções, contra 86% no canônico —, e a asserção "Rushdown com a maior P(FRENTE)" passa
-  em só 4–5 de 20 execuções em **todos** os braços. A inércia pretendida preservou a
-  política aleatória, não a canônica. →
+  em só 4–5 de 20 execuções em **todos** os braços. A inércia pretendida não devolveu a
+  política ao canônico; o NSGA-II, com o mesmo σ, preserva mais. →
   [04](04-design-decisions.md) "A sensibilidade passou a cobrir os pesos".
 - **Crossover por bloco de personagem** — **[coerência]**: preserva a coerência interna entre
   atributos e pesos de um arquétipo. Custo declarado: a recombinação dentro de um personagem
@@ -306,8 +306,8 @@ defensável que um que separa os que foram medidos dos que são escolha.
   [04](04-design-decisions.md) "Os modelos nulos".
 - **Tríades circulares ao lado das arestas do ciclo** — **[coerência]**: as tríades medem
   estrutura sem depender de autoria, mas só com arestas decididas (a 200 lutas, um espelho
-  chega a 4,0 por ruído) e são em boa parte consequência do objetivo — equilíbrio global com
-  pares decididos força intransitividade. O ciclo autoral não serve de régua porque o próprio
+  chega a 4,0 por ruído) e são em boa parte consequência do objetivo — minimizar o termo
+  global favorece intransitividade, embora a banda sozinha não a exija. O ciclo autoral não serve de régua porque o próprio
   canônico só realiza 6/10 dele, não por ser "loteria". → [04](04-design-decisions.md)
   "Leituras corrigidas".
 - **Sensibilidade: janela de 2σ de mutação nos 11 genes, 200 lutas, piso em 3 repetições** —

@@ -120,15 +120,24 @@ Consequências para a redação:
   ruído*; a frase anterior, "mais equilibrado que o espelho (0,026 contra 0,025)", tinha o
   sinal trocado. Na identidade, o evoluído supera os 35 nulos em drift e nas Layers 1-2 —
   as réguas endógenas —, mas não na funcional (ver abaixo).
+
+  > **Nota de revisão (2026-09-30): a régua de 1000 lutas derrubou o "dentro do ruído".**
+  > No termo global, os espelhos dão 0,014 (puro ruído a 1000 lutas) e o AG escalar 0,032
+  > na mediana: WRs globais a 1,6 pp de 50% (RMS) contra 0,7 pp de ruído. Perto da simetria
+  > perfeita, não nela. A média de `dominance` dos espelhos (0,033) não serve de teto de
+  > ruído: 0,085 dos 0,106 do espelho do Zoner vêm do piso de decisividade. Ver
+  > [04](04-design-decisions.md), «Duas leituras corrigidas na revisão da monografia».
 - **O ciclo autoral não serve de régua — mas não por ser "loteria".** Com arestas
   decididas, realizar as 10 teria p = 1/1024; o argumento da loteria de 1/24 estava errado.
   O motivo real é que **o próprio canônico realiza só 6/10** do ciclo no motor: não se
   preserva o que a premissa não tinha. E contra as direções que o canônico **realiza**, o
   evoluído mantém 5/10 (2000 lutas por par) — o acaso: o favorito de cada confronto não
   sobreviveu ao equilíbrio.
-- **A não-transitividade existe, mas é em boa parte implicada pelo objetivo.** Um roster
-  estritamente transitivo tem WRs 100/75/50/25/0, incompatível com todos perto de 50%,
-  então equilíbrio global com pares **decididos** força intransitividade. As "4,0 tríades
+- **A não-transitividade existe, mas é em boa parte favorecida pelo objetivo.** Numa
+  ordem estrita o primeiro personagem fica acima de 50% global e o último abaixo, então o
+  termo global só se anula quando as vantagens se compensam em ciclos. *(Corrigido em
+  2026-09-30: a versão anterior dizia que o equilíbrio com pares decididos **força** a
+  intransitividade; uma ordem estrita com margens de 5 pp fica toda dentro da banda.)* As "4,0 tríades
   com pares em 43%–55%" citadas antes não mostravam isso: a 200 lutas por par, esse
   espalhamento é o do puro ruído, e um espelho chega às mesmas 4,0 tríades. A evidência
   que existe é a de 5000 lutas por par (validação externa): os 10 pares decididos
@@ -149,7 +158,7 @@ Estes são os achados citáveis. Os números completos estão nos artefatos de `
 (extraídos por `py -m diagnostics.battery_numbers`) e o porquê de cada um em
 [04](04-design-decisions.md), a partir de «O controle `λ_drift = 0`».
 
-- **A identidade não custa equilíbrio, e o termo é o que a segura — este é o achado que
+- **A identidade não custou equilíbrio mensurável, e o termo é o que a segura — este é o achado que
   responde à pergunta de pesquisa.** O controle `λ_drift = 0`, mesmo AG, mesma amostra,
   mesmo orçamento, **sem** o termo de identidade, **zera a identidade nas quatro réguas**:
   drift 0,4055 contra 0,2473, validador L1+L2 6 contra 11, Layer 3 1 contra 3, τ
@@ -237,14 +246,18 @@ Os números estão em `overleaf/TCC/valores.tex` e nas tabelas do capítulo de R
   80 execuções (reproduz os totais gravados em 80/80), a asserção "Rushdown com a maior
   P(FRENTE)" passa em **4–5 de 20** execuções em **todos** os braços — AG 5, híbrido 4,
   NSGA-II 5, λ = 0 4 —, inclusive nos que preservam o resto da identidade. As medianas das
-  probabilidades de intenção ficam perto da mistura uniforme da população sorteada: o
+  probabilidades de intenção se afastam do canônico rumo a um perfil comum que recua pouco
+  (uma política sorteada daria 1/3 a cada intenção): o
   Rushdown avança em 0,39 (AG), 0,47 (híbrido), 0,48 (NSGA-II) e 0,35 (λ = 0), contra 0,86 no
   canônico; o Zoner recua em 0,33 / 0,45 / 0,46 / 0,19 contra 0,55. No controle λ = 0 as
   políticas dos cinco são indistinguíveis (todas ~0,37 FRENTE / ~0,2 RECUAR / ~0,4 GUARDA
   na mediana; o 0,19 do Zoner é a propensão a recuar comum aos cinco). A leitura: a mutação
-  move os pesos com σ 4× menor, e nesse passo o equilíbrio não os enxerga (ver acima), então
-  a política herdada da população aleatória fica — a inércia pretendida conservou a
-  política errada. O Combo Master, cuja P(FRENTE) canônica (0,74) já é próxima da do
+  move os pesos com σ 4× menor, e nesse passo cada mutação fica no nível do ruído (ver
+  acima); na soma escalar, o sinal do drift que devolveria a política ao canônico é
+  encoberto pelo ruído do `dominance`, e o NSGA-II, com o mesmo σ, preserva mais. A
+  política não fica parada: no λ = 0 os cinco recuam 0,19–0,28, abaixo do 1/3 de uma
+  política sorteada, o que indica que a busca por equilíbrio a desloca ao longo das
+  gerações. A inércia pretendida não a devolveu ao canônico. O Combo Master, cuja P(FRENTE) canônica (0,74) já é próxima da do
   Rushdown, avança mais que ele em 10/20 execuções do AG, 13/20 do NSGA-II e 14/20 do
   híbrido: é boa parte das falhas daquela asserção.
 - **A diferenciação não mede homogeneização pelo equilíbrio.** Mediana da distância média
@@ -418,10 +431,10 @@ Refeito em `src/experiments/cycle_structure.py` (16 × 1000 = 16.000 lutas por p
   contra 3,71 do AG e 0,40 dos aleatórios. **A estrutura cíclica não foi destruída pelo
   equilíbrio; ela nunca existiu no motor.** Isso reforça o argumento já registrado em
   [02](02-canonical-cycle.md): não se preserva o que a premissa não tinha.
-- **Quem produz não-transitividade é o AG**, com ressalva: equilíbrio global com pares
-  decididos **força** intransitividade (um roster estritamente transitivo teria WRs
-  100/75/50/25/0), então as 3,71 tríades são em boa parte consequência do objetivo, não
-  evidência independente dele. O que o objetivo não implica é as arestas seguirem
+- **Quem produz não-transitividade é o AG**, com ressalva: minimizar o termo global
+  **favorece** intransitividade (numa ordem estrita o primeiro personagem fica acima de 50%
+  global), então as 3,71 tríades são em boa parte consequência do objetivo, não evidência
+  independente dele. O que o objetivo não implica é as arestas seguirem
   decididas — e 9,3/10 decididas a 16.000 lutas é o que mostra isso.
 - **Consequência de instrumentação:** as duas métricas saíram do `baselines` (que mede 36
   rosters a 200 lutas e não podia subir de resolução junto) para um experimento próprio,

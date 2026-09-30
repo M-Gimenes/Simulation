@@ -29,8 +29,10 @@ A versão longa anterior deste arquivo, com as tabelas da bateria, fica no git:
 
 ## Falta
 
-1. **Revisão da monografia:** os itens T1 a T16 e os menores de [`REVIEW.md`](REVIEW.md)
-   §2.3, numa passada só, com as regras da §2.1.
+1. **Revisão da monografia:** a passada de conteúdo terminou em 2026-09-30
+   ([`REVIEW.md`](REVIEW.md) §2.3). Daqui em diante só checklist (§2.1, regra 6): números
+   contra artefatos, texto contra o registro, compilação. Uma leitura aberta nova, só por
+   pessoa externa (orientador).
 2. **Pendências do autor:** dedicatória, agradecimentos e epígrafe (ocultos no `main.tex`
    até terem texto); orientador, banca e data de aprovação em `macros.tex`; ficha
    catalográfica (feita pela biblioteca); leitura final do texto.

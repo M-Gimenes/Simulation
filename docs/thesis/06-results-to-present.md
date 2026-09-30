@@ -90,8 +90,9 @@ duas coisas que a redação precisa: onde cada régua de identidade do evoluído
 relação ao acaso — lidas **separadas**, porque as estruturais são endógenas e vencer os
 nulos nelas é quase garantido —, e a resposta numérica à objeção *"por que não deixar os
 cinco iguais?"*: o espelho é a solução trivial do equilíbrio, e o evoluído é comparado a
-ela (a leitura certa, se o `dominance` empatar com o do espelho, é "tão equilibrado quanto
-a simetria perfeita, dentro do ruído", não "mais equilibrado"). O que os nulos **não**
+ela pelo `global_term` (a média de `dominance` dos espelhos, 0,033, é puxada pelo piso de
+decisividade do espelho do Zoner; no termo global os espelhos dão 0,014, puro ruído, e o
+AG escalar 0,032: perto da simetria perfeita, não nela). O que os nulos **não**
 fazem é isolar o efeito do termo de drift — isso é o controle `λ_drift = 0` (§5).
 
 ## 5. Estatística agregada de N execuções (`multi_run`)
@@ -242,4 +243,4 @@ foi **enfraquecer** a afirmação principal.
 
 **E o que não pode aparecer:** que tirar o termo de identidade *piora* o equilíbrio. Essa
 foi retirada. Nada foi publicado, então não há retratação a fazer — mas a afirmação está
-morta, e a versão viva é *"a identidade não custa equilíbrio"*.
+morta, e a versão viva é *"a identidade não custou equilíbrio mensurável"*.

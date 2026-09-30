@@ -530,9 +530,10 @@ Três regras de desenho, e todas vêm do erro que motivou o tool:
 
 Reporta ainda as **tríades circulares** (Kendall & Babington Smith 1940),
 `C(n,3) − Σ C(dᵢ,2)`, na escala 0 (ordem estrita) · 2,5 (acaso) · 5 (máximo, o torneio
-regular). Elas não dependem de autoria, mas são em boa parte **implicadas** pelo objetivo:
-um roster estritamente transitivo teria WRs 100/75/50/25/0, incompatível com todos perto
-de 50%, então equilíbrio global com pares decididos força intransitividade.
+regular). Elas não dependem de autoria, mas são em boa parte **favorecidas** pelo objetivo:
+numa ordem estrita o primeiro personagem fica acima de 50% global e o último abaixo, então
+o `global_term` só se anula quando as vantagens se compensam em ciclos. A banda sozinha não
+as exige: uma ordem estrita com margens de 5 pp mantém toda WR global em [0,40; 0,60].
 
 > **O ciclo é premissa, não régua.** Ele nunca esteve no fitness (o objetivo é cego à
 > direção), e o próprio canônico realiza só 6/10 dele — não se preserva o que a premissa

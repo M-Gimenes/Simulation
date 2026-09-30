@@ -1537,6 +1537,8 @@ registradas porque o erro é instrutivo, e porque a próxima bateria não pode r
   do Zoner (0,113, que o piso de decisividade penaliza); sem ele, a média é 0,030. E os
   0,026 do evoluído eram 100% `global_term`, no piso de ruído amostral de 200 lutas: a
   leitura correta é *tão equilibrado quanto a simetria perfeita, dentro do ruído*.
+  *(Nota de revisão, 2026-09-30: certa a 200 lutas, caiu com a régua de 1000 — ver «Duas
+  leituras corrigidas na revisão da monografia».)*
 - **"Tríades circulares em 4,0, com pares em 43%–55%: arestas decididas."** A 200 lutas por
   par, 43%–55% é o espalhamento de puro ruído — os espelhos dão 44%–56% e chegam a 4,0
   tríades. A evidência boa estava em outro artefato: com 5000 lutas por par, os 10 pares
@@ -1544,7 +1546,9 @@ registradas porque o erro é instrutivo, e porque a próxima bateria não pode r
   equilíbrio global com pares decididos **força** intransitividade (um roster
   estritamente transitivo não pode ter todos perto de 50%), então ela é em boa parte
   consequência do objetivo, não achado independente. O que não é implicado — os pares
-  seguirem decididos — é o que se reporta.
+  seguirem decididos — é o que se reporta. *(Nota de revisão, 2026-09-30: "força" está
+  errado; o objetivo **favorece**, a banda não exige — ver «Duas leituras corrigidas na
+  revisão da monografia».)*
 - **"Acertar o ciclo autoral é loteria de 1/24."** O argumento está errado: com arestas
   decididas, realizar as 10 arestas teria p = 1/1024 sob cara-ou-coroa, altamente
   informativo. O motivo real de o ciclo não servir de régua é outro: **o próprio canônico
@@ -1909,6 +1913,13 @@ dele.
 > Wilcoxon continua sendo o teste certo, pela razão do desenho; o que cai é a conclusão
 > que vivia dentro do ruído da régua. Ver [07](07-findings-and-limitations.md), a
 > correção na entrada do controle λ = 0.
+>
+> **Nota de revisão (2026-09-30): a explicação pelo viés acima não se sustenta.** O viés da
+> régua grossa é maior nos rosters mais equilibrados e, pelo modelo binomial, deveria ter
+> *aproximado* os braços (inflação prevista de 200 → 1000 lutas: +0,014 no AG escalar,
+> +0,011 no λ = 0; observada +0,008 e +0,010). O Â₁₂ é 0,30 nas duas resoluções: o
+> resultado era limítrofe e ficou abaixo do limiar corrigido numa régua e acima na outra.
+> Ver [12](../reference/12-statistical-testing.md).
 
 ## O piso da sensibilidade depende de quantas nulas você roda (2026-09-21)
 
@@ -2290,3 +2301,33 @@ o `dominance` caiu, como o viés previa. Replicação do AG escalar: **0,033** (
 entre condições não mudou: as duas perturbações da persistência seguem as piores do AG
 (0,110 e 0,153). O canônico, com pares decididos a ~100%, ficou idêntico — o viés só morde
 onde a WR está perto de 50%.
+
+## Duas leituras corrigidas na revisão da monografia (2026-09-30)
+
+**Problema — duas frases da tese não resistiam aos próprios números.**
+
+1. *"Tão equilibrado quanto a simetria perfeita, dentro do ruído."* A leitura vinha de
+   2026-09-18 (Leituras corrigidas, acima), quando a reavaliação era de 200 lutas por par e
+   o ruído dos espelhos cobria o evoluído. A régua de 1000 lutas baixou esse ruído, e ninguém
+   reverificou a frase. Os números de `baselines.json`: o `dominance` médio dos espelhos
+   (0,033) é puxado pelo do Zoner, 0,106, dos quais 0,085 vêm do piso de decisividade
+   (lutas apertadas demais, não desequilíbrio); os outros quatro dão 0,011 a 0,025. No termo
+   global, a média dos cinco espelhos é 0,014, puro ruído, e o AG escalar dá 0,032 na
+   mediana, com desvio de medição de 0,006 a 1000 lutas.
+2. *"Equilíbrio global com pares decididos força a intransitividade."* Contraexemplo: uma
+   ordem estrita com todas as margens em 0,05 dá WRs globais de 55%, 52,5%, 50%, 47,5% e
+   45%, todas na banda, com todas as arestas decididas (limiar 0,008) e zero tríades.
+
+**Mudança.** (1) O equilíbrio do evoluído passa a ser comparado aos espelhos pelo termo
+global, e a leitura vira *perto da simetria perfeita, não nela*: WRs globais a 1,6 pp de 50%
+(RMS) contra 0,7 pp de ruído. A posição de 100% continua reportada, com a ressalva de que ela
+é dominada pela distância ao piso (1,14). (2) "Força" vira "favorece": numa ordem estrita o
+primeiro personagem fica acima de 50% global, então o termo global só se anula quando as
+vantagens se compensam em ciclos; a banda sozinha não exige isso.
+
+**Resultado.** Nenhum número muda, e nenhuma conclusão da tese inverte: o AG escalar segue o
+mais equilibrado dos braços que a pergunta compara, e as tríades seguem em boa parte
+consequência do objetivo. O que muda é o tamanho da afirmação. A primeira correção é a
+segunda leitura derrubada pela troca de 200 para 1000 lutas, depois do controle λ = 0; daí a
+regra, registrada em `docs/status/REVIEW.md` §2.1, de que toda afirmação feita numa régua é
+reverificada quando a régua muda.

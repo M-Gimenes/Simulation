@@ -100,6 +100,17 @@ artefatos da bateria —, então esperam a próxima re-execução, como os conse
   o Zoner e para o Grappler, cujo recurso contra a guarda é o agarrão. Está no motor:
   obsoleta todo o `results/`.
 
+**Ainda aberto: dois detalhes da fase 2 do híbrido (achado na revisão da monografia,
+2026-09-30).** `hybrid.run` chama `ga.run(seed=seed, gen_offset=75)`, e com isso (a) a
+população inicial da fase escalar, que carrega a fronteira, é avaliada no stream
+`generation_seed(seed, 75)`, o mesmo em que a última geração do NSGA-II foi avaliada, e
+(b) `ga.run` ressemeia `random`, `np.random` e o combate com a mesma semente, então os
+sorteios de operadores da fase 2 repetem a sequência do início da fase 1. Nenhum dos dois
+muda uma conclusão: a rotação segue a partir da geração 76, e a fase 2 é outro algoritmo
+sobre outra população. Mas `hybrid.py` está no motor: corrigir obsoleta todo o `results/`,
+então espera a próxima re-execução, como os consertos adiados. A monografia deixou de dizer
+que a fase 2 "não reutiliza os sorteios já vistos".
+
 Se o motor ou o `config.py` mudarem de novo, a sequência é a de sempre: rodar
 `.\scripts\run_overnight.ps1` (os 16 braços de sweep nas sementes 1000–1004, depois a
 bateria de 17 passos), conferir com `py -m src.tests.test_provenance` e reler cada número
@@ -142,13 +153,16 @@ Precisam aparecer explicitamente na Discussão, não só em Trabalhos Futuros.
   no limiar — ao lado de `knockback` 4,3% e `speed` 3,5% —, contra `range` 30,8% no topo.
   O único gradiente que puxa a política de volta ao canônico é o do drift, e o controle
   `λ_drift = 0` mostra o que acontece sem ele: τ = +0,007, o acaso. A análise é local, e
-  muda com o indivíduo. A consequência aparece nos genes (medido em 2026-09-29): as
-  probabilidades de intenção dos elencos evoluídos ficam perto da mistura uniforme da
-  população inicial sorteada, e a asserção "Rushdown com a maior P(FRENTE)" passa em só 4–5
-  de 20 execuções em todos os braços, inclusive no NSGA-II e no híbrido. O σ de mutação 4×
-  menor nos pesos, pensado como inércia, conserva a política aleatória. Mutação mais ampla
-  nos pesos ou população inicial em torno dos canônicos são os remédios diretos, e o
-  protocolo atual já mede o efeito de qualquer um deles.
+  muda com o indivíduo. A consequência aparece nos genes (medido em 2026-09-29/30): as
+  políticas evoluídas se afastam do canônico rumo a um perfil comum que recua pouco (no
+  AG escalar, 0,17–0,23 de P(RECUAR) nos quatro arquétipos além do Zoner; no λ = 0,
+  0,19–0,28 nos cinco, contra 1/3 de uma política sorteada), e a asserção "Rushdown com a
+  maior P(FRENTE)" passa em só 4–5 de 20 execuções em todos os braços, inclusive no NSGA-II
+  e no híbrido. O σ de mutação 4× menor nos pesos, pensado como inércia, põe cada mutação
+  no nível do ruído, e na soma escalar o sinal do drift que devolveria a política ao
+  canônico é encoberto pelo ruído do `dominance`; o NSGA-II, com o mesmo σ, preserva mais.
+  Mutação mais ampla nos pesos ou população inicial em torno dos canônicos são os remédios
+  diretos, e o protocolo atual já mede o efeito de qualquer um deles.
 - **O drift pesa as cinco identidades com exigência diferente.** `defining_genes` tem 1
   gene no Combo Master e 4 na Turtle; com peso 3,0 nos definidores e a RMS normalizada
   pela soma, isso é 23% do peso num caso e 63% no outro. O `drift_penalty` de dois

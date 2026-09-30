@@ -51,7 +51,24 @@ explica a virada do controle λ = 0; canônico entre os 11 melhores da geração
 validação externa sobre a amostra somada; "não antagônicos" restrito ao peso adotado;
 "replica" restrito ao elenco validado e ao laço de otimização (no resumo).
 
-### 2.3 Aberto em 2026-09-30
+### 2.3 Fechado em 2026-09-30
+
+Todos os itens abaixo foram aplicados na passada de 2026-09-30, com a propagação da regra 5
+(`CLAUDE.md`, `docs/reference/08`, `10` e `12`, `docs/thesis/02`, `04`, `06`, `07` e `09`).
+A monografia compila sem referência nem citação indefinida (112 páginas). Na mesma passada,
+e pelo mesmo achado, entraram:
+- em T2, a ressalva em `discussao.tex:59` ("diferenças grandes de taxa de dano, como as do
+  canônico, tendem a produzir hierarquias");
+- em T4, o nome completo dos autores de Chen et al. no `.bib`, e a saída de
+  `livingstone2006coevolution`: o artigo é de 2005 e propõe uma IA hierárquica para jogos
+  de estratégia, não o teste de equilíbrio que a frase lhe atribuía;
+- em T5, "Browne e Maire ampliaram a abordagem" virou "de forma independente, aplicaram";
+  o survey de Togelius et al. registra que os trabalhos foram independentes;
+- em T9, a réplica instrumentada da semente 42 na limitação "análises com um único
+  elenco";
+- em T10, `discussao.tex:37` ("presa ao ponto de partida");
+- nos menores, a frase da fase 2 do híbrido em `metodologia.tex:602` perdeu "em vez de
+  reutilizar os sorteios já vistos", e o detalhe foi para `10-known-issues`.
 
 **Achados novos ou com evidência nova — obrigatórios.**
 

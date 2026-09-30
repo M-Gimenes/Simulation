@@ -284,12 +284,14 @@ poder. Mas a 1000 lutas por par, **com os mesmos indivíduos** (genes bit a bit 
 os dois convergem para o mesmo veredito: sem diferença sob Holm.
 
 O que aconteceu: a 200 lutas por par, o erro de medição do `dominance` de cada roster era
-da mesma ordem da diferença entre os braços, e o teste pareado converteu esse erro em
-p < 0,05. O viés para cima da régua grossa **não** explica a inversão: ele é maior nos
+da mesma ordem da diferença entre os braços, e o resultado, limítrofe (Â₁₂ = 0,30 nas duas
+resoluções), ficou abaixo do limiar corrigido numa e acima na outra. O viés para cima da
+régua grossa **não** explica a mudança: ele é maior nos
 rosters mais equilibrados e, pelo modelo binomial, deveria ter *aproximado* os braços
 (inflação prevista de 200 → 1000 lutas: +0,014 no AG escalar, +0,011 no λ = 0; observada
-+0,008 e +0,010). A significância a 200 lutas foi erro de medição de um único stream, não
-efeito, e não um viés sistemático contra o braço λ = 0.
++0,008 e +0,010). A diferença entre as duas resoluções é erro de medição de um único stream,
+não um viés sistemático contra o braço λ = 0; o efeito médio que as duas medem não
+alcança significância na régua fina.
 
 **A lição não é sobre qual teste usar** — o desenho é pareado e o Wilcoxon continua sendo
 o teste certo, pelas razões do desenho e não por um p-valor. A lição é que **mais poder
