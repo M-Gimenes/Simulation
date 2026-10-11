@@ -21,7 +21,8 @@ isso, apenas se referencia.
 > de 2026-09-23: os números citados no texto vêm de `TCC/valores.tex` (macros escritas à
 > mão, cada uma com o artefato de origem ao lado), as tabelas grandes trazem o artefato num
 > comentário, e as cinco figuras de dados saem de `py -m src.visualization.thesis_figures`.
-> O artigo tem o seu próprio `values.tex`, ainda do snapshot aceito.
+> O artigo tem o seu próprio `values.tex`, ainda do snapshot aceito; a apresentação dele
+> (`talk-latinoware-2026/`: slides e roteiro falado) segue esse mesmo snapshot.
 > Pendências e limites do sistema: [`../reference/10-known-issues.md`](../reference/10-known-issues.md).
 
 > ✅ **Números de resultado.** Os números citáveis são os da bateria de **2026-09-23**

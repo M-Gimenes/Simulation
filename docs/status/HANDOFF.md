@@ -38,7 +38,10 @@ A versão longa anterior deste arquivo, com as tabelas da bateria, fica no git:
    catalográfica (feita pela biblioteca); leitura final do texto.
 3. **Artigo da Latinware:** o `values.tex` dele é o do snapshot aceito (n = 10, motor
    anterior). Atualizar só se a versão final ainda aceitar mudança; nesse caso, o
-   `dominance` do AG vem de fora do laço, como as demais células da linha.
+   `dominance` do AG vem de fora do laço, como as demais células da linha. A apresentação
+   (`overleaf/talk-latinoware-2026/`, 5 minutos) fala desse snapshot por decisão, sem números
+   do sistema atual; falta importar o `slides.pptx` no Google Slides, conferir o layout e
+   ensaiar com cronômetro.
 4. **Código que espera a próxima re-execução** (editar agora obsoleta artefatos):
    separar medição de impressão no `analyze_matchups` e os docstrings desatualizados —
    [`10-known-issues`](../reference/10-known-issues.md) §1.

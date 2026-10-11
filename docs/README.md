@@ -19,7 +19,9 @@ instalação e execução rápida, ver o `README.md` da raiz.
 > A pasta `overleaf/` (raiz) tem os textos redigidos — a monografia (`TCC/`) e o
 > artigo derivado dela (`artigo-latinware-2026/`) — e **não** é tocada por esta
 > documentação. O artigo tem `values.tex` como fonte única dos números
-> experimentais: ao refazer as rodadas, atualizar esse arquivo.
+> experimentais: ao refazer as rodadas, atualizar esse arquivo. A apresentação desse
+> artigo (`talk-latinoware-2026/`: slides e roteiro falado) usa os números do artigo
+> submetido, não os do sistema atual.
 
 > **Convenção de idioma**: nomes de arquivos e pastas em inglês; o texto dos `.md`
 > pode ser em português.
