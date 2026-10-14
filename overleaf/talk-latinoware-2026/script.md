@@ -4,89 +4,132 @@ Fala da apresentação do artigo "Balanceamento competitivo com preservação de
 Genéticos e NSGA-II em arquétipos de jogos de luta" (`overleaf/artigo-latinware-2026/`). O limite da
 sessão é de 5 minutos, com perguntas à parte.
 
+O objetivo da fala é contar a história do trabalho, não resumir o artigo: fazer a plateia sentir o
+problema, entender a decisão central e sair lembrando de um resultado. O detalhe técnico fica nas
+reservas e nas perguntas.
+
 Todo número, na fala e nos slides, vem do artigo submetido (`values.tex` e `main.tex`): 10 genes por
 personagem, validador de 21 asserções, 150 lutas por confronto, 10 sementes. O sistema mudou depois da
-submissão e nada do estado atual entra aqui.
+submissão (a bateria atual do TCC tem 23 asserções) e nada do estado atual entra aqui.
 
 A mesma fala está nas notas do orador de cada slide em `slides.pptx`.
 
 ## Tempo por slide
 
-Estimativa a 135 palavras por minuto, um ritmo de fala calmo. No total são 604 palavras, ou 4:28; as trocas de slide somam uns 10 segundos. A 120 palavras por minuto a fala passa de 5 minutos (5:02), então ensaie com cronômetro e use os cortes abaixo se precisar.
+Estimativa a 135 palavras por minuto. No total são 528 palavras, ou 3:54; a 120 palavras por minuto,
+4:24. A folga é proposital: a fala tem pausas (depois do gancho, antes do "caiu direitinho na armadilha
+do patch" e no joelho da curva) e elas valem mais que mais uma frase.
 
 | # | Slide | Palavras | Tempo |
 |---|---|---|---|
-| 1 | Capa | 26 | 0:12 |
-| 2 | Problema | 78 | 0:35 |
-| 3 | Ideia central | 95 | 0:42 |
-| 4 | Método | 74 | 0:33 |
-| 5 | Resultados | 82 | 0:36 |
-| 6 | Resultados | 100 | 0:44 |
-| 7 | Robustez | 72 | 0:32 |
-| 8 | Conclusão | 77 | 0:34 |
-| | **Total** | **604** | **4:28** |
+| 1 | Capa | 23 | 0:10 |
+| 2 | Problema: dois jeitos de estragar | 81 | 0:36 |
+| 3 | Problema: elenco e pergunta | 75 | 0:33 |
+| 4 | Método | 114 | 0:50 |
+| 5 | Resultados: antes e depois | 74 | 0:32 |
+| 6 | Resultados: fronteira | 87 | 0:38 |
+| 7 | Conclusão | 74 | 0:32 |
+| | **Total** | **528** | **3:54** |
 
 ## Fala
 
-### 1. Capa (0:12)
+### 1. Capa (0:10)
 
-Olá. Eu sou o Matheus, do Ifes de Cachoeiro de Itapemirim. Vou mostrar como equilibrar os personagens de um jogo de luta sem deixar todos iguais.
+Oi, eu sou o Matheus, do Ifes de Cachoeiro. Meu TCC é sobre um problema que todo jogo competitivo
+enfrenta a cada atualização.
 
-### 2. Problema (0:35)
+### 2. Problema: dois jeitos de estragar (0:36)
 
-Num jogo competitivo, equilíbrio é cada personagem ter uma chance parecida de vencer. Só que os bons jogos são feitos de estilos bem diferentes, que se enfrentam como pedra, papel e tesoura: um pressiona, outro mantém distância, outro bate forte, outro encadeia golpes, outro se defende. O risco: ao ajustar os números para igualar as vitórias, os personagens ficam parecidos. Daí a pergunta: um algoritmo genético consegue equilibrar esses cinco estilos sem destruir o que cada um é?
+Tem dois jeitos de estragar um jogo competitivo. O primeiro todo mundo conhece: um personagem fica forte
+demais e todo mundo passa a jogar com ele. O segundo é mais traiçoeiro. Sai um patch, mexem nos números
+até ninguém dominar, e no caminho os personagens perdem o que tinham de único. Eu jogo mais LoL, e lá
+vejo isso direto: um ajuste aqui, outro ali, e de repente dois campeões jogam quase igual. Fica
+equilibrado, mas tanto faz quem você escolhe.
 
-### 3. Ideia central (0:42)
+### 3. Problema: elenco e pergunta (0:33)
 
-A decisão central foi não forçar a identidade. O elenco original, que chamamos de canônico, é ponto de partida e régua, nunca regra: afastar-se dele custa, mas é permitido. O algoritmo busca duas coisas ao mesmo tempo: pouco desvio em relação ao canônico e pouco desbalanço. E o desbalanço é cego à direção: mede se alguém domina, não quem deveria vencer. Quem vence quem só é medido depois, fora da busca. Se isso entrasse na conta, o algoritmo preservaria por obrigação, e a pergunta se responderia sozinha. Medindo por fora, preservar ou perder vira resultado.
+No TCC, levamos isso pro jogo de luta, onde é um contra um e cada estilo é bem marcado. Montamos cinco
+estilos clássicos. O rushdown, que vive colado no adversário. O zoner, que mantém distância. O grappler,
+que aposta em golpes pesados. O combo master, que encadeia sequências. E o turtle, que se defende e
+espera o erro. A pergunta é: um algoritmo genético consegue equilibrar esses cinco sem apagar o que
+cada um é?
 
-### 4. Método (0:33)
+### 4. Método (0:50)
 
-Para avaliar um elenco, um simulador põe os cinco para lutar, todos contra todos: dez confrontos, cento e cinquenta lutas em cada. Cada personagem são dez números: sete atributos, como vida, dano e alcance, e três pesos que dizem quanto ele avança, recua ou defende. Dois algoritmos fazem a busca. O genético escalar soma os dois objetivos e entrega uma solução. O NSGA-II mantém os dois separados e entrega a curva inteira de compromissos.
+Cada personagem vira dez números: vida, dano, alcance, velocidade, e o quanto ele prefere avançar,
+recuar ou defender. Pra avaliar um elenco, um simulador põe os cinco pra lutar todos contra todos, cento
+e cinquenta vezes cada confronto. O algoritmo faz o que a evolução faz: gera elencos, cruza os melhores,
+muta e repete.
 
-### 5. Resultados (0:36)
+E aqui está a decisão mais importante do trabalho: não mandamos o algoritmo preservar os personagens.
+Ele só busca duas coisas: ficar equilibrado e não se afastar demais do original. Se afastar custa, mas
+pode. Quem deveria vencer quem, ele nunca fica sabendo; isso só medimos depois. Se a identidade fosse
+regra, sobreviveria por obrigação. Assim, se sobreviver, é resultado.
 
-O elenco canônico tem a identidade intacta: passa nos vinte e um testes. Mas é muito desequilibrado. Nenhum dos dez confrontos é equilibrado, e um personagem vence todas as lutas enquanto outro não vence nenhuma. Quando o genético escalar evolui esse elenco, o equilíbrio vem: os dez confrontos ficam entre quarenta e sessenta por cento de vitória. Só que a conta chega do outro lado: sobram sete dos vinte e um testes. O equilíbrio veio, e boa parte da identidade foi embora.
+### 5. Resultados: antes e depois (0:32)
 
-### 6. Resultados (0:44)
+O ponto de partida é o elenco original, que chamamos de canônico. Ele passa nos vinte e um testes que
+escrevemos pra conferir quem é quem. Mas nenhum dos dez confrontos é equilibrado: um personagem ganha
+todas as lutas, outro não ganha nenhuma.
 
-O NSGA-II mostra o que existe entre esses dois extremos. Cada ponto do gráfico é um elenco. Para a esquerda, mais equilíbrio; para baixo, mais identidade. O canto de baixo à esquerda está vazio: para ganhar um, perde-se o outro. À direita, embaixo, está o canônico. No joelho, o desbalanço já caiu três quartos do caminho, e vinte dos vinte e um testes continuam valendo. No extremo do equilíbrio, nove dos dez confrontos ficam equilibrados, mas sobram treze testes. E o equilíbrio total do genético escalar deixa sete. Quem projeta o jogo passa a escolher um ponto sabendo o preço.
+Aí o algoritmo soma os dois objetivos e equilibra. E consegue: dez de dez confrontos equilibrados. Só
+que sobram sete dos vinte e um testes. Caiu direitinho na armadilha do patch.
 
-### 7. Robustez (0:32)
+### 6. Resultados: fronteira (0:38)
 
-Isso se sustenta? Repetindo a busca dez vezes, cada personagem termina equilibrado em noventa a cem por cento das execuções. E, testando a solução mais equilibrada em dez sorteios que o algoritmo nunca viu, nove dos dez confrontos continuam equilibrados: não é sobreajuste. Já o ciclo de quem vence quem fica em cinco ou seis relações de dez em todos os pontos. A evolução não o destrói, mas também não o recupera.
+Então rodamos de novo com o NSGA-II, que, em vez de uma resposta, devolve o cardápio inteiro de
+compromissos. Cada ponto aqui é um elenco. Pra esquerda, mais equilíbrio; pra baixo, mais identidade. O
+canto de baixo à esquerda está vazio: pra ganhar de um lado, perde-se do outro. Mas olha o joelho da
+curva: o desbalanço já caiu três quartos do caminho e vinte dos vinte e um testes continuam valendo.
+Quem desenha o jogo passa a escolher onde parar, sabendo o preço de cada passo.
 
-### 8. Conclusão (0:34)
+### 7. Conclusão (0:32)
 
-Então a resposta, ainda preliminar, é sim, com uma ressalva: dá para equilibrar sem destruir as identidades, mas isso tem um preço, e esse preço pode ser medido. Os limites: o modelo é bem mais simples que um jogo real, são só cinco arquétipos, e todos se enfrentam na mesma proporção. Os próximos passos são fechar a calibração, testar o equilíbrio contra um oponente que também se adapta e mapear quantos elencos diferentes chegam ao equilíbrio. Obrigado.
+A resposta, ainda preliminar, é sim, mas não de graça. E agora esse preço tem número. O modelo é bem
+mais simples que um jogo de verdade, e o próximo passo é testar contra um adversário que também se
+adapta.
 
-### 9. Dúvidas?
+Se você faz jogo, joga competitivo ou curte algoritmo genético e quer ver isso por dentro, o código
+está no GitHub, nesse QR code. Estou por aqui, é só me chamar pra conversar. Obrigado.
 
-Slide de perguntas, sem fala.
+### 8. Dúvidas?
+
+Slide de perguntas, sem fala. O QR code do repositório fica na tela o tempo todo.
 
 ## Se o tempo apertar
 
-Cortes prontos, do menos ao mais custoso. Juntos economizam cerca de 35 segundos.
+Cortes prontos, do menos ao mais custoso. Juntos economizam cerca de 30 segundos.
 
-1. **Slide 6, última frase** ("Quem projeta o jogo passa a escolher um ponto sabendo o preço."): 5 s.
-2. **Slide 7, primeira medida** ("Repetindo a busca dez vezes ... das execuções."): 8 s. Emende com
-   "Testando a solução mais equilibrada...".
-3. **Slide 8, os limites** ("Os limites: ... na mesma proporção."): 11 s. Ficam na tela como palavras-chave.
-4. **Slide 4, os dez números** ("Cada personagem são dez números ... recua ou defende."): 12 s. O total fica na tela.
+1. **Slide 6, última frase** ("Quem desenha o jogo passa a escolher onde parar..."): 5 s. O slide 7 diz
+   a mesma coisa.
+2. **Slide 3, a frase de ponte** ("No TCC, levamos isso pro jogo de luta..."): 5 s. Emende direto com
+   "Montamos cinco estilos clássicos de jogo de luta".
+3. **Slide 4, o ciclo da evolução** ("O algoritmo faz o que a evolução faz..."): 6 s. Está na tela.
+4. **Slide 2, a frase do LoL**: 9 s. Só corte se estiver muito apertado; é a parte mais sua da fala.
 
-Não corte o slide 3. Sem ele, os resultados dos slides 5 a 7 parecem circulares.
+Não corte a segunda metade do slide 4. Sem ela, os resultados parecem circulares: a plateia acha que o
+algoritmo preservou a identidade porque foi mandado.
 
 ## Slides de reserva
 
 Ficam depois do "Dúvidas?" e não contam no tempo. Use só se perguntarem.
 
-- **Slide 10, Tabela I:** os quatro pontos do compromisso e as seis métricas, como no artigo.
-- **Slide 11, desbalanço:** os três termos (global, teto de hard-counter, decisividade) e seus pesos.
-- **Slide 12, identidade:** a equação do desvio e os três instrumentos medidos por fora.
+- **Slide 9, robustez:** 10 execuções, 10 sementes novas e o ciclo de vantagens.
+- **Slide 10, limites:** modelo simplificado, cinco arquétipos, sem matchmaking; calibração,
+  coevolução e quality-diversity como próximos passos.
+- **Slide 11, método:** os dois algoritmos lado a lado e o orçamento (300 elencos, 150 gerações).
+- **Slide 12, Tabela I:** os quatro pontos do compromisso e as seis métricas, como no artigo.
+- **Slide 13, desbalanço:** os três termos (global, teto de hard-counter, decisividade) e seus pesos.
+- **Slide 14, identidade:** a equação do desvio e os instrumentos medidos por fora.
 
 ## Perguntas prováveis
 
 Respostas com o que o artigo sustenta. Onde o artigo não investiga, a resposta diz isso.
+
+**Por que jogo de luta, se o exemplo foi LoL?**
+Porque o jogo de luta é o caso mais limpo do mesmo problema: um contra um, sem composição de time,
+itens nem mapa, e com estilos de personagem bem definidos. Dá para simular milhares de lutas e medir
+quem vence quem. Num MOBA o mesmo raciocínio vale, mas o modelo teria que ser muito maior.
 
 **Se o desvio está na função objetivo, a identidade não está sendo imposta?**
 O desvio é uma penalidade suave, não uma restrição: o algoritmo pode se afastar do canônico, e se
@@ -111,12 +154,13 @@ sobram 2,1 ± 1,1 pares por execução.
 **O resultado depende da semente?**
 Em 10 execuções independentes do NSGA-II, o desbalanço fica em 0,19 ± 0,04 e o desvio em 0,23 ± 0,03.
 O equilíbrio global é estável: cada personagem termina equilibrado em 90 a 100% das execuções. E, sob
-10 sementes novas, 9 dos 10 confrontos da solução mais equilibrada seguem equilibrados.
+10 sementes novas, 9 dos 10 confrontos da solução mais equilibrada seguem equilibrados. (Slide 9.)
 
-**O que é o joelho da fronteira?**
+**O que é o joelho da fronteira? Ele é equilibrado?**
 É o ponto intermediário do compromisso. Na execução do artigo, ele leva o desbalanço de 1,42 para
-0,34 e preserva 20 das 21 asserções. Só 2 dos 10 pares caem na banda de 40% a 60%, porque o ganho
-ali é de equilíbrio global, não par a par.
+0,34 e preserva 20 das 21 asserções. Mas só 2 dos 10 pares caem na banda de 40% a 60%, porque o ganho
+ali é de equilíbrio global (cada personagem perto de 50% no total), não par a par. Por isso a fala diz
+"o desbalanço caiu três quartos", e não "quase equilibrado".
 
 **Qual é a função do AG escalar?**
 A soma dos dois objetivos com pesos iguais: fitness = −(desvio + desbalanço). Ele entrega um ponto do
@@ -129,10 +173,13 @@ em andamento.
 
 ## Depois de importar no Google Slides
 
-Suba `slides.pptx` no Drive e abra com o Google Slides. Vale conferir quatro coisas, porque a
-conversão foi verificada aqui só por uma prévia aproximada:
+Suba `slides.pptx` no Drive e abra com o Google Slides. Vale conferir cinco coisas, porque a conversão
+foi verificada aqui só por uma prévia aproximada (sem a fonte Montserrat instalada):
 
 1. O logo do Latin.Science aparece no cabeçalho de todos os slides e na capa.
 2. A fonte é Montserrat em todos os textos (se algum cair em Arial, a largura muda).
-3. No slide 3, a caixa "Medição post hoc" e a seta que chega nela estão tracejadas.
-4. Nenhum texto encosta na borda do próprio cartão, em especial nos slides 3, 6 e 10.
+3. Nenhum texto quebra linha ou encosta na borda do próprio cartão, em especial "ficar perto do
+   original" e "10 × 150" no slide 4 e o subtítulo do slide 7.
+4. No slide 4, a caixa "Medido depois" e a seta que chega nela estão tracejadas.
+5. O QR code dos slides 7 e 8 abre `github.com/M-Gimenes/Simulation` (teste com o celular na tela do
+   computador).
