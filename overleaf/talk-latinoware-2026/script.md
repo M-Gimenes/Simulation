@@ -25,14 +25,14 @@ calmo, 4:54. Ensaie com cronômetro: se passar de 4:40, use os cortes abaixo.
 | # | Slide | Palavras | a 150 ppm |
 |---|---|---|---|
 | 1 | Capa | 34 | 0:14 |
-| 2 | Problema: duas formas de comprometer um jogo | 76 | 0:30 |
+| 2 | Problema: duas formas de comprometer um jogo | 77 | 0:31 |
 | 3 | Problema: elenco e pergunta | 79 | 0:32 |
-| 4 | Método: o algoritmo genético | 107 | 0:43 |
-| 5 | Método: o que o algoritmo busca | 69 | 0:28 |
-| 6 | Resultados: antes e depois | 83 | 0:33 |
+| 4 | Método: o algoritmo genético | 84 | 0:34 |
+| 5 | Método: o que o algoritmo busca | 89 | 0:36 |
+| 6 | Resultados: antes e depois | 95 | 0:38 |
 | 7 | Resultados: somar os objetivos | 76 | 0:30 |
-| 8 | Resultados: fronteira | 68 | 0:27 |
-| 9 | Conclusão | 69 | 0:28 |
+| 8 | Resultados: fronteira | 61 | 0:24 |
+| 9 | Conclusão | 66 | 0:26 |
 | | **Total** | **661** | **4:24** |
 
 ## Fala
@@ -47,7 +47,7 @@ atualização.
 
 Existem duas formas de comprometer um jogo competitivo. A primeira é a mais conhecida: um personagem
 fica forte demais, e todos os jogadores passam a escolhê-lo. A segunda é mais sutil. Para corrigir a
-primeira, ajustam-se os números até que ninguém domine. Só que, nesse processo, os personagens podem
+primeira, os números são ajustados até que ninguém domine. Só que, nesse processo, os personagens podem
 perder justamente aquilo que os tornava únicos. O jogo fica equilibrado, mas a escolha do personagem
 deixa de importar. O desafio, portanto, é equilibrar preservando a diferença.
 
@@ -62,26 +62,27 @@ estilos sem destruir a identidade de cada um?
 ### 4. Método: o algoritmo genético
 
 Para o algoritmo genético, cada indivíduo é um elenco inteiro, e não um personagem, porque o
-equilíbrio é uma propriedade do conjunto. São cinco personagens com dez genes cada: atributos como
-vida, dano, alcance e velocidade, e pesos que indicam o quanto cada um prefere avançar, recuar ou se
-defender. A população tem trezentos elencos: o original e outros sorteados. A cada geração, um
-simulador coloca os personagens de cada elenco para lutar todos contra todos, cento e cinquenta vezes
-por confronto. Os melhores elencos são selecionados e cruzados, trocando personagens inteiros entre
-si, e sofrem mutações. O processo se repete por até cento e cinquenta gerações.
+equilíbrio é uma propriedade do conjunto. São cinco personagens com dez genes cada, entre atributos
+de combate e pesos de comportamento. A população tem trezentos elencos: o original e outros
+sorteados. A cada geração, um simulador coloca os personagens de cada elenco para lutar todos contra
+todos, cento e cinquenta vezes por confronto. Os melhores elencos são selecionados e cruzados,
+trocando personagens inteiros entre si, e sofrem mutações.
 
 ### 5. Método: o que o algoritmo busca
 
-A decisão central do trabalho é esta: não obrigamos o algoritmo a preservar os personagens. Ele busca
-apenas duas coisas: equilíbrio e proximidade com o elenco original. Afastar-se do original tem um
-custo, mas é permitido. Quem deveria vencer quem nunca entra na busca; isso só é medido depois. Se a
-identidade fosse uma regra, ela sobreviveria por obrigação. Medida por fora, sua preservação passa a
-ser um resultado.
+A maior parte dos trabalhos de balanceamento por busca otimiza apenas o equilíbrio. Aqui, a
+identidade entra como um segundo objetivo, explícito. E a decisão central é esta: não obrigamos o
+algoritmo a preservar os personagens. Ele busca duas coisas: equilíbrio, medido pelo desbalanço, e
+proximidade com o elenco original, medida pelo desvio. Quem deveria vencer quem nunca entra na
+busca; isso só é medido depois. Se a identidade fosse uma regra, ela sobreviveria por obrigação. Como
+ela é medida por fora, a preservação passa a ser um resultado.
 
 ### 6. Resultados: antes e depois
 
 O ponto de partida é o elenco original, que chamamos de canônico. Ele passa nos vinte e um testes que
-escrevemos para verificar a identidade de cada personagem, mas nenhum dos dez confrontos é
-equilibrado: um personagem vence todas as lutas, e outro não vence nenhuma.
+escrevemos para verificar a identidade dos personagens, como o rushdown ser o mais rápido e o turtle
+ter mais vida. Mas nenhum dos dez confrontos é equilibrado: um personagem vence todas as lutas, e
+outro não vence nenhuma.
 
 A primeira abordagem foi um algoritmo genético que soma os dois objetivos. Ele equilibra todos os dez
 confrontos. Porém, restam apenas sete dos vinte e um testes. Ou seja, caiu exatamente no problema que
@@ -99,17 +100,17 @@ o conjunto dos melhores compromissos encontrados.
 
 Cada ponto deste gráfico é um elenco. Para a esquerda, mais equilíbrio; para baixo, mais identidade. O
 canto inferior esquerdo está vazio: para ganhar de um lado, é preciso perder do outro. No joelho da
-curva, o desbalanço já caiu três quartos do caminho, enquanto vinte dos vinte e um testes continuam
-valendo. Quem projeta o jogo pode, então, escolher onde parar, conhecendo o custo de cada passo.
+curva, o ponto em que ela muda de inclinação, o desbalanço já caiu três quartos do caminho, enquanto
+vinte dos vinte e um testes continuam valendo.
 
 ### 9. Conclusão
 
-A resposta, ainda preliminar, é sim: é possível equilibrar sem apagar as identidades, mas não sem
-custo, e esse custo agora pode ser medido. O modelo ainda é simplificado, e o próximo passo é testar
-o equilíbrio contra um adversário que também se adapta.
+O modelo ainda é simplificado, e o próximo passo é testar o equilíbrio contra um adversário que
+também se adapta. O código é aberto, segue em desenvolvimento e está disponível no GitHub, pelo QR
+code, para quem quiser testá-lo.
 
-O código é aberto e está disponível no GitHub, pelo QR code, para quem quiser testá-lo. O projeto
-segue em desenvolvimento e recebendo atualizações. Obrigado.
+Para concluir: a resposta, ainda preliminar, é sim. É possível equilibrar sem apagar as identidades,
+mas não sem custo, e esse custo agora pode ser medido. Obrigado.
 
 ### 10. Dúvidas?
 
@@ -119,12 +120,12 @@ Slide de perguntas, sem fala. O QR code do repositório fica na tela o tempo tod
 
 Cortes prontos, do menos ao mais custoso. Juntos economizam cerca de 25 segundos a 150 ppm.
 
-1. **Slide 8, última frase** ("Quem projeta o jogo pode, então, escolher onde parar..."): 5 s. A
-   conclusão diz a mesma coisa.
-2. **Slide 4, a última frase** ("O processo se repete por até cento e cinquenta gerações."): 4 s. O
-   número está na tela.
-3. **Slide 4, a lista de genes** ("atributos como vida... ou se defender"): 8 s. Diga só "São cinco
-   personagens com dez genes cada." A legenda está na tela.
+1. **Slide 2, a penúltima frase** ("O jogo fica equilibrado, mas a escolha do personagem deixa de
+   importar."): 5 s. O cartão da direita diz isso.
+2. **Slide 4, a população** ("A população tem trezentos elencos: o original e outros sorteados."):
+   4 s. O número está na tela.
+3. **Slide 6, o exemplo de teste** ("como o rushdown ser o mais rápido e o turtle ter mais vida"): 4 s.
+   Ele também está na tela.
 4. **Slide 3, os dois extremos do elenco** ("Eles vão do rushdown... e espera o erro,"): 8 s. Emende com
    "Montamos um elenco com cinco estilos clássicos do gênero, que se enfrentam como em pedra, papel e
    tesoura."
@@ -152,6 +153,12 @@ Respostas com o que o artigo sustenta. Onde o artigo não investiga, a resposta 
 Porque é o caso mais limpo do problema: um contra um, sem composição de time, itens nem mapa, e com
 estilos de personagem bem definidos. Dá para simular milhares de lutas e medir quem vence quem. Em
 jogos de time o mesmo raciocínio vale, mas o modelo teria que ser muito maior.
+
+**Por que algoritmo genético, e não outro método?**
+Porque o simulador funciona como uma caixa-preta: é estocástico e não tem derivada, então métodos
+baseados em gradiente não se aplicam diretamente. Um método evolutivo só precisa avaliar candidatos,
+e o NSGA-II estende o mesmo esquema para dois objetivos sem precisar de pesos. O artigo não compara
+com outras famílias de métodos; isso fica como trabalho futuro.
 
 **Como funcionam o cruzamento e a mutação?**
 O cruzamento é por bloco de personagem: o filho recebe cada um dos cinco personagens inteiro, de um
