@@ -178,8 +178,16 @@ foi verificada aqui só por uma prévia aproximada (sem a fonte Montserrat insta
 
 1. O logo do Latin.Science aparece no cabeçalho de todos os slides e na capa.
 2. A fonte é Montserrat em todos os textos (se algum cair em Arial, a largura muda).
-3. Nenhum texto quebra linha ou encosta na borda do próprio cartão, em especial "ficar perto do
-   original" e "10 × 150" no slide 4 e o subtítulo do slide 7.
+3. Nenhum texto quebra linha ou encosta na borda do próprio cartão, em especial "perto do original"
+   no slide 4, a legenda do slide 6 e o subtítulo do slide 7.
 4. No slide 4, a caixa "Medido depois" e a seta que chega nela estão tracejadas.
 5. O QR code dos slides 7 e 8 abre `github.com/M-Gimenes/Simulation` (teste com o celular na tela do
    computador).
+
+## Tamanho de fonte
+
+O data-show da sala não está bem posicionado, então nenhum texto dos slides 1 a 8 fica abaixo de
+28 pt (o slide tem 20 polegadas de largura, então 28 pt aqui equivalem a uns 19 pt num slide padrão).
+As exceções são da moldura do evento ("Realização:" e o nome do congresso na capa) e os números dos
+eixos dentro da figura da fronteira, que é uma imagem. As reservas, depois do "Dúvidas?", mantêm as
+fontes menores. Ao editar, mantenha esse piso.
