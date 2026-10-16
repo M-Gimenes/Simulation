@@ -18,15 +18,15 @@ A mesma fala está nas notas do orador de cada slide em `slides.pptx`.
 
 ## Tempo por slide
 
-São 787 palavras. Uma leitura rápida da versão anterior (661 palavras) levou 3:30, ou cerca de 189
-palavras por minuto; nesse ritmo, esta versão leva 4:10. Com slides, pausas e o nervosismo do dia, o
-ritmo costuma cair; a 165 palavras por minuto, ela leva 4:46. Ensaie com cronômetro: se passar de
+São 805 palavras. Uma leitura rápida de uma versão anterior (661 palavras) levou 3:30, ou cerca de
+189 palavras por minuto; nesse ritmo, esta versão leva 4:16. Com slides, pausas e o nervosismo do dia, o
+ritmo costuma cair; a 165 palavras por minuto, ela leva 4:53. Ensaie com cronômetro: se passar de
 4:40, use os cortes abaixo.
 
 | # | Slide | Palavras | a 189 ppm | a 165 ppm |
 |---|---|---|---|---|
 | 1 | Capa | 34 | 0:11 | 0:12 |
-| 2 | Problema: duas formas de comprometer um jogo | 73 | 0:23 | 0:27 |
+| 2 | Problema: duas formas de errar no balanceamento | 79 | 0:25 | 0:29 |
 | 3 | Problema: elenco e pergunta | 61 | 0:19 | 0:22 |
 | 4 | Método: a luta simulada | 68 | 0:22 | 0:25 |
 | 5 | Método: o algoritmo genético | 63 | 0:20 | 0:23 |
@@ -34,8 +34,8 @@ ritmo costuma cair; a 165 palavras por minuto, ela leva 4:46. Ensaie com cronôm
 | 7 | Resultados: antes e depois | 89 | 0:28 | 0:32 |
 | 8 | Resultados: somar os objetivos | 95 | 0:30 | 0:35 |
 | 9 | Resultados: fronteira e validação | 108 | 0:34 | 0:39 |
-| 10 | Conclusão | 66 | 0:21 | 0:24 |
-| | **Total** | **787** | **4:10** | **4:46** |
+| 10 | Conclusão | 78 | 0:25 | 0:28 |
+| | **Total** | **805** | **4:16** | **4:53** |
 
 ## Fala
 
@@ -45,13 +45,13 @@ Olá a todos. Meu nome é Matheus, sou estudante de Sistemas de Informação no 
 Itapemirim. Vou apresentar um trabalho sobre um problema que todo jogo competitivo enfrenta a cada
 atualização.
 
-### 2. Problema: duas formas de comprometer um jogo
+### 2. Problema: duas formas de errar no balanceamento
 
-Existem duas formas de comprometer um jogo competitivo. A primeira é a mais conhecida: um personagem
-fica forte demais, e todos passam a escolhê-lo. A segunda é mais sutil. Para corrigir a primeira, os
-números são ajustados até que ninguém domine, e, nesse processo, os personagens podem perder aquilo
-que os tornava únicos. O jogo fica equilibrado, mas a escolha do personagem deixa de importar. O
-desafio, portanto, é equilibrar preservando a diferença.
+Existem duas formas de errar no balanceamento de um jogo competitivo. A mais conhecida é deixar um
+personagem forte demais: todos passam a escolhê-lo. A outra é mais sutil e costuma aparecer justamente
+ao corrigir a primeira. Os números são ajustados até que ninguém domine, mas, no caminho, os
+personagens ficam parecidos e perdem o que os tornava únicos. O jogo fica equilibrado, mas a escolha
+do personagem deixa de importar. O desafio, portanto, é equilibrar preservando a diferença.
 
 ### 3. Problema: elenco e pergunta
 
@@ -122,9 +122,9 @@ elenco mais equilibrado mantém nove dos dez confrontos equilibrados: não é so
 
 ### 10. Conclusão
 
-O modelo ainda é simplificado, e o próximo passo é testar o equilíbrio contra um adversário que também
-se adapta. O código é aberto, segue em desenvolvimento e está disponível no GitHub, pelo QR code, para
-quem quiser testá-lo.
+O modelo ainda é simplificado, e o próximo passo é aperfeiçoar a modelagem do ambiente de combate,
+incluindo mais variáveis no sistema, como os tempos de início e de recuperação dos golpes. O código é
+aberto, segue em desenvolvimento e está disponível no GitHub, pelo QR code, para quem quiser testá-lo.
 
 Para concluir: a resposta, ainda preliminar, é sim. É possível equilibrar sem apagar as identidades,
 mas não sem custo, e esse custo agora pode ser medido. Obrigado.
