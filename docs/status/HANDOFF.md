@@ -35,8 +35,9 @@ A versão longa anterior deste arquivo, com as tabelas da bateria, fica no git:
    regra 6): números contra artefatos, texto contra o registro, compilação. Uma leitura
    aberta nova, só por pessoa externa (orientador).
 2. **Pendências do autor:** dedicatória, agradecimentos e epígrafe (ocultos no `main.tex`
-   até terem texto); orientador, banca e data de aprovação em `macros.tex`; ficha
-   catalográfica (feita pela biblioteca); leitura final do texto.
+   até terem texto); a data de aprovação em `macros.tex`, provisória (21/10/2026) até a
+   defesa ser marcada; Cutter, CDD e bibliotecária da ficha catalográfica (vêm da
+   biblioteca); leitura final do texto. Orientador e banca já estão preenchidos.
 3. **Artigo da Latinware:** o `values.tex` dele é o do snapshot aceito (n = 10, motor
    anterior). Atualizar só se a versão final ainda aceitar mudança; nesse caso, o
    `dominance` do AG vem de fora do laço, como as demais células da linha. A apresentação
