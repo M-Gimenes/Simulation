@@ -113,3 +113,41 @@ testes); o reteste de τ com três medições (o texto já diz); a fase 2 do hí
 reavalia a fronteira no stream da geração 75 e ressemeia o gerador (vai para
 `docs/reference/10-known-issues.md`, sem mudar código, que invalidaria a bateria); a
 citação de Gingold no artigo da Latinware, que só muda se a versão final ainda aceitar.
+
+### 2.4 Passada de redação de 2026-10-19
+
+Pedida pelo autor: escrita mais polida e formal, sem os padrões típicos de texto de IA, e
+o PDF mais curto, **sem perder conteúdo**, só repetição. Nenhum número, resultado ou
+afirmação mudou; as regras da §2.1 (verbo pela evidência, régua junto da afirmação) foram
+conferidas no fim. **112 → 100 páginas** (texto: 94 → 82), compilado localmente com o
+Tectonic. Verificado por script: nenhum número aparece só numa das versões, e as tabelas,
+figuras, quadros, algoritmos e equações são idênticos ao commit anterior (salvo a
+pontuação final de quatro equações).
+
+**O que mudou de estrutura**, para uma revisão futura não estranhar:
+- o quadro de síntese das QPs saiu do fim dos Resultados e abre a Discussão
+  (`sec: disc_resposta`); a seção "Penalidade não é restrição" foi fundida nela;
+- a Discussão segue a ordem das QPs: resposta, robustez, política, seleção escalar, ciclo,
+  lições de método, limitações;
+- o quadro de famílias de sementes virou um parágrafo (`sub: sementes`), com todas as
+  famílias;
+- no Referencial, "Representação do indivíduo" e "Função de aptidão" viraram uma
+  subseção só;
+- a explicação do mecanismo dos dois estágios fica inteira só na Discussão
+  (`sec: disc_ruido`); a Metodologia (`sec: hibrido`) dá a motivação em duas frases, e a
+  Conclusão, o resumo;
+- o resultado da confirmação de convergência (70 disparos, 50 recusas) fica só nos
+  Resultados; a Metodologia aponta para lá.
+
+**O que mudou de redação.** Os relatos de "versão anterior do modelo" e de "a auditoria
+mediu" viraram justificativas atemporais com o mesmo número ("num modelo de canal único,
+o personagem de longo alcance perde 100%..."). A metáfora "régua" saiu do texto ("métrica",
+"medida"). Cortados os tiques de texto gerado: frases de efeito curtas ("O termo existe e
+pode perder", "O empate não é detalhe"), "X, e não Y" (de 41 para 22 ocorrências, ficando
+as que carregam a afirmação), "deliberadamente", "isto é" em série e os roteiros de
+abertura que listavam todas as seções do capítulo. O texto dos Resultados deixou de
+reenumerar valores que já estão nas tabelas; os números que o argumento usa ficaram.
+
+Cinco macros de `valores.tex` deixaram de ser citadas no texto corrido (`LtresLzero`,
+`LtresNSGA`, `LumdoisHib`, `LumdoisLzero`, `LumdoisNSGA`); os valores seguem nas tabelas de
+controles e de comparações.

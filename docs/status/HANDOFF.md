@@ -30,9 +30,10 @@ A versão longa anterior deste arquivo, com as tabelas da bateria, fica no git:
 ## Falta
 
 1. **Revisão da monografia:** a passada de conteúdo terminou em 2026-09-30
-   ([`REVIEW.md`](REVIEW.md) §2.3). Daqui em diante só checklist (§2.1, regra 6): números
-   contra artefatos, texto contra o registro, compilação. Uma leitura aberta nova, só por
-   pessoa externa (orientador).
+   ([`REVIEW.md`](REVIEW.md) §2.3), e a de redação, que levou o PDF de 112 para 100
+   páginas sem mudar conteúdo, em 2026-10-19 (§2.4). Daqui em diante só checklist (§2.1,
+   regra 6): números contra artefatos, texto contra o registro, compilação. Uma leitura
+   aberta nova, só por pessoa externa (orientador).
 2. **Pendências do autor:** dedicatória, agradecimentos e epígrafe (ocultos no `main.tex`
    até terem texto); orientador, banca e data de aprovação em `macros.tex`; ficha
    catalográfica (feita pela biblioteca); leitura final do texto.
@@ -50,4 +51,7 @@ A versão longa anterior deste arquivo, com as tabelas da bateria, fica no git:
 
 - `.\scripts\setup.ps1`: o `.venv/` não vem no git, e o Python do sistema não tem `numpy`,
   `numba` nem `scipy`.
-- Não há LaTeX local: a monografia compila no Overleaf.
+- Não há LaTeX instalado: a monografia compila no Overleaf. Para contar páginas ou conferir
+  referências sem ele, o binário portátil do Tectonic (`tectonic main.tex`, numa cópia de
+  `overleaf/TCC/` fora do repositório) reproduz o mesmo PDF; conferido em 2026-10-19 com
+  as 112 páginas da versão anterior.
