@@ -1409,58 +1409,73 @@ avaliação). Mensagem: os dois canais (seção 4.2). Detalhe → **R13**.
 só é medido depois. Mensagem: premissa sim, resposta nunca (seção 3.2). **Não corte**: sem ele, os
 resultados parecem circulares. Equações → **R2**.
 
-**Slide 6, "Três algoritmos, um só orçamento e um controle sem identidade".** Quatro cartões (AG,
-NSGA-II, híbrido com a barra laranja/azul, controle λ = 0) e quatro números: 300 × 150; 20 execuções;
-1.000 lutas na reavaliação; 35 nulos. Rodapé: Wilcoxon pareado, Â₁₂, Holm (seção 11).
+**Slide 6, "Um algoritmo genético evolui 300 elencos por 150 gerações".** O ciclo em quatro
+cartões, no sentido horário, com "150 gerações" no centro: população (300 elencos; na geração 0, o
+canônico e 299 sorteados), avaliação (round-robin de 10 × 150; o desequilíbrio sai das lutas, o desvio
+dos genes), seleção (elite de 10%, torneio de 3; no AG escalar, a aptidão é a soma dos dois termos) e
+variação (cruzamento por bloco de personagem, com o desenho pai A, pai B → filho; mutação gaussiana em
+5% dos genes). Mensagem: seção 8.1. As duas frases em negrito preparam resultados: "o desequilíbrio
+tem ruído" volta no slide 13 (o segundo estágio, seção 13.3) e "pesos: passo 4× menor" volta no 11.
+Rodapé: a saída e a ponte para o NSGA-II, que usa o mesmo ciclo com outra seleção.
 
-**Slide 7, QP1 "O AG escalar leva uma hierarquia ao equilíbrio".** As duas matrizes (porcentagem de
+**Slide 7, "O NSGA-II não soma os termos: devolve uma fronteira".** Esquerda: o diagrama de
+dominância, com os dois eixos minimizados (desequilíbrio e desvio, "melhor" na origem), a fronteira
+em laranja, a região que A domina sombreada com B dentro e o extremo de menor desvio, que ninguém
+domina. Direita: AG escalar (soma → um elenco), NSGA-II (fica com os não dominados e, entre eles,
+os mais isolados → uma fronteira; para comparar, o ponto que minimiza a mesma soma) e dois cartões
+menores, o híbrido e o controle λ = 0. Rodapé: mesmo orçamento, 20 execuções com as mesmas
+sementes, reavaliação com 1.000 lutas por par, Wilcoxon pareado e Holm (seção 11). Mensagem: seção
+8.2. A frase "o elenco de menor desvio nunca é descartado" é a que o slide 14 cobra. Representantes
+→ **R11**.
+
+**Slide 8, QP1 "O AG escalar leva uma hierarquia ao equilíbrio".** As duas matrizes (porcentagem de
 vitórias da **linha** contra a **coluna**, medidas com 16.000 lutas por par; à direita, a média das 20
 execuções do AG). Números: 1,28 → 0,036; 20/20 convergiram (geração 31); 16/20 terminaram
 equilibradas. Por que dois números (20/20 e 16/20) → seção 12.2. Convergência → **R6**.
 
-**Slide 8, QP1 "Fora do laço, o equilíbrio se repete, mas depende das regras".** Esquerda: replica (o
+**Slide 9, QP1 "Fora do laço, o equilíbrio se repete, mas depende das regras".** Esquerda: replica (o
 único dos 4). Direita: as 8 regras com o veredito. Rodapé: 4 robustas · 2 inconclusivas · 2 frágeis.
 Como o veredito é dado → seção 11.1. Tabela completa → **R4**.
 
-**Slide 9, QP2 "Sem o termo, a identidade cai ao nível do acaso".** Três colunas (AG, λ = 0,
+**Slide 10, QP2 "Sem o termo, a identidade cai ao nível do acaso".** Três colunas (AG, λ = 0,
 sorteados) em quatro métricas: desvio 0,25/0,41/0,42; genes 11/6/5,4; comportamento 3/1/1,0; τ
 0,28/−0,03/−0,02. Rodapé: equilíbrio 0,036 contra 0,043, p = 0,059. Mensagem: o controle é a evidência
 da QP2; a identidade que sobra é do termo, e ele não custou equilíbrio mensurável. **Não corte.**
 200 contra 1.000 lutas → **R8**. Nulos → **R9**.
 
-**Slide 10, QP2 "A política é o que mais se perde, e a busca mal a enxerga".** Esquerda: chance de o
+**Slide 11, QP2 "A política é o que mais se perde, e a busca mal a enxerga".** Esquerda: chance de o
 Rushdown avançar (86/48/47/39/35%). Direita: efeito dos pesos com o passo atual (3,0/4,8/2,9) e com o
 passo dos atributos (14,3/16,5/12,4), contra o ruído (~3,5). Mensagem: seção 13.2. Sensibilidade
 completa → **R7**.
 
-**Slide 11, QP3 "Nenhum domina, mas o AG escalar não atinge o seu ótimo".** A figura: eixo x =
+**Slide 12, QP3 "Nenhum domina, mas o AG escalar não atinge o seu ótimo".** A figura: eixo x =
 desequilíbrio em **escala logarítmica**; eixo y = desvio. Cada linha cinza em degraus é a fronteira de
 uma execução do NSGA-II; quadrados laranja = scalar_optimum; círculos azuis = AG escalar; X cinza =
 controle λ = 0 (equilibrados, mas lá em cima no desvio); estrela = canônico (desvio 0, desequilíbrio
 1,28). Todos os pontos são **dentro do laço**. Mensagem: nenhum domina; mas 20/20 na soma (seção 12.4).
 Representantes → **R11**. Comparação completa → **R10**.
 
-**Slide 12, QP3 "Por quê? A soma escalar perde identidade em dois estágios".** Figura da semente 42:
+**Slide 13, QP3 "Por quê? A soma escalar perde identidade em dois estágios".** Figura da semente 42:
 em cima, o desequilíbrio do melhor elenco (escala log); embaixo, o desvio do elenco mais fiel ainda na
 população, com 0,17 (geração 7) e 0,24 (geração 20) marcados. Faixa vermelha = estágio 1 (gerações 0 a
 20); faixa cinza = estágio 2 (30 em diante). Mensagem: seção 13.3. **Não corte**: sem ele, o híbrido
 aparece sem motivo.
 
-**Slide 13, QP3 "O híbrido une a identidade do NSGA-II ao equilíbrio do AG".** Tabela: equilibrados
+**Slide 14, QP3 "O híbrido une a identidade do NSGA-II ao equilíbrio do AG".** Tabela: equilibrados
 16/16/0; counters 0,20/0,25/2,80; desvio 0,25/0,17/0,14; τ 0,28/0,52/0,54; convergência 31/98/—.
 Rodapé: identidade p ≤ 0,0058; equilíbrio p = 1,00. Mensagem: parte da perda de identidade vem da
 seleção escalar, não do problema. (O NSGA-II não tem convergência porque o predicado não se aplica a
 uma fronteira.)
 
-**Slide 14, "Sim: é possível equilibrar sem destruir as identidades".** As três respostas e a
+**Slide 15, "Sim: é possível equilibrar sem destruir as identidades".** As três respostas e a
 mensagem final (seção 1).
 
-**Slide 15, "O modelo ainda é simples; os próximos passos saem dos achados".** Limites (combate
+**Slide 16, "O modelo ainda é simples; os próximos passos saem dos achados".** Limites (combate
 abstrato; ciclo não realizado nem no canônico; política fixa) e próximos passos (passo da política,
 políticas dependentes do estado, coevolução, calibrar o híbrido). Cada próximo passo responde a um
 achado.
 
-**Slide 16, Obrigado.** QR code do repositório; fica na tela durante as perguntas.
+**Slide 17, Obrigado.** QR code do repositório; fica na tela durante as perguntas.
 
 **As reservas (R1 a R13)**, depois do "Obrigado":
 

@@ -16,14 +16,20 @@ A mesma fala está nas notas do orador de cada slide em `slides.pptx`.
 
 1. **Problema (slides 2–3).** Equilibrar tem dois erros: um personagem dominar, ou todos ficarem
    iguais. A pergunta é se um AG equilibra sem apagar as identidades, dividida em QP1, QP2 e QP3.
-2. **Método (4–6).** Um simulador em que cada gene pesa; uma aptidão que contém o que cada arquétipo
-   *é*, nunca quem deve *vencer*; três algoritmos com o mesmo orçamento e um controle sem identidade.
-3. **Resultados (7–13).** O AG equilibra (QP1) e replica fora do laço. A identidade que sobra se deve
+2. **Método (4–7).** Um simulador em que cada gene pesa; uma aptidão que contém o que cada arquétipo
+   *é*, nunca quem deve *vencer*; o ciclo do AG, em que o desequilíbrio é avaliado com ruído; e o
+   NSGA-II, que troca a soma pela dominância de Pareto, no mesmo orçamento e ao lado de um controle
+   sem identidade.
+3. **Resultados (8–14).** O AG equilibra (QP1) e replica fora do laço. A identidade que sobra se deve
    ao termo, mas a política se perde (QP2). Nenhum algoritmo domina o outro, mas o AG escalar fica
    longe do próprio ótimo; o motivo são dois estágios da seleção escalar, e o híbrido, que protege a
    identidade no início, recupera boa parte dela sem custo de equilíbrio (QP3).
-4. **Conclusão (14–15).** Sim, com pressão explícita por identidade e uma busca que mantenha a
+4. **Conclusão (15–16).** Sim, com pressão explícita por identidade e uma busca que mantenha a
    diversidade sob ruído. Limites e próximos passos saem dos próprios achados.
+
+Os slides 6 e 7 plantam o que os resultados cobram: "o desequilíbrio tem ruído" volta no 13 (o
+segundo estágio), "passo 4× menor" volta no 11 (a política), e "o elenco de menor desvio nunca é
+descartado" volta no 14 (o híbrido).
 
 ## Código de cores dos slides
 
@@ -34,9 +40,10 @@ monografia. **Vermelho** é desequilíbrio (e "frágil"), **roxo** é desvio de 
 
 ## Tempo por slide
 
-São 1458 palavras. A 150 palavras por minuto, ritmo calmo de apresentação, a fala leva
-9:43; a 165, ritmo da Latinoware, 8:50. Ensaie com cronômetro: se passar de
-9:30, use os cortes abaixo.
+São 1593 palavras. A 150 palavras por minuto, ritmo calmo de apresentação, a fala leva
+10:37; a 165, ritmo da Latinoware, 9:39. Os slides do ciclo do AG e do NSGA-II acrescentaram
+cerca de 55 segundos à versão apresentada em 21/10. Ensaie com cronômetro: se passar de 9:30, use
+os cortes abaixo, que somam cerca de 53 segundos.
 
 | # | Slide | Palavras | a 150 ppm | a 165 ppm |
 |---|---|---|---|---|
@@ -45,18 +52,19 @@ São 1458 palavras. A 150 palavras por minuto, ritmo calmo de apresentação, a 
 | 3 | Problema: o elenco e a pergunta | 110 | 0:44 | 0:40 |
 | 4 | Método: o simulador | 117 | 0:47 | 0:43 |
 | 5 | Método: a aptidão (premissa, nunca resposta) | 128 | 0:51 | 0:47 |
-| 6 | Método: três algoritmos e o controle | 112 | 0:45 | 0:41 |
-| 7 | QP1: da hierarquia ao equilíbrio | 86 | 0:34 | 0:31 |
-| 8 | QP1: fora do laço | 97 | 0:39 | 0:35 |
-| 9 | QP2: o controle sem identidade | 103 | 0:41 | 0:37 |
-| 10 | QP2: a política | 96 | 0:38 | 0:35 |
-| 11 | QP3: a fronteira | 98 | 0:39 | 0:36 |
-| 12 | QP3: por quê? Dois estágios | 101 | 0:40 | 0:37 |
-| 13 | QP3: o híbrido | 92 | 0:37 | 0:33 |
-| 14 | Conclusão: as três respostas | 93 | 0:37 | 0:34 |
-| 15 | Limites e próximos passos | 93 | 0:37 | 0:34 |
-| 16 | Obrigado (fica na tela durante as perguntas) | 0 | 0:00 | 0:00 |
-| | **Total** | **1458** | **9:43** | **8:50** |
+| 6 | Método: o ciclo do AG | 112 | 0:45 | 0:41 |
+| 7 | Método: o NSGA-II e o protocolo | 135 | 0:54 | 0:49 |
+| 8 | QP1: da hierarquia ao equilíbrio | 86 | 0:34 | 0:31 |
+| 9 | QP1: fora do laço | 97 | 0:39 | 0:35 |
+| 10 | QP2: o controle sem identidade | 103 | 0:41 | 0:37 |
+| 11 | QP2: a política | 96 | 0:38 | 0:35 |
+| 12 | QP3: a fronteira | 98 | 0:39 | 0:36 |
+| 13 | QP3: por quê? Dois estágios | 101 | 0:40 | 0:37 |
+| 14 | QP3: o híbrido | 92 | 0:37 | 0:33 |
+| 15 | Conclusão: as três respostas | 93 | 0:37 | 0:34 |
+| 16 | Limites e próximos passos | 93 | 0:37 | 0:34 |
+| 17 | Obrigado (fica na tela durante as perguntas) | 0 | 0:00 | 0:00 |
+| | **Total** | **1593** | **10:37** | **9:39** |
 
 ## Fala
 
@@ -80,47 +88,51 @@ Para avaliar um elenco, construímos um simulador de combate. Cada personagem te
 
 Os trabalhos que aplicam busca ao balanceamento não medem se a identidade sobrevive. Aqui, ela entra na aptidão com uma regra: a aptidão pode conter o que cada arquétipo é, que é a premissa, mas nunca quem deve vencer quem, que é a resposta procurada. O desequilíbrio mede o quanto cada personagem se afasta de 50% de vitórias no total, sem exigir 50% em cada confronto, e barra counters acima de 65% e lutas decididas por massacre, sempre pela distância a 50%, nunca pela direção. O desvio mede a distância de cada personagem ao seu perfil canônico, com peso triplo nos genes que definem o arquétipo. Já a identidade funcional, se o personagem ainda joga como ele mesmo, é medida depois, por métricas que a busca não vê.
 
-### 6. Método: três algoritmos e o controle
+### 6. Método: o ciclo do AG
 
-Comparamos três algoritmos com o mesmo orçamento, de 300 elencos por 150 gerações. O algoritmo escalar soma os dois termos e devolve um elenco. O NSGA-II os trata como objetivos separados e devolve uma fronteira de Pareto. O híbrido roda o NSGA-II na primeira metade e entrega a fronteira ao escalar na segunda. O controle principal é o próprio escalar sem o termo de identidade, porque é ele que isola o efeito do método. Cada braço rodou vinte vezes com as mesmas sementes, e as comparações usam Wilcoxon pareado com correção de Holm. Os elencos finais são reavaliados com mil lutas por par, em sorteios inéditos, e lidos contra 35 elencos nulos.
+Com a aptidão definida, o algoritmo genético repete um ciclo. A população tem 300 elencos: na geração zero, o canônico e 299 sorteados. Cada elenco é avaliado no round-robin. O desvio sai direto dos genes, mas o desequilíbrio sai das lutas, e os sorteios mudam a cada geração, para que a busca não se ajuste a eles. Por isso, o desequilíbrio é sempre uma estimativa com ruído. Os 10% melhores passam direto, e cada pai é o melhor de um torneio de três. O cruzamento passa cada personagem inteiro de um dos pais, e a mutação perturba alguns genes, com passo quatro vezes menor nos pesos. Isso se repete por 150 gerações.
 
-### 7. QP1: da hierarquia ao equilíbrio
+### 7. Método: o NSGA-II e o protocolo
+
+O NSGA-II usa o mesmo ciclo, com outra seleção. Em vez de somar os dois termos, ele compara por dominância: um elenco domina outro se não é pior em nenhum dos dois e é melhor em pelo menos um. Os que ninguém domina formam a fronteira, e, entre eles, a seleção prefere os mais isolados, para espalhá-la. Uma consequência importa adiante: o elenco de menor desvio nunca é dominado, então nunca é descartado. A saída é a fronteira; para comparar, usamos o ponto dela que minimiza a mesma soma do escalar. Completam o desenho o híbrido, com o NSGA-II na primeira metade e o escalar na segunda, e o controle sem o termo de identidade. Cada braço rodou vinte vezes, com as mesmas sementes, e os elencos finais são reavaliados com mil lutas por par.
+
+### 8. QP1: da hierarquia ao equilíbrio
 
 Começo pela primeira questão. À esquerda está o elenco original, que chamamos de canônico. Ele é uma hierarquia: o Rushdown vence praticamente todas as lutas, o Turtle não vence nenhuma, e nove dos dez confrontos são decididos em mais de 99% das lutas. À direita está a média das vinte execuções do algoritmo escalar, com todos os confrontos entre 46% e 54%. O algoritmo convergiu em todas as execuções, em média na geração 31, e dezesseis delas terminaram com o elenco equilibrado, perto da simetria perfeita.
 
-### 8. QP1: fora do laço
+### 9. QP1: fora do laço
 
 Equilibrar dentro do laço não basta, porque a busca pode se ajustar aos sorteios que viu. Na validação externa, o elenco evoluído foi testado com sorteios inéditos e cinco mil lutas por par, e foi o único dos quatro elencos testados que replicou o equilíbrio. Depois, alteramos uma regra do combate de cada vez, regras que a busca nunca viu. O equilíbrio resistiu a quatro das oito mudanças, ficou inconclusivo em duas e quebrou em duas: no campo menor e na persistência maior da intenção. É um equilíbrio real, mas ajustado às regras em que foi encontrado.
 
-### 9. QP2: o controle sem identidade
+### 10. QP2: o controle sem identidade
 
 Na segunda questão, a evidência decisiva é o controle. Sem o termo de identidade, o mesmo algoritmo, com o mesmo orçamento, perde a identidade nas quatro métricas, com efeito grande, e fica no nível de elencos sorteados ao acaso. A concordância de comportamento, que vale 1 no canônico, fica em 0,28 com o termo e praticamente em zero sem ele. No equilíbrio, os dois braços não se separam depois da correção de Holm. A identidade que sobrevive se deve, portanto, ao termo, e ele não custou equilíbrio mensurável. Mas essa identidade é parcial: o algoritmo escalar mantém três das cinco asserções de comportamento.
 
-### 10. QP2: a política
+### 11. QP2: a política
 
 O que mais se perde é a política, os pesos de comportamento. O Rushdown canônico avança em 86% das intenções; no algoritmo escalar, em 39%, e os cinco personagens convergem para uma política parecida. A política pesa no combate: com o mesmo passo de mutação dos atributos, os pesos mudam a taxa de vitória em 12 a 17 pontos percentuais. O problema é que a mutação dos pesos é quatro vezes menor, e, nesse passo, o efeito de cada mutação fica no nível do ruído da avaliação. Na prática, a busca quase não enxerga a política.
 
-### 11. QP3: a fronteira
+### 12. QP3: a fronteira
 
 Na terceira questão, cada linha cinza é a fronteira de uma execução do NSGA-II, e os pontos azuis são o algoritmo escalar. O canto inferior esquerdo está vazio: para ganhar de um lado, perde-se do outro. O NSGA-II preserva mais identidade, mas deixa quase três confrontos desequilibrados por elenco e não termina equilibrado em nenhuma execução. O escalar fica além da ponta de equilíbrio da fronteira, pagando em desvio, e nenhum dos dois domina o outro. Mas, na própria soma que o escalar otimiza, a fronteira tem um ponto melhor que o dele em todas as vinte sementes.
 
-### 12. QP3: por quê? Dois estágios
+### 13. QP3: por quê? Dois estágios
 
 Por que o escalar não chega ao próprio ótimo? A explicação tem dois estágios, que esta execução mostra. No início, as diferenças de equilíbrio entre elencos são grandes, e a soma privilegia esse termo: o canônico sai da população na terceira geração, e, na vigésima, o elenco mais fiel que ainda resta já tem desvio 0,24. Depois da convergência, o desvio é calculado de forma exata, mas o desequilíbrio é estimado por sorteio, e o ruído dele é cerca de sessenta vezes o ganho de identidade por geração. A seleção passa a premiar sorte, e a identidade perdida quase não volta.
 
-### 13. QP3: o híbrido
+### 14. QP3: o híbrido
 
 Se essa explicação está certa, proteger a identidade no início da busca deveria ajudar, e é isso que o híbrido faz: na fase de Pareto, o elenco de menor desvio nunca é descartado. Com o mesmo orçamento, o híbrido chega perto da identidade do NSGA-II, com a concordância quase dobrando, de 0,28 para 0,52, e mantém o equilíbrio do escalar, com dezesseis elencos equilibrados em vinte. O preço é a velocidade: ele converge na geração 98, contra 31. Parte da perda de identidade vem, portanto, da seleção escalar, e não do problema.
 
-### 14. Conclusão: as três respostas
+### 15. Conclusão: as três respostas
 
 Voltando às três questões. No equilíbrio, a resposta é sim: em todas as execuções e também fora do laço, com sensibilidade a algumas regras. Na identidade, a resposta é parcial, e a parte preservada se deve ao termo de identidade, que não custou equilíbrio mensurável. No compromisso, o escalar fica na ponta do equilíbrio, o NSGA-II na da identidade, e o híbrido reúne os dois. Então, é possível equilibrar sem destruir as identidades, desde que haja pressão explícita por identidade e uma busca capaz de manter a diversidade de identidade sob avaliação ruidosa.
 
-### 15. Limites e próximos passos
+### 16. Limites e próximos passos
 
 O modelo de combate ainda é simples. O ciclo de vantagens que propus para os arquétipos não se realiza nem no elenco canônico, que é uma hierarquia, o que indica que faltam mecânicas, como combos e janelas de punição. E o equilíbrio foi medido contra uma política fixa, sem nenhum oponente tentando explorá-lo. Os próximos passos são calibrar o passo de mutação da política contra o ruído, usar políticas que dependam do estado da luta e testar o equilíbrio contra oponentes que se adaptam. O código é aberto e está no GitHub. Obrigado.
 
-### 16. Obrigado (fica na tela durante as perguntas)
+### 17. Obrigado (fica na tela durante as perguntas)
 
 _Sem fala. O QR code e o resumo ficam na tela durante a arguição._
 
@@ -130,16 +142,27 @@ Cortes prontos, do menos ao mais custoso. Cada um sai inteiro, sem quebrar a fra
 
 1. **Slide 4**, "É isso que faz do controle de distância uma estratégia." (4 s). Fica para as
    perguntas: num modelo de canal único, o personagem de longo alcance perdia 100% das lutas.
-2. **Slide 12**, "que esta execução mostra" (2 s). Basta apontar o gráfico.
-3. **Slide 6**, a última frase ("Os elencos finais são reavaliados...") (8 s). Os números ficam na
-   tela.
-4. **Slide 8**, "regras que a busca nunca viu" e a última frase (8 s). O resumo "4 robustas · 2
+2. **Slide 4**, "avaliado em dez confrontos de 150 lutas cada" (3 s); a frase termina em "com 55
+   genes". O slide 6 repete a avaliação.
+3. **Slide 13**, "que esta execução mostra" (2 s). Basta apontar o gráfico.
+4. **Slide 12**, "O canto inferior esquerdo está vazio: para ganhar de um lado, perde-se do outro."
+   (6 s). O slide 7 já mostrou que abaixo da fronteira não há ninguém.
+5. **Slide 7**, a frase do híbrido e do controle ("Completam o desenho...") (10 s). Os dois cartões
+   ficam na tela, o híbrido é explicado no slide 14 e o controle no 10.
+6. **Slide 7**, a última frase ("Cada braço rodou vinte vezes...") (8 s). O rodapé mostra os números.
+7. **Slide 6**, "para que a busca não se ajuste a eles" (4 s); a frase termina em "a cada geração".
+   Se perguntarem por que os sorteios mudam, é a resposta.
+8. **Slide 9**, "regras que a busca nunca viu" e a última frase (8 s). O resumo "4 robustas · 2
    inconclusivas · 2 frágeis" fica na tela.
-5. **Slide 10**, a frase do passo de mutação ("O problema é que...") (10 s). O gráfico da direita
-   mostra isso; a resposta vem se perguntarem.
+9. **Slide 2**, "No limite, dar a todos os mesmos atributos..." (8 s). O cartão da direita mostra a
+   solução trivial; a frase é a mais forte do slide, por isso fica por último.
 
-Não corte o slide 5 (sem ele, a identidade na aptidão parece circular), o 9 (o controle é a
-evidência da QP2) nem o 12 (sem ele, o híbrido aparece sem motivo).
+Não corte o slide 5 (sem ele, a identidade na aptidão parece circular), o 10 (o controle é a
+evidência da QP2) nem o 13 (sem ele, o híbrido aparece sem motivo). Os slides 6 e 7 também ficam
+inteiros nas partes que os resultados cobram: o ruído do desequilíbrio e o passo 4× menor (slide 6) e
+"o elenco de menor desvio nunca é descartado" (slide 7). Pelo mesmo motivo, a frase do passo de
+mutação no slide 11 ("O problema é que...") saiu da lista de cortes: é ela que fecha o "4× menor" do
+slide 6.
 
 ## Slides de reserva
 
@@ -208,7 +231,7 @@ usa 1.000 lutas por par. (R8.)
 **Por que a convergência recusou tantos elencos?**
 Das 70 vezes em que o melhor elenco pareceu equilibrado dentro do laço, 50 não sobreviveram à
 reavaliação em sorteios inéditos: a busca se ajusta aos sorteios que viu. Convergir marca o primeiro
-sucesso confirmado de um teste repetido a cada geração, e não um estado estável; por isso o slide 7
+sucesso confirmado de um teste repetido a cada geração, e não um estado estável; por isso o slide 8
 mostra também os 16 de 20 que *terminam* equilibrados.
 
 **Por que o teste é pareado? Por que 20 execuções?**
@@ -221,7 +244,8 @@ com pelo menos 80% de poder para um efeito grande (Â₁₂ = 0,80): 85,9%, cont
 No NSGA-II, o canônico tem desvio zero e ninguém o domina: ele e a vizinhança ficariam para sempre na
 primeira frente, por mais desequilibrados que fossem (numa execução de teste, 40 dos 78 pontos da
 fronteira tinham desequilíbrio acima de 1). No AG, o efeito foi medido com um controle sem semente: ele
-só difere no desvio (0,270 contra 0,247), e não explica a diferença entre AG e NSGA-II.
+só difere no desvio (0,270 contra 0,247), e não explica a diferença entre AG e NSGA-II. Com o
+slide 6 mostrando o canônico na geração 0, esta pergunta ficou mais provável.
 
 **Por que comparar com o scalar_optimum, e não com outro ponto da fronteira?**
 É o ponto da fronteira que minimiza a mesma função do AG escalar, escolhido antes da bateria. Contra
@@ -244,6 +268,18 @@ degradação entre o laço e a reavaliação acompanha o peso que a seleção d�
 termo de identidade, 1,80 no AG, 1,25 no NSGA-II), e a confirmação recusou 71% dos elencos que pareciam
 equilibrados.
 
+**Por que o cruzamento troca personagens inteiros?**
+Para que capacidade e estratégia de um personagem sejam herdadas juntas: o Zoner do filho vem inteiro
+do pai A ou do pai B, nunca com o alcance de um e os pesos do outro. O custo é que a recombinação
+dentro de um personagem fica só por conta da mutação. (Slide 6.)
+
+**O NSGA-II não faz o dobro de avaliações? A comparação é justa?**
+Faz o dobro: pais e filhos são comparados no mesmo conjunto e, como os sorteios mudam a cada geração,
+os pais são reavaliados (cerca de 135 milhões de lutas por execução, contra 68 milhões do AG). O
+orçamento é igualado pelo número de filhos por geração, isto é, pelo número de elencos novos que cada
+busca experimenta. As avaliações extras do NSGA-II medem de novo os pais no sorteio da geração e não
+acrescentam busca.
+
 **Por que a mutação dos pesos é quatro vezes menor?**
 Para dar inércia à estratégia e evitar saltos de comportamento. O custo, descoberto nos resultados, é
 que nesse passo cada mutação de política fica no nível do ruído. Com o mesmo passo relativo dos
@@ -263,7 +299,7 @@ porque numa ordem estrita o primeiro colocado fica acima de 50%; não é evidên
 
 **A diferenciação entre personagens não mostra a homogeneização?**
 Não serve como evidência: elencos sorteados são dispersos sem ter identidade, e o controle sem o termo
-(1,16) fica acima do AG escalar (1,09). A homogeneização aparece na política (slide 10).
+(1,16) fica acima do AG escalar (1,09). A homogeneização aparece na política (slide 11).
 
 **Qual é a principal limitação do equilíbrio?**
 Ele é medido contra uma política fixa: os personagens não aprendem e ninguém procura uma estratégia
@@ -297,10 +333,13 @@ que usa as métricas reais da Open Sans, mas não pelo Google Slides; vale olhar
 
 1. A fonte é **Open Sans** em todos os textos (é fonte do Google, deve vir sozinha).
 2. Nenhum título quebra linha. Se algum quebrar, reduza para 24 pt.
-3. Slide 6: "isola o efeito do termo" e "saída: uma fronteira" cabem nos cartões.
-4. Slide 8: "inconclusivo" cabe no cartão cinza.
-5. Slide 5: a caixa "Só medido depois" está tracejada.
-6. O QR code do último slide abre `github.com/M-Gimenes/Simulation` (teste com o celular na tela).
-7. Notas do orador: Ver > Mostrar notas do orador, ou no modo Apresentador.
+3. Slide 6: "sorteios novos a cada geração: o desequilíbrio tem ruído" quebra em duas linhas sem
+   encostar na linha de cima, e o círculo "150 gerações" não cobre texto dos cartões.
+4. Slide 7: os rótulos do diagrama (A, B, "fronteira", "menor desvio") não encostam na curva, e o
+   rodapé cabe em uma linha.
+5. Slide 9: "inconclusivo" cabe no cartão cinza.
+6. Slide 5: a caixa "Só medido depois" está tracejada.
+7. O QR code do último slide abre `github.com/M-Gimenes/Simulation` (teste com o celular na tela).
+8. Notas do orador: Ver > Mostrar notas do orador, ou no modo Apresentador.
 
 Ajuste a saudação do slide 1 ao horário ("Bom dia" ou "Boa tarde").
