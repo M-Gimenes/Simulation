@@ -1,8 +1,9 @@
 # Guia de estudo: o TCC e a apresentação à banca
 
 Este guia explica o trabalho no estado em que foi entregue (monografia de 100 páginas, bateria de
-23/09/2026) e a apresentação de 21/10/2026. Ele foi escrito para você retomar o trabalho inteiro
-depois de tudo o que mudou desde a Latinoware.
+23/09/2026) e a apresentação de defesa, reestruturada depois da primeira apresentação à banca, em
+21/10/2026. Ele foi escrito para você retomar o trabalho inteiro depois de tudo o que mudou desde a
+Latinoware.
 
 Nenhum número aqui é novo. Todos vêm da monografia (`overleaf/TCC/valores.tex` e os capítulos) ou
 dos artefatos de `results/` que ela cita. Onde há uma conta feita só para explicar um conceito, como
@@ -1382,102 +1383,221 @@ não foi codificado na busca.
 
 ## 14. A apresentação, slide a slide
 
-A história tem quatro blocos: **Problema → Método → Resultados (QP1, QP2, QP3) → Conclusão**. No bloco
-de resultados, a QP3 tem três slides que formam um arco próprio: "o AG não está no ótimo" → "por quê?"
-→ "o híbrido conserta".
+A defesa segue a estrutura da monografia, em cinco blocos que o cabeçalho marca: **Introdução (2–4) →
+Referencial (5–8) → Metodologia (9–13) → Resultados (14–20) → Conclusão (21–23)**. No bloco de
+resultados, a QP3 tem três slides que formam um arco próprio: "o AG não está no ótimo" → "por quê?" →
+"o híbrido conserta". Cada slide do referencial planta algo que os outros blocos cobram; a lista das
+ligações está em `script.md`, seção "O fio entre o referencial e o resto".
 
 **Código de cores**: azul = AG escalar; laranja = NSGA-II; verde-água = híbrido; cinza-escuro =
-controle λ = 0; vermelho = desequilíbrio (e "frágil"); roxo = desvio. QP1/QP2/QP3 em verde no título
-dizem a qual questão o slide responde; o cabeçalho marca a seção.
+controles; vermelho = desequilíbrio (e "frágil"); roxo = desvio e perfis canônicos. QP1/QP2/QP3 em
+verde no título dizem a qual questão o slide responde; o cabeçalho marca a seção.
 
-**Slide 1, Capa.** Título, você, orientador, banca, data. Mensagem: o tema e a pergunta em uma frase.
+### Introdução
 
-**Slide 2, "Há duas formas de errar no balanceamento de um elenco".** Dois cartões com barras de taxa
+**Slide 1, Capa.** Título, você, orientador e banca. A data aparece só como "2026": ponha a da defesa.
+Mensagem: o tema e a pergunta em uma frase.
+
+**Slide 2, "Equilibrar um elenco é caro, manual e nunca termina".** Esquerda: o mercado (US$ 188,8 bi
+em 2025 e 3,58 bi de jogadores, segundo a Newzoo) e a definição de esports de Hamari e Sjöblom.
+Direita: o ciclo manual (ajustar, testar, observar, corrigir), caro e sem fim. Faixa: a computação
+evolutiva tenta automatizar parte desse ciclo. Os números da Newzoo são de relatório de indústria, sem
+revisão por pares, e a monografia avisa isso.
+
+**Slide 3, "Há duas formas de errar no balanceamento de um elenco".** Dois cartões com barras de taxa
 de vitória: um personagem domina / todos ficam em 50% (cinza, iguais). Mensagem: o desafio fica entre
-os dois. Prepara o desvio (o segundo erro) e o desequilíbrio (o primeiro).
+os dois (seção 3.1). A fala acrescenta que o elenco espelho é a solução trivial de referência
+(seção 10.6).
 
-**Slide 3, "Cinco arquétipos clássicos, desequilibrados de propósito".** Os cinco com a palavra-chave
-de cada um, a pergunta e QP1–QP3. Diga que os valores são seus (premissa). Se perguntarem os valores →
-**R3**.
+**Slide 4, "Pergunta de pesquisa e objetivos".** A pergunta, QP1–QP3 e os cinco objetivos específicos
+da monografia, que seguem a ordem da metodologia (seção 3.4). Os cinco arquétipos, que ficavam aqui na
+primeira apresentação, foram para o slide 5.
 
-**Slide 4, "Um simulador de luta em que cada gene muda o resultado".** Esquerda: a luta (campo 1D,
-postura sorteada, ataque como regra). Direita: o indivíduo (grade 5 × 11, 55 genes, 1.500 lutas por
-avaliação). Mensagem: os dois canais (seção 4.2). Detalhe → **R13**.
+### Referencial
 
-**Slide 5, "A aptidão diz o que cada arquétipo é, nunca quem deve vencer".** Esquerda: o desequilíbrio
-(três termos com os pesos 1,0/0,5/0,5) e o desvio (peso 3 nos definidores). Direita, tracejado: o que
-só é medido depois. Mensagem: premissa sim, resposta nunca (seção 3.2). **Não corte**: sem ele, os
-resultados parecem circulares. Equações → **R2**.
+**Slide 5, "Equilibrar não é igualar todos os confrontos".** Esquerda: simetria estatística contra
+vantagens recíprocas (Adams; Elias, Garfield e Gutschera) e o argumento de Gingold. Direita: o ciclo
+proposto, desenhado como um torneio: cada arquétipo vence o vizinho seguinte no sentido horário e,
+pela diagonal, o que vem depois dele. Mensagem: a aptidão mede "ninguém domina o elenco", e não "50%
+em cada par" (seções 3.5 e 6.2); o ciclo é hipótese, testada depois. Ciclo medido → **R1**.
 
-**Slide 6, "Um algoritmo genético evolui 300 elencos por 150 gerações".** O ciclo em quatro
-cartões, no sentido horário, com "150 gerações" no centro: população (300 elencos; na geração 0, o
-canônico e 299 sorteados), avaliação (round-robin de 10 × 150; o desequilíbrio sai das lutas, o desvio
-dos genes), seleção (elite de 10%, torneio de 3; no AG escalar, a aptidão é a soma dos dois termos) e
-variação (cruzamento por bloco de personagem, com o desenho pai A, pai B → filho; mutação gaussiana em
-5% dos genes). Mensagem: seção 8.1. As duas frases em negrito preparam resultados: "o desequilíbrio
-tem ruído" volta no slide 13 (o segundo estágio, seção 13.3) e "pesos: passo 4× menor" volta no 11.
-Rodapé: a saída e a ponte para o NSGA-II, que usa o mesmo ciclo com outra seleção.
+**Slide 6, "Algoritmo genético: a aptidão é o único elo com o problema".** Esquerda: o ciclo genérico
+(população → aptidão → seleção → variação, com elitismo), cada passo com a propriedade que o trabalho
+usa. O torneio é ordinal, por isso só a razão entre os λ importa. O cruzamento por blocos herda partes
+coerentes, aqui o personagem inteiro. O passo da mutação regula exploração e explotação, e é o passo
+4× menor dos pesos que volta no slide 17. Direita: a aptidão ruidosa. O gráfico é **ilustrativo**, não
+é dado: seis candidatos com valor real (traço), estimativa (ponto) e ruído (barra); o mais bem
+avaliado, em vermelho, não é o melhor de verdade. Defesas: números aleatórios comuns e reavaliação
+(seção 7).
 
-**Slide 7, "O NSGA-II não soma os termos: devolve uma fronteira".** Esquerda: o diagrama de
-dominância, com os dois eixos minimizados (desequilíbrio e desvio, "melhor" na origem), a fronteira
-em laranja, a região que A domina sombreada com B dentro e o extremo de menor desvio, que ninguém
-domina. Direita: AG escalar (soma → um elenco), NSGA-II (fica com os não dominados e, entre eles,
-os mais isolados → uma fronteira; para comparar, o ponto que minimiza a mesma soma) e dois cartões
-menores, o híbrido e o controle λ = 0. Rodapé: mesmo orçamento, 20 execuções com as mesmas
-sementes, reavaliação com 1.000 lutas por par, Wilcoxon pareado e Holm (seção 11). Mensagem: seção
-8.2. A frase "o elenco de menor desvio nunca é descartado" é a que o slide 14 cobra. Representantes
-→ **R11**.
+**Slide 7, "Dois objetivos em conflito: somar ou comparar por dominância".** Esquerda: o diagrama de
+dominância, também ilustrativo, com os dois eixos minimizados, a fronteira em laranja, a região que A
+domina sombreada com B dentro e o extremo de menor desvio, que ninguém domina. Direita: escalarização
+(Deb, 2001: pesos fixados de antemão, regiões não convexas inalcançáveis), NSGA-II (Deb et al., 2002:
+frentes de não dominância, aglomeração, elitismo) e multiobjetivização (Knowles et al., 2001: separar
+os termos preserva diversidade, a base do híbrido). Mensagem: seção 8.2. O extremo de menor desvio é o
+que o slide 20 cobra. Representantes → **R11**.
 
-**Slide 8, QP1 "O AG escalar leva uma hierarquia ao equilíbrio".** As duas matrizes (porcentagem de
+**Slide 8, "Trabalhos relacionados: nenhum mede se a identidade sobrevive".** Tabela com Hom e Marks,
+Browne e Maire, Chen et al. e Volz et al. (domínio e formulação) contra os três requisitos: luta em
+tempo real, equilíbrio contra identidade como compromisso explícito e identidade medida fora da busca.
+A linha "Este trabalho" é a única com os três. Rodapé: Togelius et al. como o campo, e Browne e Maire
+como a origem do princípio da validação externa. Mensagem: a lacuna, que vira as contribuições do slide
+22. O que cada referência diz está logo abaixo, depois da lista de slides.
+
+### Metodologia
+
+**Slide 9, "Arquitetura: a busca usa a simulação como caixa-preta".** A figura de arquitetura da
+monografia, com os números do AG:
+
+- os perfis canônicos (roxo) entram como semente e como referência do desvio;
+- dentro do laço tracejado de 150 gerações:
+  - população: 300 elencos, e na geração 0 o canônico e 299 sorteados;
+  - avaliação: 10 pares × 150 lutas; o desequilíbrio vem das lutas, com ruído, e o desvio dos genes,
+    exato; os sorteios são iguais na geração e novos a cada geração;
+  - seleção: elitismo de 10% e torneio de 3, por soma ou por dominância;
+  - variação: o personagem vem inteiro de um pai, e a mutação gaussiana atinge 5% dos genes, com passo
+    de 10% da faixa (2,5% nos pesos);
+- embaixo, a saída e a medição fora do laço.
+
+Mensagem: seções 5, 7 e 8.1. A não circularidade (seção 3.2) aparece como a seta tracejada que não
+volta ao laço.
+
+**Slide 10, "Um simulador de luta em que cada gene muda o resultado".** Esquerda: a luta (campo 1D,
+tick de 5 sub-ticks, postura sorteada e mantida por um tick, ataque como regra, guarda × 0,6 rompida
+pelo agarrão). Direita: o indivíduo (grade 5 × 11, 55 genes, 1.500 lutas por avaliação). Mensagem: os
+dois canais (seção 4.2). Detalhe → **R13**.
+
+**Slide 11, "A aptidão diz o que cada arquétipo é, nunca quem deve vencer".** Esquerda: o
+desequilíbrio (três termos com os pesos 1,0/0,5/0,5), o desvio (normalizado pela faixa, peso 3 nos
+definidores) e as duas formulações (soma com pesos iguais; NSGA-II minimiza os dois). Direita,
+tracejado: o que só é medido depois. A fala acrescenta que o limite de 65% fica entre o 6-4 e o 7-3 da
+convenção do gênero (seção 6.2). Mensagem: premissa sim, resposta nunca (seção 3.2). **Não corte.**
+Equações → **R2**.
+
+**Slide 12, "Protocolo: cinco braços, mesmo orçamento, mesmas sementes".** Esquerda: os cinco braços
+com o papel de cada um (seção 9.1). Direita: 20 execuções pareadas, 300 × 150, reavaliação com 1.000
+lutas, 35 modelos nulos e Wilcoxon pareado com Â₁₂ e Holm sobre a família fixa de 7 métricas (seções
+9.2, 10.6 e 11).
+
+**Slide 13, "Implementação: combate compilado e cada número rastreável".** Três números: cerca de 150×
+com Numba, uma medição do projeto que **não está na monografia**; 68 e 135 milhões de lutas por
+execução do AG e do NSGA-II. A organização do código (engine → experiments → results →
+visualization) e a reprodutibilidade (a semente fixa tudo; o carimbo de proveniência avisa ao carregar
+e recusa ao gravar).
+
+### Resultados
+
+**Slide 14, QP1 "O AG escalar leva uma hierarquia ao equilíbrio".** As duas matrizes (porcentagem de
 vitórias da **linha** contra a **coluna**, medidas com 16.000 lutas por par; à direita, a média das 20
 execuções do AG). Números: 1,28 → 0,036; 20/20 convergiram (geração 31); 16/20 terminaram
-equilibradas. Por que dois números (20/20 e 16/20) → seção 12.2. Convergência → **R6**.
+equilibradas. A fala acrescenta a leitura contra o espelho: 1,6 ponto de 50% contra 0,7 de ruído.
+Por que dois números (20/20 e 16/20) → seção 12.2. Convergência → **R6**.
 
-**Slide 9, QP1 "Fora do laço, o equilíbrio se repete, mas depende das regras".** Esquerda: replica (o
+**Slide 15, QP1 "Fora do laço, o equilíbrio se repete, mas depende das regras".** Esquerda: replica (o
 único dos 4). Direita: as 8 regras com o veredito. Rodapé: 4 robustas · 2 inconclusivas · 2 frágeis.
-Como o veredito é dado → seção 11.1. Tabela completa → **R4**.
+Como o veredito é dado (intervalo de Wilson) → seção 11.1. Tabela completa → **R4**.
 
-**Slide 10, QP2 "Sem o termo, a identidade cai ao nível do acaso".** Três colunas (AG, λ = 0,
+**Slide 16, QP2 "Sem o termo, a identidade cai ao nível do acaso".** Três colunas (AG, λ = 0,
 sorteados) em quatro métricas: desvio 0,25/0,41/0,42; genes 11/6/5,4; comportamento 3/1/1,0; τ
 0,28/−0,03/−0,02. Rodapé: equilíbrio 0,036 contra 0,043, p = 0,059. Mensagem: o controle é a evidência
 da QP2; a identidade que sobra é do termo, e ele não custou equilíbrio mensurável. **Não corte.**
 200 contra 1.000 lutas → **R8**. Nulos → **R9**.
 
-**Slide 11, QP2 "A política é o que mais se perde, e a busca mal a enxerga".** Esquerda: chance de o
+**Slide 17, QP2 "A política é o que mais se perde, e a busca mal a enxerga".** Esquerda: chance de o
 Rushdown avançar (86/48/47/39/35%). Direita: efeito dos pesos com o passo atual (3,0/4,8/2,9) e com o
 passo dos atributos (14,3/16,5/12,4), contra o ruído (~3,5). Mensagem: seção 13.2. Sensibilidade
 completa → **R7**.
 
-**Slide 12, QP3 "Nenhum domina, mas o AG escalar não atinge o seu ótimo".** A figura: eixo x =
+**Slide 18, QP3 "Nenhum domina, mas o AG escalar não atinge o seu ótimo".** A figura: eixo x =
 desequilíbrio em **escala logarítmica**; eixo y = desvio. Cada linha cinza em degraus é a fronteira de
 uma execução do NSGA-II; quadrados laranja = scalar_optimum; círculos azuis = AG escalar; X cinza =
 controle λ = 0 (equilibrados, mas lá em cima no desvio); estrela = canônico (desvio 0, desequilíbrio
-1,28). Todos os pontos são **dentro do laço**. Mensagem: nenhum domina; mas 20/20 na soma (seção 12.4).
-Representantes → **R11**. Comparação completa → **R10**.
+1,28). Todos os pontos são **dentro do laço**. Mensagem: nenhum domina (18 de 20 sementes mutuamente
+não dominadas; o escalar além da ponta em 19 de 20), mas 20/20 na soma (seção 12.4). Representantes →
+**R11**. Comparação completa → **R10**.
 
-**Slide 13, QP3 "Por quê? A soma escalar perde identidade em dois estágios".** Figura da semente 42:
+**Slide 19, QP3 "Por quê? A soma escalar perde identidade em dois estágios".** Figura da semente 42:
 em cima, o desequilíbrio do melhor elenco (escala log); embaixo, o desvio do elenco mais fiel ainda na
 população, com 0,17 (geração 7) e 0,24 (geração 20) marcados. Faixa vermelha = estágio 1 (gerações 0 a
-20); faixa cinza = estágio 2 (30 em diante). Mensagem: seção 13.3. **Não corte**: sem ele, o híbrido
-aparece sem motivo.
+20); faixa cinza = estágio 2 (30 em diante). A fala amarra com o slide 6: "é o problema da aptidão
+ruidosa". Mensagem: seção 13.3. **Não corte**: sem ele, o híbrido aparece sem motivo.
 
-**Slide 14, QP3 "O híbrido une a identidade do NSGA-II ao equilíbrio do AG".** Tabela: equilibrados
+**Slide 20, QP3 "O híbrido une a identidade do NSGA-II ao equilíbrio do AG".** Tabela: equilibrados
 16/16/0; counters 0,20/0,25/2,80; desvio 0,25/0,17/0,14; τ 0,28/0,52/0,54; convergência 31/98/—.
 Rodapé: identidade p ≤ 0,0058; equilíbrio p = 1,00. Mensagem: parte da perda de identidade vem da
 seleção escalar, não do problema. (O NSGA-II não tem convergência porque o predicado não se aplica a
 uma fronteira.)
 
-**Slide 15, "Sim: é possível equilibrar sem destruir as identidades".** As três respostas e a
+### Conclusão
+
+**Slide 21, "Sim: é possível equilibrar sem destruir as identidades".** As três respostas e a
 mensagem final (seção 1).
 
-**Slide 16, "O modelo ainda é simples; os próximos passos saem dos achados".** Limites (combate
+**Slide 22, "Cinco contribuições, da formulação à medição".** As cinco contribuições da conclusão da
+monografia: formulação não circular, evidência controlada, a falha da seleção escalar (com o híbrido),
+a perda localizada na política e as lições de método. Cada uma responde a uma linha da lacuna do slide
+8 ou a um achado.
+
+**Slide 23, "O modelo ainda é simples; os próximos passos saem dos achados".** Limites (combate
 abstrato; ciclo não realizado nem no canônico; política fixa) e próximos passos (passo da política,
 políticas dependentes do estado, coevolução, calibrar o híbrido). Cada próximo passo responde a um
 achado.
 
-**Slide 17, Obrigado.** QR code do repositório; fica na tela durante as perguntas.
+**Slide 24, Obrigado.** QR code do repositório; fica na tela durante as perguntas.
 
-**As reservas (R1 a R13)**, depois do "Obrigado":
+### O que cada referência diz (e o que não diz)
+
+Os slides 2 e 5 a 8 citam autores pelo nome, e a banca pode perguntar sobre qualquer um. O que segue é
+o que a monografia usa de cada um. Os itens marcados "conferido" foram checados contra o texto
+original em 30/09/2026.
+
+- **Newzoo (2025).** US$ 188,8 bi em 2025, com projeção de US$ 206,5 bi para 2028; 3,58 bi de
+  jogadores, cerca de 61,5% da população *online*. Relatório de indústria, sem revisão por pares.
+  Conferido.
+- **Hamari e Sjöblom (2017).** Esports são uma forma de esporte em que a entrada dos jogadores e a saída
+  do sistema são mediadas por sistemas eletrônicos.
+- **Adams (2014).** O equilíbrio é a condição em que nenhuma opção domina sistematicamente as outras. Um
+  elenco com poucos personagens viáveis reduz a profundidade estratégica.
+- **Elias, Garfield e Gutschera (2012).** O equilíbrio é uma propriedade estrutural dos jogos. Eles
+  separam o equilíbrio entre jogadores do equilíbrio interno ao espaço de opções.
+- **Gingold (2006).** O ciclo é entre **ações** dentro da luta: golpe, defesa e o agarrão que vence a
+  defesa. A seção 3.1 do artigo mostra que, se nenhuma escolha é imbatível, o grafo de vantagens tem um
+  ciclo. Ele **não** fala de personagens: a transposição para o elenco é deste trabalho. Conferido.
+- **Holland (1975), Goldberg (1989), Eiben e Smith (2015).** Fundamentos do AG. O torneio depende só da
+  ordem das aptidões. A mutação regula exploração e explotação (Eiben e Schippers, 1998).
+- **Deb (2001).** A escalarização exige fixar os pesos de antemão e não alcança as regiões não convexas
+  da fronteira, quaisquer que sejam os pesos.
+- **Deb et al. (2002).** O NSGA-II combina ordenação não dominada rápida, distância de aglomeração e
+  sobrevivência elitista de pais e filhos. A seleção dos pais é por torneio binário.
+- **Knowles, Watson e Corne (2001).** Tratar como objetivos separados os termos de uma soma pode reduzir
+  ótimos locais, porque mantém soluções que a soma descartaria.
+- **Jin e Branke (2005).** É um levantamento sobre otimização evolutiva sob incerteza. A monografia o
+  cita para três efeitos da aptidão ruidosa:
+  - a seleção responde ao ruído;
+  - avaliações afortunadas são favorecidas;
+  - o melhor fica superestimado.
+
+  O texto completo **não** foi conferido; se for citar além disso, leia antes.
+- **Law (2015).** Números aleatórios comuns: as alternativas comparadas são avaliadas sob os mesmos
+  sorteios, o que reduz a variância das diferenças.
+- **Hom e Marks (2007).** Um AG que evolui as regras de jogos de tabuleiro abstratos, avaliadas por
+  partidas entre agentes.
+- **Browne e Maire (2010).** Evolução de jogos completos, avaliados por critérios estruturais e por
+  simulação. É trabalho independente de Hom e Marks, não uma extensão. Conferido.
+- **Chen, Mori e Matsuba (2014).** Equilíbrio entre **raças** (não classes) de um MMORPG, por coevolução
+  cooperativa das funções de crescimento de atributos. O modelo de combate é por turnos, declarado no
+  artigo de 2012 dos mesmos autores. Eles reconhecem o problema como multiobjetivo, mas não usam
+  fronteira de Pareto. Conferido.
+- **Volz, Rudolph e Naujoks (2016).** Equilíbrio do Top Trumps com um algoritmo evolutivo
+  multiobjetivo, com objetivos de justiça e de interesse.
+- **Togelius et al. (2011).** Levantamento da geração procedural de conteúdo baseada em busca. O
+  equilíbrio **não** é uma categoria da taxonomia; aparece só como critério de avaliação em exemplos.
+  Conferido.
+- **Derrac et al. (2011) e Arcuri e Briand (2011).** Testes não paramétricos para comparar algoritmos
+  estocásticos. O Â₁₂ é recomendação de Arcuri e Briand, **não** de Derrac. Conferido.
+
+### As reservas (R1 a R13), depois do "Obrigado"
 
 | Se perguntarem sobre | Mostre | Neste guia |
 |---|---|---|
