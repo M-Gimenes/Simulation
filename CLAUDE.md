@@ -114,7 +114,7 @@ pip install -r requirements.txt
 ├── diagnostics/               # scripts fora do protocolo, sem carimbo: extração de números, holdout, réplica do laço (ver 08-tools)
 ├── results/                   # artefatos versionados, uma pasta por produtor — ver Output Files
 ├── results_previous/          # baterias superadas: não são citáveis, sustentam as notas de revisão
-└── overleaf/                  # os textos redigidos (monografia e artigos) e a apresentação do artigo
+└── overleaf/                  # os textos redigidos (monografia e artigos) e as apresentações (artigo e banca)
 ```
 
 The three packages outside `engine/` are split by **what they do with a roster**: `experiments/` runs the protocol and writes the artifacts the thesis cites; `analysis/` inspects one roster and only prints; `visualization/` draws. `analysis/` may call into `experiments/` (the dossier shows the null models) and vice versa for shared measurements (`baselines` scores rosters with the validator) — the split is by output, not a layering.
