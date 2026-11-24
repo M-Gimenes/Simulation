@@ -192,7 +192,8 @@ resumo (T8) e o `knee_point` na validação externa.
 **Lacunas preenchidas** (o leitor externo tropeçaria nelas):
 - identidade estrutural × funcional definida já na Introdução, antes das QPs;
 - *counter* e *hard counter* definidos no Referencial (`sec: equilibrio`), antes do primeiro
-  uso no quadro do que a aptidão otimiza;
+  uso no quadro do que a aptidão otimiza; *metagame* definido no mesmo parágrafo de
+  Sirlin, o que dá sentido ao seu segundo uso, nas Limitações;
 - unidades (*tick*, unidade de campo) com remissão para `sub: campo` antes da tabela de genes;
 - "modelo de canal único" definido onde é usado como contraste (`sub: canais`);
 - justificativa de N = 150 (desvio binomial ±4 pp, fator √2 ao dobro do custo), que a
