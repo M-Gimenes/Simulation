@@ -1,12 +1,12 @@
 \chapter[Referencial Teórico]{Referencial Teórico}
 \label{chap: fundamentacao}
 
-Este capítulo reúne os conceitos que fundamentam o trabalho: o contexto dos jogos competitivos e a noção de equilíbrio, os arquétipos de jogos de luta, os algoritmos genéticos, a otimização multiobjetivo e a avaliação de algoritmos estocásticos. Os trabalhos relacionados encerram o capítulo.
+Este capítulo reúne os conceitos que fundamentam o trabalho, a saber, o contexto dos jogos competitivos e a noção de equilíbrio, os arquétipos de jogos de luta, os algoritmos genéticos, a otimização multiobjetivo e a avaliação de algoritmos estocásticos, e encerra-se com a revisão dos trabalhos relacionados.
 
 \section{Jogos digitais competitivos e esports}
 \label{sec: mercado}
 
-A indústria de jogos digitais tornou-se, nas duas últimas décadas, um dos maiores segmentos do entretenimento. Segundo o relatório global da \citeonline{newzoo2025}, a receita mundial do setor atingiu US\$~188{,}8 bilhões em 2025, com projeção de US\$~206{,}5 bilhões para 2028. A base de jogadores é estimada em 3{,}58 bilhões de pessoas, cerca de sessenta por cento da população com acesso à internet, com predomínio dos dispositivos móveis, retomada dos consoles e crescimento estável dos computadores pessoais. No Brasil, a 13\textsuperscript{a} edição da \citeonline{pgb2026} indica que cerca de 75\% da população joga regularmente, e a América Latina é a quarta maior região do mundo em número de jogadores. Esses dados provêm de relatórios de mercado, sem revisão por pares, e são usados aqui com essa ressalva, por falta de levantamentos acadêmicos de abrangência comparável.
+A indústria de jogos digitais tornou-se, nas duas últimas décadas, um dos maiores segmentos do entretenimento. Segundo o relatório global da \citeonline{newzoo2025}, a receita mundial do setor atingiu US\$~188{,}8 bilhões em 2025, com projeção de US\$~206{,}5 bilhões para 2028, e a base de jogadores é estimada em 3{,}58 bilhões de pessoas, cerca de 61{,}5\% da população com acesso à internet, com predomínio dos dispositivos móveis, retomada dos consoles e crescimento estável dos computadores pessoais. O mesmo relatório situa a América Latina como a quarta maior região do mundo em número de jogadores, e, no Brasil, a 13\textsuperscript{a} edição da \citeonline{pgb2026} indica que cerca de 75\% da população joga regularmente. Esses dados provêm de relatórios de mercado, sem revisão por pares, e são empregados aqui com essa ressalva, na falta de levantamentos acadêmicos de abrangência comparável.
 
 Sobre essa base desenvolveram-se os \textit{esports}, competições organizadas de jogos digitais com regras formais, premiações, equipes profissionais e público próprio. \citeonline{hamari2017esports} os definem como uma forma de esporte cujos aspectos principais são mediados por sistemas eletrônicos, tanto na entrada dos jogadores quanto na saída do sistema de jogo, definição que se tornou referência no campo. Numa revisão sistemática da pesquisa publicada entre 2002 e 2018, \citeonline{reitman2020esports} identificam estudos sobre o tema em sete disciplinas: administração, ciências do esporte, ciências cognitivas, informática, direito, estudos de mídia e sociologia.
 
@@ -17,18 +17,18 @@ Na competição organizada, o equilíbrio entre as opções de jogo, sejam perso
 
 O equilíbrio competitivo, frequentemente designado pelo termo inglês \textit{balance}, não tem definição única. \citeonline{adams2014fundamentals} o descreve, em sentido amplo, como a condição em que nenhum recurso, estratégia ou opção domina sistematicamente as alternativas, de modo que escolhas diferentes permaneçam viáveis. \citeonline{elias2012characteristics} tratam o equilíbrio como uma das propriedades estruturais que organizam a análise comparativa de jogos e distinguem o equilíbrio entre jogadores, que assegura igualdade de oportunidade a partes em condições simétricas, do equilíbrio interno ao espaço de opções, que sustenta a diversidade estratégica. \citeonline{sirlin2006playing}, a partir da prática competitiva, descreve as consequências de sua ausência: o \textit{metagame} se estreita, e poucas opções continuam a ser escolhidas.
 
-Para este trabalho, a distinção mais relevante opõe duas concepções de equilíbrio. Na primeira, a \textbf{simetria estatística}, cada opção tem desempenho aproximadamente igual contra cada uma das demais. Na segunda, a \textbf{estrutura de vantagens recíprocas}, uma opção pode vencer ou perder confrontos específicos, desde que nenhuma domine todas as outras. Em muitos gêneros, a segunda concepção é a desejável, porque introduz não transitividade no espaço de opções, torna a escolha dependente do contexto e gera uma variedade estratégica que a simetria estatística tende a apagar.
+Para este trabalho, a distinção mais relevante opõe duas concepções de equilíbrio. Na primeira, a \textbf{simetria estatística}, cada opção tem desempenho aproximadamente igual contra cada uma das demais; na segunda, a \textbf{estrutura de vantagens recíprocas}, uma opção pode vencer ou perder confrontos específicos, desde que nenhuma domine todas as outras. Em muitos gêneros, sobretudo nos de confronto direto entre jogadores, a segunda concepção é a preferida, porque introduz não transitividade no espaço de opções, torna a escolha dependente do contexto e gera uma variedade estratégica que a simetria estatística tende a apagar.
 
 Nos jogos de luta, esse princípio foi examinado por \citeonline{gingold2006rps}, que toma o Pedra-Papel-Tesoura como caso mínimo de equilíbrio não transitivo e dele deriva variantes em tempo real que culminam num jogo de luta comercial. O argumento opera no nível das ações: golpes, defesas e agarrões diferem no tempo de execução e na distância em que funcionam, mas cada um tem uma resposta que o vence. O autor mostra também que, para que nenhuma escolha seja imbatível, as relações de vantagem entre as escolhas precisam formar ao menos um ciclo. O artigo não trata de personagens nem de elencos; este trabalho transpõe o argumento para esse nível, tomando cada personagem como uma escolha. Se nenhum personagem pode ser imbatível, as vantagens entre eles precisam ser cíclicas.
 
-Segue-se que equilibrar um elenco não significa levar a 50\% as taxas de vitória de todos os pares, objetivo incompatível, por construção, com uma estrutura de vantagens recíprocas. Significa garantir que nenhum personagem domine o elenco e que nenhum confronto seja esmagador, de modo que cada personagem possa vencer alguns confrontos e perder outros. Essa distinção orienta a formulação da função de aptidão (\autoref{sub: dominancia}).
+Segue-se que equilibrar um elenco não significa levar a 50\% as taxas de vitória de todos os pares, objetivo incompatível, por construção, com uma estrutura de vantagens recíprocas, mas sim garantir que nenhum personagem domine o elenco e que nenhum confronto seja esmagador, de modo que cada personagem possa vencer alguns confrontos e perder outros. Na terminologia da comunidade competitiva, um personagem que vence outro com folga é um \textit{counter} desse oponente, e o confronto esmagador, aquele que um dos lados praticamente não tem como vencer, recebe o nome de \textit{hard counter}. Essa distinção entre vantagem e esmagamento orienta a formulação da função de aptidão, que a torna quantitativa (\autoref{sub: dominancia}).
 
 \section{Arquétipos em jogos de luta}
 \label{sec: arquetipos}
 
 Em jogos de luta, o termo \textbf{arquétipo} designa um grupo de personagens que compartilham um modo característico de jogar, derivado de uma combinação reconhecível de atributos (velocidade, alcance, dano, resistência) e de uma estratégia preferencial para empregá-los. A comunidade competitiva recorre constantemente à noção para classificar personagens e descrever vantagens entre confrontos; até onde foi possível verificar, porém, não há definição taxonômica consolidada na literatura acadêmica. As fontes que descrevem arquétipos com algum detalhe são, em sua maioria, materiais de jogadores profissionais, sítios especializados e fóruns de discussão, que não podem ser tratados como referências formais.
 
-Por isso, o recorte de cinco arquétipos descrito a seguir é uma \textbf{construção operacional} do autor. Ele parte da convenção corrente na comunidade competitiva e tem como única âncora teórica a transposição, proposta aqui, do princípio cíclico de \citeonline{gingold2006rps} das ações para os personagens. Cada arquétipo é representado por um vetor de atributos e pesos comportamentais (\autoref{sec: representacao}), e nenhum dos cinco rótulos deve ser lido como categoria taxonômica reconhecida. O número de arquétipos também tem uma razão: três bastariam para formar um ciclo, mas cinco é o menor elenco em que cada personagem pode vencer dois confrontos e perder dois, o que confere à estrutura de vantagens profundidade suficiente para que o problema não se reduza ao Pedra-Papel-Tesoura.
+Por isso, o recorte de cinco arquétipos descrito a seguir é uma \textbf{construção operacional} do autor. Ele parte da convenção corrente na comunidade competitiva e tem como única âncora teórica a transposição, proposta aqui, do princípio cíclico de \citeonline{gingold2006rps} das ações para os personagens. Cada arquétipo é representado por um vetor de atributos e pesos comportamentais (\autoref{sec: representacao}), e nenhum dos cinco rótulos deve ser lido como categoria taxonômica reconhecida. A escolha do número de arquétipos é igualmente deliberada: três bastariam para formar um ciclo, mas cinco é o menor elenco em que cada personagem pode vencer dois confrontos e perder dois, o que confere à estrutura de vantagens profundidade suficiente para que o problema não se reduza ao Pedra-Papel-Tesoura.
 
 \subsection{Os cinco arquétipos adotados}
 
@@ -37,13 +37,13 @@ Os cinco arquétipos são descritos a seguir em termos funcionais; os valores nu
 \begin{itemize}
     \item \textit{Rushdown}: personagem de ofensiva contínua e pressão a curta distância. Combina alta velocidade e intervalo curto entre golpes com alcance reduzido. Sua estratégia é encurtar a distância rapidamente e manter o oponente sob pressão, sem lhe dar tempo de executar ações que dependam de preparação.
 
-    \item \textit{Zoner}: personagem de controle de espaço a longa distância. Dispõe de alcance elevado e da capacidade de empurrar o oponente para fora da zona em que ele poderia puni-lo. Sua estratégia é manter o adversário afastado, golpeando enquanto recua.
+    \item \textit{Zoner}: personagem de controle de espaço a longa distância, que dispõe de alcance elevado e da capacidade de empurrar o oponente para fora da zona em que ele poderia puni-lo. Sua estratégia é manter o adversário afastado, golpeando enquanto recua.
 
-    \item \textit{Grappler}: personagem de dano explosivo a curta distância. Reúne dano alto por golpe, resistência elevada, pouca mobilidade e o agarrão, recurso clássico contra quem bloqueia. Sua estratégia é aproximar-se absorvendo dano e converter a aproximação em punição decisiva, sobretudo contra oponentes que se defendem.
+    \item \textit{Grappler}: personagem de dano explosivo a curta distância, que reúne dano alto por golpe, resistência elevada, pouca mobilidade e o agarrão, recurso clássico contra quem bloqueia. Sua estratégia é aproximar-se absorvendo dano e converter a aproximação em punição decisiva, sobretudo contra oponentes que se defendem.
 
     \item \textit{Combo Master}: personagem que converte acertos isolados em sequências de dano. Sua marca é imobilizar temporariamente o oponente após um golpe, o que prolonga a janela em que pode continuar atacando sem sofrer retaliação.
 
-    \item \textit{Turtle}: personagem de defesa e desgaste. Alia resistência elevada e forte propensão a defender a pouca velocidade e a um intervalo longo entre golpes. Sua estratégia é absorver a pressão adversária, esperar os erros do oponente e explorá-los.
+    \item \textit{Turtle}: personagem de defesa e desgaste, que alia resistência elevada e forte propensão a defender a pouca velocidade e a um intervalo longo entre golpes. Sua estratégia é absorver a pressão adversária, esperar os erros do oponente e explorá-los.
 \end{itemize}
 
 \subsection{O ciclo de vantagens canônico}
@@ -70,7 +70,7 @@ Os cinco arquétipos se organizam numa estrutura cíclica em que cada um vence d
     \source
 \end{quadro}
 
-O ciclo tem aqui o estatuto de \textbf{hipótese autoral}. Para que a investigação não se torne circular (\autoref{sub: premissa}), ele não aparece em nenhum termo da função de aptidão; sua realização é testada \textit{post hoc}, uma única vez, sobre o elenco canônico e sobre os elencos evoluídos (\autoref{sec: protocolo_ciclo}). Da caracterização dos arquétipos, a busca recebe apenas os perfis canônicos, como referência de identidade e, num dos algoritmos, como semente da população inicial.
+O ciclo tem aqui o estatuto de \textbf{hipótese autoral}. Para que a investigação não se torne circular (\autoref{sub: premissa}), ele não aparece em nenhum termo da função de aptidão, e sua realização é testada \textit{post hoc}, uma única vez, sobre o elenco canônico e sobre os elencos evoluídos (\autoref{sec: protocolo_ciclo}). Da caracterização dos arquétipos, a busca recebe apenas os perfis canônicos, que lhe servem de referência de identidade e, num dos algoritmos, de semente da população inicial.
 
 \section{Algoritmos genéticos}
 \label{sec: ag}
@@ -85,7 +85,7 @@ A \textbf{função de aptidão} (\textit{fitness}) atribui a cada indivíduo um 
 
 \subsection{Operadores evolutivos}
 
-A \textbf{seleção} escolhe os indivíduos que contribuirão para a geração seguinte, com preferência pelos mais aptos, por mecanismos como a roleta, o torneio e a ordenação \cite{eiben2015introduction}. Na seleção por torneio, sorteiam-se subconjuntos de indivíduos, de tamanho fixado por um parâmetro, e escolhe-se o mais apto de cada um, o que permite controlar de modo simples a pressão seletiva. Por depender apenas da ordem entre as aptidões, esse mecanismo é invariante a transformações monótonas da função de aptidão.
+A \textbf{seleção} escolhe os indivíduos que contribuirão para a geração seguinte, com preferência pelos mais aptos, por mecanismos como a roleta, o torneio e a ordenação \cite{eiben2015introduction}. Na seleção por torneio, sorteiam-se subconjuntos de indivíduos, de tamanho fixado por um parâmetro, e escolhe-se o mais apto de cada um, o que permite controlar de modo simples a pressão seletiva. Por depender apenas da ordem entre as aptidões, esse mecanismo é invariante a transformações monótonas crescentes da função de aptidão.
 
 O \textbf{cruzamento} (\textit{crossover}) combina o material genético de dois indivíduos para produzir descendentes. Os esquemas variam conforme a representação e o grau de coerência que se deseja preservar entre genes relacionados; cruzamentos por blocos de genes são adequados quando partes do cromossomo são internamente coerentes e devem ser herdadas em conjunto \cite{mitchell1998introduction}.
 
@@ -106,7 +106,7 @@ Uma forma comum de tratar esses problemas é a \textbf{escalarização}: os crit
 
 \subsection{Dominância e fronteira de Pareto}
 
-A formulação multiobjetivo opera diretamente sobre o vetor de objetivos. Uma solução $a$ \textbf{domina} uma solução $b$, no sentido de Pareto, quando é ao menos tão boa quanto $b$ em todos os objetivos e estritamente melhor em pelo menos um. As soluções que nenhuma outra domina formam a \textbf{fronteira de Pareto}, o conjunto dos compromissos não dominados. Cada ponto da fronteira é uma solução qualitativamente diferente, e a fronteira como um todo descreve o compromisso entre os objetivos sem exigir pesos relativos \cite{deb2001multiobjective}.
+A formulação multiobjetivo opera diretamente sobre o vetor de objetivos, sem condensá-lo num escalar. Nela, uma solução $a$ \textbf{domina} uma solução $b$, no sentido de Pareto, quando é ao menos tão boa quanto $b$ em todos os objetivos e estritamente melhor em pelo menos um. As soluções que nenhuma outra domina formam a \textbf{fronteira de Pareto}, o conjunto dos compromissos não dominados. Cada ponto da fronteira é uma solução qualitativamente diferente, e a fronteira como um todo descreve o compromisso entre os objetivos sem exigir pesos relativos \cite{deb2001multiobjective}.
 
 \subsection{NSGA-II}
 
@@ -114,7 +114,7 @@ O \textit{Non-dominated Sorting Genetic Algorithm II} (NSGA-II), proposto por \c
 
 A qualidade de uma aproximação da fronteira é avaliada por indicadores. O \textbf{hipervolume} mede a área (ou o volume) do espaço de objetivos dominada pela fronteira e limitada por um ponto de referência; é o indicador mais empregado, pois capta simultaneamente a convergência e a extensão da fronteira \cite{zitzler1999multiobjective}. Já os indicadores de \textbf{espaçamento} medem a uniformidade da distribuição dos pontos \cite{schott1995fault}.
 
-Tratar como objetivos separados os componentes que uma formulação mono-objetivo soma também afeta a própria busca. \citeonline{knowles2001reducing} mostraram que essa \textbf{multiobjetivização} pode reduzir ótimos locais: soluções que uma soma ponderada descartaria sobrevivem por serem não dominadas e preservam diversidade útil à busca. A ideia é retomada no algoritmo híbrido (\autoref{sec: hibrido}).
+Tratar como objetivos separados os componentes que uma formulação mono-objetivo soma também afeta a própria busca. \citeonline{knowles2001reducing} mostraram que essa \textbf{multiobjetivização} pode reduzir ótimos locais: soluções que uma soma ponderada descartaria sobrevivem por serem não dominadas e preservam diversidade útil à busca, ideia retomada no algoritmo híbrido deste trabalho (\autoref{sec: hibrido}).
 
 \section{Avaliação de algoritmos estocásticos}
 \label{sec: avaliacao_estocasticos}
@@ -130,11 +130,11 @@ Um algoritmo evolutivo é estocástico, e uma execução isolada constitui uma a
 \section{Trabalhos relacionados}
 \label{sec: trabalhos_relacionados}
 
-A aplicação de algoritmos evolutivos ao balanceamento de jogos é estudada há cerca de duas décadas, em domínios variados. Esta seção revisa os trabalhos mais próximos do problema aqui tratado.
+A aplicação de algoritmos evolutivos ao balanceamento de jogos é estudada há cerca de duas décadas, em domínios variados, e esta seção revisa os trabalhos mais próximos do problema aqui tratado.
 
 \citeonline{hom2007automatic} aplicaram algoritmos genéticos ao projeto automatizado de jogos de tabuleiro equilibrados, codificando as regras de jogos abstratos como cromossomos e avaliando os indivíduos por simulações com agentes computacionais. O trabalho demonstrou a viabilidade da abordagem evolutiva no projeto de jogos, mas num domínio em que o espaço de busca são as regras, e não os parâmetros de personagens sob regras fixas.
 
-\citeonline{browne2010evolutionary}, de forma independente, aplicaram a evolução à geração de jogos completos, avaliados por critérios estruturais e por simulação. O objeto evoluído é a estrutura do jogo, e não seu elenco, mas o trabalho inspira um princípio de método adotado aqui: avaliar o artefato evoluído com medidas externas à função de aptidão que o produziu.
+\citeonline{browne2010evolutionary}, numa linha de pesquisa independente da anterior, aplicaram a evolução à geração de jogos completos, avaliados por critérios estruturais e por simulação. Embora o objeto evoluído seja a estrutura do jogo, e não seu elenco, o trabalho inspira um princípio de método adotado aqui, o de avaliar o artefato evoluído com medidas externas à função de aptidão que o produziu.
 
 O trabalho mais próximo do problema aqui tratado é o de \citeonline{chen2014mmorpg}, que aplicaram programação coevolutiva cooperativa ao balanceamento das funções de crescimento de atributos das raças de personagens em jogos de interpretação de papéis \textit{online}, avaliadas num modelo de combate por turnos. O problema é o mesmo, o equilíbrio entre raças de personagens em combate entre jogadores, estimado por simulação de combates, mas há três diferenças. A primeira é o domínio: o combate por turnos não tem o posicionamento contínuo nem as janelas de ação curtas dos jogos de luta em tempo real. A segunda é a formulação: os autores reconhecem o balanceamento entre muitas raças como um problema multiobjetivo, mas o resolvem por coevolução cooperativa, sem fronteira de Pareto. A terceira é que a preservação da identidade das raças não integra a avaliação, na qual o equilíbrio é o único critério otimizado e medido.
 

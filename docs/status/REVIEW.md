@@ -179,3 +179,71 @@ NSGA-II", "mostra" no resumo e "consistente com" para o mecanismo).
   no Referencial.
 - "X, e não Y" mantido nas ocorrências que carregam a afirmação; onde a passada o tinha
   introduzido, voltou "em vez de".
+
+### 2.6 Leitura de leigo e passada de redação de 2026-11-24
+
+Pedida pelo autor: ler o texto como quem não conhece o sistema, procurar lacunas e
+incongruências e elevar a redação, sem frases curtas soltas. Nenhum resultado mudou; os
+números novos no texto são derivados ou já estavam nos artefatos e nos docs. As tabelas,
+figuras, equações e algoritmos são idênticos ao `HEAD`, salvo cinco legendas ("algoritmo
+escalar" → "AG escalar"). Mantidas as decisões das §2.2 a 2.5, incluindo "mostra" no
+resumo (T8) e o `knee_point` na validação externa.
+
+**Lacunas preenchidas** (o leitor externo tropeçaria nelas):
+- identidade estrutural × funcional definida já na Introdução, antes das QPs;
+- *counter* e *hard counter* definidos no Referencial (`sec: equilibrio`), antes do primeiro
+  uso no quadro do que a aptidão otimiza;
+- unidades (*tick*, unidade de campo) com remissão para `sub: campo` antes da tabela de genes;
+- "modelo de canal único" definido onde é usado como contraste (`sub: canais`);
+- justificativa de N = 150 (desvio binomial ±4 pp, fator √2 ao dobro do custo), que a
+  tabela de parâmetros marcava como "medido" sem explicação no texto;
+- condições da medição 4,14 → 2,20 da rotação (5 sementes, 60 gerações) e o sentido da
+  razão (reavaliado ÷ laço), que destoava do 1,80 dos Resultados;
+- separação de 0,017 → 0,043 do peso 3 explicada (dois elencos de referência que o validador
+  separa por três asserções);
+- o híbrido nunca recebe o canônico como semente (`ga.run` ignora `canonical_seed` quando
+  recebe `initial_population`, que é como a fase 2 começa);
+- as seis configurações da varredura do híbrido (split 0,25/0,5/0,75 × entrega da
+  fronteira ou do `scalar_optimum`) e o que é "a mais simples";
+- "bateria experimental" definida em `sub: bracos`; as 15 taxas da validação externa
+  (5 globais + 10 de pares); por que a sensibilidade e a validação usam a semente 42;
+- "réplica instrumentada" explicada na Discussão;
+- o híbrido converge em 20/20 e leva cerca de 23 gerações de fase escalar
+  (`\convGerFaseEscalarHib`, novo em `valores.tex`);
+- o híbrido não passou pela validação externa nem pelo teste do ciclo: declarado no
+  Protocolo, nos Resultados, nas Limitações e nos trabalhos futuros (e em `docs/thesis/07`).
+
+**Incongruências corrigidas.**
+- `metodologia.tex` (Avaliação): "a imprecisão que mais pesa é o reaproveitamento dos
+  sorteios ao longo das gerações" contradizia a rotação; reescrito como contrafactual e
+  ligado ao ruído de 150 lutas, que é tolerável para classificar confrontos e da ordem das
+  diferenças entre elencos equilibrados.
+- "Seis métricas da família" aparecia nos Resultados antes de se dizer que o número de
+  personagens em banda saiu dela; a explicação foi para `sub: res_equilibrio_reavaliado`.
+- Política evoluída descrita como "não na direção de uma política sorteada" quando o
+  Rushdown vai de 0,86 a 0,39 em FRENTE; agora "sem convergir para" a sorteada, rumo a um
+  perfil comum que recua menos que ela (T7 mantido).
+- `discussao.tex` (política): "o único sinal que distingue uma mutação de política é o
+  desvio" contradizia o fecho do mesmo parágrafo (a busca por equilíbrio desloca a
+  política); agora: cada mutação isolada está no nível do ruído, a seleção acumula os
+  efeitos ao longo das gerações, e o desvio é o único sinal **rumo ao canônico**.
+- Quadro de síntese, QP1: "único submetido à validação externa" → "único do AG escalar"
+  (canônico e dois representantes do NSGA-II também foram validados).
+- Referencial: "a América Latina é a quarta região" estava atribuído à PGB; é dado da
+  Newzoo; 61,5% no lugar de "sessenta por cento".
+- λ = 0: a contagem de elencos equilibrados (19 contra 16) aponta no sentido oposto ao do
+  `dominance`; dito explicitamente, reforçando "não custou equilíbrio mensurável".
+- "Corrobora a não circularidade" → "é coerente com" (a não circularidade é por
+  construção); "multiobjetivização" → "efeito análogo" (os objetivos são os mesmos).
+- "Função objetivo" → "função de aptidão"; "posição de 100%" → "próxima de 100%" (99,8%);
+  "vinte vezes" → "mais de vinte vezes" (23×); "afirmação mais estrita" → "mais
+  conservadora".
+- Resumo/Abstract: "tensão conhecida: à medida que o elenco se equilibra, os personagens
+  tendem a se parecer" afirmava a homogeneização que a diferenciação não sustenta (λ = 0
+  1,16 > AG 1,09); passou a enunciar a tensão no limite, como a Introdução.
+
+**Redação.** Frases-tópico curtas fundidas ao período seguinte por subordinação ou dois
+pontos; "isto é" mantido no número da passada anterior; títulos em negrito de parágrafo
+(termos da aptidão, limitações, trabalhos futuros) preservados como recurso de
+organização. Verificado por script: rótulos referenciados existem, macros usadas existem,
+chaves e `$` balanceados, sem caracteres de controle. **Não compilado** nesta passada.

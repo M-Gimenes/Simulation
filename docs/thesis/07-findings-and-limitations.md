@@ -475,6 +475,12 @@ Refeito em `src/experiments/cycle_structure.py` (16 × 1000 = 16.000 lutas por p
 - **Convergir não é ficar equilibrado.** `converged_at` é o primeiro disparo do gate que
   sobrevive à confirmação, num teste repetido a cada geração; a fração que termina
   equilibrada é outra métrica, e as duas vão juntas.
+- **O híbrido passou por menos instrumentos que o AG escalar.** Não entrou na validação
+  externa (que roda sobre `results/single_run/`, semente 42) nem no `cycle_structure`
+  (grupos: canônico, AG escalar, NSGA-II, espelhos, aleatórios). As conclusões sobre ele
+  vêm da família de testes e da relação de Pareto; robustez fora do laço e estrutura de
+  vantagens não foram medidas. Declarado em `discussao.tex` (Limitações) desde a passada
+  de 2026-11-24.
 
 ## O que ainda falta
 

@@ -1,14 +1,14 @@
 \chapter[Metodologia]{Metodologia}
 \label{chap: metodologia}
 
-Este capítulo especifica o sistema: a representação dos arquétipos, o modelo de combate, a função de aptidão e os três algoritmos de busca. Os procedimentos de medição e comparação dos elencos resultantes são descritos no \autoref{chap: protocolo}.
+Este capítulo especifica os componentes do sistema (a representação dos arquétipos, o modelo de combate, a função de aptidão e os três algoritmos de busca), ao passo que os procedimentos de medição e de comparação dos elencos resultantes são descritos no \autoref{chap: protocolo}.
 
 \section{Visão geral}
 \label{sec: visao_geral}
 
-O sistema compõe-se de duas camadas. A de \textbf{simulação} implementa um combate um contra um e é a única responsável pelo desfecho das lutas. A de \textbf{otimização} faz evoluir uma população de elencos e usa a simulação como caixa-preta: cada elenco é avaliado pelos confrontos entre seus cinco personagens, e a aptidão é calculada a partir de estatísticas dessas lutas. A simulação desconhece os objetivos da otimização, e nenhuma regra do combate foi escolhida para favorecer algum resultado da busca.
+O sistema compõe-se de duas camadas: a de \textbf{simulação}, que implementa um combate um contra um e é a única responsável pelo desfecho das lutas, e a de \textbf{otimização}, que faz evoluir uma população de elencos e usa a simulação como caixa-preta. Nesta última, cada elenco é avaliado pelos confrontos entre seus cinco personagens, e a aptidão é calculada a partir de estatísticas dessas lutas. A simulação desconhece os objetivos da otimização, e nenhuma regra do combate foi escolhida para favorecer algum resultado da busca.
 
-Os perfis canônicos dos arquétipos desempenham dois papéis no sistema, como mostra a \autoref{fig: arquitetura}: servem de \textbf{referência} para medir o desvio de identidade e, no algoritmo genético escalar, de \textbf{semente} da população inicial. Em nenhum momento funcionam como restrição; o algoritmo pode afastar-se deles, desde que pague um custo na aptidão. Ao fim da busca, o elenco produzido (ou a fronteira de elencos) é submetido a medições \textit{post hoc} que não retornam ao laço evolutivo. Essa separação entre o que a busca observa e o que só se mede depois é o que garante a não circularidade do trabalho (\autoref{sub: premissa}).
+Os perfis canônicos dos arquétipos desempenham dois papéis no sistema, como mostra a \autoref{fig: arquitetura}: servem de \textbf{referência} para medir o desvio de identidade e, no algoritmo genético escalar, de \textbf{semente} da população inicial. Em nenhum momento funcionam como restrição, pois o algoritmo pode afastar-se deles, desde que pague um custo na aptidão. Ao fim da busca, o elenco produzido (ou a fronteira de elencos) é submetido a medições \textit{post hoc} que não retornam ao laço evolutivo, e é essa separação entre o que a busca observa e o que só se mede depois que garante a não circularidade do trabalho (\autoref{sub: premissa}).
 
 \begin{figure}[htb]
     \caption[Arquitetura do sistema]{Arquitetura do sistema. As setas cheias formam o laço evolutivo; a seta tracejada indica medição \textit{post hoc}, que incide sobre a saída e não realimenta a busca.}
@@ -64,7 +64,7 @@ Três algoritmos operam sobre essa arquitetura: um algoritmo genético escalar (
 \subsection{Genes e limites}
 \label{sub: genes}
 
-Cada personagem tem onze genes contínuos, listados na \autoref{tab: genes}: oito atributos, que definem o que ele \textit{pode} fazer, e três pesos comportamentais, que definem o que ele \textit{tende} a fazer.
+Cada personagem tem onze genes contínuos, listados na \autoref{tab: genes}: oito atributos, que definem o que ele \textit{pode} fazer, e três pesos comportamentais, que definem o que ele \textit{tende} a fazer. As unidades de tempo (\textit{tick}) e de espaço (unidade de campo) em que os atributos se exprimem são definidas com o modelo de combate, na \autoref{sub: campo}.
 
 \begin{table}[htb]
     \caption{Genes de um personagem e limites do espaço de busca.}
@@ -92,14 +92,14 @@ Cada personagem tem onze genes contínuos, listados na \autoref{tab: genes}: oit
     \source
 \end{table}
 
-Os limites excluem configurações degeneradas. O alcance máximo (20) é menor que a distância inicial (50), de modo que nenhum lutador ataca antes de se mover. O atordoamento é uma fração, de no máximo 0,6, do intervalo entre golpes do próprio atacante, o que retira do espaço de busca o travamento permanente do oponente. O intervalo de pontos de vida impede o ``tanque'' de resistência extrema que a busca explora quando os limites são mais largos. Por fim, o teto da repulsão (3) supera o valor canônico do \textit{Zoner} (2), mas fica abaixo do ponto em que empurrar o oponente para fora do alcance se torna uma estratégia trivial.
+Os limites foram fixados para excluir configurações degeneradas. O alcance máximo (20) é menor que a distância inicial (50), de modo que nenhum lutador ataca antes de se mover, e o atordoamento é uma fração, de no máximo 0,6, do intervalo entre golpes do próprio atacante, o que retira do espaço de busca o travamento permanente do oponente. O intervalo de pontos de vida impede o ``tanque'' de resistência extrema que a busca explora quando os limites são mais largos. Por fim, o teto da repulsão (3) supera o valor canônico do \textit{Zoner} (2), mas fica abaixo do ponto em que empurrar o oponente para fora do alcance se torna uma estratégia trivial.
 
-Os pesos comportamentais não são probabilidades. A intenção é sorteada com probabilidade proporcional a eles (\autoref{sub: postura}), e por isso apenas a \textbf{razão} entre os três afeta o combate: multiplicá-los pela mesma constante produz o mesmo personagem. A medida de identidade (\autoref{sub: drift}) e o validador (\autoref{sub: validador}) levam essa invariância em conta.
+Os pesos comportamentais, por sua vez, não são probabilidades. Como a intenção é sorteada com probabilidade proporcional a eles (\autoref{sub: postura}), apenas a \textbf{razão} entre os três afeta o combate, e multiplicá-los pela mesma constante produz o mesmo personagem. A medida de identidade (\autoref{sub: drift}) e o validador (\autoref{sub: validador}) levam essa invariância em conta.
 
 \subsection{Perfis canônicos}
 \label{sub: canonicos}
 
-Os valores da \autoref{tab: canonicos} operacionalizam os arquétipos descritos na \autoref{sec: arquetipos}. Em negrito estão os \textbf{genes definidores}, aqueles em que cada arquétipo ocupa, por projeto, um extremo do elenco. O \textit{Zoner} tem o maior alcance, a maior repulsão e a maior propensão a recuar; o \textit{Rushdown} é o mais rápido, o de menor intervalo entre golpes e o mais agressivo; o \textit{Combo Master} tem o maior atordoamento; o \textit{Grappler}, o maior dano e o maior poder de agarrão; e o \textit{Turtle}, o maior número de pontos de vida, o maior intervalo entre golpes, a menor velocidade e a maior propensão a guardar.
+Os valores da \autoref{tab: canonicos} operacionalizam os arquétipos descritos na \autoref{sec: arquetipos} e destacam, em negrito, os \textbf{genes definidores}, aqueles em que cada arquétipo ocupa, por projeto, um extremo do elenco. O \textit{Zoner} tem o maior alcance, a maior repulsão e a maior propensão a recuar; o \textit{Rushdown} é o mais rápido, o de menor intervalo entre golpes e o mais agressivo; o \textit{Combo Master} tem o maior atordoamento; o \textit{Grappler}, o maior dano e o maior poder de agarrão; e o \textit{Turtle}, o maior número de pontos de vida, o maior intervalo entre golpes, a menor velocidade e a maior propensão a guardar.
 
 \begin{table}[htb]
     \caption[Perfis canônicos dos cinco arquétipos]{Perfis canônicos dos cinco arquétipos. Em negrito, os genes definidores de cada um.}
@@ -131,24 +131,24 @@ A busca manipula o \textbf{elenco completo}, porque a taxa de vitória de cada p
     \label{eq: individuo}
     \mathbf{x} = \left(\mathbf{g}_{\mathrm{Z}}, \mathbf{g}_{\mathrm{R}}, \mathbf{g}_{\mathrm{C}}, \mathbf{g}_{\mathrm{G}}, \mathbf{g}_{\mathrm{T}}\right) \in \mathbb{R}^{55},
 \end{equation}
-em que $\mathbf{g}_a \in \mathbb{R}^{11}$ reúne os genes do personagem que ocupa o papel do arquétipo $a$. Esse papel é fixo: o primeiro bloco é sempre o \textit{Zoner} do elenco, e seu desvio é sempre medido em relação ao perfil canônico do \textit{Zoner}. O vetor canônico completo é denotado por $\mathbf{c}$.
+em que $\mathbf{g}_a \in \mathbb{R}^{11}$ reúne os genes do personagem que ocupa o papel do arquétipo $a$. Esse papel é fixo: o primeiro bloco é sempre o \textit{Zoner} do elenco, e seu desvio é sempre medido em relação ao perfil canônico do \textit{Zoner}. O elenco canônico, vetor que reúne os cinco perfis canônicos, é denotado por $\mathbf{c}$.
 
 \section{Modelo de combate}
 \label{sec: combate}
 
-O combate é uma abstração dos jogos de luta. Não há quadros de animação, sequências de comandos nem tipos de ataque; o modelo contém apenas o necessário para que os onze genes tenham efeito mensurável e para que os estilos dos arquétipos (pressão, controle de espaço, desgaste, agarrão, travamento) existam como estratégias. O critério de projeto foi que cada gene alterasse o desfecho das lutas de forma monótona e perceptível pela busca, e cada decisão desta seção vem acompanhada da medição que a justifica. Esse critério, porém, não se verifica em todo o espaço de busca: num elenco já equilibrado e com o passo de mutação adotado, dois dos três pesos comportamentais ficam abaixo do piso de ruído (\autoref{sub: res_sensibilidade}).
+O combate é uma abstração dos jogos de luta, sem quadros de animação, sequências de comandos nem tipos de ataque, e contém apenas o necessário para que os onze genes tenham efeito mensurável e para que os estilos dos arquétipos (pressão, controle de espaço, desgaste, agarrão, travamento) existam como estratégias. O critério de projeto foi que cada gene alterasse o desfecho das lutas de forma monótona e perceptível pela busca, e cada decisão desta seção vem acompanhada da medição que a justifica. Esse critério, porém, não se verifica em todo o espaço de busca: num elenco já equilibrado e com o passo de mutação adotado, dois dos três pesos comportamentais ficam abaixo do piso de ruído (\autoref{sub: res_sensibilidade}).
 
 \subsection{Campo e escala de tempo}
 \label{sub: campo}
 
-A luta ocorre num campo unidimensional de comprimento $L = 100$. Os lutadores começam a uma distância $d_0 = 50$, nas posições 25 e 75, e nenhum deles pode ultrapassar o outro. O tempo é discreto. O \textit{tick}, unidade de projeto, divide-se em $S = 5$ sub-\textit{ticks}, a unidade efetiva da simulação, para dar resolução aos genes temporais, que com \textit{ticks} inteiros teriam poucos efeitos distintos ($\gcool \in [1;\, 5]$ teria apenas cinco). O deslocamento por sub-\textit{tick} é $\gspd/S$, e os intervalos derivados dos genes são convertidos em sub-\textit{ticks} pela regra da \autoref{sub: resto}. A duração máxima de 2500 sub-\textit{ticks} (500 \textit{ticks}) serve apenas como trava de segurança: nas medições feitas para este texto, \koTaxa{} das lutas terminaram por nocaute, com duração média de cerca de \duracaoMediaSubticks{} sub-\textit{ticks}, tanto no elenco canônico quanto em elencos evoluídos e sorteados.
+A luta ocorre num campo unidimensional de comprimento $L = 100$, medido em unidades de campo, no qual os lutadores começam a uma distância $d_0 = 50$, nas posições 25 e 75, sem que nenhum deles possa ultrapassar o outro. O tempo é discreto e organiza-se em duas escalas: o \textit{tick}, unidade de projeto em que se exprimem os genes temporais, divide-se em $S = 5$ sub-\textit{ticks}, a unidade efetiva da simulação, de modo a dar resolução a esses genes, que com \textit{ticks} inteiros teriam poucos efeitos distintos ($\gcool \in [1;\, 5]$ teria apenas cinco). O deslocamento por sub-\textit{tick} é $\gspd/S$, e os intervalos derivados dos genes são convertidos em sub-\textit{ticks} pela regra da \autoref{sub: resto}. A duração máxima de 2500 sub-\textit{ticks} (500 \textit{ticks}) serve apenas como trava de segurança: nas medições feitas para este texto, \koTaxa{} das lutas terminaram por nocaute, com duração média de cerca de \duracaoMediaSubticks{} sub-\textit{ticks}, tanto no elenco canônico quanto em elencos evoluídos e sorteados.
 
 \subsection{Dois canais de ação}
 \label{sub: canais}
 
-A decisão central do modelo é separar movimento e ataque. A \textbf{postura} (avançar, recuar ou defender) é escolhida por uma política estocástica, ao passo que o \textbf{ataque} é uma regra de resolução: dispara sempre que a recarga terminou, o oponente está ao alcance e a postura não é de defesa. Somente quem defende abre mão do golpe.
+A decisão central do modelo consiste em separar movimento e ataque. A \textbf{postura} (avançar, recuar ou defender) é escolhida por uma política estocástica, ao passo que o \textbf{ataque} é uma regra de resolução, que dispara sempre que a recarga terminou, o oponente está ao alcance e a postura não é de defesa; assim, avançar e recuar permitem golpear, e somente quem defende abre mão do golpe.
 
-É essa separação que torna o controle de espaço uma estratégia, pois ``zonear'' consiste em atacar mantendo a distância. Num par de teste, com um personagem de alcance 20 contra outro de alcance 6 e velocidade máxima, um modelo de canal único faz o personagem de longo alcance perder 100\% das lutas, qualquer que seja seu alcance ou sua repulsão, justamente os genes que definem o \textit{Zoner}. A repulsão chega a ter efeito negativo, porque obriga o atacante a perseguir o alvo que empurrou. Com os dois canais, o mesmo personagem vence 49\% das lutas, e variar a repulsão ao longo de seu intervalo eleva a taxa de vitória de 27\% para 72\%, de forma monótona.
+É essa separação que torna o controle de espaço uma estratégia, pois ``zonear'' consiste em atacar mantendo a distância. Para avaliá-la, o modelo adotado foi comparado com um modelo de \textbf{canal único}, em que atacar é uma das ações sorteadas e exclui o movimento no mesmo sub-\textit{tick}. Num par de teste, com um personagem de alcance 20 contra outro de alcance 6 e velocidade máxima, o modelo de canal único faz o personagem de longo alcance perder 100\% das lutas, qualquer que seja seu alcance ou sua repulsão, justamente os genes que definem o \textit{Zoner}; a repulsão chega a ter efeito negativo, porque obriga o atacante a perseguir o alvo que empurrou. Com os dois canais, o mesmo personagem vence 49\% das lutas, e variar a repulsão ao longo de seu intervalo eleva a taxa de vitória de 27\% para 72\%, de forma monótona.
 
 \subsection{Decisão da postura}
 \label{sub: postura}
@@ -246,12 +246,12 @@ Os temporizadores são decrementados ao fim de cada sub-\textit{tick}, exceto os
 \subsection{Desfecho da luta}
 \label{sub: desfecho}
 
-A luta termina por nocaute ou ao fim da duração máxima; neste último caso, vence quem conserva a maior \textit{fração} dos pontos de vida iniciais. Frações iguais, o que inclui o nocaute duplo, resultam em \textbf{empate}, que vale meia vitória para cada lado. Sem o empate, o critério de desempate favoreceria sempre o mesmo lado, pois a avaliação (\autoref{sec: avaliacao}) posiciona o arquétipo de menor índice sempre à esquerda. Com o desempate atribuído à esquerda, o espelho do \textit{Rushdown} canônico, que por simetria deveria resultar em 50\%, concede 54,9\% a esse lado, um viés que incide justamente sobre a grandeza que a aptidão otimiza.
+A luta termina por nocaute ou ao fim da duração máxima; neste último caso, vence quem conserva a maior \textit{fração} dos pontos de vida iniciais. Frações iguais, o que inclui o nocaute duplo, resultam em \textbf{empate}, que vale meia vitória para cada lado. Se essas lutas fossem atribuídas a um dos lados, o critério favoreceria sempre o mesmo personagem, pois a avaliação (\autoref{sec: avaliacao}) posiciona o arquétipo de menor índice sempre à esquerda: com o desempate atribuído à esquerda, o espelho do \textit{Rushdown} canônico, que por simetria deveria resultar em 50\%, concede 54,9\% a esse lado, um viés que incide justamente sobre a grandeza que a aptidão otimiza.
 
 \subsection{Síntese de um sub-\textit{tick}}
 \label{sub: subtick}
 
-O \autoref{alg: subtick} reúne as regras desta seção. Como o único passo estocástico é o sorteio da intenção, uma luta pode ser reproduzida exatamente a partir da semente do gerador de números aleatórios (\autoref{sec: ruido}).
+O \autoref{alg: subtick} reúne as regras desta seção. Como o único passo estocástico é o sorteio da intenção, uma luta pode ser reproduzida exatamente a partir da semente do gerador de números aleatórios que a alimenta (\autoref{sec: ruido}).
 
 \begin{algoritmo}[htb]
     \caption{Um sub-\textit{tick} do combate.}
@@ -320,7 +320,7 @@ em que $f_i$ é a fração dos pontos de vida iniciais que $i$ conserva ao fim d
 \end{equation}
 Como todas as lutas medidas terminaram por nocaute (\autoref{sub: campo}), $D_{ij}$ equivale, na prática, à metade da fração média de vida com que o vencedor termina; um valor alto indica que as lutas do par são massacres, seja qual for o vencedor.
 
-Com 150 lutas por par, o desvio-padrão binomial de uma taxa de vitória próxima de 50\% é de cerca de 4 pontos percentuais, pequeno diante da tolerância de 15 pontos que define um confronto desequilibrado (\autoref{sub: dominancia}). A imprecisão que mais pesa sobre a busca tem outra origem, o reaproveitamento dos mesmos sorteios ao longo das gerações, tratado na \autoref{sec: ruido}.
+O número de lutas por par foi fixado em função da precisão necessária para classificar os confrontos. Com 150 lutas, o desvio-padrão binomial de uma taxa de vitória próxima de 50\% é de cerca de 4 pontos percentuais, pequeno diante da tolerância de 15 pontos que define um confronto esmagador (\autoref{sub: dominancia}), e dobrar o número de lutas reduziria esse desvio apenas por um fator $\sqrt{2}$, ao dobro do custo. A imprecisão que mais comprometeria a busca teria outra origem, o reaproveitamento de uma única sequência de sorteios ao longo de todas as gerações, que a rotação descrita na \autoref{sec: ruido} elimina. Essa mesma seção mostra, contudo, que o ruído de 150 lutas, tolerável para classificar confrontos, é da mesma ordem das diferenças entre elencos já equilibrados, o que tem consequências para a seleção.
 
 \section{Função de aptidão}
 \label{sec: aptidao}
@@ -328,7 +328,7 @@ Com 150 lutas por par, o desvio-padrão binomial de uma taxa de vitória próxim
 \subsection{O que a aptidão pode codificar}
 \label{sub: premissa}
 
-Se a função de aptidão recompensasse a estrutura que se pretende observar, encontrá-la ao fim da busca nada provaria, pois o algoritmo a exibiria por ter sido recompensado para isso. A formulação evita essa circularidade separando dois tipos de informação:
+Se a função de aptidão recompensasse a estrutura que se pretende observar, encontrá-la ao fim da busca nada provaria, pois o algoritmo a exibiria por ter sido recompensado para isso. A formulação adotada evita essa circularidade ao separar dois tipos de informação:
 
 \begin{itemize}
     \item a \textbf{premissa} é o que cada arquétipo \textit{é}: os perfis canônicos e os genes definidores. Ela provém da convenção do gênero e é anterior e independente da pergunta sobre equilíbrio. A premissa \textbf{pode} entrar na aptidão;
@@ -337,7 +337,7 @@ Se a função de aptidão recompensasse a estrutura que se pretende observar, en
 
 ``O \textit{Zoner} é o personagem definido pelo alcance'' é premissa; ``o \textit{Zoner} deve vencer o \textit{Grappler}'' é resposta. Por isso, a identidade estrutural é um termo da aptidão, e o ciclo de vantagens do \autoref{quad: ciclo_canonico} não é.
 
-A identidade entra como \textbf{penalidade}, e não como restrição. Uma restrição proibiria resultados e nada deixaria a medir além do que fosse imposto. A penalidade apenas atribui um custo à perda de identidade e deixa o algoritmo livre para pagá-lo quando o ganho de equilíbrio compensar, o que de fato acontece (\autoref{sec: disc_resposta}). A identidade \textit{funcional}, relativa ao modo como cada personagem joga, não é medida pela aptidão, mas por métricas comportamentais aplicadas \textit{post hoc}, às quais a busca não tem acesso (\autoref{chap: protocolo}). O \autoref{quad: otimizado} resume o que é otimizado e o que é apenas medido.
+A identidade entra como \textbf{penalidade}, e não como restrição, porque uma restrição proibiria resultados e nada deixaria a medir além do que fosse imposto, ao passo que a penalidade apenas atribui um custo à perda de identidade e deixa o algoritmo livre para pagá-lo quando o ganho de equilíbrio compensar, o que de fato acontece (\autoref{sec: disc_resposta}). A identidade \textit{funcional}, relativa ao modo como cada personagem joga, não é medida pela aptidão, mas por métricas comportamentais aplicadas \textit{post hoc}, às quais a busca não tem acesso (\autoref{chap: protocolo}). O \autoref{quad: otimizado} resume o que é otimizado e o que é apenas medido.
 
 \begin{quadro}[htb]
     \caption{O que a busca otimiza e o que é medido apenas \textit{post hoc}.}
@@ -380,18 +380,18 @@ em que $[\ell_k;\, u_k]$ é o intervalo admitido para o gene (\autoref{tab: gene
         1, & \text{caso contrário.}
     \end{cases}
 \end{equation}
-$\Pdrift$ vale zero no elenco canônico e, por não depender de simulação, é calculado sem ruído. Três escolhas da \autoref{eq: drift} exigem justificativa.
+$\Pdrift$ vale zero no elenco canônico e, por não depender de simulação, é calculado sem ruído. Três escolhas da \autoref{eq: drift} exigem justificativa: a normalização, o peso dos genes definidores e a reescala dos pesos comportamentais.
 
 \textbf{Normalização pela amplitude do intervalo.} Dividir o desvio pela amplitude $u_k - \ell_k$, em vez do limite superior, evita subestimar genes com limite inferior alto: nos pontos de vida, que vão de 250 a 450, um afastamento de 162 pontos percorre 81\% do intervalo, mas corresponde a apenas 36\% do máximo. É com essa normalização que a ordenação dos elencos por $\Pdrift$ passa a concordar com a ordenação pelo validador de identidade.
 
-\textbf{Peso dos genes definidores.} Um desvio no alcance do \textit{Zoner} pesa três vezes o mesmo desvio em seu atordoamento, o que traduz, sem convertê-la em restrição, a premissa de que alguns genes definem o arquétipo mais do que outros. O peso 3 ampliou a separação entre elencos de identidade distinta de 0,017 para 0,043 unidades de $\Pdrift$; pesos maiores pouco acrescentariam a essa separação e tornariam quase gratuitos os desvios nos genes não definidores.
+\textbf{Peso dos genes definidores.} Um desvio no alcance do \textit{Zoner} pesa três vezes o mesmo desvio em seu atordoamento, o que traduz, sem convertê-la em restrição, a premissa de que alguns genes definem o arquétipo mais do que outros. Em comparação com o desvio uniforme (peso 1), o peso 3 ampliou de 0,017 para 0,043 a diferença de $\Pdrift$ entre dois elencos de referência que o validador de identidade separa por três asserções; pesos maiores pouco acrescentariam a essa separação e tornariam quase gratuitos os desvios nos genes não definidores.
 
 \textbf{Pesos comportamentais reescalados.} Como apenas a razão entre os três pesos afeta o combate, comparar os valores brutos cobraria desvio por uma diferença sem efeito. Por isso, eles são reescalados para a soma canônica antes da comparação:
 \begin{equation}
     \label{eq: reescala}
     \tilde{w}_{a,m} = w_{a,m} \cdot \frac{\sum_{m'} c_{a,m'}}{\sum_{m'} w_{a,m'}}, \qquad m, m' \in \{\mathrm{F}, \mathrm{R}, \mathrm{G}\}.
 \end{equation}
-Os atributos entram inalterados ($\tilde{g}_{a,k} = g_{a,k}$). Sem a reescala, 7,5\% do desvio médio de um elenco evoluído provinha dessa diferença inócua, porque a busca inflava a escala dos pesos e a penalidade cobrava pela inflação.
+Os atributos, por sua vez, entram inalterados ($\tilde{g}_{a,k} = g_{a,k}$). Sem a reescala, 7,5\% do desvio médio de um elenco evoluído provinha dessa diferença inócua, porque a busca inflava a escala dos pesos e a penalidade cobrava pela inflação.
 
 A raiz da média dos quadrados, usada aqui e nos termos de equilíbrio, dá mais peso aos afastamentos grandes e impede que um gene muito deslocado se dilua numa média confortável. $\Pdrift$ também barra a solução trivial do equilíbrio: cinco cópias do mesmo personagem são perfeitamente simétricas, mas quatro delas estão longe do próprio perfil canônico.
 
@@ -448,9 +448,9 @@ A tolerância foi ancorada na convenção do gênero, em que as tabelas de confr
 \end{equation}
 O teto $\theta$ é o regularizador efetivo, já que $D_{ij} > 0{,}20$ significa que o vencedor termina, em média, com mais de 40\% dos pontos de vida; numa medição sobre 18 elencos de referência, entre eles o canônico e elencos aleatórios, esse teto foi excedido em 57 dos 180 pares. O piso $\varphi$ serve apenas de guarda contra elencos degenerados, cujas lutas não chegam a ser decididas: situa-se acima de um elenco construído para esse fim (dano mínimo, vida máxima, guarda permanente, $D \le 0{,}008$) e abaixo de qualquer par de personagens distintos. Um piso mais alto puniria as lutas apertadas, que são justamente o que o termo primário procura.
 
-A inclusão dos termos secundários foi decidida por medição. Com ambos desligados, a busca atingiu o menor desequilíbrio global de todas as configurações testadas e, ainda assim, transformou em média 8,6 dos 10 pares em \textit{hard counters}; sem a decisividade, o número médio de \textit{hard counters} subiu de 0,4 para 2,6. Os termos secundários sustentam o equilíbrio mesmo quando valem zero no elenco final, sinal de que cumpriram sua função ao longo da busca. A repartição $0{,}5/0{,}5$ é uma escolha dentro de um compromisso medido: pesos secundários maiores eliminaram os \textit{hard counters} residuais, mas cobraram seu preço em identidade (\autoref{sec: calibracao}). A repartição adotada situa-se no ponto em que esses termos já sustentam o equilíbrio sem se sobrepor à identidade.
+A inclusão dos termos secundários foi decidida por medição, nas varreduras de calibração (\autoref{tab: calibracao}): com ambos desligados, a busca atingiu o menor desequilíbrio global de todas as configurações testadas e, ainda assim, transformou em média 8,6 dos 10 pares em \textit{hard counters}; sem a decisividade, o número médio de \textit{hard counters} subiu de 0,4 para 2,6. Os termos secundários sustentam o equilíbrio mesmo quando valem zero no elenco final, sinal de que cumpriram sua função ao longo da busca. A repartição $0{,}5/0{,}5$ é uma escolha dentro de um compromisso medido: pesos secundários maiores eliminaram os \textit{hard counters} residuais, mas cobraram seu preço em identidade (\autoref{sec: calibracao}). A repartição adotada situa-se no ponto em que esses termos já sustentam o equilíbrio sem se sobrepor à identidade.
 
-Os três termos são \textbf{cegos à direção}, pois usam $|p - 1/2|$ e $|s - 1/2|$; nada neles indica qual lado \textit{deveria} vencer um confronto. São também reportados separadamente em todos os arquivos de resultado do sistema (os artefatos, \autoref{sec: reprodutibilidade}), porque perder no termo primário e perder num termo secundário são leituras opostas de um mesmo valor de $\Pdom$.
+Os três termos são \textbf{cegos à direção}, pois usam $|p - 1/2|$ e $|s - 1/2|$, e nada neles indica qual lado \textit{deveria} vencer um confronto. São também reportados separadamente em todos os arquivos de resultado do sistema (os artefatos, \autoref{sec: reprodutibilidade}), porque um mesmo valor de $\Pdom$ pode indicar diagnósticos distintos: um elenco em que algum personagem domina os demais, se o excesso está no termo primário, ou um elenco globalmente equilibrado que abriga confrontos esmagadores, se está nos secundários.
 
 \subsection{Formulações escalar e biobjetivo}
 \label{sub: formulacoes}
@@ -466,16 +466,16 @@ e o NSGA-II minimiza o vetor
     \label{eq: aptidao_vetorial}
     \mathbf{f}(\mathbf{x}) = \left( \Pdom(\mathbf{x}),\, \Pdrift(\mathbf{x}) \right)
 \end{equation}
-sem ponderação alguma. Como as duas formulações usam os mesmos termos, a comparação entre os algoritmos não confunde método de busca com objetivo. Na \autoref{eq: aptidao_escalar}, apenas a razão $\lambda_{\mathrm{drift}}/\lambda_{\mathrm{dom}}$ importa, porque a seleção por torneio é ordinal. O valor 1 resultou de uma varredura dessa razão (\autoref{sec: calibracao}) e corresponde ao joelho da curva: até ele, o equilíbrio permanece praticamente constante enquanto a identidade melhora; acima dele, o equilíbrio se degrada rapidamente.
+sem ponderação alguma. Como as duas formulações usam os mesmos termos, a comparação entre os algoritmos não confunde método de busca com objetivo. Na \autoref{eq: aptidao_escalar}, por sua vez, apenas a razão $\lambda_{\mathrm{drift}}/\lambda_{\mathrm{dom}}$ importa, porque a seleção por torneio é ordinal. O valor 1 resultou de uma varredura dessa razão (\autoref{sec: calibracao}) e corresponde ao joelho da curva: até ele, o equilíbrio permanece praticamente constante enquanto a identidade melhora; acima dele, o equilíbrio se degrada rapidamente.
 
 \section{Avaliação sob ruído}
 \label{sec: ruido}
 
-Como $\Pdom$ é estimado a partir de 1500 lutas estocásticas, a busca opera sob avaliação ruidosa \cite{jin2005evolutionary}; apenas $\Pdrift$, que depende só dos genes, é exato. Em 30 sorteios independentes, medidos para este texto, o $\Pdom$ de um mesmo elenco evoluído varia com desvio-padrão de \ruidoDomDpTreino{} a 150 lutas por par, valor da mesma ordem do próprio $\Pdom$ desses elencos. O tratamento desse ruído tem duas partes.
+Como $\Pdom$ é estimado a partir de 1500 lutas estocásticas, a busca opera sob avaliação ruidosa \cite{jin2005evolutionary}; apenas $\Pdrift$, que depende só dos genes, é exato. Em 30 sorteios independentes, medidos para este texto, o $\Pdom$ de um mesmo elenco evoluído varia com desvio-padrão de \ruidoDomDpTreino{} a 150 lutas por par, valor da mesma ordem do próprio $\Pdom$ desses elencos. O tratamento desse ruído combina duas medidas, uma aplicada dentro de cada geração e outra entre gerações sucessivas.
 
 \textbf{Números aleatórios comuns dentro de uma geração.} Todos os indivíduos de uma geração são avaliados sob os mesmos sorteios, técnica de redução de variância conhecida como \textit{common random numbers} (CRN) \cite{law2015simulation}. Cada luta recebe uma semente própria, derivada da semente da geração e dos índices do par e da luta pela etapa final do gerador SplitMix64 \cite{steele2014fast}. Desse modo, a luta $k$ do par $m$ usa os mesmos sorteios em todos os indivíduos, e os pares sem personagem alterado resultam idênticos entre dois indivíduos. O ruído, porém, não desaparece, porque um gene que altera um único evento da luta faz todo o restante dela transcorrer de outro modo. Num elenco evoluído com um único gene deslocado de um desvio de mutação, a diferença de aptidão entre as duas versões ainda varia com desvio-padrão de \crnDpDiferenca{}; as consequências disso para a seleção são discutidas na \autoref{sec: disc_ruido}.
 
-\textbf{Rotação do \textit{stream} entre gerações.} A sequência de sorteios, ou \textit{stream}, muda a cada geração: a geração $g$ da execução de semente $r$ usa a semente-base $1000\,r + g$. Sem a rotação, a população se ajustaria a uma única realização do gerador e selecionaria elencos que parecem equilibrados \textit{naqueles} sorteios. Com ela, a razão entre o $\Pdom$ do melhor elenco no laço e o do mesmo elenco reavaliado em sorteios novos cai de 4,14 para 2,20, e a melhora se repete nas cinco sementes testadas. A rotação tem dois custos. Os sobreviventes de cada geração, inclusive a elite, precisam ser reavaliados no novo \textit{stream}, e a ``melhor aptidão já vista'' deixa de ser uma grandeza útil, pois seria o máximo de valores ruidosos e subiria por sorte. Por isso, o trabalho não adota critério de parada por estagnação.
+\textbf{Rotação do \textit{stream} entre gerações.} A sequência de sorteios, ou \textit{stream}, muda a cada geração: a geração $g$ da execução de semente $r$ usa a semente-base $1000\,r + g$. Sem a rotação, a população se ajustaria a uma única realização do gerador e selecionaria elencos que parecem equilibrados \textit{naqueles} sorteios. Num experimento com cinco sementes e 60 gerações, a rotação reduziu de 4,14 para 2,20 a razão entre o $\Pdom$ do melhor elenco reavaliado em sorteios novos e o $\Pdom$ do mesmo elenco no laço, com melhora nas cinco sementes. A rotação tem, porém, dois custos: os sobreviventes de cada geração, inclusive a elite, precisam ser reavaliados no novo \textit{stream}, e a ``melhor aptidão já vista'' deixa de ser uma grandeza útil, pois seria o máximo de valores ruidosos e subiria por sorte. Por essa segunda razão, o trabalho não adota critério de parada por estagnação.
 
 \section{Algoritmo genético escalar}
 \label{sec: ag_escalar}
@@ -484,7 +484,7 @@ O AG escalar segue o esquema geracional clássico \cite{goldberg1989genetic, eib
 
 \textbf{Inicialização.} A população de $M = 300$ elencos contém o elenco canônico e 299 elencos sorteados uniformemente dentro dos limites. Com desvio nulo, o canônico ($F \approx -1{,}28$) está sempre na elite da geração inicial: nas 20 execuções da bateria, reproduzidas para este texto, ele figura entre os \canonRankMax{} melhores dos 300 elencos, com posição mediana \canonRankMed{}, e é o melhor de todos em \canonMelhorN{} delas. Como seu desequilíbrio ($\Pdom \approx 1{,}28$) supera o dos melhores elencos sorteados, ele deixa a população assim que surgem elencos mais equilibrados, o que ocorre na geração \canonSaiGer{} da execução de semente 42. A semente canônica funciona como fonte de material genético próximo da premissa, sem garantia de sobreviver à seleção. O efeito de ela existir apenas no AG escalar é medido por um controle sem essa semente (\autoref{sub: bracos}).
 
-\textbf{Seleção.} Cada pai é o melhor de três indivíduos sorteados da população (torneio de tamanho 3).
+\textbf{Seleção.} Cada pai é o mais apto entre três indivíduos sorteados da população, num torneio de tamanho 3.
 
 \textbf{Cruzamento.} Cada um dos cinco personagens do filho é copiado integralmente de um dos dois pais, escolhido com probabilidade 1/2. Nesse cruzamento por \textbf{bloco de personagem}, a capacidade e a estratégia de um mesmo personagem são herdadas em conjunto, o que evita combinações sem correspondência funcional. Em contrapartida, a recombinação \textit{dentro} de um personagem fica inteiramente a cargo da mutação.
 
@@ -492,7 +492,7 @@ O AG escalar segue o esquema geracional clássico \cite{goldberg1989genetic, eib
 
 \textbf{Elitismo.} Os 10\% melhores indivíduos (30 elencos) passam inalterados à geração seguinte. A taxa é definida como fração da população para que execuções com populações menores mantenham a mesma pressão seletiva; ela foi testada contra alternativas, assim como o tamanho do torneio (\autoref{sec: calibracao}).
 
-\textbf{Orçamento fixo e convergência como evento.} A execução sempre percorre as $G = 150$ gerações. O NSGA-II não pode parar pelo mesmo critério, já que ``o elenco está equilibrado?'' não é uma pergunta aplicável a uma fronteira, e interromper o AG escalar mais cedo confundiria ``encontrou uma solução melhor'' com ``usou menos orçamento''. A convergência passa, então, a ser um \textbf{evento registrado}. Um elenco é considerado equilibrado quando
+\textbf{Orçamento fixo e convergência como evento.} A execução sempre percorre as $G = 150$ gerações, por duas razões: o NSGA-II não pode parar pelo mesmo critério, já que ``o elenco está equilibrado?'' não é uma pergunta aplicável a uma fronteira, e interromper o AG escalar mais cedo confundiria ``encontrou uma solução melhor'' com ``usou menos orçamento''. A convergência passa, então, a ser um \textbf{evento registrado}, que não interrompe a busca. Um elenco é considerado equilibrado quando
 \begin{equation}
     \label{eq: equilibrado}
     \textsc{Equilibrado}(\mathbf{x}) \iff
@@ -501,7 +501,7 @@ O AG escalar segue o esquema geracional clássico \cite{goldberg1989genetic, eib
     \max_{i<j} \left| p_{ij} - \tfrac{1}{2} \right| \le \kappa,
     \qquad \varepsilon = 0{,}10,\ \kappa = 0{,}15,
 \end{equation}
-ou seja, quando todo personagem tem taxa global entre 40\% e 60\% e nenhum par é \textit{hard counter}, sem exigir que cada par esteja em 50\%. A geração de convergência $g^\star$ é a primeira em que o melhor elenco satisfaz esse predicado duas vezes: na avaliação do laço e numa reavaliação com 200 lutas por par sob um \textit{stream} que a busca nunca viu. Reavaliar com os sorteios do treino mediria a mesma realização do gerador e nada confirmaria. Essa confirmação recusa a maior parte dos disparos (\autoref{sub: res_convergencia}).
+ou seja, quando todo personagem tem taxa global entre 40\% e 60\% e nenhum par é \textit{hard counter}, sem exigir que cada par esteja em 50\%. A geração de convergência $g^\star$ é a primeira em que o melhor elenco satisfaz esse predicado duas vezes: na avaliação do laço e numa reavaliação com 200 lutas por par sob um \textit{stream} que a busca nunca viu. Reavaliar com os sorteios do treino mediria a mesma realização do gerador e nada confirmaria, e a confirmação em \textit{stream} inédito, como se verá, recusa a maior parte dos disparos (\autoref{sub: res_convergencia}).
 
 \textbf{Saída.} A execução devolve o melhor elenco da última população, avaliado sob o \textit{stream} da geração final, e a geração de convergência, se houver.
 
@@ -535,9 +535,9 @@ ou seja, quando todo personagem tem taxa global entre 40\% e 60\% e nenhum par �
 \section{NSGA-II}
 \label{sec: nsga2_metodo}
 
-O NSGA-II \cite{deb2002nsga} minimiza o vetor da \autoref{eq: aptidao_vetorial} e compartilha com o AG escalar a representação, a avaliação, o protocolo de ruído, o cruzamento, a mutação, o tamanho da população e o número de gerações. O \autoref{alg: nsga2} resume seu laço.
+O NSGA-II \cite{deb2002nsga} minimiza o vetor da \autoref{eq: aptidao_vetorial} e compartilha com o AG escalar a representação, a avaliação, o protocolo de ruído, o cruzamento, a mutação, o tamanho da população e o número de gerações; seu laço está resumido no \autoref{alg: nsga2}.
 
-\textbf{Inicialização inteiramente aleatória.} A população inicial do NSGA-II não contém o elenco canônico. Como $\Pdrift$ tem mínimo zero, atingido exatamente pelo canônico, nenhum elenco pode dominá-lo; o canônico e sua vizinhança permaneceriam indefinidamente na primeira frente, por mais desequilibrados que fossem, e a distância de aglomeração só descarta indivíduos quando uma frente excede a população. Numa execução de orçamento reduzido com a semente, 40 dos 78 pontos da fronteira final tinham $\Pdom \ge 1$, tão desequilibrados quanto o próprio canônico, e ocupavam metade da fronteira e uma parcela proporcional do esforço reprodutivo. No AG escalar, a semente não produz esse efeito e foi mantida; a assimetria entre os dois algoritmos é controlada experimentalmente.
+\textbf{Inicialização inteiramente aleatória.} Ao contrário da do AG escalar, a população inicial do NSGA-II não contém o elenco canônico. Como $\Pdrift$ tem mínimo zero, atingido exatamente pelo canônico, nenhum elenco pode dominá-lo; o canônico e sua vizinhança permaneceriam indefinidamente na primeira frente, por mais desequilibrados que fossem, e a distância de aglomeração só descarta indivíduos quando uma frente excede a população. Numa execução de orçamento reduzido com a semente, 40 dos 78 pontos da fronteira final tinham $\Pdom \ge 1$, tão desequilibrados quanto o próprio canônico, e ocupavam metade da fronteira e uma parcela proporcional do esforço reprodutivo. No AG escalar, a semente não produz esse efeito e foi mantida; a assimetria entre os dois algoritmos é controlada experimentalmente.
 
 \textbf{Seleção e sobrevivência.} Seguem o algoritmo original (\autoref{sec: nsga2}): os filhos provêm de torneios binários decididos pela frente e, em caso de empate, pela distância de aglomeração, e a geração seguinte é formada pelas melhores frentes da união de pais e filhos, com a última completada em ordem decrescente de aglomeração.
 
@@ -561,7 +561,7 @@ O NSGA-II \cite{deb2002nsga} minimiza o vetor da \autoref{eq: aptidao_vetorial} 
     \source
 \end{algoritmo}
 
-\textbf{Representantes da fronteira.} Uma execução do NSGA-II devolve uma fronteira, e não um elenco. Para comparar essa saída com a do AG escalar e para inspecioná-la, extraem-se cinco representantes da primeira frente final $\mathcal{F}$:
+\textbf{Representantes da fronteira.} Como uma execução do NSGA-II devolve uma fronteira, e não um elenco, extraem-se da primeira frente final $\mathcal{F}$ cinco representantes, que permitem comparar essa saída com a do AG escalar e inspecioná-la:
 \begin{itemize}
     \item \textit{best\_dominance} e \textit{best\_drift}: os extremos da fronteira, de menor $\Pdom$ e de menor $\Pdrift$;
     \item \textit{knee\_point}: o ponto de maior distância perpendicular à reta que liga os dois extremos, onde o compromisso entre os objetivos muda de forma mais brusca;
@@ -570,19 +570,19 @@ O NSGA-II \cite{deb2002nsga} minimiza o vetor da \autoref{eq: aptidao_vetorial} 
 \end{itemize}
 O joelho e o ideal são calculados com os objetivos normalizados pela amplitude da fronteira, porque, em unidades brutas, a escala de $\Pdom$, que chega a 2, decidiria a geometria diante da de $\Pdrift$, da ordem de décimos; a normalização alterou o ponto ideal em 19 de 20 fronteiras da bateria. O \textit{scalar\_optimum} é o único ponto em que o NSGA-II lê os pesos $\lambda$, e apenas para fins de relatório, já que a fronteira em si não depende deles. Esse representante sustenta a comparação principal com o AG escalar e foi escolhido antes da bateria por responder à mesma pergunta que o AG escalar responde. O extremo \textit{best\_dominance}, que perde em identidade por construção e mediria mais a escolha do ponto do que o algoritmo, serve de comparação secundária.
 
-\section{Híbrido NSGA-II e algoritmo escalar}
+\section{Híbrido NSGA-II e AG escalar}
 \label{sec: hibrido}
 
-O terceiro algoritmo encadeia os dois anteriores dentro de um único orçamento. O NSGA-II executa a primeira metade das gerações (75), e a fronteira final dessa fase é entregue integralmente à população inicial do AG escalar, que a completa com elencos sorteados e executa as 75 gerações restantes. Assim como o AG escalar, o híbrido devolve um único elenco.
+O terceiro algoritmo encadeia os dois anteriores dentro de um único orçamento. O NSGA-II executa a primeira metade das gerações (75), e a fronteira final dessa fase é entregue integralmente à população inicial do AG escalar, que a completa com elencos sorteados e executa as 75 gerações restantes. Em nenhuma das fases o elenco canônico é inserido na população, de modo que o híbrido, como o NSGA-II, parte de elencos inteiramente sorteados; ao fim, como o AG escalar, devolve um único elenco.
 
 A motivação é uma fraqueza da soma escalar, discutida com os dados na \autoref{sec: disc_ruido}. Ao somar um termo exato, $\Pdrift$, a um termo amostrado, $\Pdom$, a seleção elimina cedo os elencos próximos do canônico, ainda muito desequilibrados, e, depois de atingido o equilíbrio, passa a escolher entre elencos que diferem sobretudo pela sorte na avaliação. No NSGA-II, $\Pdrift$ é um objetivo separado e sem ruído, e o elenco de menor desvio permanece protegido na primeira frente, com distância de aglomeração infinita. O híbrido explora essa \textit{multiobjetivização} \cite{knowles2001reducing}: a fase de Pareto preserva as linhagens fiéis ao canônico enquanto o equilíbrio é procurado, e a fase escalar refina o equilíbrio a partir de uma população que já tem desvio baixo.
 
-A comparação com os demais algoritmos é justa porque o orçamento em gerações é o mesmo e a fase escalar dá continuidade à rotação de \textit{streams} a partir do ponto em que a fase de Pareto parou. A geração de convergência é contada na escala da execução inteira: convergir na geração 3 da fase escalar equivale a convergir na geração 78. A fração do orçamento dedicada à fase de Pareto (0,5) e a entrega da fronteira inteira foram escolhidas por um critério definido antes da observação dos resultados e aplicado a uma varredura em orçamento reduzido, na qual nenhuma configuração passou no filtro de equilíbrio. A escolha recaiu, então, sobre a regra de desempate por simplicidade, e a afirmação de que ``0,5 é a melhor repartição'' não foi medida (\autoref{sec: calibracao}).
+A comparação com os demais algoritmos é justa porque o orçamento em gerações é o mesmo e a fase escalar dá continuidade à rotação de \textit{streams} a partir do ponto em que a fase de Pareto parou. A geração de convergência é contada na escala da execução inteira: convergir na geração 3 da fase escalar equivale a convergir na geração 78. A fração do orçamento dedicada à fase de Pareto (0,5) e a entrega da fronteira inteira foram escolhidas por um critério definido antes da observação dos resultados e aplicado a uma varredura em orçamento reduzido, na qual nenhuma configuração passou no filtro de equilíbrio. Prevaleceu, então, a regra de desempate pela configuração mais simples, razão pela qual a afirmação de que ``0,5 é a melhor repartição'' não foi medida (\autoref{sec: calibracao}).
 
 \section{Parâmetros}
 \label{sec: parametros}
 
-A \autoref{tab: parametros} reúne os parâmetros do sistema. A última coluna indica o que sustenta cada valor: \textbf{medido}, escolhido ou confirmado por experimento; \textbf{domínio}, ancorado numa convenção externa ao sistema; \textbf{coerência}, derivado de outro valor ou de uma exigência do modelo; ou \textbf{projeto}, valor que nenhum experimento escolheu. Distinguir os valores medidos dos que resultam de escolha faz parte do resultado, pois um trabalho que chamasse todo número de ``calibrado'' mereceria menos confiança.
+A \autoref{tab: parametros} reúne os parâmetros do sistema, e sua última coluna indica o que sustenta cada valor: \textbf{medido}, escolhido ou confirmado por experimento; \textbf{domínio}, ancorado numa convenção externa ao sistema; \textbf{coerência}, derivado de outro valor ou de uma exigência do modelo; ou \textbf{projeto}, valor que nenhum experimento escolheu. Distinguir os valores medidos dos que resultam de escolha faz parte do resultado, pois um trabalho que chamasse todo número de ``calibrado'' mereceria menos confiança.
 
 \begin{table}[htbp]
     \caption{Parâmetros do sistema e tipo de sustentação de cada valor.}
@@ -623,7 +623,7 @@ A \autoref{tab: parametros} reúne os parâmetros do sistema. A última coluna i
     \source
 \end{table}
 
-Três dos valores de projeto têm consequências que o trabalho mede diretamente. O orçamento de 300 elencos por 150 gerações não foi calibrado, mas o AG escalar convergiu entre as gerações \convGerMinAG{} e \convGerMaxAG{} nas 20 execuções da bateria, bem antes do limite. Os parâmetros de combate não calibrados (o campo, a distância inicial e o multiplicador da guarda), junto com a persistência da intenção, são exatamente os que a validação externa perturba, de modo que a dependência do resultado em relação a eles é medida, e não suposta (\autoref{sec: validacao_externa}). Já o desvio da mutação dos pesos comportamentais, quatro vezes menor que o dos atributos, condiciona o grau em que a busca preserva a política dos personagens (\autoref{sec: disc_politica}).
+Três dos valores de projeto têm consequências que o trabalho mede diretamente. O orçamento de 300 elencos por 150 gerações não foi calibrado, mas o AG escalar convergiu entre as gerações \convGerMinAG{} e \convGerMaxAG{} nas 20 execuções da bateria, bem antes do limite, e o híbrido, cuja fase escalar só começa na geração 75, também convergiu em todas elas. Os parâmetros de combate não calibrados (o campo, a distância inicial e o multiplicador da guarda), junto com a persistência da intenção, são exatamente os que a validação externa perturba, de modo que a dependência do resultado em relação a eles é medida, e não suposta (\autoref{sec: validacao_externa}). Já o desvio da mutação dos pesos comportamentais, quatro vezes menor que o dos atributos, condiciona o grau em que a busca preserva a política dos personagens (\autoref{sec: disc_politica}).
 
 \section{Implementação}
 \label{sec: implementacao}

@@ -3,11 +3,11 @@
 
 Este trabalho investigou se um algoritmo genético é capaz de equilibrar competitivamente cinco arquétipos de um jogo de luta sem destruir suas identidades funcionais. Para responder à pergunta, construiu-se um modelo de combate em que cada característica dos personagens tem efeito mensurável e formulou-se uma função de aptidão que contém o que cada arquétipo é, mas não quem deve vencer quem. Sobre essa base, compararam-se um algoritmo genético escalar, o NSGA-II e um híbrido dos dois, segundo um protocolo com modelos nulos, controles e validação fora do laço de otimização.
 
-A resposta é afirmativa, com uma ressalva. O AG escalar converge para o equilíbrio em todas as execuções e termina equilibrado em \equilAG{} de 20, com elencos próximos da simetria perfeita, e o elenco submetido à validação externa replica o equilíbrio fora do laço de otimização. A identidade funcional sobrevive apenas em parte, mas a parte que sobrevive é atribuível ao termo de identidade: sem ele, a busca não obtém ganho significativo de equilíbrio e produz personagens cuja identidade não se distingue da de elencos sorteados. Até o peso adotado, identidade e equilíbrio não se mostraram antagônicos. Além disso, a identidade que o AG escalar entrega não é a máxima compatível com o equilíbrio: com o mesmo orçamento, o híbrido aproxima-se da identidade do NSGA-II mantendo o equilíbrio do AG escalar, e a concordância comportamental com os arquétipos quase dobra.
+A resposta é afirmativa, com uma ressalva quanto à extensão da identidade preservada. O AG escalar converge para o equilíbrio em todas as execuções e termina equilibrado em \equilAG{} de 20, com elencos próximos da simetria perfeita, e o elenco submetido à validação externa replica o equilíbrio fora do laço de otimização. A identidade funcional sobrevive apenas em parte, mas a parte que sobrevive é atribuível ao termo de identidade, pois, sem ele, a busca não obtém ganho significativo de equilíbrio e produz personagens cuja identidade não se distingue da de elencos sorteados; até o peso adotado, portanto, identidade e equilíbrio não se mostraram antagônicos. Além disso, a identidade que o AG escalar entrega não é a máxima compatível com o equilíbrio, já que, com o mesmo orçamento, o híbrido aproxima-se da identidade do NSGA-II mantendo o equilíbrio do AG escalar, e a concordância comportamental com os arquétipos quase dobra.
 
 \section{Contribuições}
 
-O trabalho oferece cinco contribuições.
+As contribuições do trabalho são cinco, duas de formulação e evidência, duas sobre o comportamento da busca e uma de método.
 
 \begin{enumerate}
     \item \textbf{Uma formulação não circular do balanceamento com preservação de identidade.} A separação entre premissa e resposta permite incluir a identidade na busca sem codificar o resultado que se pretende observar: a identidade estrutural entra como penalidade, que, como mostram os resultados, pode perder a disputa com o equilíbrio, e a funcional é medida por métricas comportamentais às quais a busca não tem acesso.
@@ -19,11 +19,11 @@ O trabalho oferece cinco contribuições.
 
 \section{Trabalhos futuros}
 
-As limitações discutidas na \autoref{sec: limitacoes} apontam as seguintes direções.
+As limitações discutidas na \autoref{sec: limitacoes} apontam as direções de pesquisa a seguir.
 
 \textbf{Testar o equilíbrio contra oponentes que se adaptam.} Coevoluir estratégias que procurem explorar o elenco evoluído \cite{leigh2008coevolution} permitiria verificar se o equilíbrio resiste a quem o ataca, e não apenas a sorteios.
 
-\textbf{Dar à política o passo que a identidade exige.} Um passo maior nos pesos comportamentais, calibrado em relação ao ruído da avaliação, é a alternativa mais direta para preservar a política; inicializar a população em torno dos perfis canônicos é outra. O protocolo deste trabalho já permite medir o efeito de ambas.
+\textbf{Dar à política o passo que a identidade exige.} Um passo maior nos pesos comportamentais, calibrado em relação ao ruído da avaliação, é a alternativa mais direta para preservar a política, e inicializar a população em torno dos perfis canônicos é outra; o protocolo deste trabalho já permite medir o efeito de ambas.
 
 \textbf{Políticas dependentes do estado.} Uma política sensível à distância, aos pontos de vida e ao estado do oponente permitiria representar planos em vez de meras misturas de posturas, aproximando os arquétipos modelados dos de jogos reais.
 
@@ -31,4 +31,4 @@ As limitações discutidas na \autoref{sec: limitacoes} apontam as seguintes dir
 
 \textbf{Explorar a diversidade de elencos equilibrados.} Em vez de procurar um único elenco, métodos de qualidade e diversidade \cite{mouret2015mapelites} poderiam revelar quantas configurações distintas atingem o equilíbrio, usando o perfil comportamental como espaço de características.
 
-\textbf{Calibrar o híbrido.} Uma varredura no orçamento completo indicaria qual repartição entre as fases do híbrido, hoje escolhida por simplicidade, melhor concilia identidade, equilíbrio e velocidade de convergência.
+\textbf{Calibrar e validar o híbrido.} Uma varredura no orçamento completo indicaria qual repartição entre as fases do híbrido, hoje escolhida por simplicidade, melhor concilia identidade, equilíbrio e velocidade de convergência, e submeter seus elencos à validação externa e ao teste do ciclo autoral completaria, para ele, os instrumentos aplicados ao AG escalar.
