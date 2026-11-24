@@ -19,7 +19,7 @@ O elenco canônico é tão desequilibrado quanto o projeto pretendia (\autoref{f
 A \autoref{tab: referencias} reúne as métricas do canônico e dos modelos nulos, das quais três leituras orientam o restante do capítulo. Em primeiro lugar, o acaso já produz identidade aparente: um elenco sorteado satisfaz em média 5,4 das 18 asserções estruturais e 1,0 das 5 comportamentais, e o melhor dos 30 chega a 9 e a 3. Em segundo lugar, o piso da concordância $\tau$ é zero, mas com dispersão larga, e o melhor nulo atinge \nuloTauMelhor{}. Em terceiro, nem a simetria perfeita tem $\Pdom$ nulo: os espelhos atingem $\Pdom$ médio de \nuloDomEspelho{}, mas essa média mistura dois fenômenos, já que o espelho do \textit{Zoner} vale \nuloDomEspelhoZoner{}, dos quais \nuloDomEspelhoZonerDecis{} provêm do piso de decisividade, porque suas lutas são apertadas demais, e não desequilibradas; os outros quatro espelhos variam de \nuloDomEspelhosOutros{}. O termo global médio dos espelhos, \nuloGlobEspelho{}, é o que o ruído de medição produz num elenco perfeitamente simétrico, e é em relação a ele, e não a zero, que se deve ler o equilíbrio global de um elenco evoluído.
 
 \begin{table}[htb]
-    \caption[Métricas do elenco canônico e dos modelos nulos]{Métricas do elenco canônico e dos modelos nulos (1000 lutas por par para $\Pdom$; 200 para as métricas comportamentais). Na última linha, o melhor dos 30 elencos aleatórios em cada coluna, que não é necessariamente o mesmo elenco.}
+    \caption[Métricas do elenco canônico e dos modelos nulos]{Métricas do elenco canônico e dos modelos nulos (1000 lutas por par para $\Pdom$; 200 para as métricas comportamentais). Cam. 1-2 e Cam. 3 são as asserções satisfeitas nas camadas do validador. Na última linha, o melhor dos 30 elencos aleatórios em cada coluna, que não é necessariamente o mesmo elenco.}
     \label{tab: referencias}
     \centering
     \small
@@ -283,7 +283,7 @@ A \autoref{fig: fronteira} sobrepõe as 20 fronteiras finais do NSGA-II e os ele
 Entre os cinco representantes de cada fronteira (\autoref{tab: representantes}), os três pontos geométricos, isto é, o extremo de identidade, o joelho e o ideal, preservam quase toda a identidade, com Camada 3 em 5 de 5 e $\tau$ de 0,70 a 0,80, mas nenhum deles termina equilibrado em nenhuma execução. Os pontos relevantes para a pergunta de pesquisa estão, portanto, na ponta de equilíbrio da fronteira, onde se situam o \textit{scalar\_optimum} e o \textit{best\_dominance}.
 
 \begin{table}[htb]
-    \caption[Representantes das fronteiras do NSGA-II]{Representantes das fronteiras do NSGA-II, reavaliados: medianas das 20 execuções; \textit{hard counters} em média por execução.}
+    \caption[Representantes das fronteiras do NSGA-II]{Representantes das fronteiras do NSGA-II, reavaliados: medianas das 20 execuções, exceto \textit{hard counters} (\textit{H.\,c.}), em média por execução, e elencos equilibrados (Equil.), em contagem; Cam. 1-2 e Cam. 3 são as asserções satisfeitas nas camadas do validador.}
     \label{tab: representantes}
     \centering
     \small

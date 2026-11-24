@@ -235,7 +235,16 @@ resumo (T8) e o `knee_point` na validação externa.
 - λ = 0: a contagem de elencos equilibrados (19 contra 16) aponta no sentido oposto ao do
   `dominance`; dito explicitamente, reforçando "não custou equilíbrio mensurável".
 - "Corrobora a não circularidade" → "é coerente com" (a não circularidade é por
-  construção); "multiobjetivização" → "efeito análogo" (os objetivos são os mesmos).
+  construção). "Multiobjetivização" fica sem ressalva na Discussão: o híbrido separa em
+  objetivos os dois termos que a soma juntava, que é a definição do Referencial
+  (subseção "Escalarização e suas limitações", Knowles et al.) e o uso da Metodologia (`sec: hibrido`).
+- Jargão: frase de status no início do Referencial (*metagame*, *counter* e os nomes dos
+  arquétipos vêm da prática competitiva e são definidos no primeiro uso); *round-robin*
+  definido na Visão geral da Metodologia, antes da figura; "Cam. 1-2", "Cam. 3", "H. c." e
+  "Equil." explicados nas legendas de `tab: referencias` e `tab: representantes`; "defesa
+  atritiva" → "defesa por desgaste" no quadro do ciclo.
+- *Fitness* e *crossover*: mantidos "aptidão" e "cruzamento", com o inglês só na definição
+  do Referencial, por decisão do autor depois de comentário da banca na apresentação.
 - "Função objetivo" → "função de aptidão"; "posição de 100%" → "próxima de 100%" (99,8%);
   "vinte vezes" → "mais de vinte vezes" (23×); "afirmação mais estrita" → "mais
   conservadora".
