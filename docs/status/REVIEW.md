@@ -151,3 +151,31 @@ reenumerar valores que já estão nas tabelas; os números que o argumento usa f
 Cinco macros de `valores.tex` deixaram de ser citadas no texto corrido (`LtresLzero`,
 `LtresNSGA`, `LumdoisHib`, `LumdoisLzero`, `LumdoisNSGA`); os valores seguem nas tabelas de
 controles e de comparações.
+
+### 2.5 Passada de coesão de 2026-11-23
+
+Pedida pelo autor depois de reler o resumo: repetição lexical alta e coesão fraca entre
+frases curtas. Nenhum número, resultado, citação, rótulo ou referência cruzada mudou, e as
+tabelas, figuras, equações e algoritmos são idênticos ao commit anterior (verificado por
+script contra o `HEAD`); só o texto do quadro de síntese da Discussão foi revisado. As
+decisões de redação das §2.2 a 2.4 foram mantidas ("próximo da simetria", "não custou
+equilíbrio mensurável", "fora do laço de otimização", "aproxima-se da identidade do
+NSGA-II", "mostra" no resumo e "consistente com" para o mecanismo).
+
+**O que mudou.**
+- Nome único para o algoritmo principal: "AG escalar", definido na Visão geral da
+  Metodologia ("algoritmo escalar" de 82 para 14 ocorrências, restritas ao resumo, às
+  legendas e às QPs).
+- Verbos genéricos trocados pelo verbo preciso ("ficar" de 48 para 17, "dar" de 25 para 15)
+  e metáforas coloquiais retiradas ("pago para", "a busca enxerga"); a subseção
+  `sub: res_sensibilidade` passou a se chamar "Sensibilidade da busca aos genes".
+- Frases encadeadas por "e" viraram subordinação com o conectivo da relação lógica;
+  enumerações ganharam marcadores ("Em primeiro lugar", "A primeira... A segunda").
+- Resumo reorganizado em contexto, objetivo, método, resultados e conclusão, com a anáfora
+  do controle explícita e sem repetir "identidade" e "sob avaliação ruidosa" nas duas
+  últimas frases.
+- `protocolo.tex` (Análise estatística): a recomendação de teste e correção passou a ser
+  atribuída a Derrac et al. e a de tamanho de efeito a Arcuri e Briand, como T6 já exigia
+  no Referencial.
+- "X, e não Y" mantido nas ocorrências que carregam a afirmação; onde a passada o tinha
+  introduzido, voltou "em vez de".
