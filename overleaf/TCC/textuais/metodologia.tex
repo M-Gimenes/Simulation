@@ -56,7 +56,7 @@ Os perfis canônicos dos arquétipos desempenham dois papéis no sistema, como m
     \source
 \end{figure}
 
-Três algoritmos operam sobre essa arquitetura: um algoritmo genético escalar (AG escalar), que soma os dois objetivos com pesos (\autoref{sec: ag_escalar}); o NSGA-II, que os trata separadamente e devolve uma fronteira de Pareto (\autoref{sec: nsga2_metodo}); e um híbrido, que executa os dois em sequência dentro do mesmo orçamento (\autoref{sec: hibrido}). Os três compartilham a representação, o combate, a avaliação e os operadores de variação.
+Três algoritmos operam sobre essa arquitetura e perseguem os mesmos dois objetivos, representados na \autoref{fig: arquitetura} e definidos na \autoref{sec: aptidao}: preservar a identidade estrutural dos arquétipos, cuja perda é medida pela penalidade de desvio $\Pdrift$, e equilibrar o elenco, cujo desequilíbrio é medido pela penalidade de dominância $\Pdom$. O algoritmo genético escalar (AG escalar) soma as duas penalidades com pesos (\autoref{sec: ag_escalar}); o NSGA-II as trata separadamente e devolve uma fronteira de Pareto (\autoref{sec: nsga2_metodo}); e o híbrido executa os dois em sequência dentro do mesmo orçamento (\autoref{sec: hibrido}). Os três compartilham a representação, o combate, a avaliação e os operadores de variação.
 
 \section{Representação dos arquétipos}
 \label{sec: representacao}
@@ -424,7 +424,7 @@ de modo que, dentro da faixa $[0{,}35;\, 0{,}65]$, uma aresta do ciclo pode exis
 A tolerância foi ancorada na convenção do gênero, em que as tabelas de confrontos são escritas como pares de inteiros que somam 10 (5-5, 6-4, 7-3, 8-2), o que corresponde a $|p - 1/2|$ de 0; 0,10; 0,20 e 0,30. Na leitura corrente da comunidade, 6-4 é uma vantagem saudável e 7-3 já configura um \textit{counter}. Assim, $\kappa$ precisa admitir 0,10 e barrar 0,20 sem coincidir com um ponto da grade, onde o ruído binomial reprovaria um valor legítimo em metade das avaliações. Entre os candidatos da \autoref{tab: cap}, apenas $\kappa = 0{,}15$, ponto médio entre 6-4 e 7-3, erra pouco nos dois sentidos com 150 lutas.
 
 \begin{table}[htb]
-    \caption[Tolerância de \textit{hard counter} e erros de classificação]{Tolerância $\kappa$ de \textit{hard counter} e erros de classificação sob ruído binomial (150 lutas por par).}
+    \caption[Tolerância de \textit{hard counter} e erros de classificação]{Tolerância $\kappa$ de \textit{hard counter} e erros de classificação sob ruído binomial (150 lutas por par). A terceira coluna é a frequência de falso alarme, com que uma vantagem saudável (6-4) é acusada como \textit{hard counter}, e deve ser baixa; a quarta é a frequência com que um \textit{counter} (7-3) é detectado, e deve ser alta.}
     \label{tab: cap}
     \centering
     \small
@@ -466,7 +466,7 @@ e o NSGA-II minimiza o vetor
     \label{eq: aptidao_vetorial}
     \mathbf{f}(\mathbf{x}) = \left( \Pdom(\mathbf{x}),\, \Pdrift(\mathbf{x}) \right)
 \end{equation}
-sem ponderação alguma. Como as duas formulações usam os mesmos termos, a comparação entre os algoritmos não confunde método de busca com objetivo. Na \autoref{eq: aptidao_escalar}, por sua vez, apenas a razão $\lambda_{\mathrm{drift}}/\lambda_{\mathrm{dom}}$ importa, porque a seleção por torneio é ordinal. O valor 1 resultou de uma varredura dessa razão (\autoref{sec: calibracao}) e corresponde ao joelho da curva: até ele, o equilíbrio permanece praticamente constante enquanto a identidade melhora; acima dele, o equilíbrio se degrada rapidamente.
+sem ponderação alguma. Como as duas formulações usam os mesmos termos, a comparação entre os algoritmos não confunde método de busca com objetivo. Na \autoref{eq: aptidao_escalar}, por sua vez, apenas a razão $\lambda_{\mathrm{drift}}/\lambda_{\mathrm{dom}}$ importa, porque a seleção por torneio é ordinal. O valor 1 foi testado por uma varredura dessa razão (\autoref{sec: calibracao}) e corresponde ao joelho da curva: até ele, o equilíbrio permanece praticamente constante enquanto a identidade melhora; acima dele, o equilíbrio se degrada rapidamente.
 
 \section{Avaliação sob ruído}
 \label{sec: ruido}
@@ -582,7 +582,7 @@ A comparação com os demais algoritmos é justa porque o orçamento em geraçõ
 \section{Parâmetros}
 \label{sec: parametros}
 
-A \autoref{tab: parametros} reúne os parâmetros do sistema, e sua última coluna indica o que sustenta cada valor: \textbf{medido}, escolhido ou confirmado por experimento; \textbf{domínio}, ancorado numa convenção externa ao sistema; \textbf{coerência}, derivado de outro valor ou de uma exigência do modelo; ou \textbf{projeto}, valor que nenhum experimento escolheu. Distinguir os valores medidos dos que resultam de escolha faz parte do resultado, pois um trabalho que chamasse todo número de ``calibrado'' mereceria menos confiança.
+A \autoref{tab: parametros} reúne os parâmetros do sistema, e sua última coluna indica o que sustenta cada valor: \textbf{medido}, escolhido ou confirmado por experimento; \textbf{domínio}, ancorado numa convenção externa ao sistema; \textbf{coerência}, derivado de outro valor ou de uma exigência do modelo; ou \textbf{projeto}, valor que nenhum experimento escolheu.
 
 \begin{table}[htbp]
     \caption{Parâmetros do sistema e tipo de sustentação de cada valor.}

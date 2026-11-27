@@ -257,3 +257,24 @@ pontos; "isto é" mantido no número da passada anterior; títulos em negrito de
 (termos da aptidão, limitações, trabalhos futuros) preservados como recurso de
 organização. Verificado por script: rótulos referenciados existem, macros usadas existem,
 chaves e `$` balanceados, sem caracteres de controle. **Não compilado** nesta passada.
+
+### 2.7 Correções pontuais de 2026-11-27
+
+Pedidas pelo autor. Nenhum número, resultado ou tabela mudou, só a legenda da tabela de
+κ (`tab: cap`).
+- Visão geral (`metodologia.tex`): "soma os dois objetivos" não dizia quais; agora os dois
+  objetivos (identidade estrutural, $P_{drift}$; equilíbrio, $P_{dom}$) são nomeados antes
+  da lista dos três algoritmos.
+- `tab: cap`: a legenda diz que a coluna do 6-4 é falso alarme (deve ser baixa) e a do 7-3,
+  detecção (deve ser alta).
+- Abertura de `sec: parametros`: saiu a frase sobre "um trabalho que chamasse todo número
+  de calibrado".
+- Calibração (`protocolo.tex`): o procedimento ficou explícito — os quatro valores já
+  existiam, cada varredura altera um parâmetro por vez, o critério é a dominância, nenhum
+  valor mudou, sementes disjuntas da bateria. "Escolhidos por varreduras" → "submetidos a
+  varreduras"; em `sub: formulacoes`, "o valor 1 resultou de uma varredura" → "foi testado
+  por". É o que `docs/thesis/04` registra ("O sweep não foi busca por um valor novo, foi
+  teste do valor vigente").
+- Limitações: "Vários parâmetros" → "Alguns parâmetros".
+
+**Não compilado** (sem LaTeX na máquina); rótulos, chaves e `$` conferidos por script.
